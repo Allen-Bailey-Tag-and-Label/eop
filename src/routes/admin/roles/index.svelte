@@ -66,6 +66,7 @@
 
   // props ( external )
   export let columns = [
+    {title:'Group', key:'group'},
     {title:'Name', key:'name'},
     {title:'Route', key:'href'},
   ];
@@ -93,10 +94,6 @@
     loaded = true;
   })
 </script>
-
-<svelte:head>
-  <title>Roles - Admin - Employee Online Portal - Allen Bailey Tag & Label</title>
-</svelte:head>
 
 <Section class="space-y-[16px]">
   <Card class="items-center space-y-[16px]">
@@ -134,7 +131,7 @@
               <tr id={row._id}>
                 <td class="{cellClasses}"><Checkbox bind:checked={row.checked} /></td>
                 {#each columns as {key}}
-                  <td class="{cellClasses}">{row[key]}</td>
+                  <td class="{cellClasses}">{key in row ? row[key] : ''}</td>
                 {/each}
               </tr>
             {/each}

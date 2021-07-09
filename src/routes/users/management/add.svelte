@@ -2,6 +2,7 @@
   // _imports
   import { serverFetch } from '$lib/_helpers.js';
   import { onMount } from 'svelte'
+  import columns from './_columns';
   
   // components
   import { Button, Buttons, Card, Input, Section, Select, Spinner } from '$components';
@@ -26,12 +27,12 @@
   }
 
   // props ( internal )
-  let body = {
-    firstName : { label: 'First Name', value: ''},
-    lastName : { label: 'Last Name', value: ''},
-    email : { label: 'Email', value: ''},
-    roles : { placeholder: 'Select Role(s)', type: 'select', value: [] }
-  }
+  let body = columns.reduce((obj, column) => {
+    obj[column.key] = { label: column.title, value: ''}
+    if ( 'placeholder' in column ) obj[column.key].placeholder = column.placeholder;
+    if ( 'type' in column ) obj[column.key].type = column.type;
+    return obj;
+  }, {})
   let loaded = false;
   let roles = [];
 
@@ -43,10 +44,6 @@
     loaded = true;
   });
 </script>
-
-<svelte:head>
-  <title>Add - Manage - Users - Employee Online Portal - Allen Bailey Tag & Label</title>
-</svelte:head>
 
 <Section>
   <div class="flex">

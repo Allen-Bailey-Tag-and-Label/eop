@@ -29,10 +29,6 @@
   import modal from '$components/Modal/store';
 </script>
 
-<svelte:head>
-  <title>Add - Routes - Admin - Employee Online Portal - Allen Bailey Tag & Label</title>
-</svelte:head>
-
 <Section>
   <div class="flex">
     <Buttons.Back />
