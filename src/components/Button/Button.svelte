@@ -21,7 +21,8 @@
   $: if ( type === 'icon' ) {
     padding = 'p-[11px]'
   }
-  $: themeClasses = theme === 'default' ? 'bg-primary-500 ring-primary-500 text-gray-900 hover:bg-primary-600' : 
+  $: themeClasses = theme === 'default' ? 'bg-primary-500 ring-primary-500 text-gray-900 hover:bg-primary-600' :
+                    theme === 'secondary' ? 'bg-purple-500 ring-purple-500 text-gray-900 hover:bg-purple-600' :
                     theme === 'error' ? 'bg-red-500 ring-red-500 text-gray-900 hover:bg-red-600' : 
                     theme === 'success' ? 'bg-green-500 ring-green-500 text-gray-900 hover:bg-green-600' : '';
   $: classes = `${bgOpacity} ${boxShadow} ${fontWeight} ${outline} ${padding} ${ring} ${rounded} ${textAlign} ${textColor} ${textSize} ${themeClasses} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
