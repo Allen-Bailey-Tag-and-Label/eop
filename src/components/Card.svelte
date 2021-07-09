@@ -1,19 +1,21 @@
 <script>
   // props ( external )
-  export let bg       = 'bg-transparent'
-  export let flex     = 'flex flex-col';
-  export let padding  = 'p-[20px]'
-  export let position = 'relative';
-  export let ring     = 'ring ring-1';
-  export let rounded  = 'rounded';
-  export let shadow   = '';
   export let theme    = 'default';
 
   // props ( dynamic )
-  $: themeClasses = theme === 'default' ? '' : ''
-  $: classes = `${bg} ${flex} ${padding} ${position} ${ring} ${rounded} ${shadow} ${themeClasses} ${$$props.class !== undefined ? $$props.class :''}`;
+  $: classes = {
+    bg           : 'bg-white bg-opacity-[1%]',
+    filter       : 'backdrop-filter backdrop-blur-md',
+    flex         : 'flex flex-col',
+    padding      : 'p-[20px]',
+    position     : 'relative',
+    ring         : 'ring ring-1 ring-white ring-opacity-[2%] ring-inset',
+    rounded      : 'rounded',
+    shadow       : 'shadow-xl',
+    themeClasses : theme === 'default' ? '' : '',
+  }
 </script>
 
-<div class={classes}>
+<div class={Object.values(classes).join(' ') + ' ' + $$props.class}>
   <slot/>
 </div>

@@ -1,8 +1,8 @@
 {
-  "background_color": "REPLACE_THIS",
-  "theme_color": "REPLACE_THIS",
-  "name": "REPLACE_THIS",
-  "short_name": "REPLACE_THIS",
+  "background_color": "#121319",
+  "theme_color": "#121319",
+  "name": "Employee Online Portal - Allen-Bailey Tag & Label",
+  "short_name": "EOP",
   "display": "standalone",
   "start_url": "./",
   "scope": "./",

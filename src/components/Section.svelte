@@ -1,10 +1,12 @@
 <script>
   // props ( external )
-  export let padding  = 'py-[104px]';
+  export let flex = 'flex flex-col';
+  export let padding  = 'p-[24px]';
   export let position = '';
+  export let width = 'w-full'
 
   // props ( dynamic )
-  $: classes = `${padding} ${position} ${$$props.class !== undefined ? $$props.class : ''}`;
+  $: classes = `${flex} ${padding} ${position} ${width} ${$$props.class !== undefined ? $$props.class : ''}`;
 </script>
 
 <section class={classes}>

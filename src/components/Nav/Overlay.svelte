@@ -4,7 +4,7 @@
   export let show;
 
   // props ( internal )
-  const bg = 'bg-gradient-to-b from-transparent to-black'
+  const bg = 'bg-gradient-to-b from-black to-black'
   const display = 'lg:hidden';
   const height = 'h-screen'
   const left = 'left-0'

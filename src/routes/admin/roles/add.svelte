@@ -1,0 +1,40 @@
+<script>
+  // _imports
+  import { serverFetch } from '$lib/_helpers.js';
+  
+  // components
+  import { Button, Buttons, Input, Section } from '$components';
+
+  // handler
+  const submitHandler = async () => {
+    modal.spinner.show();
+    const data = await serverFetch('/api/datatable/routes?name=Dashboard');
+    await serverFetch({method:'POST', href:'/api/datatable/roles', body: {name: body.name, routes:data.rows}})
+    modal.spinner.hide();
+    modal.success.show(`Successfully added role "${body.name}"`)
+  }
+
+  // props ( internal )
+  let body = {
+    name : ''
+  }
+
+  // stores
+  import modal from '$components/Modal/store';
+</script>
+
+<svelte:head>
+  <title>Add - Roles - Admin - Employee Online Portal - Allen Bailey Tag & Label</title>
+</svelte:head>
+
+<Section>
+  <div class="flex">
+    <Buttons.Back />
+  </div>
+  <form on:submit|preventDefault={submitHandler} class="flex flex-col mt-[24px] space-y-[16px]">
+    {#each Object.keys(body) as key}
+      <Input placeholder={key} bind:value={body[key]} />
+    {/each}
+    <Button type="submit">Add</Button>
+  </form>
+</Section>
