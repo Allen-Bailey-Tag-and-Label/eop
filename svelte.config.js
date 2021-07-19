@@ -1,6 +1,11 @@
-import adapter from '@sveltejs/adapter-static';
+import adapter from '@sveltejs/adapter-node';
+// import adapter from '@sveltejs/adapter-static';
+import fs from 'fs';
 import path from 'path';
 import preprocess from 'svelte-preprocess';
+
+const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf8'));
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   preprocess: [
@@ -25,6 +30,9 @@ const config = {
           $stores: path.resolve('./src/stores'),
         },
       },
+      ssr:{
+        noExternal: Object.keys(pkg.dependencies || {}),
+      }
     },
   },
 };

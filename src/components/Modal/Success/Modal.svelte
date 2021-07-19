@@ -15,7 +15,7 @@
     <Card class="max-w-[375px] transition duration-200 {$store.show?'opacity-100 pointer-events-auto':'opacity-0 pointer-events-none'}">
       <div class="flex flex-col items-center space-y-[32px]">
         <Icon src={ThumbUp} class="w-[80px] h-[80px] text-green-500" />
-        <div>{$store.message}</div>
+        <div>{@html $store.message}</div>
         <Button theme="success" on:click={()=>store.hide()}>Close</Button>
       </div>
     </Card>

@@ -1,6 +1,7 @@
 import { connect } from '$lib/db';
 import jwt from 'jsonwebtoken'
-import { ObjectId } from 'mongodb'
+import mongodb from 'mongodb';
+const { ObjectId } = mongodb;
 
 export async function post({body}) {
   // connect to db

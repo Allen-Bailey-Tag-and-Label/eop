@@ -8,7 +8,7 @@
   // props ( internal )
   const datatable = {
     collection: 'users',
-    columns,
+    columns : [...columns].filter(column=>column.key!=='roles'),
     deleteModalFN : row => `"${row.firstName} ${row.lastName}"`,
     editable: false,
     sort : {

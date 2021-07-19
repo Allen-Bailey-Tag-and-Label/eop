@@ -3,6 +3,7 @@
   import MultiSelect from 'svelte-multiselect/MultiSelect.svelte'
 
   // props ( external )
+  export let label = '';
   export let options = [];
   export let multiple = false;
   export let placeholder = '';
@@ -12,6 +13,7 @@
   export let backgroundColor = 'bg-transparent';
   export let boxShadow       = '';
   export let cursor          = 'cursor-pointer';
+  export let flex            = 'flex-grow'
   export let fontWeight      = 'font-medium';
   export let outline         = 'outline-none focus:outline-none';
   export let padding         = 'px-[11px] py-[11px]'
@@ -26,15 +28,20 @@
   export let whitespace      = 'whitespace-nowrap';
 
   // props ( dynamic )
-  $: classes = `${backgroundColor} ${boxShadow} ${cursor} ${fontWeight} ${outline} ${padding} ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
+  $: classes = `${backgroundColor} ${boxShadow} ${cursor} ${flex} ${fontWeight} ${outline} ${padding} ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
 </script>
 
-{#if multiple}
-  <MultiSelect bind:selected={value} {options} {placeholder} --sms-options-bg="var(#f00, white)"  />
-{:else}
-  <select class={classes} bind:value on:change {style}>
-    {#each options as option}}
-      <option value={option.value}>{option.label}</option>
-    {/each}
-  </select>
-{/if}
+<div class="{label !== '' ? 'pt-[32px] relative flex' : ''}">
+  {#if multiple}
+    <MultiSelect bind:selected={value} {options} {placeholder} outerDivClass="peer p-[11px] flex-grow m-0" --sms-options-bg="var(#f00, white)"  />
+  {:else}
+    <select class="peer {classes}" bind:value on:change {style}>
+      {#each options as option}}
+        <option value={option.value}>{option.label}</option>
+      {/each}
+    </select>
+  {/if}
+  {#if label !== ''}
+    <label for={name} class="absolute left-0 transform translate-y-[-40px] pointer-events-none opacity-[1] scale-[.9] origin-top-left px-[0px] py-[11px] {transition} peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-[1] peer-placeholder-shown:px-[22px] peer-placeholder-shown:opacity-[.5]">{label}</label>
+  {/if}
+</div>

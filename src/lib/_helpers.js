@@ -1,3 +1,4 @@
+export const objectToUrlQueryParams = obj => Object.keys(obj).map(key=>`${key}=${obj[key]}`).join('&');
 export const serverFetch = async (params) => {
   let body, href, method;
 

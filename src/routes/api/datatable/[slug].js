@@ -1,22 +1,23 @@
 import { connect } from '$lib/db';
-import { ObjectId } from 'mongodb'
+import mongodb from 'mongodb';
+const { ObjectId } = mongodb;
 
-export async function del({body, params}) {
+export async function del({params, query}) {
   // connect to db
   const client = await connect();
 
   // get collection (slug)
   const { slug : collection } = params;
 
-  // wait for all routes to be deleted
-  await Promise.all(body.map(async _id=>{
+  // sanitize query
+  query = Object.fromEntries(query);
+  if ( '_id' in query ) query._id = ObjectId(query._id);
 
-    // find and delete route
-    await client
-      .db()
-      .collection(collection)
-      .findOneAndDelete({_id: ObjectId(_id)})
-  }))
+  // delete doc
+  await client
+    .db()
+    .collection(collection)
+    .findOneAndDelete(query)
 
   return {
     status: 200,
@@ -43,13 +44,16 @@ export async function get({ params, query }) {
   }
 
   // find rows
-  const rows = await client
+  let rows = await client
     .db()
     .collection(collection)
     .find(query)
     .collation({locale: "en" })
     .sort(sort)
     .toArray()
+  
+  // users case
+  if ( collection === 'users' ) rows = rows.map(row=>{delete row.password; return row})
 
   return {
     status: 200,

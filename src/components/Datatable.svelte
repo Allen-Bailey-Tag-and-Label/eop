@@ -9,7 +9,9 @@
   import * as Buttons from './Button'
   import Card from './Card.svelte'
   import Checkbox from './Checkbox.svelte'
+  import Select from './Select.svelte'
   import Spinner from './Spinner.svelte'
+  import Table from './Table.svelte'
   import Icon, { Pencil, Plus, Trash } from 'svelte-hero-icons';
 
   // handlers
@@ -24,7 +26,10 @@
   }
   const deleteRowHandler = async () => {
     modal.spinner.show();
-    await serverFetch({method:'DELETE', href:`/api/datatable/${collection}`, body:checkedRows.map(row=>row._id)});
+    await Promise.all([checkedRows.map(async ({_id})=>{
+      await serverFetch({method:'DELETE', href:`/api/datatable/${collection}?_id=${_id}`});
+    })])
+    // await serverFetch({method:'DELETE', href:`/api/datatable/${collection}`, body:checkedRows.map(row=>row._id)});
     await getData();
     modal.spinner.hide();
   }
@@ -83,29 +88,35 @@
         </div>
       </div>
     {/if}
-    <div class="overflow-auto w-full scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary-500 scrollbar-track-rounded-full">
-      <table class="w-full">
-        <thead>
-          {#if editable}
-            <th class="{cellClasses} w-[24px]"><Checkbox on:change={checkboxChangeHandler} bind:checked bind:indeterminate /></th>
-          {/if}
-          {#each columns as {title}}
-            <th class="{cellClasses}">{title}</th>
-          {/each}
-        </thead>
-        <tbody>
-          {#each rows as row}
-            <tr id={row._id}>
-              {#if editable}
-                <td class="{cellClasses}"><Checkbox bind:checked={row.checked} /></td>
-              {/if}
-              {#each columns as {key}}
-                <td class="{cellClasses}">{key in row ? row[key] : ''}</td>
-              {/each}
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <thead slot="thead">
+        {#if editable}
+          <th class="{cellClasses} w-[24px]"><Checkbox on:change={checkboxChangeHandler} bind:checked bind:indeterminate /></th>
+        {/if}
+        {#each columns as {title}}
+          <th class="{cellClasses}">{title}</th>
+        {/each}
+      </thead>
+      <tbody slot="tbody">
+        {#each rows as row}
+          <tr id={row._id} class="rounded transition duration-200 bg-white bg-opacity-0 hover:bg-opacity-[2%]">
+            {#if editable}
+              <td class="{cellClasses}"><Checkbox bind:checked={row.checked} /></td>
+            {/if}
+            {#each columns as {key, ...column}}
+              <td class="{cellClasses}">
+                {#if key in row}
+                  {#if 'options' in column}
+                    {column.options.filter(option=>option.value===row[key])[0]?.label ?? ''}
+                  {:else}
+                    {key in row ? row[key] : ''}
+                  {/if}
+                {/if}
+              </td>
+            {/each}
+          </tr>
+        {/each}
+      </tbody>
+    </Table>
   {/if}
 </Card>

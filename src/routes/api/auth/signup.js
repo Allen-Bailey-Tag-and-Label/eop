@@ -1,5 +1,6 @@
 import { connect } from '$lib/db';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export async function post({ body }) {
   // connect to db
@@ -7,30 +8,40 @@ export async function post({ body }) {
 
   // defaults
   const defaults = {
-    active: true,
+    extension: '',
     on: {
       signin: '/dashboard',
     },
     roles: [],
+    status: 'Unverified',
   };
 
   // merge body with defaults
   body = Object.assign(defaults, body);
 
   // destructure body
-  let { email, password, firstName, lastName, on, roles } = body;
+  let { email, extension, password, firstName, lastName, on, roles, status } = body;
 
   // encrypt password
   password = await bcrypt.hash(password, 10);
 
   // insert into database
-  await client
+  const insert = await client
     .db()
     .collection('users')
-    .insertOne({ email, password, firstName, lastName, on, roles });
+    .insertOne({ email, extension, password, firstName, lastName, on, roles, status });
+
+  // get user
+  const user = insert.ops[0]
+
+  // destructure user
+  const { _id } = user;
+
+  // sign accessToken
+  const accessToken = jwt.sign({_id}, import.meta.env.VITE_JWT_SECRET)
 
     return {
       status: 200,
-      body: {}
+      body: { accessToken }
     }
 }

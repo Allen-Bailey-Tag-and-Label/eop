@@ -1,12 +1,18 @@
 <script>
   // props ( external )
+  export let label           = '';
+  export let name            = '';
+  export let placeholder     = '';
+  export let type            = '';
+  export let value           = '';
+
+  // props css ( external )
   export let backgroundColor = 'bg-transparent';
   export let boxShadow       = '';
+  export let flex            = 'flex-grow'
   export let fontWeight      = 'font-medium';
-  export let name            = '';
   export let outline         = 'outline-none focus:outline-none';
   export let padding         = 'px-[22px] py-[11px]'
-  export let placeholder     = '';
   export let ring            = 'ring ring-white ring ring-opacity-0 focus:ring-opacity-10 ring-offset ring-offset-1 ring-offset-gray-400 hover:ring-offset-gray-200 focus:ring-offset-gray-200';
   export let rounded         = 'rounded';
   export let shadow          = '';
@@ -14,21 +20,24 @@
   export let textColor       = '';
   export let textSize        = '';
   export let transition      = 'transition duration-200';
-  export let type            = '';
   export let style           = '';
   export let whitespace      = 'whitespace-nowrap';
-  export let value;
 
   // props ( dynamic )
-  $: classes = `${backgroundColor} ${boxShadow} ${fontWeight} ${outline} ${padding} ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
+  $: classes = `${backgroundColor} ${boxShadow} ${flex} ${fontWeight} ${outline} ${padding} placeholder-transparent ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
 </script>
 
-{#if type === 'email'}
-  <input type="email" {name} bind:value class={classes} {placeholder} style={style !== undefined ? style : ''}/>
-{:else if type === 'number'}
-  <input type="number" {name} bind:value class={classes} {placeholder} style={style !== undefined ? style : ''}/>
-{:else if type === 'password'}
-  <input type="password" {name} bind:value class={classes} {placeholder} style={style !== undefined ? style : ''}/>
-{:else}
-  <input type="text" {name} bind:value class={classes} {placeholder} style={style !== undefined ? style : ''}/>
-{/if}
+<div class="{label !== '' ? 'pt-[32px] relative flex' : ''}">
+  {#if type === 'email'}
+    <input type="email" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+  {:else if type === 'number'}
+    <input type="number" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+  {:else if type === 'password'}
+    <input type="password" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+  {:else}
+    <input type="text" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+  {/if}
+  {#if label !== ''}
+    <label for={name} class="absolute left-0 transform translate-y-[-40px] pointer-events-none opacity-[1] scale-[.9] translate-x-[0] origin-top-left py-[11px] {transition} peer-placeholder-shown:translate-x-[22px] peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-[1] peer-placeholder-shown:opacity-[.5]">{label}</label>
+  {/if}
+</div>

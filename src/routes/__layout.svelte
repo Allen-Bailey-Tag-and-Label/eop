@@ -28,11 +28,16 @@
   export let path;
 
   // props ( dynamic )
+  $: title = '';
   $: title = `${$page.path
     .slice(1)
     .split('/')
     .reverse()
-    .map(word=>word[0].toUpperCase() + word.slice(1))
+    .map(directory=>directory
+      .split('-')
+      .map(word=>word === '' ? '' : word[0].toUpperCase() + word.slice(1))
+      .join(' ')
+    )
     .join(' - ')
   }  - Employee Online Portal - Allen Bailey Tag & Label`
 

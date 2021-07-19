@@ -1,19 +1,17 @@
 <script>
+  // _imports
+  import columns from './_columns';
+
   // components
   import { Datatable, Section } from '$components';
 
   // props ( internal )
   const datatable = {
-    collection : 'routes',
-    columns : [
-      {title:'Group', key:'group'},
-      {title:'Name', key:'name'},
-      {title:'Route', key:'href'},
-    ],
-    deleteModalFN : row => `"${'group' in row ? row.group + ' - ' : ''}${row.name}"`,
+    collection : 'safety-types',
+    columns,
+    deleteModalFN : row => `"${row.name}"`,
     editable: true,
     sort : {
-      group: 1,
       name: 1,
     },
   }

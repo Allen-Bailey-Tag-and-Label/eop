@@ -27,22 +27,22 @@
   // props ( dynamic )
   $: groupedRoutes = [...routes]
     .sort((a,b)=>{
-      if ( !('group' in a) ) return -1;
-      if ( !('group' in b) ) return 1;
-      if ( a.group < b.group ) return -1;
-      if ( a.group > b.group ) return 1;
+      const compareA = `${'group' in a ? a.group : ' '}${a.name}`;
+      const compareB = `${'group' in b ? b.group : ' '}${b.name}`;
+      if ( compareA < compareB ) return -1;
+      if ( compareA > compareB ) return 1;
       return 0;
     }).reduce((obj, route) => {
     if ( 'group' in route ) {
       const { group } = route;
       if ( !(group in obj) ) obj[group] = [];
-      obj[group].push(route)
+      obj[group].push(route);
     } else {
       if ( !('' in obj) ) obj[''] = [];
       obj[''].push(route);
     }
     return obj;
-  }, {})
+  }, {});
 
   // stores
   import modal from '$components/Modal/store';

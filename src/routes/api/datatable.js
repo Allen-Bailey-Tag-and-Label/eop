@@ -1,5 +1,6 @@
 import { connect } from '$lib/db';
-import { ObjectId } from 'mongodb'
+import mongodb from 'mongodb';
+const { ObjectId } = mongodb;
 
 export async function del({body}) {
   // connect to db

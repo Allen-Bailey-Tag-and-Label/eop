@@ -16,12 +16,13 @@
     })
   }
   const deleteClickHandler = () => {
-    modal.confirmation.show(`Are you sure you want to delete role ${checkedRows.map(row=>`"${row.name}"`).join(', ')}?`, deleteRowHandler)
+    modal.confirmation.show(`Are you sure you want to delete role "${roles.filter(role=>role._id===roleId)[0].name}"?`, deleteRowHandler)
   }
   const deleteRowHandler = async () => {
     modal.spinner.show();
-    await serverFetch({method:'DELETE', href:`/api/datatable/${collection}`, body: checkedRows.map(row=>row._id)});
-    await getData();
+    await serverFetch({method:'DELETE', href:`/api/datatable/roles?_id=${roleId}`})
+    roleId = '';
+    await getRoles();
     modal.spinner.hide();
   }
   const getRoutes = async() => {
@@ -30,7 +31,8 @@
   }
   const getRoles = async() => {
     const data = await serverFetch('/api/datatable/roles');
-    roles = [{value:'', label:'Select a Role'}, ...data.rows.map(role=>{return{value:role._id,label:role.name, ...role}})];
+    roles = data.rows;
+    roleOptions = [{value:'', label:'Select a Role'}, ...data.rows.map(role=>{return{value:role._id,label:role.name, ...role}})];
   }
   const roleChangeHandler = async() => {
     uncheckRows();
@@ -76,6 +78,7 @@
   let loaded = false;
   let initialRoutes = [];
   let roles = [];
+  let roleOptions = [];
   let roleId = '';
   let rows = [];
 
@@ -101,7 +104,7 @@
       <Spinner />
     {:else}
       <div class="flex justify-between w-full items-center space-x-[16px]">
-        <Select bind:value={roleId} options={roles} on:change={roleChangeHandler} class="flex-grow-0" />
+        <Select bind:value={roleId} options={roleOptions} on:change={roleChangeHandler} class="flex-grow-0" />
         <div class="flex justify-end">
           <div class="flex space-x-[8px]">
             {#if roleChanged}

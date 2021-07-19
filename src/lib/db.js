@@ -1,4 +1,5 @@
-import { MongoClient } from 'mongodb';
+import mongodb from 'mongodb';
+const { MongoClient } = mongodb
 
 // connection URI
 const uri = 'mongodb+srv://bobmcaleavey:Superma3+@cluster0.0f8ym.mongodb.net/development?retryWrites=true&w=majority';

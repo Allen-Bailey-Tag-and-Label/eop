@@ -25,7 +25,7 @@
   // handler
   const getRoles = async() => {
     const data = await serverFetch('/api/datatable/roles');
-    roles = data.rows.map(row=>row.name)
+    selects.roles = data.rows.map(row=>row.name)
   }
   const getUser = async() => {
     const data = await serverFetch(`/api/datatable/users?_id=${query._id}`);
@@ -47,13 +47,17 @@
 
   // props ( internal )
   let body = columns.reduce((obj, column) => {
-    obj[column.key] = { label: column.title, value: ''}
-    if ( 'placeholder' in column ) obj[column.key].placeholder = column.placeholder;
-    if ( 'type' in column ) obj[column.key].type = column.type;
+    obj[column.key] = { label: column.title, value: '', ...column}
     return obj;
   }, {})
   let loaded = false;
-  let roles = [];
+  let selects = {
+    roles : [],
+    status : [
+      {label: 'Active', value: 'Active'},
+      {label: 'Unverified', value: 'Unverified'},
+    ]
+  }
 
   // props ( external )
   export let query;
@@ -75,12 +79,12 @@
     <Buttons.Back />
   </div>
   {#if loaded}
-    <form on:submit|preventDefault={submitHandler} class="flex flex-col mt-[24px] space-y-[16px]">
+    <form on:submit|preventDefault={submitHandler} class="flex flex-col mt-[24px] space-y-[16px] max-w-[500px] w-full mx-auto">
       {#each Object.keys(body) as key}
         {#if !('type' in body[key])}
-          <Input placeholder={body[key].label} bind:value={body[key].value} />
+          <Input label={body[key].label} placeholder={body[key].label} bind:value={body[key].value} />
         {:else}
-          <Select bind:value={body[key].value} multiple={true} placeholder={body[key].placeholder} options={roles} />
+          <Select label={body[key].label} bind:value={body[key].value} multiple={body[key].multiple} placeholder={body[key].placeholder} options={selects[key]} />
         {/if}
       {/each}
       <Button type="submit">Save</Button>

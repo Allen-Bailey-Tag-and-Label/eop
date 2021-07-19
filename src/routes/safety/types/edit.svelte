@@ -18,35 +18,30 @@
   // _imports
   import { serverFetch } from '$lib/_helpers.js';
   import { onMount } from 'svelte'
+  import columns from './_columns';
   
   // components
-  import { Button, Buttons, Card, Input, Section, Spinner } from '$components';
+  import { Button, Buttons, Card, Input, Section, Select, Spinner } from '$components';
 
   // handler
   const getRoute = async () => {
-    const data = await serverFetch(`/api/datatable/routes?_id=${query._id}`);
-    
-    delete data.rows[0]._id
-    body = data.rows[0]
+    const data = await serverFetch(`/api/datatable/safety-types?_id=${query._id}`);
+    Object.keys(body).forEach(key=>{
+      body[key] = key in data.rows[0] ? data.rows[0][key] : ''
+    })
   }
   const submitHandler = async () => {
     modal.spinner.show();
-    const data = {
-      name: body.name,
-      href: body.href
-    }
-    if ( body.group !== '' ) data.group = body.group
-    await serverFetch({method:'PATCH', href: `/api/datatable/routes?_id=${query._id}`, body: data})
+    await serverFetch({method:'PATCH', href: `/api/datatable/safety-types?_id=${query._id}`, body})
     modal.spinner.hide();
     modal.success.show(`Successfully updated route "${body.name}"`)
   }
 
   // props ( internal )
-  let body = {
-    group : '',
-    name : '',
-    href : '',
-  }
+  let body = [...columns].reduce((obj, column)=>{
+    obj[column.key] = column.type === 'select' ? column.options[0].value : '';
+    return obj;
+  }, {})
   let loaded = false;
 
   // props ( external )
@@ -69,8 +64,12 @@
   </div>
   {#if loaded}
     <form on:submit|preventDefault={submitHandler} class="flex flex-col mt-[24px] space-y-[16px]">
-      {#each Object.keys(body) as key}
-        <Input label={key} placeholder={key} bind:value={body[key]} />
+      {#each columns as {key, ...column}}
+        {#if 'type' in column}
+          <Select label={key} options={column.options} bind:value={body[key]} />
+        {:else}
+          <Input label={key} placeholder={key} bind:value={body[key]} />
+        {/if}
       {/each}
       <Button type="submit">Save</Button>
     </form>
