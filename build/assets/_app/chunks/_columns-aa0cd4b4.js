@@ -1,1 +1,0 @@
-var e=[{title:"Name",key:"name"},{title:"Frequency",key:"frequency",type:"select",options:[{label:"Annually",value:"Annually"},{label:"At Hire",value:"At Hire"}]},{title:"Month",key:"month",type:"select",options:[...Array(12).keys()].map(((e,t)=>({label:`${new Date(2012,t,1).toLocaleString("default",{month:"long"})}`,value:t})))}];export{e as c};
