@@ -13,6 +13,8 @@ export async function del({params, query}) {
   query = Object.fromEntries(query);
   if ( '_id' in query ) query._id = ObjectId(query._id);
 
+  console.log(query);
+
   // delete doc
   await client
     .db()
@@ -94,6 +96,8 @@ export async function post({body, params}) {
 
   // get collection (slug)
   const { slug : collection } = params;
+
+  console.log(body)
 
   // insert into database
   const doc = await client

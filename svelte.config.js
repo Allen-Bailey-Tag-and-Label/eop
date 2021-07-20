@@ -16,8 +16,8 @@ const config = {
   kit: {
     adapter: adapter(),
     paths:{
-      // assets:'/frontendmentor.io/challenges/REPLACE/build',
-      // base:'/frontendmentor.io/challenges/REPLACE/build'
+      assets:'',
+      base:''
     },
     target: '#svelte',
     vite: {

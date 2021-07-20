@@ -28,7 +28,7 @@
     const options =  [...Array(years).keys()].map((_,i)=>{
       const dateStart = new Date(initialYear + i, safetyTypeMonth, 1);
       const dateEnd = new Date(initialYear + i, safetyTypeMonth+11, 1);
-      return { label: `${dateStart.toLocaleString('default', { month: 'long'})} ${dateStart.getFullYear()} - ${dateEnd.toLocaleString('default', { month: 'long'})} ${dateEnd.getFullYear()}`, value: dateStart.getFullYear() }
+      return { label: `${dateStart.toLocaleString('default', { month: 'long'})} ${dateStart.getFullYear()} - ${dateEnd.toLocaleString('default', { month: 'long'})} ${dateEnd.getFullYear()}`, value: dateStart.getFullYear().toString() }
     }).reverse();
     period = options[0].value;
     return options;

@@ -1,5 +1,5 @@
 import { connect } from '$lib/db';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export async function post({body}) {
