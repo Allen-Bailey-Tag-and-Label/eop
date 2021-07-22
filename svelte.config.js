@@ -15,10 +15,6 @@ const config = {
   ],
   kit: {
     adapter: adapter(),
-    paths:{
-      assets:'',
-      base:''
-    },
     target: '#svelte',
     vite: {
       resolve: {
