@@ -20,7 +20,7 @@ export async function post({ body }) {
   body = Object.assign(defaults, body);
 
   // destructure body
-  let { email, extension, password, firstName, lastName, on, roles, status } = body;
+  let { username, extension, password, firstName, lastName, on, roles, status } = body;
 
   // encrypt password
   password = await bcrypt.hash(password, 10);
@@ -29,7 +29,7 @@ export async function post({ body }) {
   const insert = await client
     .db()
     .collection('users')
-    .insertOne({ email, extension, password, firstName, lastName, on, roles, status });
+    .insertOne({ username, extension, password, firstName, lastName, on, roles, status });
 
   // get user
   const user = insert.ops[0]

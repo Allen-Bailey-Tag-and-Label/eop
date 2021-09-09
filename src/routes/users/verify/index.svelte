@@ -32,8 +32,8 @@
     if ( password !== passwordConfirm ) return modal.error.show('New passwords do not match.  Please try again.')
     modal.spinner.show()
     let data = await changePassword(query.accessToken, 'Ennis01', password);
-    const { email } = data.user;
-    data = await auth.signin({email, password});
+    const { username } = data.user;
+    data = await auth.signin({username, password});
     if ( data.error ) {
       modal.spinner.hide();
       modal.error.show(data.error)

@@ -17,7 +17,7 @@
     let user = {
       firstName: body.firstName.value,
       lastName: body.lastName.value,
-      email: body.email.value,
+      username: body.username.value,
       extension: body.extension.value,
       password: 'Ennis01',
       roles: body.roles.value,

@@ -1,30 +1,46 @@
 import { connect } from '$lib/db';
+import jwt from 'jsonwebtoken';
 import mongodb from 'mongodb';
 const { ObjectId } = mongodb;
 
-export async function del({params, query}) {
+const authenticateUser = async body => {
+  // destructure body
+  const { auth: accessToken } = body;
+
+  // decode token
+  const decoded = jwt.verify(accessToken, import.meta.env.VITE_JWT_SECRET);
+
+  // destructure token
+  let { _id: userId } = decoded;
+  userId = ObjectId(userId);
+
+  // delete auth
+  delete body.auth;
+
+  // add userId to body
+  body.userId = userId;
+
+  return body;
+};
+
+export async function del({ params, query }) {
   // connect to db
   const client = await connect();
 
   // get collection (slug)
-  const { slug : collection } = params;
+  const { slug: collection } = params;
 
   // sanitize query
   query = Object.fromEntries(query);
-  if ( '_id' in query ) query._id = ObjectId(query._id);
-
-  console.log(query);
+  if ('_id' in query) query._id = ObjectId(query._id);
 
   // delete doc
-  await client
-    .db()
-    .collection(collection)
-    .findOneAndDelete(query)
+  await client.db().collection(collection).findOneAndDelete(query);
 
   return {
     status: 200,
-    body: {}
-  }
+    body: {},
+  };
 }
 
 export async function get({ params, query }) {
@@ -32,83 +48,84 @@ export async function get({ params, query }) {
   const client = await connect();
 
   // get collection (slug)
-  const { slug : collection } = params;
+  const { slug: collection } = params;
 
   // initialize sort
-  let sort = {}
+  let sort = {};
 
   // sanitize query
   query = Object.fromEntries(query);
-  if ( '_id' in query ) query._id = ObjectId(query._id);
-  if ( 'sort' in query ) {
+  if ('_id' in query) query._id = ObjectId(query._id);
+  if ('sort' in query) {
     sort = JSON.parse(query.sort);
     delete query.sort;
   }
+
+  // check for auth
+  if ('auth' in query) query = await authenticateUser(query);
 
   // find rows
   let rows = await client
     .db()
     .collection(collection)
     .find(query)
-    .collation({locale: "en" })
+    .collation({ locale: 'en' })
     .sort(sort)
-    .toArray()
-  
+    .toArray();
+
   // users case
-  if ( collection === 'users' ) rows = rows.map(row=>{delete row.password; return row})
+  if (collection === 'users')
+    rows = rows.map(row => {
+      delete row.password;
+      return row;
+    });
 
   return {
     status: 200,
     body: {
-      rows
-    }
-  }
+      rows,
+    },
+  };
 }
 
-export async function patch({body, params, query}) {
+export async function patch({ body, params, query }) {
   // connect to db
   const client = await connect();
 
   // get collection (slug)
-  const { slug : collection } = params;
+  const { slug: collection } = params;
 
   // sanitize query
   query = Object.fromEntries(query);
-  if ( '_id' in query ) query._id = ObjectId(query._id);
+  if ('_id' in query) query._id = ObjectId(query._id);
 
   // find and update doc
   const doc = await client
     .db()
     .collection(collection)
-    .findOneAndUpdate(query, {$set: body}, {returnOriginal:false})
+    .findOneAndUpdate(query, { $set: body }, { returnOriginal: false });
 
   return {
     status: 200,
-    body: {
-      doc: doc.value
-    }
-  }
+    body: doc.value,
+  };
 }
 
-export async function post({body, params}) {
+export async function post({ body, params }) {
   // connect to db
   const client = await connect();
 
   // get collection (slug)
-  const { slug : collection } = params;
+  const { slug: collection } = params;
 
-  console.log(body)
+  // check for auth
+  if ('auth' in body) body = await authenticateUser(body);
 
   // insert into database
-  const doc = await client
-    .db()
-    .collection(collection)
-    .insertOne(body)
+  const doc = await client.db().collection(collection).insertOne(body);
 
   return {
     status: 200,
-    body: {
-      doc
-    }
-  }
+    body: doc.ops[0]
+  };
 }

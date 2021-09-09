@@ -10,7 +10,7 @@
   // handlers
   const submitHandler = async () => {
     modal.spinner.show();
-    let data = await auth.signin({email, password});
+    let data = await auth.signin({username, password});
     if ( data.error ) {
       modal.spinner.hide();
       modal.error.show(data.error)
@@ -27,9 +27,9 @@
   }
 
   // props ( internal )
-  let email = '';
-  let password = '';
   let loaded = false;
+  let password = '';
+  let username = '';
 
   // stores
   import modal from '$components/Modal/store';
@@ -48,7 +48,7 @@
         <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[36px]">
           <div class="font-bold text-[36px]">Sign In</div>
           <div class="flex flex-col space-y-[16px]">
-            <Input label="Email" name="email" type="email" placeholder="Email" bind:value={email} />
+            <Input label="Username" name="username" placeholder="Username" bind:value={username} />
             <Input label="Password" name="password" type="password" placeholder="Password" bind:value={password} />
           </div>
           <Button type="submit">Sign In</Button>

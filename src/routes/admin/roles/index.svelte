@@ -1,7 +1,7 @@
 <script>
   // _imports
   import { onMount } from 'svelte';
-  import { serverFetch } from '$lib/_helpers';
+  import { objectToUrlQueryParams, serverFetch } from '$lib/_helpers';
   import { grow, shrink } from '$lib/_transitions';
 
   // components
@@ -30,7 +30,7 @@
     rows = data.rows.map(row=>Object.assign({checked:false}, row));
   }
   const getRoles = async() => {
-    const data = await serverFetch('/api/datatable/roles');
+    const data = await serverFetch(`/api/datatable/roles?sort=${JSON.stringify({name:1})}`);
     roles = data.rows;
     roleOptions = [{value:'', label:'Select a Role'}, ...data.rows.map(role=>{return{value:role._id,label:role.name, ...role}})];
   }
@@ -53,9 +53,9 @@
   const saveClickHandler = async() => {
     modal.spinner.show();
     const routes = [...checkedRows].map(row=>{delete row.checked; return row});
-    const data = await serverFetch({method:'PATCH', href: `/api/datatable/roles?_id=${roleId}`, body: {routes}});
-    const roleRoutes = data.doc.routes.map(row=>row._id);
-    initialRoutes = [...data.doc.routes];
+    const doc = await serverFetch({method:'PATCH', href: `/api/datatable/roles?_id=${roleId}`, body: {routes}});
+    const roleRoutes = doc.routes.map(row=>row._id);
+    initialRoutes = [...doc.routes];
     rows = rows.map(row=>{
       row.checked = roleRoutes.includes(row._id) ? true : false;
       return row

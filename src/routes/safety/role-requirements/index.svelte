@@ -47,9 +47,9 @@
   const saveClickHandler = async() => {
     modal.spinner.show();
     const items = [...checkedRows].map(row=>{delete row.checked; return row});
-    const data = await serverFetch({method:'PATCH', href: `/api/datatable/roles?_id=${roleId}`, body:{safetyItems: items}});
-    const roleSafetyItems = data.doc.safetyItems.map(row=>row._id);
-    initialSafetyItems = [...data.doc.safetyItems];
+    const doc = await serverFetch({method:'PATCH', href: `/api/datatable/roles?_id=${roleId}`, body:{safetyItems: items}});
+    const roleSafetyItems = doc.safetyItems.map(row=>row._id);
+    initialSafetyItems = [...doc.safetyItems];
     safetyItems = safetyItems.map(row=>{
       row.checked = roleSafetyItems.includes(row._id) ? true : false;
       return row;

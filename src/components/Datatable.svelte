@@ -9,7 +9,6 @@
   import * as Buttons from './Button'
   import Card from './Card.svelte'
   import Checkbox from './Checkbox.svelte'
-  import Select from './Select.svelte'
   import Spinner from './Spinner.svelte'
   import Table from './Table.svelte'
   import Icon, { Pencil, Plus, Trash } from 'svelte-hero-icons';

@@ -7,10 +7,20 @@ export async function post({body}) {
   const client = await connect();
 
   // destructure body
-  let {email, password} = body;
+  let {username, password} = body;
 
-  // find email on database
-  const user = await client.db().collection('users').findOne({email})
+  // find username on database
+  const user = await client.db().collection('users').findOne({username})
+
+  // return error if couldn't find user
+  if ( user === null) {
+    return { 
+      status: 403,
+      body: {
+        error: 'Creditials could not be verified.  Please try again'
+      }
+    }
+  }
 
   // compare password
   const compare = await bcrypt.compare(password, user.password);
