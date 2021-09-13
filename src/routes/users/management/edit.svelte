@@ -24,7 +24,7 @@
 
   // handler
   const getRoles = async() => {
-    const data = await serverFetch('/api/datatable/roles');
+    const data = await serverFetch(`/api/datatable/roles?sort=${JSON.stringify({name:1})}`);
     selects.roles = data.rows.map(row=>row.name)
   }
   const getUser = async() => {

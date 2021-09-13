@@ -58,10 +58,11 @@
   <title>{title}</title>
 </svelte:head>
 
-<main class="relative bg-gradient-to-br from-gray-500 to-gray-800 min-h-screen text-gray-100 flex flex-col lg:flex-row">
+<main class="relative bg-gradient-to-br from-gray-500 to-gray-800 min-h-screen text-gray-100 flex flex-col pb-[72px] lg:pb-0 lg:flex-row">
   {#if loaded}
     <Sidebar {routes} />
     <slot/>
+    <Modal.Calendar />
     <Modal.Confirmation />
     <Modal.Error />
     <Modal.Spinner />

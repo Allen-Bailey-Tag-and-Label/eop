@@ -9,7 +9,7 @@
 
   // handler
   const getRoles = async() => {
-    const data = await serverFetch('/api/datatable/roles');
+    const data = await serverFetch(`/api/datatable/roles?sort=${JSON.stringify({name:1})}`);
     selects.roles = data.rows.map(row=>row.name)
   }
   const submitHandler = async () => {
@@ -19,12 +19,11 @@
       lastName: body.lastName.value,
       username: body.username.value,
       extension: body.extension.value,
-      password: 'Ennis01',
       roles: body.roles.value,
     }
     const data = await serverFetch({method:'POST', href:'/api/auth/signup', body: user})
-    const { accessToken } = data;
-    const modalInnerHTML = `Successfully added user "${body.firstName.value} ${body.lastName.value}".  Copy text below to have user verify account.<br><br>Please verify your account with the link below:<br><a href="${import.meta.env.VITE_BASE_URL}/users/verify?accessToken=${accessToken}">Verify</a>`
+    const { accessToken, password } = data;
+    const modalInnerHTML = `Successfully added user "${body.firstName.value} ${body.lastName.value}".  Copy text below to have user verify account.<br><br>Please verify your account with the link below with password <span class="font-bold">${password}</span>:<br><a href="${import.meta.env.VITE_BASE_URL}/users/verify?accessToken=${accessToken}">Verify</a>`
     modal.spinner.hide();
     modal.success.show(modalInnerHTML)
   }

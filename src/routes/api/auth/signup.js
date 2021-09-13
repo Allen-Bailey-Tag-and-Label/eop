@@ -1,6 +1,7 @@
 import { connect } from '$lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import randomWords from 'random-words';
 
 export async function post({ body }) {
   // connect to db
@@ -12,6 +13,7 @@ export async function post({ body }) {
     on: {
       signin: '/dashboard',
     },
+    password: randomWords({exactly:2, join: ''}),
     roles: [],
     status: 'Unverified',
   };
@@ -20,7 +22,10 @@ export async function post({ body }) {
   body = Object.assign(defaults, body);
 
   // destructure body
-  let { username, extension, password, firstName, lastName, on, roles, status } = body;
+  let { username, extension, firstName, lastName, on, password, roles, status } = body;
+
+  // get original password
+  const originalPassword = password;
 
   // encrypt password
   password = await bcrypt.hash(password, 10);
@@ -42,6 +47,6 @@ export async function post({ body }) {
 
     return {
       status: 200,
-      body: { accessToken }
+      body: { accessToken, password: originalPassword }
     }
 }

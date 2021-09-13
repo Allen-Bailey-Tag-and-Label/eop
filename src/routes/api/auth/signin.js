@@ -8,6 +8,7 @@ export async function post({body}) {
 
   // destructure body
   let {username, password} = body;
+  username = username.toLowerCase().replace(/\s/g, '')
 
   // find username on database
   const user = await client.db().collection('users').findOne({username})

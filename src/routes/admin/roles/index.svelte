@@ -26,7 +26,7 @@
     modal.spinner.hide();
   }
   const getRoutes = async() => {
-    const data = await serverFetch(`/api/datatable/routes`);
+    const data = await serverFetch(`/api/datatable/routes?sort=${JSON.stringify({group:1, name:1})}`);
     rows = data.rows.map(row=>Object.assign({checked:false}, row));
   }
   const getRoles = async() => {

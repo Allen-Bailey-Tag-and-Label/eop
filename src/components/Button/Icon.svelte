@@ -8,4 +8,4 @@
   export let type = 'link';
 </script>
 
-<Button on:click padding="p-[6px]" {href} {theme} {type}><slot/></Button>
+<Button on:click padding="p-[6px]" {...$$props}><slot/></Button>

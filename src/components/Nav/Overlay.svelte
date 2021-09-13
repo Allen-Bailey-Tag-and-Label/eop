@@ -16,7 +16,7 @@
 
   // props ( dynamic )
   $: pointerEvents = `${show?'pointer-events-auto':'pointer-events-none'}`;
-  $: opacity = `${show?'opacity-50':'opacity-0'}`;
+  $: opacity = `${show?'opacity-100':'opacity-0'}`;
   $: classes = `${bg} ${display} ${height} ${left} ${opacity} ${pointerEvents} ${position} ${top} ${transition} ${width} ${zIndex} ${$$props.class !== undefined ? $$props.class : ''}`
 </script>
 

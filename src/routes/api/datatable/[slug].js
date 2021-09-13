@@ -2,26 +2,7 @@ import { connect } from '$lib/db';
 import jwt from 'jsonwebtoken';
 import mongodb from 'mongodb';
 const { ObjectId } = mongodb;
-
-const authenticateUser = async body => {
-  // destructure body
-  const { auth: accessToken } = body;
-
-  // decode token
-  const decoded = jwt.verify(accessToken, import.meta.env.VITE_JWT_SECRET);
-
-  // destructure token
-  let { _id: userId } = decoded;
-  userId = ObjectId(userId);
-
-  // delete auth
-  delete body.auth;
-
-  // add userId to body
-  body.userId = userId;
-
-  return body;
-};
+import authenticateUser from '../auth/get/_userId';
 
 export async function del({ params, query }) {
   // connect to db
@@ -60,7 +41,7 @@ export async function get({ params, query }) {
     sort = JSON.parse(query.sort);
     delete query.sort;
   }
-
+  
   // check for auth
   if ('auth' in query) query = await authenticateUser(query);
 

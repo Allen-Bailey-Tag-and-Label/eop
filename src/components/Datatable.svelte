@@ -28,7 +28,6 @@
     await Promise.all([checkedRows.map(async ({_id})=>{
       await serverFetch({method:'DELETE', href:`/api/datatable/${collection}?_id=${_id}`});
     })])
-    // await serverFetch({method:'DELETE', href:`/api/datatable/${collection}`, body:checkedRows.map(row=>row._id)});
     await getData();
     modal.spinner.hide();
   }
@@ -38,6 +37,7 @@
   }
 
   // props ( external )
+  export let checkedRows = [];
   export let collection = '';
   export let deleteModalFN = row => row[columns[0].key]
   export let columns = [];
@@ -50,12 +50,15 @@
   let rows = [];
 
   // props ( dynamic )
-  $: checkedRows = [...rows].filter(row=>row.checked)
+  // $: checkedRows = [...rows].filter(row=>row.checked)
   $: checked = checkedRows.length === rows.length;
   $: editURL = checkedRows.length === 1 ? `${$page.path}/edit?_id=${checkedRows[0]._id}` : '';
   $: indeterminate = checkedRows.length !== 0 && checkedRows.length !== rows.length;
   $: showDelete = checkedRows.length > 0 ? true : false;
   $: showEdit = checkedRows.length === 1 ? true : false;
+  $: if ( rows.length ) {
+    checkedRows = [...rows].filter(row=>row.checked);
+  }
 
   // stores
   import modal from '$components/Modal/store';
@@ -73,6 +76,7 @@
     {#if editable}
       <div class="flex justify-end w-full">
         <div class="flex space-x-[8px]">
+          <slot name="toolbar" />
           {#if showEdit}
             <div class="flex" in:grow out:shrink>
               <Buttons.Icon type="link" href={editURL} theme="secondary"><Icon src={Pencil} class="w-[24px] h-[24px]"/></Buttons.Icon>

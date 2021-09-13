@@ -4,7 +4,7 @@
 
   // props ( dynamic )
   $: classes = {
-    bg           : 'bg-white bg-opacity-[1%]',
+    bg           : 'bg-white bg-opacity-[2%]',
     filter       : 'backdrop-filter backdrop-blur-md',
     flex         : 'flex flex-col',
     padding      : 'p-[20px]',
