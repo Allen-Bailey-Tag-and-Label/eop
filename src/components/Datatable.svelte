@@ -50,13 +50,12 @@
   let rows = [];
 
   // props ( dynamic )
-  // $: checkedRows = [...rows].filter(row=>row.checked)
   $: checked = checkedRows.length === rows.length;
   $: editURL = checkedRows.length === 1 ? `${$page.path}/edit?_id=${checkedRows[0]._id}` : '';
   $: indeterminate = checkedRows.length !== 0 && checkedRows.length !== rows.length;
   $: showDelete = checkedRows.length > 0 ? true : false;
   $: showEdit = checkedRows.length === 1 ? true : false;
-  $: if ( rows.length ) {
+  $: if ( true ) {
     checkedRows = [...rows].filter(row=>row.checked);
   }
 
