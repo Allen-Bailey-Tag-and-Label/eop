@@ -108,7 +108,9 @@
       {:else if alreadySubmitted !== false}
         <div class="w-full">Daily COVID Questionnaire has been submitted.</div>
         <div class="w-full">Status: <span class="{alreadySubmitted.approved ? 'text-green-500' : 'text-red-500'}">{alreadySubmitted.approved ? 'Approved' : 'Unapproved'}</span> for work.</div>
-        <Button on:click={updateAnswersHandler}>Update Answers</Button>
+        {#if moment(date, 'MM.DD.YYYY').format('MM.DD.YYYY') === moment().format('MM.DD.YYYY')}
+          <Button on:click={updateAnswersHandler}>Update Answers</Button>
+        {/if}
       {:else}
         <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[2rem]">
           {#each questions as {name, question, value}, i}
