@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors');
+
 module.exports = {
   mode: 'jit',
   purge: ['./src/**/*.{html,js,svelte,ts}'],
@@ -61,6 +63,7 @@ module.exports = {
           A400: '#004fed',
           A700: '#0047d4',
         },
+        warning: colors.orange
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

@@ -112,12 +112,16 @@
           <Button on:click={updateAnswersHandler}>Update Answers</Button>
         {/if}
       {:else}
-        <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[2rem]">
-          {#each questions as {name, question, value}, i}
-            <Boolean {name} number={i+1} {question} bind:value />
-          {/each}
-          <Button type="submit" class="transform {showSubmit ? 'scale-[1]' : 'scale-[0]'}">Submit</Button>
-        </form>
+        {#if moment(date, 'MM.DD.YYYY').format('MM.DD.YYYY') === moment().format('MM.DD.YYYY')}
+          <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[2rem]">
+            {#each questions as {name, question, value}, i}
+              <Boolean {name} number={i+1} {question} bind:value />
+            {/each}
+            <Button type="submit" class="transform {showSubmit ? 'scale-[1]' : 'scale-[0]'}">Submit</Button>
+          </form>
+        {:else}
+          <div class="w-full">Daily COVID Questionnaire was <span class="text-warning-500">unsubmitted</span>.</div>
+        {/if}
       {/if}
     {/if}
   </Card>
