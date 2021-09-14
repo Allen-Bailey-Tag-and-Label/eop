@@ -6,9 +6,15 @@
   import { Datatable, Section } from '$components';
   
   // props ( internal )
+  const columnKeysToRemove = [
+    'ennisId',
+    'hireDate',
+    'roles',
+    'status'
+  ]
   const datatable = {
     collection: 'users',
-    columns : [...columns].filter(column=>column.key!=='roles'),
+    columns : [...columns].filter(column=>!columnKeysToRemove.includes(column.key)),
     deleteModalFN : row => `"${row.firstName} ${row.lastName}"`,
     editable: false,
     sort : {

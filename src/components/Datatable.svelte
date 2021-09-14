@@ -4,6 +4,7 @@
   import { serverFetch } from '$lib/_helpers';
   import { grow, shrink } from '$lib/_transitions';
   import { onMount } from 'svelte';
+  import moment from 'moment';
 
   // components
   import * as Buttons from './Button'
@@ -106,10 +107,16 @@
               <td class="{cellClasses}"><Checkbox bind:checked={row.checked} /></td>
             {/if}
             {#each columns as {key, ...column}}
-              <td class="{cellClasses}">
+              <td class="{cellClasses} {column?.type === 'date' ? 'text-right' :''}">
                 {#if key in row}
                   {#if 'options' in column}
                     {column.options.filter(option=>option.value===row[key])[0]?.label ?? ''}
+                  {:else if 'type' in column}
+                    {#if column.type === 'date'}
+                      {moment(row[key], 'x').format('MM.DD.YYYY')}
+                    {:else if column.type === 'select'}
+                      {key in row ? row[key] : ''}
+                    {/if}
                   {:else}
                     {key in row ? row[key] : ''}
                   {/if}
