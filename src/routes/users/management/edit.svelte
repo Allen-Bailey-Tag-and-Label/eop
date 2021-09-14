@@ -18,6 +18,7 @@
   import { serverFetch } from '$lib/_helpers.js';
   import { onMount } from 'svelte'
   import columns from './_columns';
+  import moment from 'moment'
   
   // components
   import { Button, Buttons, Card, Input, Section, Select, Spinner } from '$components';
@@ -32,12 +33,14 @@
 
     Object.keys(body).forEach(key=>{
       body[key].value = data.rows[0][key]
+      if ( body[key]?.type === 'date' ) body[key].value = moment(body[key].value, 'x').format('MM.DD.YYYY')
     });
   }
   const submitHandler = async () => {
     modal.spinner.show();
     const user = Object.keys(body).reduce((obj, key)=>{
       obj[key] = body[key].value;
+      if ( body[key]?.type === 'date' ) obj[key] = moment(obj[key], 'MM.DD.YYYY').format('x')
       return obj;
     }, {})
     await serverFetch({method:'PATCH', href:`/api/datatable/users?_id=${query._id}`, body: user})
@@ -55,7 +58,6 @@
     roles : [],
     status : [
       {label: 'Active', value: 'Active'},
-      {label: 'Unverified', value: 'Unverified'},
     ]
   }
 
@@ -81,10 +83,14 @@
   {#if loaded}
     <form on:submit|preventDefault={submitHandler} class="flex flex-col mt-[24px] space-y-[16px] max-w-[500px] w-full mx-auto">
       {#each Object.keys(body) as key}
-        {#if !('type' in body[key])}
-          <Input label={body[key].label} placeholder={body[key].label} bind:value={body[key].value} />
+        {#if ('type' in body[key])}
+          {#if body[key].type === 'date'}
+            <Input label={body[key].label} placeholder={body[key].label} bind:value={body[key].value} type="date" />
+          {:else}
+            <Select label={body[key].label} bind:value={body[key].value} multiple={body[key].multiple} placeholder={body[key].placeholder} options={selects[key]} />
+          {/if}
         {:else}
-          <Select label={body[key].label} bind:value={body[key].value} multiple={body[key].multiple} placeholder={body[key].placeholder} options={selects[key]} />
+          <Input label={body[key].label} placeholder={body[key].label} bind:value={body[key].value} />
         {/if}
       {/each}
       <Button type="submit">Save</Button>

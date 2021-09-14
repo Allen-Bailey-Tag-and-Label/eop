@@ -33,5 +33,5 @@
 {:else if type === 'submit'}
   <button on:click type="submit" class={classes} style={style !== undefined ? style : ''}><slot/></button>
 {:else}
-  <button on:click class={classes} style={style !== undefined ? style : ''}><slot>Button</slot></button>
+  <button on:click type="button" class={classes} style={style !== undefined ? style : ''}><slot>Button</slot></button>
 {/if}
