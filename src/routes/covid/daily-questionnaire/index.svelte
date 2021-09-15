@@ -82,7 +82,7 @@
   // props ( dynamic )
   $: approved = [...questions].filter(({value}) => value === true).length === 0;
   $: showSubmit = [...questions].filter(({value}) => value !== undefined).length === questions.length
-  $:console.log (moment(date, 'MM.DD.YYYY').format('MM.DD.YYYY') === moment().format('MM.DD.YYYY'), moment(date, 'MM.DD.YYYY').format('MM.DD.YYYY'), moment().format('MM.DD.YYYY'))
+  $: isToday = date === moment().format('MM.DD.YYYY')
 
   // stores
   import modal from '$components/Modal/store';
@@ -113,7 +113,7 @@
           <Button on:click={updateAnswersHandler}>Update Answers</Button>
         {/if}
       {:else}
-        {#if true}
+        {#if isToday}
           <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[2rem]">
             {#each questions as {name, question, value}, i}
               <Boolean {name} number={i+1} {question} bind:value />
