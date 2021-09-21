@@ -1,6 +1,10 @@
 <script>
+  // _imports
+  import { imask } from '@imask/svelte';
+
   // components
   import Date from './Date.svelte';
+  import Number from './Number.svelte';
 
   // props ( external )
   export let label           = '';
@@ -37,11 +41,11 @@
   {:else if type === 'email'}
     <input on:change type="email" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {:else if type === 'number'}
-    <input on:change type="number" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+    <Number on:change bind:value class="peer {classes}" min={$$props.min !== undefined ? $$props.min : undefined} max={$$props.max !== undefined ? $$props.max : undefined} style={style !== undefined ? style : ''}/>
   {:else if type === 'password'}
     <input on:change type="password" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {:else}
-    <input on:change type="text" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+    <input on:change use:imask={$$props.mask !== undefined ? $$props.mask : undefined} type="text" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {/if}
   {#if label !== ''}
     <label for={name} class="absolute left-0 transform translate-y-[-40px] pointer-events-none opacity-[1] scale-[.9] translate-x-[0] origin-top-left py-[11px] {transition} peer-placeholder-shown:translate-x-[22px] peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-[1] peer-placeholder-shown:opacity-[.5]">{label}</label>

@@ -45,6 +45,8 @@ export async function get({ params, query }) {
   // check for auth
   if ('auth' in query) query = await authenticateUser(query);
 
+  console.log(query);
+
   // find rows
   let rows = await client
     .db()

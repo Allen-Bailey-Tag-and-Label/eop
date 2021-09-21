@@ -1,6 +1,7 @@
 export default [
   {title:'First Name', key:'firstName'},
   {title:'Last Name', key:'lastName'},
+  {title:'Title', key:'title'},
   {title:'Username', key:'username'},
   {title:'Email', key:'email'},
   {title:'Ennis ID', key:'ennisId'},

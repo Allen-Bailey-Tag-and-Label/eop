@@ -7,7 +7,7 @@
   export let indeterminate = false;
 
   // props ( dynamic )
-  $: classes = `relative focus-within:ring-opacity-10 flex cursor-pointer transition duration-200 rounded ring ring-opacity-0 ${(checked||indeterminate)?'bg-primary-500 ring-primary-500 text-gray-900 focus-within:ring-opacity-30':'bg-transparent ring-white ring-offset ring-offset-1 ring-offset-gray-400 hover:ring-offset-gray-200'}`
+  $: classes = `relative focus-within:ring-opacity-10 flex cursor-pointer transition duration-200 rounded ring ring-opacity-0 ${(checked||indeterminate)?'bg-primary-500 ring-primary-500 text-gray-900 focus-within:ring-opacity-30':'bg-transparent ring-white ring-offset ring-offset-1 ring-offset-gray-400 hover:ring-offset-gray-200'} ${$$props.class}`
 </script>
 
 <label class={classes}>

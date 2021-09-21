@@ -22,6 +22,7 @@ const config = {
           $components: path.resolve('./src/components'),
           $css: path.resolve('./src/css'),
           $data: path.resolve('./src/data'),
+          $emailTemplates: path.resolve('./src/emailTemplates'),
           $sections: path.resolve('./src/sections'),
           $stores: path.resolve('./src/stores'),
         },
