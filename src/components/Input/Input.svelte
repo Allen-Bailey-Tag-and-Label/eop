@@ -40,6 +40,8 @@
     <Date on:change {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {:else if type === 'email'}
     <input on:change type="email" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+  {:else if type === 'keypad'}
+    <input on:change type="number" use:imask={$$props.mask !== undefined ? $$props.mask : {mask:'000000'}} {name} bind:value class="peer {classes}" {placeholder}  style={style !== undefined ? style : ''}/>
   {:else if type === 'number'}
     <Number on:change bind:value class="peer {classes}" min={$$props.min !== undefined ? $$props.min : undefined} max={$$props.max !== undefined ? $$props.max : undefined} style={style !== undefined ? style : ''}/>
   {:else if type === 'password'}

@@ -9,6 +9,8 @@ export async function patch({ body, query }) {
 
   // check for auth
   if ('auth' in body) body = await authenticateUser(body);
+  if ('date' in body) body.date = +body.date;
+  if ('userId' in body ) body.userId = ObjectId(body.userId);
 
   // sanitize query
   query = Object.fromEntries(query);
@@ -35,6 +37,7 @@ export async function post({ body }) {
   
   // check for auth
   if ('auth' in body) body = await authenticateUser(body);
+  if ('userId' in body ) body.userId = ObjectId(body.userId);
 
   // insert into database
   const doc = await client.db().collection('covid-daily-questionnaire').insertOne(body);

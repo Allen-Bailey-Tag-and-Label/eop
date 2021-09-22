@@ -4,3 +4,7 @@ node_modules
 /package
 .env
 /build
+server.crt
+server.csr
+server.key
+server.key.org

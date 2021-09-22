@@ -11,6 +11,7 @@ export { default as Image } from './Image.svelte';
 export { default as ImageLoader } from './ImageLoader.svelte';
 export { default as Input } from './Input'
 export { default as IntersectionObserver } from './IntersectionObserver.svelte';
+export { default as Keypad } from './Keypad.svelte';
 export { default as Logo } from './Logo.svelte';
 import * as Modal from './Modal';
 export { Modal }

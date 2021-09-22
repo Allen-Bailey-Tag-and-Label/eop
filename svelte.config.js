@@ -27,6 +27,12 @@ const config = {
           $stores: path.resolve('./src/stores'),
         },
       },
+      server: {
+        https: {
+          key: fs.readFileSync('./server.key'),
+          cert: fs.readFileSync('./server.crt'),
+        },
+      },
       ssr:{
         noExternal: Object.keys(pkg.dependencies || {}),
       }

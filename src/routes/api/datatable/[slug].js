@@ -13,7 +13,9 @@ export async function del({ params, query }) {
 
   // sanitize query
   query = Object.fromEntries(query);
+  if ( 'date' in query ) query.date = +query.date;
   if ('_id' in query) query._id = ObjectId(query._id);
+  if ('userId' in query) query.userId = ObjectId(query.userId);
 
   // delete doc
   await client.db().collection(collection).findOneAndDelete(query);
@@ -36,7 +38,9 @@ export async function get({ params, query }) {
 
   // sanitize query
   query = Object.fromEntries(query);
+  if ( 'date' in query ) query.date = +query.date;
   if ('_id' in query) query._id = ObjectId(query._id);
+  if ('userId' in query) query.userId = ObjectId(query.userId);
   if ('sort' in query) {
     sort = JSON.parse(query.sort);
     delete query.sort;
@@ -44,8 +48,6 @@ export async function get({ params, query }) {
   
   // check for auth
   if ('auth' in query) query = await authenticateUser(query);
-
-  console.log(query);
 
   // find rows
   let rows = await client
@@ -77,10 +79,17 @@ export async function patch({ body, params, query }) {
 
   // get collection (slug)
   const { slug: collection } = params;
+  
+  // sanitize body
+  if ( 'date' in body ) body.date = +body.date;
+  if ('_id' in body) body._id = ObjectId(body._id);
+  if ('userId' in body) body.userId = ObjectId(body.userId);
 
   // sanitize query
   query = Object.fromEntries(query);
+  if ( 'date' in query ) query.date = +query.date;
   if ('_id' in query) query._id = ObjectId(query._id);
+  if ('userId' in query) query.userId = ObjectId(query.userId);
 
   // find and update doc
   const doc = await client
