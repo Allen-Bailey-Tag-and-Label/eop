@@ -1,8 +1,9 @@
 <script>
   // _imports
   import { onMount } from 'svelte';
-  import auth from "$lib/auth";
   import { objectToUrlQueryParams, serverFetch } from '$lib/_helpers.js'
+  import auth from "$lib/auth";
+  import { getDirectReportIds } from '$lib/user';
   import moment from 'moment';
 
   // components
@@ -28,28 +29,12 @@
       directReports[user.userId] = user.userIds;
     });
   }
-  const getDirectReportIds = ( _id, array = [] ) => {
-    // check if current _id is in array
-    if ( !array.includes(_id)) array.push(_id);
-
-    // check if _id is in directReports
-    if ( _id in directReports ) {
-      directReports[_id].forEach(directReportId => {
-        if ( !array.includes(directReportId)) {
-          array = getDirectReportIds(directReportId, array);
-        }
-      })
-    }
-
-    return array;
-  }
   const getUsers = async () => {
     const { rows } = await serverFetch(`/api/datatable/users?sort=${JSON.stringify({ firstName: 1, lastName: 1 })}`);
     users = rows;
   }
   const filterUsers = async () => {
-    const { _id } = await serverFetch(`/api/auth/get/user?auth=${$auth}`);
-    const allDirectReportIds = getDirectReportIds( _id );
+    const allDirectReportIds = await getDirectReportIds();
     users = [...users].filter(({_id})=> allDirectReportIds.includes(_id));
   }
 
