@@ -1,6 +1,7 @@
 <script>
   // _imports
   import { onMount } from 'svelte';
+  import auth from "$lib/auth";
   import { objectToUrlQueryParams, serverFetch } from '$lib/_helpers.js'
   import moment from 'moment';
 
@@ -21,9 +22,40 @@
       return user;
     })
   }
+  const getDirectReports = async () => {
+    const { rows } = await serverFetch ('/api/datatable/direct-reports');
+    rows.forEach(user => {
+      directReports[user.userId] = user.userIds;
+    });
+  }
+  const getDirectReportIds = ( _id, array = [] ) => {
+    // check if current _id is in array
+    if ( !array.includes(_id)) array.push(_id);
+
+    // check if _id is in directReports
+    if ( _id in directReports ) {
+      directReports[_id].forEach(directReportId => {
+        if ( !array.includes(directReportId)) {
+          array = getDirectReportIds(directReportId, array);
+        }
+      })
+    }
+
+    return array;
+  }
+  const getUsers = async () => {
+    const { rows } = await serverFetch(`/api/datatable/users?sort=${JSON.stringify({ firstName: 1, lastName: 1 })}`);
+    users = rows;
+  }
+  const filterUsers = async () => {
+    const { _id } = await serverFetch(`/api/auth/get/user?auth=${$auth}`);
+    const allDirectReportIds = getDirectReportIds( _id );
+    users = [...users].filter(({_id})=> allDirectReportIds.includes(_id));
+  }
 
   // props ( internal )
   let date = moment().format('MM.DD.YYYY');
+  let directReports = {};
   let loaded = false;
   let tableRows;
   const viewOptions = [
@@ -31,11 +63,11 @@
     {value: 'Employee', label: 'Employee'},
   ]
   let viewValue = 'Daily';
-  let users;
+  let users = [];
 
   onMount(async()=>{
-    const data = await serverFetch(`/api/datatable/users?sort=${JSON.stringify({ firstName: 1, lastName: 1 })}`);
-    users = data.rows;
+    await Promise.all([getUsers(), getDirectReports()]);
+    await filterUsers();
     await dateChangeHandler();
 
     loaded = true
@@ -51,7 +83,7 @@
           <Input type="date" on:change={dateChangeHandler} label="Date" bind:value={date} />
         {/if}
       </div>
-      <Table>
+      <Table width="">
         <thead slot="thead">
           <th class="p-[10px]">First</th>
           <th class="p-[10px]">Last</th>
