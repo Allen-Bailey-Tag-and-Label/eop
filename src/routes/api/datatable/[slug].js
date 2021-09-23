@@ -112,6 +112,11 @@ export async function post({ body, params }) {
 
   // check for auth
   if ('auth' in body) body = await authenticateUser(body);
+  
+  // sanitize body
+  if ( 'date' in body ) body.date = +body.date;
+  if ('_id' in body) body._id = ObjectId(body._id);
+  if ('userId' in body) body.userId = ObjectId(body.userId);
 
   // insert into database
   const doc = await client.db().collection(collection).insertOne(body);
