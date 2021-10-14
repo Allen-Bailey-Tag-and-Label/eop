@@ -6,7 +6,7 @@
   import moment from 'moment'
   
   // components
-  import { Button, Buttons, Card, Input, Section, Select, Spinner } from '$components';
+  import { Button, Buttons, Card, Checkbox, Input, Section, Select, Spinner } from '$components';
 
   // handler
   const getRoles = async() => {
