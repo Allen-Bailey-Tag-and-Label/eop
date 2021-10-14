@@ -59,6 +59,7 @@ const accessToken = localStorageStore('accessToken', null)
 export default accessToken;
 
 export const changePassword = async (accessToken, currentPassword, password) => {
+  console.log({accessToken, currentPassword, password})
   const data = await serverFetch({method:'POST', href:'/api/auth/changepassword', body: {accessToken, currentPassword, password}})
   return data;
 }
