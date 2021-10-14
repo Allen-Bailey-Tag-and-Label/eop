@@ -76,7 +76,12 @@
       if ( item.item === '9-tamper-seal') return `${item.quantity} box${item.quantity === '1' ? '' : 'es'} (1,000/box) of ${humanReadableColors[item.color]} 9" tamper seals | 10-15 lb break point`;
       return `${item.quantity} bundle${item.quantity === '1' ? '' : 's'} (1,000/bundle) of loose 26G-12" wire bundles`;
     }
-    if ( item.type === 'label' ) return `${numberFormat(item.quantity*250)} (${numberFormat(item.quantity)} rolls) of ${item.size} labels`;
+    if ( item.type === 'label' ) {
+      let quantity = quantityNormalize( item.quantity );
+      if ( item.uom === 'RL' ) quantity *= 250;
+
+      return `${numberFormat(quantity)} (${numberFormat(Math.ceil(quantity / 250))} rolls) of ${item.size} labels`;
+    }
     if ( item.type === 'tag' ) {
       let quantity = quantityNormalize( item.quantity );
       if ( item.uom === 'M' ) quantity *= 1000;
