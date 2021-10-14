@@ -17,6 +17,7 @@
     {label: 'Small', value: 'small'},
   ]
   const uomOptions = [
+    {label: 'EA', value: 'EA'},
     {label: 'RL', value: 'RL'},
   ]
   
@@ -26,7 +27,7 @@
   // props ( dynamic )
   $: if ( !( 'quantity' in item ) ) item = {...item, quantity: 0}
   $: if ( !( 'size' in item ) ) item = {...item, size: 'large'}
-  $: if ( !( 'uom' in item ) ) item = {...item, uom: 'EA'}
+  $: if ( !( 'uom' in item ) ) item = {...item, uom: 'RL'}
   $: max = item.uom === 'EA' ? 250000 :
            item.uom === 'M'  ? 250 :
                                10000
