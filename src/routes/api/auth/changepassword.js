@@ -38,7 +38,7 @@ export async function post({ body }) {
 
     // encrypt password
     password = await bcrypt.hash(password, 10);
-    status = 'Active'
+    const status = 'Active'
 
     // update password
     const doc = await client
