@@ -2,8 +2,8 @@ export default {
   collar: { quantity: 50, weight: 5 / 10 },
   fastener: {
     'diamond-clip': { quantity: 10, weight: 3.1 },
-    '5-secur-a-tie': { quantity: 10, weight: 2.5 },
-    '9-tamper-seal': { quantity: 50, weight: 0.5 },
+    '5-secur-a-tie': { quantity: 1, weight: 12 },
+    '9-tamper-seal': { quantity: 1, weight: 12 },
     'loose-26-wire-bundle': { quantity: 35, weight: 0.85 },
   },
   label: {
