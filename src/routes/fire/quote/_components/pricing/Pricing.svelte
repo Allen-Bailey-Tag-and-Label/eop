@@ -8,6 +8,7 @@
   import * as ups from '$lib/ups';
   import { onMount } from 'svelte';
   import collars from './collars';
+  import extras from './extras';
   import fasteners from './fasteners';
   import labels from './labels';
   import tags from './tags';
@@ -43,8 +44,8 @@
       if ( copyChanges > 0)
       replacements.copyChanges = {
         description: `${copyChanges} copy / stock change${copyChanges === 1 ? '' : 's'}`,
-        unitPrice: currencyFormat(23),
-        extendedPrice: currencyFormat(copyChanges * 23),
+        unitPrice: currencyFormat(extras.copyChange),
+        extendedPrice: currencyFormat(copyChanges * extras.copyChange),
       }
 
       const result = await serverFetch({
@@ -90,7 +91,6 @@
   }
   const humanReadableColors = {
     'clear-natural' : 'clear / natural',
-    'red' : 'red',
     'black' : 'black',
     'blue' : 'blue',
     'green' : 'green',
@@ -127,11 +127,11 @@
     if ( item.type === 'label' ) return labels[item.size][Math.floor(totalQuantities.label[item.size] / 4 ) > 25 ? 25 : Math.floor(totalQuantities.label[item.size] / 4 )];
     if ( item.type === 'tag' ) {
       let ppm = tags[item.material][Math.floor(totalQuantities.tag[item.material] / 1000) < 1 ? 1 : Math.floor(totalQuantities.tag[item.material] / 1000) > 50 ? 50 : Math.floor(totalQuantities.tag[item.material] / 1000)];
-      if ( item.material === 'paper' && item.color.includes('fluorescent')) ppm += 6;
-      if ( item.material === 'tyvek' && item.color !== 'white' ) ppm += 23;
-      if ( item.eyelet && item.material === 'paper' ) ppm += 6.25;
-      if ( item.wired && item.material === 'paper' ) ppm += 16.75;
-      if ( item.wired && item.material !== 'paper' ) ppm += 18;
+      if ( item.material === 'paper' && item.color.includes('fluorescent')) ppm += extras.color.paper;
+      if ( item.material === 'tyvek' && item.color !== 'white' ) ppm += extras.color.tyvek;
+      if ( item.eyelet && item.material === 'paper' ) ppm += extras.eyelet;
+      if ( item.wired && item.material === 'paper' ) ppm += extras.wire.paper;
+      if ( item.wired && item.material !== 'paper' ) ppm += extras.wire.synthetic;
       return ppm
     }
   }
