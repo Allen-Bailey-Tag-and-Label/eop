@@ -23,6 +23,7 @@ const config = {
           $css: path.resolve('./src/css'),
           $data: path.resolve('./src/data'),
           $emailTemplates: path.resolve('./src/emailTemplates'),
+          $excelTemplates: path.resolve('./src/excelTemplates'),
           $sections: path.resolve('./src/sections'),
           $stores: path.resolve('./src/stores'),
         },

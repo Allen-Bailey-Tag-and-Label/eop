@@ -4,12 +4,15 @@
 
   // props ( external )
   export let label = '';
+  export let name = '';
   export let options = [];
   export let multiple = false;
   export let placeholder = '';
+  export let readonly = false;
   export let value;
 
   // props css ( external )
+  export let appearance      = '';
   export let backgroundColor = 'bg-transparent';
   export let boxShadow       = '';
   export let cursor          = 'cursor-pointer';
@@ -28,14 +31,18 @@
   export let whitespace      = 'whitespace-nowrap';
 
   // props ( dynamic )
-  $: classes = `${backgroundColor} ${boxShadow} ${cursor} ${flex} ${fontWeight} ${outline} ${padding} ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
+  $: if ( !('appearance' in $$props) && readonly) appearance = 'appearance-none'
+  $: if ( !('cursor' in $$props) && readonly) cursor = 'cursor-default'
+  $: if ( !('ring' in $$props) && readonly) ring = 'shadow-underline'
+  $: if ( !('rounded' in $$props) && readonly) rounded = ''
+  $: classes = `${appearance} ${backgroundColor} ${boxShadow} ${cursor} ${flex} ${fontWeight} ${outline} ${padding} ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
 </script>
 
 <div class="{label !== '' ? 'pt-[32px] relative flex' : ''}">
   {#if multiple}
-    <MultiSelect bind:selected={value} {options} {placeholder} outerDivClass="peer p-[11px] flex-grow m-0" --sms-options-bg="var(#f00, white)"  />
+    <MultiSelect bind:selected={value} {options} {placeholder} disabled={readonly !== false ? 'disable' : false} {readonly} outerDivClass="peer p-[11px] flex-grow m-0" --sms-options-bg="var(#f00, white)"  />
   {:else}
-    <select class="peer {classes}" bind:value on:change {style}>
+    <select class="peer {classes}" disabled={readonly !== false ? 'disable' : false} {readonly} bind:value on:change {style}>
       {#each options as option}}
         <option value={option.value}>{option.label}</option>
       {/each}

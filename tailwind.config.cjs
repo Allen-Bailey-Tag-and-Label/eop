@@ -9,24 +9,8 @@ module.exports = {
         'spinner-rotate' : 'spinner-rotate 2s linear infinite',
         'spinner-dash'   : 'spinner-dash 1.5s ease-in-out infinite'
       },
-      keyframes:{
-        'spinner-rotate':{
-          '100%' : { transform: 'rotate(360deg)' },
-        },
-        'spinner-dash' :{
-          '0%' : {
-            'stroke-dasharray' : '1, 200',
-            'stroke-dashoffset' : '0'
-          },
-          '50%' : {
-            'stroke-dasharray' : '89, 200',
-            'stroke-dashoffset' : '-35px'
-          },
-          '100%' : {
-            'stroke-dasharray' : '89, 200',
-            'stroke-dashoffset' : '-124px'
-          },
-        }
+      boxShadow: {
+        'underline' : '0 1px 0px 0 #404149',
       },
       colors: {
         primary: {
@@ -67,6 +51,25 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
+      },
+      keyframes:{
+        'spinner-rotate':{
+          '100%' : { transform: 'rotate(360deg)' },
+        },
+        'spinner-dash' :{
+          '0%' : {
+            'stroke-dasharray' : '1, 200',
+            'stroke-dashoffset' : '0'
+          },
+          '50%' : {
+            'stroke-dasharray' : '89, 200',
+            'stroke-dashoffset' : '-35px'
+          },
+          '100%' : {
+            'stroke-dasharray' : '89, 200',
+            'stroke-dashoffset' : '-124px'
+          },
+        }
       },
       transitionDelay: {
         0: '0ms',

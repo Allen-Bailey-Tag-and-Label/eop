@@ -58,7 +58,9 @@
     <form on:submit|preventDefault={submitHandler} class="flex flex-col mt-[24px] space-y-[16px] max-w-[500px] w-full mx-auto">
       {#each Object.keys(body) as key}
         {#if ('type' in body[key])}
-          {#if body[key].type === 'date'}
+          {#if body[key].type === 'checkbox'}
+            <Checkbox label={body[key].label} bind:checked={body[key].value} />
+          {:else if body[key].type === 'date'}
             <Input label={body[key].label} placeholder={body[key].label} bind:value={body[key].value} type="date" />
           {:else}
             <Select label={body[key].label} bind:value={body[key].value} multiple={body[key].multiple} placeholder={body[key].placeholder} options={selects[key]} />

@@ -4,12 +4,15 @@
 
   // components
   import Date from './Date.svelte';
+  import InputContainer from '../InputContainer.svelte';
   import Number from './Number.svelte';
 
   // props ( external )
   export let label           = '';
+  export let labelClasses    = '';
   export let name            = '';
   export let placeholder     = '';
+  export let readonly        = false;
   export let type            = '';
   export let value           = '';
 
@@ -30,26 +33,32 @@
   export let transition      = 'transition duration-200';
   export let style           = '';
   export let whitespace      = 'whitespace-nowrap';
+  export let width           = '';
 
   // props ( dynamic )
-  $: classes = `${appearance} ${backgroundColor} ${boxShadow} ${flex} ${fontWeight} ${outline} ${padding} placeholder-transparent ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${$$props.class !== undefined ? $$props.class : ''}`;
+  $: if ( type === 'date' ) {
+    padding = readonly ? 'px-[22px] py-[11px]' : 'pl-[22px] pr-[60px] py-[11px]';
+    width = 'w-[165px]'
+  }
+  $: if ( !('ring' in $$props) && readonly) ring = 'shadow-underline'
+  $: if ( !('rounded' in $$props) && readonly) rounded = ''
+  $: classes = `${appearance} ${backgroundColor} ${boxShadow} ${flex} ${fontWeight} ${outline} ${padding} placeholder-transparent ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${width} ${$$props.class !== undefined ? $$props.class : ''}`;
 </script>
 
-<div class="{label !== '' ? 'pt-[32px] relative flex' : ''}">
-  {#if type === 'date'}
-    <Date on:change {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+<InputContainer {label} class={label !== '' ? `pt-[32px] relative flex ${labelClasses}` : type === 'date' ? `relative ${labelClasses}` : `${labelClasses}`}>
+  {#if type === 'currency'}
+    <input disabled={readonly !== false ? 'disable' : false} {readonly} on:change type="text" use:imask={$$props.mask !== undefined ? $$props.mask : {mask:'\$X', blocks:{X:{mask:Number, scale:2, radix:'.', thousandsSeparator:',', padFractionalZeros:true}}}} {name} bind:value class="peer {classes}" {placeholder}  style={style !== undefined ? style : ''}/>
+  {:else if type === 'date'}
+    <Date disabled={readonly !== false ? 'disable' : false} {readonly} on:change {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {:else if type === 'email'}
-    <input on:change type="email" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+    <input disabled={readonly !== false ? 'disable' : false} {readonly}on:change type="email" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {:else if type === 'keypad'}
-    <input on:change type="number" use:imask={$$props.mask !== undefined ? $$props.mask : {mask:'000000'}} {name} bind:value class="peer {classes}" {placeholder}  style={style !== undefined ? style : ''}/>
+    <input disabled={readonly !== false ? 'disable' : false} {readonly} on:change type="number" use:imask={$$props.mask !== undefined ? $$props.mask : {mask:'000000'}} {name} bind:value class="peer {classes}" {placeholder}  style={style !== undefined ? style : ''}/>
   {:else if type === 'number'}
-    <Number on:change bind:value class="peer {classes}" min={$$props.min !== undefined ? $$props.min : undefined} max={$$props.max !== undefined ? $$props.max : undefined} style={style !== undefined ? style : ''}/>
+    <Number disabled={readonly !== false ? 'disable' : false} {readonly} on:change bind:value class="peer {classes}" min={$$props.min !== undefined ? $$props.min : undefined} max={$$props.max !== undefined ? $$props.max : undefined} style={style !== undefined ? style : ''}/>
   {:else if type === 'password'}
-    <input on:change type="password" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+    <input disabled={readonly !== false ? 'disable' : false} {readonly} on:change type="password" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {:else}
-    <input on:change use:imask={$$props.mask !== undefined ? $$props.mask : undefined} type="text" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
+    <input disabled={readonly !== false ? 'disable' : false} {readonly} on:change use:imask={$$props.mask !== undefined ? $$props.mask : undefined} type="text" {name} bind:value class="peer {classes}" {placeholder} style={style !== undefined ? style : ''}/>
   {/if}
-  {#if label !== ''}
-    <label for={name} class="absolute left-0 transform translate-y-[-40px] pointer-events-none opacity-[1] scale-[.9] translate-x-[0] origin-top-left py-[11px] {transition} peer-placeholder-shown:translate-x-[22px] peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-[1] peer-placeholder-shown:opacity-[.5]">{label}</label>
-  {/if}
-</div>
+</InputContainer>

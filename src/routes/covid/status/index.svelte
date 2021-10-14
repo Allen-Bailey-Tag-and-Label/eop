@@ -3,11 +3,11 @@
   import { onMount } from 'svelte';
   import { objectToUrlQueryParams, serverFetch } from '$lib/_helpers.js'
   import auth from "$lib/auth";
-  import { getDirectReportIds } from '$lib/user';
+  import { getDirectReportUsers } from '$lib/user';
   import moment from 'moment';
 
   // components
-  import { Card, Input, Section, Select, Spinner, Table } from '$components';
+  import { Card, Checkbox, Input, Section, Select, Spinner, Table } from '$components';
 
   // handlers
   const dateChangeHandler = async () => {
@@ -23,24 +23,10 @@
       return user;
     })
   }
-  const getDirectReports = async () => {
-    const { rows } = await serverFetch ('/api/datatable/direct-reports');
-    rows.forEach(user => {
-      directReports[user.userId] = user.userIds;
-    });
-  }
-  const getUsers = async () => {
-    const { rows } = await serverFetch(`/api/datatable/users?sort=${JSON.stringify({ firstName: 1, lastName: 1 })}`);
-    users = rows;
-  }
-  const filterUsers = async () => {
-    const allDirectReportIds = await getDirectReportIds();
-    users = [...users].filter(({_id})=> allDirectReportIds.includes(_id));
-  }
 
   // props ( internal )
+  const cellClasses = 'p-[10px]';
   let date = moment().format('MM.DD.YYYY');
-  let directReports = {};
   let loaded = false;
   let tableRows;
   const viewOptions = [
@@ -51,8 +37,7 @@
   let users = [];
 
   onMount(async()=>{
-    await Promise.all([getUsers(), getDirectReports()]);
-    await filterUsers();
+    users = await getDirectReportUsers();
     await dateChangeHandler();
 
     loaded = true
@@ -70,16 +55,18 @@
       </div>
       <Table width="">
         <thead slot="thead">
-          <th class="p-[10px]">First</th>
-          <th class="p-[10px]">Last</th>
-          <th class="p-[10px]">Status</th>
+          <th class="{cellClasses}"></th>
+          <th class="{cellClasses}">First</th>
+          <th class="{cellClasses}">Last</th>
+          <th class="{cellClasses}">Status</th>
         </thead>
         <tbody slot="tbody">
           {#each tableRows as row}
             <tr class="rounded transition duration-200 bg-white bg-opacity-0 hover:bg-opacity-[2%]">
-              <td class="p-[10px]">{row.firstName}</td>
-              <td class="p-[10px]">{row.lastName}</td>
-              <td class="p-[10px] {row.status === 'Approved' ? 'text-green-500' : row.status === 'Unsubmitted' ? 'text-warning-500' : 'text-red-500'}">{row.status}</td>
+              <td class="{cellClasses}"><Checkbox /></td>
+              <td class="{cellClasses}">{row.firstName}</td>
+              <td class="{cellClasses}">{row.lastName}</td>
+              <td class="{cellClasses} {row.status === 'Approved' ? 'text-green-500' : row.status === 'Unsubmitted' ? 'text-warning-500' : 'text-red-500'}">{row.status}</td>
             </tr>
           {/each}
         </tbody>
