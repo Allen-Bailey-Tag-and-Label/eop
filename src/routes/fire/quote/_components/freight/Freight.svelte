@@ -19,8 +19,10 @@
           obj.totalWeight += quantityNormalize(item.quantity) * packaging.fastener[item.item].weight
         }
         if ( item.type === 'label' ) {
-          obj.packages += quantityNormalize(item.quantity) / packaging.label[item.size].quantity
-          obj.totalWeight += quantityNormalize(item.quantity) * packaging.label[item.size].weight
+          let quantity = quantityNormalize(item.quantity);
+          if ( item.uom === 'EA' ) quantity /= 250
+          obj.packages += quantity / packaging.label[item.size].quantity
+          obj.totalWeight += quantity * packaging.label[item.size].weight
         }
         if ( item.type === 'tag' ) {
           let finishing = '';

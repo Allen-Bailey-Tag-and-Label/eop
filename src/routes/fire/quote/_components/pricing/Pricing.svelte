@@ -118,13 +118,19 @@
     'fluorescent-yellow':'fluorescent yellow',
   }
   const totalPrice = item => {
-    if ( item.type !== 'tag' ) return unitPrice(item) * quantityNormalize(item.quantity)
+    if ( item.type === 'tag' ) return unitPrice(item) * quantityNormalize(item.quantity) / (item.uom === 'EA' ? 1000 : 1);
+    if ( item.type === 'label') return unitPrice(item) * quantityNormalize(item.quantity) / (item.uom === 'EA' ? 1000 : 4 )
     return unitPrice(item) * quantityNormalize(item.quantity) / (item.uom === 'EA' ? 1000 : 1)
   }
   const unitPrice = item => {
     if ( item.type === 'collar' ) return collars[item.size][totalQuantities.collar[item.size] > 20 ? 20 : totalQuantities.collar[item.size]];
     if ( item.type === 'fastener' ) return fasteners[item.item];
-    if ( item.type === 'label' ) return labels[item.size][Math.floor(totalQuantities.label[item.size] / 4 ) > 25 ? 25 : Math.floor(totalQuantities.label[item.size] / 4 )];
+    if ( item.type === 'label' ) {
+      let pricingQuantity = Math.floor(totalQuantities.label[item.size] / 1000 );
+      if ( pricingQuantity < 1 ) pricingQuantity = 1;
+      if ( pricingQuantity > 25 ) pricingQuantity = 25;
+      return labels[item.size][pricingQuantity];
+    }
     if ( item.type === 'tag' ) {
       let ppm = tags[item.material][Math.floor(totalQuantities.tag[item.material] / 1000) < 1 ? 1 : Math.floor(totalQuantities.tag[item.material] / 1000) > 50 ? 50 : Math.floor(totalQuantities.tag[item.material] / 1000)];
       if ( item.material === 'paper' && item.color.includes('fluorescent')) ppm += extras.color.paper;
@@ -168,8 +174,6 @@
     }).total
   $: productCharge = productTotal + (copyChanges * 23)
   $: productTotal = [...nonBlankItems].reduce((total, item)=>total + totalPrice(item), 0);
-  // $: console.log(JSON.stringify(items), JSON.stringify(originalItems))
-  // $: console.log({items, totalQuantities})
 
   // stores
   import { modal } from '$stores';
@@ -195,7 +199,6 @@
             {#if quantityNormalize(item.quantity) > 0}
               <tr>
                 <td class="{cellClasses}">{description(item)}</td>
-                <!-- <td class="{cellClasses} text-right">{currencyFormat(unitPrice(item))}</td> -->
                 <td class="{cellClasses} text-right">{currencyFormat(totalPrice(item))}</td>
               </tr>
             {/if}
@@ -203,7 +206,6 @@
           {#if copyChanges > 0}
             <tr>
               <td class="{cellClasses}">{copyChanges} copy / stock change{copyChanges === 1 ? '' : 's'}</td>
-              <!-- <td class="{cellClasses} text-right">$23.00</td> -->
               <td class="{cellClasses} text-right">{currencyFormat(copyChanges * 23)}</td>
             </tr>
           {/if}

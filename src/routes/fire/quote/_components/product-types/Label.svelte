@@ -1,7 +1,7 @@
 <script>
   // _imports
   // import { page } from '$app/stores';
-  // import { serverFetch } from '$lib/_helpers.js';
+  import { numberFormat } from '$lib/_helpers.js';
   // import auth from '$lib/auth';
   // import moment from 'moment';
   // import { onMount } from 'svelte';
@@ -10,6 +10,12 @@
   import { Button, Buttons, Card, Checkbox, Input, Select, Section } from '$components';
   
   // handlers
+  const uomChangeHandler = () => {
+    if ( item.uom === 'RL' ) item.quantity = Math.floor(+item.quantity.toString().replace(/\,/g,'') / 250);
+    if ( item.uom === 'EA' ) item.quantity = +item.quantity.toString().replace(/\,/g,'') * 250;
+    if ( item.quantity > 25000 ) item.quantity = 25000;
+    item.quantity = numberFormat(item.quantity);
+  }
   
   // props ( internal )
   const sizeOptions = [
@@ -40,5 +46,5 @@
 </script>
 
 <Input type="number" label="Quantity" min={0} {max} bind:value={item.quantity} class="w-[120px]" />
-<Select label="U/M" options={uomOptions} bind:value={item.uom} />
+<Select on:change={uomChangeHandler} label="U/M" options={uomOptions} bind:value={item.uom} />
 <Select label="Size" options={sizeOptions} bind:value={item.size} />
