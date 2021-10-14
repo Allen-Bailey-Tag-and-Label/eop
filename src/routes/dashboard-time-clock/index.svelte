@@ -4,7 +4,7 @@
   import { objectToUrlQueryParams, serverFetch } from '$lib/_helpers';
   import { onMount } from 'svelte';
   import moment from 'moment';
-  import questions from '../covid/_lib/questions'
+  import initQuestions from '../covid/_lib/questions'
 
   // components
   import { Button, Card, Keypad, Spinner } from '$components';
@@ -145,6 +145,7 @@
   let keypad = "";
   let loaded = false;
   let photo;
+  let questions = initQuestions;
   let questionIndex = 0;
   let src = '';
   let step = 'init';
@@ -176,7 +177,6 @@
     {#if step === 'init'}
       <div class="flex-grow flex items-center justify-center">
         <Card class="flex flex-col space-y-[2rem] items-center">
-          <div class="text-[3rem] leading-[3rem]">Good Morning</div>
           <div class="text-[1.5rem]">Please enter your 6 digit employee id below</div>
           <div class="text-[1.5rem] h-[3.625rem] rounded ring ring-1 ring-gray-400 px-[22px] py-[11px] text-center w-full">{keypad}</div>
           <Keypad on:click={keypadChangeHandler}/>
