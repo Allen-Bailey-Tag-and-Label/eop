@@ -14,9 +14,14 @@
     ) return modal.error.show('Passwords cannot be blank.  Please try again.')
     if ( password !== passwordConfirm ) return modal.error.show('New passwords do not match.  Please try again.')
     modal.spinner.show()
-    await changePassword($auth, currentPassword, password);
-    modal.spinner.hide();
-    modal.success.show('Successfully change password');
+    try {
+      await changePassword($auth, currentPassword, password);
+      modal.spinner.hide();
+      modal.success.show('Successfully change password');
+    } catch ( error ) {
+      modal.spinner.hide();
+      modal.error.show(error);
+    }
     currentPassword = '';
     password = '';
     passwordConfirm = '';
