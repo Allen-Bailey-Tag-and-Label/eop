@@ -49,10 +49,12 @@
   export let totalWeight = '0';
 </script>
 
-<div class="flex flex-col space-y-[1rem]">
+<Card>
   <div class="flex flex-col space-y-[1rem] flex-grow">
-    <Input class="w-[75px]" label="Packages" min={0} type="number" bind:value={packages} />
-    <Input class="w-[150px]" label="Total Weight" min={0} type="number" bind:value={totalWeight} />
+    <div class="flex flex-col space-y-[1rem] flex-grow">
+      <Input class="w-[75px]" label="Packages" min={0} type="number" bind:value={packages} />
+      <Input class="w-[150px]" label="Total Weight" min={0} type="number" bind:value={totalWeight} />
+    </div>
+    <Button on:click={estimateClickHandler}>Estimate</Button>
   </div>
-  <Button on:click={estimateClickHandler}>Estimate</Button>
-</div>
+</Card>

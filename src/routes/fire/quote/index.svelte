@@ -26,6 +26,9 @@
     temp.splice(i, 1);
     items = temp;
   }
+  const keydownHandler = e => {
+    if ( e.key === 'i' && e.ctrlKey ) addClickHandler();
+  }
   const typeChangeHandler = (i, type) => {
     let temp = [...items];
     temp[i] = { type }
@@ -97,6 +100,8 @@
   // })
 </script>
 
+<svelte:window on:keydown={keydownHandler} />
+
 <Section flex="flex" class="space-x-[1rem]">
   <div class="flex flex-col space-y-[1rem] flex-grow">
     <Card class="flex-grow">
@@ -119,12 +124,10 @@
         {/each}
       </div>
     </Card>
-    <Card>
-      <div class="flex space-x-[2rem]">
-        <Freight bind:nonBlankItems bind:packages bind:totalQuantities bind:totalWeight {quantityNormalize} />
-        <Address bind:originalItems bind:items bind:service bind:shipToAddress bind:freightCharge bind:packages bind:totalWeight {quantityNormalize} />
-      </div>
-    </Card>
+    <div class="flex space-x-[1rem]">
+      <Freight bind:nonBlankItems bind:packages bind:totalQuantities bind:totalWeight {quantityNormalize} />
+      <Address bind:originalItems bind:items bind:service bind:shipToAddress bind:freightCharge bind:packages bind:totalWeight {quantityNormalize} />
+    </div>
   </div>
   <Pricing bind:service bind:shipToAddress bind:freightCharge bind:items bind:originalItems bind:nonBlankItems bind:totalQuantities {quantityNormalize} />
 </Section>
