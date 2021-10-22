@@ -24,8 +24,8 @@
     loaded = false;
     const { rows } = await serverFetch(`/api/covid/daily-questionnaire/date-range?${objectToUrlQueryParams(query)}`);
     loaded = true
-    if ( rows.length === 1 ) {
-      alreadySubmitted = rows[0];
+    if ( rows.length > 1 ) {
+      alreadySubmitted = rows[rows.length-1];
       _id = alreadySubmitted._id;
       method = 'PATCH';
     } else {
@@ -53,6 +53,7 @@
         href = `/api/covid/daily-questionnaire?_id=${_id}`;
       }
       const doc = await serverFetch({method, href, body});
+      console.log(doc);
       alreadySubmitted = doc;
       _id = doc._id;
       modal.spinner.hide();

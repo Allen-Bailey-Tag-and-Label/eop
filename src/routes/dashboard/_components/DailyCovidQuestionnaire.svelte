@@ -20,8 +20,8 @@
       to: moment(date, 'MM.DD.YYYY').endOf('day').format('x'),
     }
     const { rows } = await serverFetch(`/api/covid/daily-questionnaire/date-range?${objectToUrlQueryParams(query)}`);
-    if ( rows.length === 1 ) {
-      alreadySubmitted = rows[0];
+    if ( rows.length > 1 ) {
+      alreadySubmitted = rows[rows.length-1];
     }
     loaded = true;
   })
