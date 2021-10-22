@@ -19,7 +19,7 @@
     tableRows = [...users].map(user=>{
       user.status = 'Unsubmitted';
       const matchingUser = [...rows].filter(submission=>submission.userId === user._id);
-      if ( matchingUser.length === 1 ) user.status = matchingUser[0].approved ? 'Approved' : 'Unapproved';
+      if ( matchingUser.length > 1 ) user.status = matchingUser[matchingUser.length-1].approved ? 'Approved' : 'Unapproved';
       return user;
     })
   }
