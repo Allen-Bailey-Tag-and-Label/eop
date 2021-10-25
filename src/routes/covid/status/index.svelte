@@ -55,7 +55,6 @@
       </div>
       <Table width="">
         <thead slot="thead">
-          <th class="{cellClasses}"></th>
           <th class="{cellClasses}">First</th>
           <th class="{cellClasses}">Last</th>
           <th class="{cellClasses}">Status</th>
@@ -63,7 +62,6 @@
         <tbody slot="tbody">
           {#each tableRows as row}
             <tr class="rounded transition duration-200 bg-white bg-opacity-0 hover:bg-opacity-[2%]">
-              <td class="{cellClasses}"><Checkbox /></td>
               <td class="{cellClasses}">{row.firstName}</td>
               <td class="{cellClasses}">{row.lastName}</td>
               <td class="{cellClasses} {row.status === 'Approved' ? 'text-green-500' : row.status === 'Unsubmitted' ? 'text-warning-500' : 'text-red-500'}">{row.status}</td>
