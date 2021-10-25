@@ -38,13 +38,14 @@ export async function post({ body }) {
 
     // encrypt password
     password = await bcrypt.hash(password, 10);
+    const initialPassword = '';
     const status = 'Active'
 
     // update password
     const doc = await client
       .db()
       .collection('users')
-      .findOneAndUpdate({_id}, {$set: {password, status}});
+      .findOneAndUpdate({_id}, {$set: {password, initialPassword, status}});
 
     // destructure doc
     const {value: user} = doc;
