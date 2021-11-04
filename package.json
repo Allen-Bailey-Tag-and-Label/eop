@@ -44,5 +44,8 @@
     "xlsx": "^0.17.2",
     "zipcodes": "^8.0.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "csv-writer": "^1.6.0"
+  }
 }
