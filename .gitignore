@@ -1,9 +1,10 @@
 .DS_Store
 node_modules
 /.svelte-kit
+/build
+/scripts
 /package
 .env
-/build
 server.crt
 server.csr
 server.key
