@@ -2,4 +2,4 @@
   import Route from '../_utilities/route.svelte';
 </script>
 
-<Route />
+<Route admin={true} />
