@@ -1,22 +1,23 @@
 import mongodb from 'mongodb';
 const { MongoClient } = mongodb
 
-// connection URI
-const uri = `mongodb+srv://bobmcaleavey:Superma3+@cluster0.0f8ym.mongodb.net/${import.meta.env.VITE_MONGO_DB}?retryWrites=true&w=majority`;
-
 // connection options
 const options = { useUnifiedTopology: true }
 
 // create a new MongoClient
-const client = new MongoClient(uri, options);
+const client = {};
 
 // initial connection variable
-let connection;
+const connection = {};
 
 // create connection function
-const connect = async() => {
-  if ( connection === undefined ) connection = await client.connect();
-  return client;
+const connect = async (db = import.meta.env?.VITE_MONGO_DB || 'development') => {
+  if (!(db in client)) client[db] = new MongoClient(`mongodb+srv://bobmcaleavey:Superma3+@cluster0.0f8ym.mongodb.net/${db}?retryWrites=true&w=majority`, options);
+  if (!(db in connection)) connection[db] = await client[db].connect();
+  return client[db];
 }
 
-export { connect };
+// close connection
+const close = async (db = import.meta.env?.VITE_MONGO_DB || 'development') => client[db].close();
+
+export { close, connect };
