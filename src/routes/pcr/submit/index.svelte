@@ -37,7 +37,7 @@
       const sort = {
         date : -1
       }
-      const { rows } = await serverFetch(`/api/datatable/pay-change-requests?userId=${userId}&sort=${JSON.stringify(sort)}`);
+      const { rows } = await serverFetch(`/api/datatable/pay-change-requests?userId=${userId}&status=Approved&sort=${JSON.stringify(sort)}`);
       if ( rows.length > 0 ) {
         const pcr = rows[0];
         previous = {
