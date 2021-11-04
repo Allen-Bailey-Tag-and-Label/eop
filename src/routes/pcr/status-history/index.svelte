@@ -29,6 +29,7 @@
   const downloadClickHandler = async pcr => {
     modal.spinner.show();
     try {
+      console.log(pcr)
       await downloadCSV(pcr);
     } catch( error ) {
       modal.error.show(error);
@@ -51,7 +52,6 @@
         lastName: user.lastName,
         ennisId: user.ennisId, 
         hireDate: user.hireDate,
-        title: user.title,
       };
       return obj;
     });

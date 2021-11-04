@@ -73,6 +73,13 @@
     }
     modal.spinner.hide();
   }
+  const getJobTitles = async () => {
+    const { rows } = await serverFetch('/api/datatable/job-titles');
+    jobTitles = rows.reduce((obj, doc) => {
+      obj[doc._id] = doc;
+      return obj;
+    }, {})
+  }
   const getPCR = async () => {
     const { rows } = await serverFetch(`/api/datatable/pay-change-requests?_id=${query._id}`)
     const pcr = rows[0];
@@ -148,7 +155,7 @@
     modal.spinner.show();
 
     // destructure user
-    const { costCenter, jobCode, jobTitle, eeoClassification, workCompClass } = user;
+    const { costCenter, jobCode, jobTitle, eeoClassification, workCompClass } = jobTitles[user.jobTitleId];
 
     // initiate body
     const body = {
@@ -196,6 +203,7 @@
     previous: '$0.00',
     percent: '0.0%',
   }
+  let jobTitles = {};
   let loaded = false;
   const mask = {
     currency : {
@@ -251,6 +259,7 @@
   onMount(async() => {
     // await updateHistory();
     users = await getDirectReportUsers({self:false});
+    await getJobTitles();
     if ( '_id' in query ) await getPCR();
     loaded = true;
   })

@@ -24,6 +24,12 @@
   import { Button, Buttons, Card, Checkbox, Input, Section, Select, Spinner } from '$components';
 
   // handler
+  const getJobTitles = async() => {
+    const data = await serverFetch(`/api/datatable/job-titles?sort=${JSON.stringify({jobTitle:1})}`);
+    selects.jobTitleId = data.rows.map(row=>{
+      return { label: row.jobTitle, value: row._id}
+    })
+  }
   const getRoles = async() => {
     const data = await serverFetch(`/api/datatable/roles?sort=${JSON.stringify({name:1})}`);
     selects.roles = data.rows.map(row=>row.name)
@@ -55,6 +61,7 @@
   }, {})
   let loaded = false;
   let selects = {
+    jobTitleId : [], 
     roles : [],
     status : [
       {label: 'Active', value: 'Active'},
@@ -69,6 +76,7 @@
 
   onMount(async() => {
     await Promise.all([
+      getJobTitles(),
       getRoles(),
       getUser()
     ]);
