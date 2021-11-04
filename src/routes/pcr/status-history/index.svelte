@@ -90,7 +90,10 @@
       'change.date' : -1
     }
     const { rows } = await serverFetch(`/api/datatable/pay-change-requests?sort=${JSON.stringify(sort)}`)
-    pcrs = rows.map(obj=>{
+    pcrs = rows.filter(pcr=>
+      [...users].filter(user=>user._id === pcr.userId).length > 0
+    )
+    .map(obj=>{
       const user = [...users].filter(user=>user._id === obj.userId)[0];
       obj = {
         ...obj, 
@@ -144,7 +147,7 @@
               <div class="flex space-x-[.5rem]">
                 <Buttons.Icon on:click={()=>downloadClickHandler(pcr)} theme="success"><Icon src={Download} class="w-[24px] h-[24px]"/></Buttons.Icon>
                 {#if pcr.status !== 'Approved'}
-                  <Buttons.Icon type="link" href="/hr/submit-pay-change-request?_id={pcr._id}" theme="secondary"><Icon src={Pencil} class="w-[24px] h-[24px]"/></Buttons.Icon>
+                  <Buttons.Icon type="link" href="/pcr/submit?_id={pcr._id}" theme="secondary"><Icon src={Pencil} class="w-[24px] h-[24px]"/></Buttons.Icon>
                   <Buttons.Icon on:click={()=>deleteClickHandler(pcr)} theme="error"><Icon src={Trash} class="w-[24px] h-[24px]"/></Buttons.Icon>
                 {/if}
               </div>
