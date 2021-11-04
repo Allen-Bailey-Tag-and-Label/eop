@@ -40,7 +40,6 @@
       const { rows } = await serverFetch(`/api/datatable/pay-change-requests?userId=${userId}&sort=${JSON.stringify(sort)}`);
       if ( rows.length > 0 ) {
         const pcr = rows[0];
-
         previous = {
           after: currencyFormat(pcr.change.after),
           code: pcr.change.code,
@@ -54,8 +53,8 @@
 
         // check for user exempt status
         if ( previous.exempt === true && change.exempt === false ) change.previous = currencyFormat(pcr.change.after / 2080);
-        if ( previous.exempt === false && change.exempt === true ) change.previous = currencyFormat(pcr.change.after * 2080);
-        if ( previous.exempt === change.exempt ) change.previous = currencyFormat(pcr.change.after);
+        else if ( previous.exempt === false && change.exempt === true ) change.previous = currencyFormat(pcr.change.after * 2080);
+        else change.previous = currencyFormat(pcr.change.after);
       } else {
         change.previous = '';
         previous = {
