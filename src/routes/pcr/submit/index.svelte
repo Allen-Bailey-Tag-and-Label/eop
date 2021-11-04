@@ -102,7 +102,7 @@
   const payChangeHandler = async () => {
     const after = +change.after.replace(/[\$\,]/g,'');
     const previous = +change.previous.replace(/[\$\,]/g,'');
-    const percent = Math.round(((after / previous)-1)*1000) / 10;
+    const percent = previous === 0 ? 0 : Math.round(((after / previous)-1)*1000) / 10;
     change.percent = `${percent}%`;
   }
   const percentChangeHandler = async () => {
