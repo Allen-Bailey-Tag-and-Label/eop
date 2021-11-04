@@ -26,7 +26,7 @@ export const downloadCSV = async pcr => {
     worksheet.getCell('B12').value = pcr.lastName;
     worksheet.getCell('E12').value = pcr.firstName;
     worksheet.getCell('J12').value = moment(pcr.hireDate, 'x').format('M/D/YYYY');
-    worksheet.getCell('A15').value = pcr.title;
+    worksheet.getCell('A15').value = pcr.jobTitle;
     worksheet.getCell('E15').value = pcr.jobCode;
     worksheet.getCell('H15').value = pcr.eeoClassification;
     worksheet.getCell('J15').value = pcr.workCompClass;
