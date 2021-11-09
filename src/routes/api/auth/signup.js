@@ -16,9 +16,10 @@ export async function post({ body }) {
     email: '',
     extension: '',
     firstName: '',
-    hireDate:0,
+    hireDate: 0,
     initialPassword: randomPassword,
-    lastName:'',
+    jobTitleId: '',
+    lastName: '',
     on: {
       signin: '/dashboard',
     },
@@ -29,7 +30,7 @@ export async function post({ body }) {
 
   // merge body with defaults
   body = Object.assign(defaults, body);
-  
+
   // destructure body
   let {
     ennisId,
@@ -38,6 +39,7 @@ export async function post({ body }) {
     firstName,
     hireDate,
     initialPassword,
+    jobTitleId,
     lastName,
     on,
     password,
@@ -63,6 +65,7 @@ export async function post({ body }) {
       firstName,
       hireDate,
       initialPassword,
+      jobTitleId,
       lastName,
       on,
       password,
