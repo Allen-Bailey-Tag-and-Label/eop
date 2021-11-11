@@ -15,7 +15,7 @@
     } else {
       calendar.onChange(v=>{
         value = v;
-        dispatch('change')
+        dispatch('change', { value: v })
       })
       calendar.setDate(value);
       calendar.show();
