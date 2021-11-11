@@ -44,7 +44,7 @@
   {:else}
     <select class="peer {classes}" disabled={readonly !== false ? 'disable' : false} {readonly} bind:value on:change {style}>
       {#each options as option}}
-        <option value={option.value}>{option.label}</option>
+        <option value={option.value} class="text-white bg-gray-800 checked:bg-blue-500 checked:text-white hover:bg-blue-500 hover:text-white py-[.25rem]">{option.label}</option>
       {/each}
     </select>
   {/if}

@@ -6,11 +6,11 @@ module.exports = {
   theme: {
     extend: {
       animation: {
-        'spinner-rotate' : 'spinner-rotate 2s linear infinite',
-        'spinner-dash'   : 'spinner-dash 1.5s ease-in-out infinite'
+        'spinner-rotate': 'spinner-rotate 2s linear infinite',
+        'spinner-dash': 'spinner-dash 1.5s ease-in-out infinite'
       },
       boxShadow: {
-        'underline' : '0 1px 0px 0 #404149',
+        'underline': '0 1px 0px 0 #404149',
       },
       colors: {
         primary: {
@@ -52,22 +52,22 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
       },
-      keyframes:{
-        'spinner-rotate':{
-          '100%' : { transform: 'rotate(360deg)' },
+      keyframes: {
+        'spinner-rotate': {
+          '100%': { transform: 'rotate(360deg)' },
         },
-        'spinner-dash' :{
-          '0%' : {
-            'stroke-dasharray' : '1, 200',
-            'stroke-dashoffset' : '0'
+        'spinner-dash': {
+          '0%': {
+            'stroke-dasharray': '1, 200',
+            'stroke-dashoffset': '0'
           },
-          '50%' : {
-            'stroke-dasharray' : '89, 200',
-            'stroke-dashoffset' : '-35px'
+          '50%': {
+            'stroke-dasharray': '89, 200',
+            'stroke-dashoffset': '-35px'
           },
-          '100%' : {
-            'stroke-dasharray' : '89, 200',
-            'stroke-dashoffset' : '-124px'
+          '100%': {
+            'stroke-dasharray': '89, 200',
+            'stroke-dashoffset': '-124px'
           },
         }
       },
@@ -101,4 +101,9 @@ module.exports = {
   plugins: [
     require('tailwind-scrollbar')
   ],
+  variants: {
+    extend: {
+      backgroundColor: ['checked']
+    }
+  }
 };
