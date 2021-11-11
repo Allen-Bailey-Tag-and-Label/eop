@@ -46,7 +46,7 @@ export default {
     }),
   setDate: v => {
     update(({ changeHandler, show }) => {
-      return { changeHandler, date: v, dateView: v, show };
+      return { changeHandler, date: v === '' ? moment().format('MM.DD.YYYY') : v, dateView: v === '' ? moment().format('MM.DD.YYYY') : v, show };
     });
   },
   show: () =>
