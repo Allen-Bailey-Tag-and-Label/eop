@@ -29,7 +29,6 @@
   const downloadClickHandler = async pcr => {
     modal.spinner.show();
     try {
-      console.log(pcr)
       await downloadCSV(pcr);
     } catch( error ) {
       modal.error.show(error);
@@ -82,7 +81,7 @@
   import { modal } from '$stores';
   
   onMount(async() => {
-    users = await getDirectReportUsers();
+    users = await getDirectReportUsers({self: false});
     await getPayChangeRequests();
     loaded = true;
   })
