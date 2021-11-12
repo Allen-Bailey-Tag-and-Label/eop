@@ -1,10 +1,11 @@
 <script>
   // _imports
+  import moment from 'moment';
   import { onMount } from 'svelte';
   import { objectToUrlQueryParams, serverFetch } from '$lib/_helpers.js'
   import { getDirectReportUsers } from '$lib/user';
   import { modal } from '$stores';
-  import moment from 'moment';
+  import immunizationOptions from './immunizationOptions';
 
   // components
   import { Card, Checkbox, Input, Section, Select, Spinner, Table } from '$components';
@@ -74,12 +75,6 @@
 
   // props ( internal )
   const cellClasses = 'p-[10px] whitespace-nowrap';
-  const immunizationOptions = [
-    {label: 'Johnson & Johnson', value: 'Johnson & Johnson' },
-    {label: 'Moderna', value: 'Moderna' },
-    {label: 'Pfizer-BioNTech', value: 'Pfizer-BioNTech' },
-    {label: 'Unknown', value: 'Unknown' },
-  ]
   let loaded = false;
   let tbody = [];
   let users = [];
@@ -91,10 +86,8 @@
   $: total = [...immunizationOptions].reduce((obj, option) => {
     obj[option.value] = [...tbody].filter(({immunizationMethod, dateFirstShot, dateSecondShot}) => {
       if ( immunizationMethod !== option.value ) return false;
-      if ( immunizationMethod === 'Unknown' ) return true;
-      if ( dateFirstShot === '' ) return false;
-      if ( immunizationMethod === 'Johnson & Johnson' ) return true;
-      if ( dateSecondShot === '' ) return false;
+      if ( dateFirstShot === '' && option.firstShot ) return false;
+      if ( dateSecondShot === '' && option.secondShot ) return false;
       return true;
     }).length
     return obj;
@@ -145,14 +138,12 @@
                 {/if}
                 </td>
               <td class="{cellClasses} text-center">
-                {#if immunizationMethod !== 'Unknown' && [...immunizationOptions].map(obj=>obj.value).includes(immunizationMethod)}
+                {#if [...immunizationOptions].filter(obj=>obj.firstShot).map(obj=>obj.value).includes(immunizationMethod)}
                   <Input type="date" value={dateFirstShot} on:change={e=>updateVaccinationStatus(e,userId,i,'dateFirstShot')} />
                 {/if}
               </td>
               <td class="{cellClasses} text-center">
-                {#if immunizationMethod === 'Johnson & Johnson'}
-                  N/A
-                {:else if immunizationMethod !== 'Unknown' && [...immunizationOptions].map(obj=>obj.value).includes(immunizationMethod)}
+                {#if [...immunizationOptions].filter(obj=>obj.secondShot).map(obj=>obj.value).includes(immunizationMethod)}
                   <Input type="date" value={dateSecondShot} on:change={e=>updateVaccinationStatus(e,userId,i,'dateSecondShot')} />
                 {/if}
               </td>
