@@ -8,13 +8,13 @@ const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url),
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  preprocess: [
-    preprocess({
-      postcss: true,
-    }),
-  ],
   kit: {
     adapter: adapter(),
+    preprocess: [
+      preprocess({
+        postcss: true,
+      }),
+    ],
     target: '#svelte',
     vite: {
       resolve: {
@@ -34,7 +34,7 @@ const config = {
       //     cert: fs.readFileSync('./server.crt'),
       //   },
       // },
-      ssr:{
+      ssr: {
         noExternal: Object.keys(pkg.dependencies || {}),
       }
     },
