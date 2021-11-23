@@ -68,6 +68,12 @@ export const getDirectReportUsers = async ( params = {} ) => {
 
   return users;
 }
+export const getSelf = async () => {
+  // find user
+  const user = await serverFetch(`/api/auth/get/user?auth=${get(auth)}`);
+
+  return user;
+}
 export const getUsers = async (params = {}) => {
   // initialize defaults
   const defaults = {

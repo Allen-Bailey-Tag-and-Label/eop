@@ -10,11 +10,6 @@ const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url),
 const config = {
   kit: {
     adapter: adapter(),
-    preprocess: [
-      preprocess({
-        postcss: true,
-      }),
-    ],
     target: '#svelte',
     vite: {
       resolve: {
@@ -39,6 +34,11 @@ const config = {
       }
     },
   },
+  preprocess: [
+    preprocess({
+      postcss: true,
+    }),
+  ],
 };
 
 export default config;

@@ -45,7 +45,7 @@
   $: classes = `${appearance} ${backgroundColor} ${boxShadow} ${flex} ${fontWeight} ${outline} ${padding} placeholder-transparent ${ring} ${rounded} ${shadow} ${textAlign} ${textColor} ${textSize} ${transition} ${whitespace} ${width} ${$$props.class !== undefined ? $$props.class : ''}`;
 </script>
 
-<InputContainer {label} class={label !== '' ? `pt-[32px] relative flex ${labelClasses}` : type === 'date' ? `relative ${labelClasses}` : `${labelClasses}`}>
+<InputContainer {label} class={label !== '' ? `pt-[32px] relative flex ${labelClasses}` : type === 'date' ? `relative flex ${labelClasses}` : `${labelClasses}`}>
   {#if type === 'currency'}
     <input disabled={readonly !== false ? 'disable' : false} {readonly} on:change type="text" use:imask={$$props.mask !== undefined ? $$props.mask : {mask:'\$X', blocks:{X:{mask:Number, scale:2, radix:'.', thousandsSeparator:',', padFractionalZeros:true}}}} {name} bind:value class="peer {classes}" {placeholder}  style={style !== undefined ? style : ''}/>
   {:else if type === 'date'}
