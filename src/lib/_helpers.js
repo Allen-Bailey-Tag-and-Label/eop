@@ -65,6 +65,6 @@ export const serverFetch = async (params) => {
   }
 
   const response = await fetch(href, options);
-  const data = await response.json();
+  const data = await headers?.['Content-Type'] === 'application/json' || headers === undefined ? response.json() : response.text();
   return data;
 }
