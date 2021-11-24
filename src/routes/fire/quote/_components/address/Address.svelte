@@ -26,11 +26,11 @@
 
       try {
         // get c&m total rate with upcharge
-        const { total } = await cm({packages, totalWeight, zip})
+        const { quote, total } = await cm({packages, totalWeight, zip})
 
         // update freightCharge and shipToAddress
         freightCharge = total;
-        shipToAddress = `LTL freight estimate to ${zip}`;
+        shipToAddress = `LTL (Quote #${quote}) freight estimate to ${zip}`;
       } catch( error ) {
         modal.error.show(error);
       }
