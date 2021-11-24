@@ -1,6 +1,7 @@
 <script>
   // _imports
   import { serverFetch } from "$lib/_helpers.js";
+  import cm from '$lib/freight/cm';
   import * as ups from "$lib/ups";
   import provinces from "provinces-ca";
   import states from "states-us";
@@ -19,45 +20,44 @@
 
   // handlers
   const submitHandler = async () => {
-    if ( service !== 'collect' && service !== 'n30') {
+    if ( service === 'c&m' ) {
+      // show spinner
       modal.spinner.show();
-      let result = await ups.addressValidation({
-        address,
-        city,
-        state,
-        zip,
-      });
 
-      if (result?.XAVResponse?.Candidate?.AddressClassification !== undefined) {
-        const {
-          XAVResponse: {
-            Candidate: { AddressClassification, AddressKeyFormat },
-          },
-        } = result;
-        residential = AddressClassification.Code === "1" ? false : true;
-        address = AddressKeyFormat.AddressLine;
-        city = AddressKeyFormat.PoliticalDivision2;
-        state = AddressKeyFormat.PoliticalDivision1;
-        zip = AddressKeyFormat.PostcodePrimaryLow;
-        shipToAddress = `${address}, ${city} ${state}, ${zip}`;
+      try {
+        // get c&m total rate with upcharge
+        const { total } = await cm({packages, totalWeight, zip})
 
-        result = await ups.rates({
-          shipTo: {
-            address,
-            city,
-            state,
-            zip,
-          },
-          weight: averagePackageWeight,
-        });
-
-        freightCharge = +packages * result[service];
-
-        modal.spinner.hide();
-      } else {
-        modal.spinner.hide();
-        modal.error.show('Could not validate address.  Please try again.')
+        // update freightCharge and shipToAddress
+        freightCharge = total;
+        shipToAddress = `LTL freight estimate to ${zip}`;
+      } catch( error ) {
+        modal.error.show(error);
       }
+
+      // hide spinner
+      modal.spinner.hide();
+    } else if ( service !== 'collect' && service !== 'n30') {
+      // show spinner
+      modal.spinner.show();
+
+      try {
+        // validate address
+        ({ address, city, residential, state, zip } = await ups.addressValidation({ address, city, state, zip })); 
+        
+        // get ups rates
+        const rates = await ups.rates({ shipTo: { address, city, state, zip, }, weight: averagePackageWeight });
+
+        // update freightCharge and shipToAddress
+        freightCharge = +packages * rates[service];
+        shipToAddress = `${ups.serviceCodes[service]} freight estimate to ${address}, ${city} ${state}, ${zip}`;
+      } catch( error ) {
+        modal.error.show(error);
+      }
+      // hide spinner
+      modal.spinner.hide();
+
+        
     } else {
       freightCharge = 0;
       shipToAddress = '';
@@ -82,12 +82,13 @@
   ];
   let residential = false;
   const serviceOptions = [
-    {label: 'Collect', value: 'collect'}, 
-    {label: 'N30', value: 'n30'}, 
+    {label: 'Collect', value: 'collect', residential: false, streetLevel: false, zip: false}, 
+    {label: 'N30', value: 'n30', residential: false, streetLevel: false, zip: false}, 
+    {label: 'C&M', value: 'c&m', residential: false, streetLevel: false, zip: true},
     ...Object.keys(ups.serviceCodes).map(key=>{
-      return { label: ups.serviceCodes[key], value: key };
+      return { label: `UPS - ${ups.serviceCodes[key].replace(/Dai/g, 'Day')}`, value: key, residential: true, streetLevel: true, zip: true };
     })
-]
+  ].sort((a,b)=>a.label < b.label ? -1 : a.label > b.label ? 1 : 0)
   let state = "";
   const stateOptions = {
     CA: [
@@ -123,6 +124,7 @@
     country === "CA"
       ? { mask: "#0# 0#0", definitions: { "#": /[A-Z]/ } }
       : { mask: "00000", min: 0, max: 99999 };
+  $: serviceObj = [...serviceOptions].filter(({value})=>value === service)[0];
 
   // stores
   import { modal } from "$stores";
@@ -132,34 +134,36 @@
   <form
     on:submit|preventDefault={submitHandler}
     class="flex flex-col flex-grow space-y-[1rem] items-start">
-    {#if service === 'collect' || service === 'n30'}
-      <div class="flex flex-col flex-grow">
-        <Select label="Service" options={serviceOptions} bind:value={service} />
-      </div>
-    {:else}
       <div class="flex space-x-[1rem]">
         <Select label="Service" options={serviceOptions} bind:value={service} />
-        <div class="pt-[32px] relative flex">
-        <Checkbox bind:checked={residential} class="my-[11px]" />
-        <label
-          class="absolute left-0 transform translate-y-[-40px] pointer-events-none opacity-[1] scale-[.9] translate-x-[0] origin-top-left py-[11px] transition duration-200 peer-placeholder-shown:translate-x-[22px] peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-[1] peer-placeholder-shown:opacity-[.5]">Residential</label>
-        </div>
+        {#if serviceObj.residential}
+          <div class="pt-[32px] relative flex">
+            <Checkbox bind:checked={residential} class="my-[11px]" />
+            <label
+              class="absolute left-0 transform translate-y-[-40px] pointer-events-none opacity-[1] scale-[.9] translate-x-[0] origin-top-left py-[11px] transition duration-200 peer-placeholder-shown:translate-x-[22px] peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-[1] peer-placeholder-shown:opacity-[.5]">Residential</label>
+          </div>
+        {/if}
       </div>
-      <Input label="Address" bind:value={address} />
+      {#if serviceObj.streetLevel}
+        <Input label="Address" bind:value={address} />
+      {/if}
       <div class="flex space-x-[1rem]">
-        <Input
-          on:change={zipChangeHandler}
-          {mask}
-          class="text-right w-[110px]"
-          label="ZIP"
-          bind:value={zip} />
-        <Input label="City" bind:value={city} />
-        <Select
-          label="State"
-          options={stateOptions[country]}
-          bind:value={state} />
+        {#if serviceObj.zip}
+          <Input
+            on:change={zipChangeHandler}
+            {mask}
+            class="text-right w-[110px]"
+            label="ZIP"
+            bind:value={zip} />
+        {/if}
+        {#if serviceObj.streetLevel}
+          <Input label="City" bind:value={city} />
+          <Select
+            label="State"
+            options={stateOptions[country]}
+            bind:value={state} />
+        {/if}
       </div>
-    {/if}
     <Button type="submit">Get Rate</Button>
   </form>
 </Card>

@@ -34,7 +34,7 @@
         name: `${user.firstName} ${user.lastName}`,
         productTotal: currencyFormat(productCharge),
         shipping: {
-          description:shipToAddress === '' ? '' : `${ups.serviceCodes[service]} freight estimate to ${shipToAddress}`,
+          description:shipToAddress === '' ? '' : `${shipToAddress}`,
           extendedPrice: currencyFormat(freightCharge),
         },
         title: `${user.title}`,
@@ -220,7 +220,7 @@
               <td class="{cellClasses} text-right">{currencyFormat(productCharge)}</td>
             </tr>
             <tr>
-              <td colspan="1" class="{cellClasses}">{ups.serviceCodes[service]} freight estimate to {shipToAddress}</td>
+              <td colspan="1" class="{cellClasses}">{shipToAddress}</td>
               <td class="{cellClasses} text-right">{currencyFormat(freightCharge)}</td>
             </tr>
           {/if}
