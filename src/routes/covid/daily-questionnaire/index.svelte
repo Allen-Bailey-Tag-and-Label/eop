@@ -11,44 +11,6 @@
   import Boolean from './_components/Boolean.svelte';
 
   // handlers
-  const cancelHandler = () => {
-    questions = questions.map(question=>{
-      question.submitted = false;
-      question.value = undefined;
-      return question;
-    })
-  }
-  const confirmHandler = async() => {
-    modal.spinner.show();
-    const body = {
-      approved: true,
-      date : moment(date, 'MM.DD.YYYY').format('x'),
-      questions,
-    }
-    // check if positive test
-    if (questions[0].value === true) body.approved = false;
-
-    // check if symptoms
-    if (questions[1].value === true ) body.approved = false;
-
-    // check if close contact and unvaccinated
-    if (questions[2].value === true && vaccinationStatus.fullyVaccinated === false) body.approved = false;
-
-    let href;
-    if ( method === 'POST' ) {
-      body.auth = $auth;
-      href = '/api/covid/daily-questionnaire';
-    }
-    if ( method === 'PATCH' ) {
-      delete body.date;
-      href = `/api/covid/daily-questionnaire?_id=${_id}`;
-    }
-    const doc = await serverFetch({method, href, body});
-    alreadySubmitted = doc;
-    _id = doc._id;
-    modal.spinner.hide();
-    modal.success.show('Successfully submitted daily questionnaire');
-  }
   const dateChangeHandler = async () => {
     questions = questions.map(question=>{
       question.value = undefined;
@@ -111,10 +73,40 @@
         if ( vaccinationStatus.monthsSinceSecondShot >= 6 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
       }
     }
-  }
-  const nextQuestionHandler = () => {
-    // get current question
-    questions[currentQuestionIndex].submitted = true;
+  }  
+  const submitHandler = async() => {
+    const confirmFn = async () => {
+      modal.spinner.show();
+      const body = {
+        approved: true,
+        date : moment(date, 'MM.DD.YYYY').format('x'),
+        questions,
+      }
+      // check if positive test
+      if (questions[0].value === true) body.approved = false;
+
+      // check if symptoms
+      if (questions[1].value === true ) body.approved = false;
+
+      // check if close contact and unvaccinated
+      if (questions[2].value === true && vaccinationStatus.fullyVaccinated === false) body.approved = false;
+
+      let href;
+      if ( method === 'POST' ) {
+        body.auth = $auth;
+        href = '/api/covid/daily-questionnaire';
+      }
+      if ( method === 'PATCH' ) {
+        delete body.date;
+        href = `/api/covid/daily-questionnaire?_id=${_id}`;
+      }
+      const doc = await serverFetch({method, href, body});
+      alreadySubmitted = doc;
+      _id = doc._id;
+      modal.spinner.hide();
+      modal.success.show('Successfully submitted daily questionnaire');
+    }
+    modal.confirmation.show('I certify my answers to be true and accurate.', confirmFn)
   }
   const updateAnswersHandler = () => {
     questions = alreadySubmitted.questions.map(question=>{
@@ -132,9 +124,9 @@
   let loaded = false;
   let method = 'POST'
   let questions = [
-    { name: 'positive-test', question: 'Have you tested positive for COVID-19 in the past 5 days?', submitted:false, value: undefined },
-    { name: 'symptoms', question: 'Do you have any COVID-19 symptoms?', submitted:false, value: undefined },
-    { name: 'close-contact', question: 'Have you knowingly been in close contact in the past 10 days with anyone who has tested postive for COVID-19?', submitted:false, value: undefined },
+    { name: 'positive-test', question: 'Have you tested positive for COVID-19 in the past 5 days?', value: undefined },
+    { name: 'symptoms', question: 'Do you have any COVID-19 symptoms?', value: undefined },
+    { name: 'close-contact', question: 'Have you knowingly been in close contact in the past 10 days with anyone who has tested postive for COVID-19?', value: undefined },
   ]
   let vaccinationStatus = undefined;
 
@@ -142,7 +134,7 @@
   $: currentQuestionIndex = [...questions].findIndex(({submitted}) => submitted === false)
   $: currentQuestion = [...questions].filter(({submitted}) => submitted===false)[0];
   $: isToday = date === moment().format('MM.DD.YYYY');
-  $: showSubmit = [...questions][currentQuestionIndex]?.value !== undefined
+  $: showSubmit = [...questions].filter(({value})=>value === undefined).length === 0
 
   // stores
   import modal from '$components/Modal/store';
@@ -157,7 +149,7 @@
 </script>
 
 <Section class="flex-grow">
-  <Card class="items-center w-full space-y-[2rem] flex-grow lg:w-[640px]">
+  <Card class="items-center w-full space-y-[2rem] flex-grow lg:w-[640px] lg:flex-grow-0">
     {#if !loaded}
       <Spinner />
     {:else}
@@ -174,22 +166,14 @@
         {/if}
       {:else}
         {#if isToday}
-          {#if currentQuestion?.submitted === false}
-            <form on:submit|preventDefault={nextQuestionHandler} class="flex flex-col flex-grow space-y-[2rem]">
-              <div class="flex flex-col flex-grow space-y-[2rem]">
-                <Boolean name={questions[currentQuestionIndex].name} question={questions[currentQuestionIndex].question} bind:value={questions[currentQuestionIndex].value} />
-              </div>
-              <Button type="submit" class="transform {showSubmit ? 'scale-[1]' : 'scale-[0]'}">Submit</Button>
-            </form>
-          {:else}
+          <form on:submit|preventDefault={submitHandler} class="flex flex-col flex-grow space-y-[2rem]">
             <div class="flex flex-col flex-grow space-y-[2rem]">
-              <div>I certify my answers to be true and accurate.</div> 
+              {#each questions as {name, question, value}, i}
+                <Boolean {i} {name} {question} bind:value={value} />
+              {/each}
             </div>
-            <div class="flex space-x-[16px] w-full">
-              <Button theme="error" on:click={cancelHandler} class="flex-grow">Cancel</Button>
-              <Button on:click={confirmHandler} class="flex-grow">Confirm</Button>
-            </div>
-          {/if}
+            <Button type="submit" class="transform {showSubmit ? 'scale-[1]' : 'scale-[0]'}">Submit</Button>
+          </form>
         {:else}
           <div class="w-full">Daily COVID Questionnaire was <span class="text-warning-500">unsubmitted</span>.</div>
         {/if}

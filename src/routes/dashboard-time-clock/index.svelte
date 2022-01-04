@@ -14,17 +14,68 @@
     step = 'init'
     reset();
   }
+  const determineIfApproved = () => {
+    approved = true;
+
+    // check if positive test
+    if (questions[0].value === true) approved = false;
+
+    // check if symptoms
+    if (questions[1].value === true ) approved = false;
+
+    // check if close contact and unvaccinated
+    if (questions[2].value === true && vaccinationStatus.fullyVaccinated === false) approved = false;
+  }
   const getUsers = async () => {
     const { rows } = await serverFetch(`/api/datatable/users?sort=${JSON.stringify({firstName:1, lastName:1})}`)
     users = rows;
   }
-  const initClickHandler = () => {
+  const getVaccineStatus = async () => {
+    const query = {userId : employee._id};
+    const { rows } = await serverFetch(`/api/datatable/vaccine-status?${objectToUrlQueryParams(query)}`);
+
+    // update vaccinationStatus
+    if ( rows.length === 0 ) {
+      vaccinationStatus = {
+        immunizationMethod: "Unknown",
+        fullyVaccinated: false, 
+      }
+    }
+    if ( rows.length !== 0 ) {
+      vaccinationStatus = rows[rows.length-1];
+
+      // initialize fully vacinated var
+      vaccinationStatus.fullyVaccinated = true;
+
+      // update dates
+      vaccinationStatus.monthsSinceFirstShot = moment().diff(moment(vaccinationStatus.dateFirstShot, 'x'), 'months');
+      vaccinationStatus.monthsSinceSecondShot = moment().diff(moment(vaccinationStatus.dateSecondShot, 'x'), 'months');
+      vaccinationStatus.monthsSinceBooster = moment().diff(moment(vaccinationStatus.dateBooster, 'x'), 'months');
+
+      if ( isNaN(vaccinationStatus.monthsSinceFirstShot) ) vaccinationStatus.monthsSinceFirstShot = Infinity;
+      if ( isNaN(vaccinationStatus.monthsSinceSecondShot) ) vaccinationStatus.monthsSinceSecondShot = Infinity;
+      if ( isNaN(vaccinationStatus.monthsSinceBooster) ) vaccinationStatus.monthsSinceBooster = Infinity;
+
+      // check if unvaccinated or unknown
+      if ( vaccinationStatus.immunizationMethod === 'Unknown' || vaccinationStatus.immunizationMethod === 'Unvaccinated') vaccinationStatus.fullyVaccinated = false;
+
+      // check if johnson and johnson
+      if ( vaccinationStatus.immunizationMethod === 'Johnson & Johnson' ) {
+        if ( vaccinationStatus.monthsSinceFirstShot >= 2 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
+      }
+
+      // check if moderna or phizer
+      if ( vaccinationStatus.immunizationMethod === 'Moderna' || vaccinationStatus.immunizationMethod === 'Pfizer-BioNTech' ) {
+        if ( vaccinationStatus.monthsSinceSecondShot >= 6 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
+      }
+    }
+  } 
+  const initClickHandler = async () => {
     modal.spinner.show();
     const matchingEmployee = [...users].filter(user=>user.ennisId === keypad);
     if ( matchingEmployee.length === 1 ) {
       employee = matchingEmployee[0];
-      // step = 'takePicture'
-      // startWebcam();
+      getVaccineStatus()
       step = 'questions';
     }
     if ( matchingEmployee.length !== 1 ) step = 'incorrectEmployeeId'
@@ -42,6 +93,7 @@
     questions[questionIndex].value = value;
     if ( questionIndex < questions.length ) questionIndex = questionIndex + 1;
     if ( questionIndex === questions.length ) {
+      determineIfApproved();
       if ( approved ) step = 'approved';
       if ( !approved ) step = 'unapproved';
       submitDailyQuestionnaire();
@@ -139,6 +191,7 @@
   }
 
   // props ( internal )
+  let approved = false;
   let canvas;
   let employee = {};
   let height = 0;
@@ -150,11 +203,11 @@
   let src = '';
   let step = 'init';
   let users = [];
+  let vaccinationStatus = undefined;
   let video;
   let width = 0;
 
   // props ( dynamic )
-  $: approved = [...questions].filter(({value}) => value === true).length === 0;
   $: employeeName = 'firstName' in employee ? `${employee.firstName} ${employee.lastName}` : '';
 
   // stores

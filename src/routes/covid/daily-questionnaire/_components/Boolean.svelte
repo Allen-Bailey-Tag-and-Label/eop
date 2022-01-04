@@ -1,5 +1,6 @@
 <script>
   // props ( external )
+  export let i = 0;
   export let name;
   export let question = '';
   export let value;
@@ -7,6 +8,7 @@
 
 <div class="flex flex-col space-y-[1rem]">
   <div class="flex space-x-[.5rem]">
+    <div>{i + 1}.</div>
     <div>{question}</div>
   </div>
   <div class="grid grid-cols-2 gap-[1rem]">
