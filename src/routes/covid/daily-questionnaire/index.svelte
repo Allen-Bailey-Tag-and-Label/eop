@@ -11,6 +11,44 @@
   import Boolean from './_components/Boolean.svelte';
 
   // handlers
+  const cancelHandler = () => {
+    questions = questions.map(question=>{
+      question.submitted = false;
+      question.value = undefined;
+      return question;
+    })
+  }
+  const confirmHandler = async() => {
+    modal.spinner.show();
+    const body = {
+      approved: true,
+      date : moment(date, 'MM.DD.YYYY').format('x'),
+      questions,
+    }
+    // check if positive test
+    if (questions[0].value === true) body.approved = false;
+
+    // check if symptoms
+    if (questions[1].value === true ) body.approved = false;
+
+    // check if close contact and unvaccinated
+    if (questions[2].value === true && vaccinationStatus.fullyVaccinated === false) body.approved = false;
+
+    let href;
+    if ( method === 'POST' ) {
+      body.auth = $auth;
+      href = '/api/covid/daily-questionnaire';
+    }
+    if ( method === 'PATCH' ) {
+      delete body.date;
+      href = `/api/covid/daily-questionnaire?_id=${_id}`;
+    }
+    const doc = await serverFetch({method, href, body});
+    alreadySubmitted = doc;
+    _id = doc._id;
+    modal.spinner.hide();
+    modal.success.show('Successfully submitted daily questionnaire');
+  }
   const dateChangeHandler = async () => {
     questions = questions.map(question=>{
       question.value = undefined;
@@ -34,35 +72,55 @@
       method = 'POST';
     }
   }
+  const getVaccineStatus = async () => {
+    const query = {auth: $auth};
+    const { rows } = await serverFetch(`/api/datatable/vaccine-status?${objectToUrlQueryParams(query)}`);
 
-  const submitHandler = async() => {
-    const confirmFN = async () => {
-      modal.spinner.show();
-      const body = {
-        approved,
-        date : moment(date, 'MM.DD.YYYY').format('x'),
-        questions,
+    // update vaccinationStatus
+    if ( rows.length === 0 ) {
+      vaccinationStatus = {
+        immunizationMethod: "Unknown",
+        fullyVaccinated: false, 
       }
-      let href;
-      if ( method === 'POST' ) {
-        body.auth = $auth;
-        href = '/api/covid/daily-questionnaire';
-      }
-      if ( method === 'PATCH' ) {
-        delete body.date;
-        href = `/api/covid/daily-questionnaire?_id=${_id}`;
-      }
-      const doc = await serverFetch({method, href, body});
-      console.log(doc);
-      alreadySubmitted = doc;
-      _id = doc._id;
-      modal.spinner.hide();
-      modal.success.show('Successfully submitted daily questionnaire');
     }
-    modal.confirmation.show(`I certify my answers to be true and accurate.`, confirmFN)
+    if ( rows.length !== 0 ) {
+      vaccinationStatus = rows[rows.length-1];
+
+      // initialize fully vacinated var
+      vaccinationStatus.fullyVaccinated = true;
+
+      // update dates
+      vaccinationStatus.monthsSinceFirstShot = moment().diff(moment(vaccinationStatus.dateFirstShot, 'x'), 'months');
+      vaccinationStatus.monthsSinceSecondShot = moment().diff(moment(vaccinationStatus.dateSecondShot, 'x'), 'months');
+      vaccinationStatus.monthsSinceBooster = moment().diff(moment(vaccinationStatus.dateBooster, 'x'), 'months');
+
+      if ( isNaN(vaccinationStatus.monthsSinceFirstShot) ) vaccinationStatus.monthsSinceFirstShot = Infinity;
+      if ( isNaN(vaccinationStatus.monthsSinceSecondShot) ) vaccinationStatus.monthsSinceSecondShot = Infinity;
+      if ( isNaN(vaccinationStatus.monthsSinceBooster) ) vaccinationStatus.monthsSinceBooster = Infinity;
+
+      // check if unvaccinated or unknown
+      if ( vaccinationStatus.immunizationMethod === 'Unknown' || vaccinationStatus.immunizationMethod === 'Unvaccinated') vaccinationStatus.fullyVaccinated = false;
+
+      // check if johnson and johnson
+      if ( vaccinationStatus.immunizationMethod === 'Johnson & Johnson' ) {
+        if ( vaccinationStatus.monthsSinceFirstShot >= 2 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
+      }
+
+      // check if moderna or phizer
+      if ( vaccinationStatus.immunizationMethod === 'Moderna' || vaccinationStatus.immunizationMethod === 'Pfizer-BioNTech' ) {
+        if ( vaccinationStatus.monthsSinceSecondShot >= 6 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
+      }
+    }
+  }
+  const nextQuestionHandler = () => {
+    // get current question
+    questions[currentQuestionIndex].submitted = true;
   }
   const updateAnswersHandler = () => {
-    questions = alreadySubmitted.questions;
+    questions = alreadySubmitted.questions.map(question=>{
+      question.submitted = false;
+      return question;
+    });
     _id = alreadySubmitted._id;
     alreadySubmitted = false;
   }
@@ -74,22 +132,23 @@
   let loaded = false;
   let method = 'POST'
   let questions = [
-    { name: 'travel', question: 'Have you traveled to an area subject to self-quarantine within the last 14 days?', value: undefined},
-    { name: 'close-contact', question: 'Have you knowingly been in close or proximate contact in the past 10 days with anyone who has tested positive for COVID-19 or who has or had symptoms of COVID-19?', value: undefined},
-    { name: 'positive-test', question: 'Have you tested positive for COVID-19 in the past 10 days?', value: undefined},
-    { name: 'symptoms', question: 'Have you experienced any symptoms of COVID-19 in the past 10 days?', value: undefined},
+    { name: 'positive-test', question: 'Have you tested positive for COVID-19 in the past 5 days?', submitted:false, value: undefined },
+    { name: 'symptoms', question: 'Do you have any COVID-19 symptoms?', submitted:false, value: undefined },
+    { name: 'close-contact', question: 'Have you knowingly been in close contact in the past 10 days with anyone who has tested postive for COVID-19?', submitted:false, value: undefined },
   ]
+  let vaccinationStatus = undefined;
 
   // props ( dynamic )
-  $: approved = [...questions].filter(({value}) => value === true).length === 0;
-  $: showSubmit = [...questions].filter(({value}) => value !== undefined).length === questions.length
-  $: isToday = date === moment().format('MM.DD.YYYY')
+  $: currentQuestionIndex = [...questions].findIndex(({submitted}) => submitted === false)
+  $: currentQuestion = [...questions].filter(({submitted}) => submitted===false)[0];
+  $: isToday = date === moment().format('MM.DD.YYYY');
+  $: showSubmit = [...questions][currentQuestionIndex]?.value !== undefined
 
   // stores
   import modal from '$components/Modal/store';
 
   onMount(async () => {
-    await dateChangeHandler();
+    await Promise.all([dateChangeHandler(), getVaccineStatus()]);
     if ( 'state' in Object.fromEntries($page.query) ) {
       updateAnswersHandler();
     }
@@ -97,8 +156,8 @@
   })
 </script>
 
-<Section>
-  <Card class="items-center w-full space-y-[2rem] lg:w-[640px]">
+<Section class="flex-grow">
+  <Card class="items-center w-full space-y-[2rem] flex-grow lg:w-[640px]">
     {#if !loaded}
       <Spinner />
     {:else}
@@ -115,12 +174,22 @@
         {/if}
       {:else}
         {#if isToday}
-          <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[2rem]">
-            {#each questions as {name, question, value}, i}
-              <Boolean {name} number={i+1} {question} bind:value />
-            {/each}
-            <Button type="submit" class="transform {showSubmit ? 'scale-[1]' : 'scale-[0]'}">Submit</Button>
-          </form>
+          {#if currentQuestion?.submitted === false}
+            <form on:submit|preventDefault={nextQuestionHandler} class="flex flex-col flex-grow space-y-[2rem]">
+              <div class="flex flex-col flex-grow space-y-[2rem]">
+                <Boolean name={questions[currentQuestionIndex].name} question={questions[currentQuestionIndex].question} bind:value={questions[currentQuestionIndex].value} />
+              </div>
+              <Button type="submit" class="transform {showSubmit ? 'scale-[1]' : 'scale-[0]'}">Submit</Button>
+            </form>
+          {:else}
+            <div class="flex flex-col flex-grow space-y-[2rem]">
+              <div>I certify my answers to be true and accurate.</div> 
+            </div>
+            <div class="flex space-x-[16px] w-full">
+              <Button theme="error" on:click={cancelHandler} class="flex-grow">Cancel</Button>
+              <Button on:click={confirmHandler} class="flex-grow">Confirm</Button>
+            </div>
+          {/if}
         {:else}
           <div class="w-full">Daily COVID Questionnaire was <span class="text-warning-500">unsubmitted</span>.</div>
         {/if}
@@ -128,3 +197,4 @@
     {/if}
   </Card>
 </Section>
+<slot/>

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "build": "svelte-kit build",
-    "dev": "svelte-kit dev --host",
+    "dev": "svelte-kit dev --host --open",
     "preview": "svelte-kit preview --host",
     "start": "node build"
   },

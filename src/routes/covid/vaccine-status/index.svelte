@@ -29,6 +29,7 @@
           immunizationMethod: 'Unknown',
           dateFirstShot: '',
           dateSecondShot: '',
+          dateBooster: '',
         }
         await serverFetch({
           method: 'POST',
@@ -44,6 +45,7 @@
         immunizationMethod: vaccinations[user._id].immunizationMethod,
         dateFirstShot: vaccinations[user._id].dateFirstShot === '' ? vaccinations[user._id].dateFirstShot : moment(vaccinations[user._id].dateFirstShot, 'x').format('MM.DD.YYYY'),
         dateSecondShot: vaccinations[user._id].dateSecondShot === '' ? vaccinations[user._id].dateSecondShot : moment(vaccinations[user._id].dateSecondShot, 'x').format('MM.DD.YYYY'),
+        dateBooster: vaccinations[user._id].dateBooster === '' ? vaccinations[user._id].dateBooster : moment(vaccinations[user._id].dateBooster, 'x').format('MM.DD.YYYY'),
       }
       tbody = [...tbody, tr]
     }))
@@ -52,7 +54,7 @@
     modal.spinner.show();
     try {
       const body = {};
-      if ( field === 'dateFirstShot' || field === 'dateSecondShot' ) {
+      if ( field === 'dateFirstShot' || field === 'dateSecondShot' || field === 'dateBooster' ) {
         body[field] = e?.detail?.value !== undefined ? moment(e.detail.value, 'MM.DD.YYYY').format('x') : '';
       } else {
         body[field] = e.target.value;
@@ -62,7 +64,7 @@
         href: `/api/datatable/vaccine-status?userId=${userId}`,
         body
       })
-      if ( field === 'dateFirstShot' || field === 'dateSecondShot' ) {
+      if ( field === 'dateFirstShot' || field === 'dateSecondShot' || field === 'dateBooster' ) {
         tbody[i][field] = e?.detail?.value !== undefined ? moment(body[field], 'x').format('MM.DD.YYYY') : '';
       } else {
         tbody[i][field] = body[field];
@@ -124,9 +126,10 @@
           <th class="{cellClasses}">Immunization Method</th>
           <th class="{cellClasses} w-[165px] text-center">Date ( First Shot )</th>
           <th class="{cellClasses} w-[165px]">Date ( Second Shot )</th>
+          <th class="{cellClasses} w-[165px]">Date ( Booster )</th>
         </thead>
         <tbody slot="tbody">
-          {#each tbody as {userId, firstName, lastName, immunizationMethod, dateFirstShot, dateSecondShot}, i}
+          {#each tbody as {userId, firstName, lastName, immunizationMethod, dateFirstShot, dateSecondShot, dateBooster}, i}
             <tr>
               <td class="{cellClasses}">{firstName}</td>
               <td class="{cellClasses}">{lastName}</td>
@@ -145,6 +148,11 @@
               <td class="{cellClasses} text-center">
                 {#if [...immunizationOptions].filter(obj=>obj.secondShot).map(obj=>obj.value).includes(immunizationMethod)}
                   <Input type="date" value={dateSecondShot} on:change={e=>updateVaccinationStatus(e,userId,i,'dateSecondShot')} />
+                {/if}
+              </td>
+              <td class="{cellClasses} text-center">
+                {#if [...immunizationOptions].filter(obj=>obj.booster).map(obj=>obj.value).includes(immunizationMethod)}
+                  <Input type="date" value={dateBooster} on:change={e=>updateVaccinationStatus(e,userId,i,'dateBooster')} />
                 {/if}
               </td>
             </tr>

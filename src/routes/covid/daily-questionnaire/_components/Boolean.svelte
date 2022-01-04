@@ -1,14 +1,12 @@
 <script>
   // props ( external )
   export let name;
-  export let number = 0;
   export let question = '';
   export let value;
 </script>
 
 <div class="flex flex-col space-y-[1rem]">
   <div class="flex space-x-[.5rem]">
-    <div>{number}.</div>
     <div>{question}</div>
   </div>
   <div class="grid grid-cols-2 gap-[1rem]">
