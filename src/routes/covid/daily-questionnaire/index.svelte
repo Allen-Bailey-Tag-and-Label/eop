@@ -131,8 +131,6 @@
   let vaccinationStatus = undefined;
 
   // props ( dynamic )
-  $: currentQuestionIndex = [...questions].findIndex(({submitted}) => submitted === false)
-  $: currentQuestion = [...questions].filter(({submitted}) => submitted===false)[0];
   $: isToday = date === moment().format('MM.DD.YYYY');
   $: showSubmit = [...questions].filter(({value})=>value === undefined).length === 0
 

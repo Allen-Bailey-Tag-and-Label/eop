@@ -46,7 +46,7 @@ export default {
     }),
   setDate: v => {
     update(({ changeHandler, show }) => {
-      return { changeHandler, date: v === '' ? moment().format('MM.DD.YYYY') : v, dateView: v === '' ? moment().format('MM.DD.YYYY') : v, show };
+      return { changeHandler, date: (v === '' || v === 'Invalid date') ? moment().format('MM.DD.YYYY') : v, dateView: (v === '' || v === 'Invalid date') ? moment().format('MM.DD.YYYY') : v, show };
     });
   },
   show: () =>
