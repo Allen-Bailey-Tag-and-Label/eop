@@ -50,7 +50,7 @@
   <Card class="space-y-[2rem]">
     {#each faqs as {question, answer}}
       <div class="flex flex-col">
-        <div class="font-bold">{question}</div>
+        <div class="font-bold text-white">{question}</div>
         <div class="">{answer}</div>
       </div>
     {/each}
