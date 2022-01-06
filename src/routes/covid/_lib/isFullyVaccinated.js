@@ -12,9 +12,9 @@ export default ({ immunizationMethod, dateFirstShot, dateSecondShot, dateBooster
   let weeksSinceSecondShot = moment().diff(moment(dateSecondShot, 'x'), 'weeks');
   let weeksSinceBooster = moment().diff(moment(dateBooster, 'x'), 'weeks');
 
-  if (isNaN(weeksSinceFirstShot)) weeksSinceFirstShot = Infinity;
-  if (isNaN(weeksSinceSecondShot)) weeksSinceSecondShot = Infinity;
-  if (isNaN(weeksSinceBooster)) weeksSinceBooster = Infinity;
+  if (isNaN(weeksSinceFirstShot)) weeksSinceFirstShot = 0;
+  if (isNaN(weeksSinceSecondShot)) weeksSinceSecondShot = 0;
+  if (isNaN(weeksSinceBooster)) weeksSinceBooster = 0;
 
   // check if johnson and johnson
   if (immunizationMethod === 'Johnson & Johnson') {
