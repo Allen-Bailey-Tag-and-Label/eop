@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-export default ({ firstName= undefined, immunizationMethod, dateFirstShot, dateSecondShot, dateBooster }) => {
+export default ({ immunizationMethod, dateFirstShot, dateSecondShot, dateBooster }) => {
   // check if unvaccinated or unknown
   if (immunizationMethod === 'Unknown' || immunizationMethod === 'Unvaccinated') return false;
 
@@ -8,22 +8,22 @@ export default ({ firstName= undefined, immunizationMethod, dateFirstShot, dateS
   if (dateBooster !== '' && dateBooster !== 'Invalid date') return true;
 
   // update dates
-  let monthsSinceFirstShot = moment().diff(moment(dateFirstShot, 'x'), 'months');
-  let monthsSinceSecondShot = moment().diff(moment(dateSecondShot, 'x'), 'months');
-  let monthsSinceBooster = moment().diff(moment(dateBooster, 'x'), 'months');
+  let weeksSinceFirstShot = moment().diff(moment(dateFirstShot, 'x'), 'weeks');
+  let weeksSinceSecondShot = moment().diff(moment(dateSecondShot, 'x'), 'weeks');
+  let weeksSinceBooster = moment().diff(moment(dateBooster, 'x'), 'weeks');
 
-  if (isNaN(monthsSinceFirstShot)) monthsSinceFirstShot = Infinity;
-  if (isNaN(monthsSinceSecondShot)) monthsSinceSecondShot = Infinity;
-  if (isNaN(monthsSinceBooster)) monthsSinceBooster = Infinity;
+  if (isNaN(weeksSinceFirstShot)) weeksSinceFirstShot = Infinity;
+  if (isNaN(weeksSinceSecondShot)) weeksSinceSecondShot = Infinity;
+  if (isNaN(weeksSinceBooster)) weeksSinceBooster = Infinity;
 
   // check if johnson and johnson
   if (immunizationMethod === 'Johnson & Johnson') {
-    if (monthsSinceFirstShot >= 2 && monthsSinceBooster >= 6) return false;
+    if (weeksSinceFirstShot < 2) return false;
   }
 
   // check if moderna or phizer
   if (immunizationMethod === 'Moderna' || immunizationMethod === 'Pfizer-BioNTech') {
-    if (monthsSinceSecondShot >= 6 && monthsSinceBooster >= 6) return false;
+    if (weeksSinceSecondShot < 2) return false;
   }
 
   return true;
