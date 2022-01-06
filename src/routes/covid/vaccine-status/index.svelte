@@ -6,6 +6,7 @@
   import { getDirectReportUsers } from '$lib/user';
   import { modal } from '$stores';
   import immunizationOptions from './immunizationOptions';
+  import { isFullyVaccinated } from '../_lib/index.js';
 
   // components
   import { Card, Checkbox, Input, Section, Select, Spinner, Table } from '$components';
@@ -85,15 +86,16 @@
   // props ( external )
 
   // props ( dynamic )
-  $: total = [...immunizationOptions].reduce((obj, option) => {
-    obj[option.value] = [...tbody].filter(({immunizationMethod, dateFirstShot, dateSecondShot}) => {
-      if ( immunizationMethod !== option.value ) return false;
-      if ( dateFirstShot === '' && option.firstShot ) return false;
-      if ( dateSecondShot === '' && option.secondShot ) return false;
-      return true;
-    }).length
-    return obj;
-  }, {'Employees' : [...tbody].length})
+  $: total = [...immunizationOptions]
+    .reduce((obj, option) => {
+      obj[option.value] = [...tbody].filter(({immunizationMethod, dateFirstShot, dateSecondShot, dateBooster}) => {
+        if ( immunizationMethod !== option.value ) return false;
+        if ( dateFirstShot === '' && option.firstShot ) return false;
+        if ( dateSecondShot === '' && option.secondShot ) return false;
+        return true;
+      }).length
+      return obj;
+    }, {'Employees' : [...tbody].length})
 
   // lifecycle
   onMount(async ()=>{
@@ -123,6 +125,7 @@
         <thead slot="thead">
           <th class="{cellClasses}">First</th>
           <th class="{cellClasses}">Last</th>
+          <th class="{cellClasses}">Fully Vaccinated</th>
           <th class="{cellClasses}">Immunization Method</th>
           <th class="{cellClasses} w-[165px] text-center">Date ( First Shot )</th>
           <th class="{cellClasses} w-[165px]">Date ( Second Shot )</th>
@@ -134,8 +137,11 @@
               <td class="{cellClasses}">{firstName}</td>
               <td class="{cellClasses}">{lastName}</td>
               <td class="{cellClasses}">
+                <Checkbox disabled={true} checked={isFullyVaccinated({firstName, immunizationMethod, dateFirstShot : moment(dateFirstShot, 'MM.DD.YYYY').format('x'), dateSecondShot : moment(dateSecondShot, 'MM.DD.YYYY').format('x'), dateBooster : moment(dateBooster, 'MM.DD.YYYY').format('x')})} class="w-[24px] mx-auto" />
+              </td>
+              <td class="{cellClasses}">
                 {#if [...immunizationOptions].map(obj=>obj.value).includes(immunizationMethod)}
-                  <Select on:change={e=>updateVaccinationStatus(e,userId,i,'immunizationMethod')} options={[...immunizationOptions, {label:'Other', value: ''}]} value={immunizationMethod} />
+                  <Select on:change={e=>updateVaccinationStatus(e,userId,i,'immunizationMethod')} options={immunizationOptions} value={immunizationMethod} />
                 {:else}
                   <Input value={immunizationMethod} on:change={e=>updateVaccinationStatus(e,userId,i,'immunizationMethod')} />
                 {/if}

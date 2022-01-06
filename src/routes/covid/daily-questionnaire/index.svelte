@@ -5,6 +5,7 @@
   import auth from '$lib/auth';
   import moment from 'moment';
   import { onMount } from 'svelte';
+  import { isFullyVaccinated, questions as initialQuestions } from '../_lib/index.js';
 
   // components
   import { Card, Button, Input, Section, Spinner } from '$components';
@@ -49,29 +50,7 @@
       vaccinationStatus = rows[rows.length-1];
 
       // initialize fully vacinated var
-      vaccinationStatus.fullyVaccinated = true;
-
-      // update dates
-      vaccinationStatus.monthsSinceFirstShot = moment().diff(moment(vaccinationStatus.dateFirstShot, 'x'), 'months');
-      vaccinationStatus.monthsSinceSecondShot = moment().diff(moment(vaccinationStatus.dateSecondShot, 'x'), 'months');
-      vaccinationStatus.monthsSinceBooster = moment().diff(moment(vaccinationStatus.dateBooster, 'x'), 'months');
-
-      if ( isNaN(vaccinationStatus.monthsSinceFirstShot) ) vaccinationStatus.monthsSinceFirstShot = Infinity;
-      if ( isNaN(vaccinationStatus.monthsSinceSecondShot) ) vaccinationStatus.monthsSinceSecondShot = Infinity;
-      if ( isNaN(vaccinationStatus.monthsSinceBooster) ) vaccinationStatus.monthsSinceBooster = Infinity;
-
-      // check if unvaccinated or unknown
-      if ( vaccinationStatus.immunizationMethod === 'Unknown' || vaccinationStatus.immunizationMethod === 'Unvaccinated') vaccinationStatus.fullyVaccinated = false;
-
-      // check if johnson and johnson
-      if ( vaccinationStatus.immunizationMethod === 'Johnson & Johnson' ) {
-        if ( vaccinationStatus.monthsSinceFirstShot >= 2 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
-      }
-
-      // check if moderna or phizer
-      if ( vaccinationStatus.immunizationMethod === 'Moderna' || vaccinationStatus.immunizationMethod === 'Pfizer-BioNTech' ) {
-        if ( vaccinationStatus.monthsSinceSecondShot >= 6 && vaccinationStatus.monthsSinceBooster >= 6 ) vaccinationStatus.fullyVaccinated = false;
-      }
+      vaccinationStatus.fullyVaccinated = isFullyVaccinated({...vaccinationStatus, firstName:'Bob'});
     }
   }  
   const submitHandler = async() => {
@@ -123,11 +102,7 @@
   let date = moment().format('MM.DD.YYYY');
   let loaded = false;
   let method = 'POST'
-  let questions = [
-    { name: 'positive-test', question: 'Have you tested positive for COVID-19 in the past 5 days?', value: undefined },
-    { name: 'symptoms', question: 'Do you have any COVID-19 symptoms?', value: undefined },
-    { name: 'close-contact', question: 'Have you knowingly been in close contact in the past 10 days with anyone who has tested postive for COVID-19?', value: undefined },
-  ]
+  let questions = [];
   let vaccinationStatus = undefined;
 
   // props ( dynamic )
@@ -138,6 +113,7 @@
   import modal from '$components/Modal/store';
 
   onMount(async () => {
+    questions = initialQuestions;
     await Promise.all([dateChangeHandler(), getVaccineStatus()]);
     if ( 'state' in Object.fromEntries($page.query) ) {
       updateAnswersHandler();
