@@ -7,8 +7,7 @@
   import { onMount } from 'svelte';
   
   // components
-  import { Buttons, Card, Checkbox, Section, Select, Table } from '$components';
-  import Icon, { Plus, Trash } from 'svelte-hero-icons';
+  import { Card, Section } from '$components';
   
   // utilities
   const getFAQDocuments = async () => {
@@ -50,8 +49,8 @@
   <Card class="space-y-[2rem]">
     {#each faqs as {question, answer}}
       <div class="flex flex-col">
-        <div class="font-bold text-white">{question}</div>
-        <div class="">{answer}</div>
+        <div class="font-bold text-white whitespace-pre-line">{question}</div>
+        <div class="whitespace-pre-line">{answer}</div>
       </div>
     {/each}
   </Card>
