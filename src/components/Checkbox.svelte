@@ -16,7 +16,7 @@
 {#if label !== ''}
   <div class="pt-[32px] relative flex">
     <label class={classes}>
-      <input type="checkbox" on:change bind:checked bind:indeterminate disabled class="absolute top-0 left-0 w-0 opacity-0" />
+      <input type="checkbox" on:change bind:checked bind:indeterminate {disabled} class="absolute top-0 left-0 w-0 opacity-0" />
       {#if checked}
         <Icon src={Check} class="w-[24px] h-[24px] pointer-events-none" />
       {:else if indeterminate}
@@ -29,7 +29,7 @@
   </div>
 {:else}
   <label class={classes}>
-    <input type="checkbox" on:change bind:checked bind:indeterminate disabled class="absolute top-0 left-0 w-0 opacity-0" />
+    <input type="checkbox" on:change bind:checked bind:indeterminate {disabled} class="absolute top-0 left-0 w-0 opacity-0" />
     {#if checked}
       <Icon src={Check} class="w-[24px] h-[24px] pointer-events-none" />
     {:else if indeterminate}
