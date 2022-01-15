@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+html {
+  height: 100%;
+  font-size: 18px;
+  /* height: -webkit-fill-available; */
+}
+body {
+  height: 100vh;
+  overflow: hidden;
+}
+#svelte {
+  height: 100%;
+  overflow: auto;
+}
+.h-fill-available {
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+.ios-safe-area, #svelte {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

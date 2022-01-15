@@ -1,11 +1,8 @@
 .DS_Store
 node_modules
-/.svelte-kit
 /build
-/scripts
+/.svelte-kit
 /package
 .env
-server.crt
-server.csr
-server.key
-server.key.org
+.env.*
+!.env.example

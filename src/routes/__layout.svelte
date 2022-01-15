@@ -1,77 +1,54 @@
-<script context="module">
-  export function load({ page }) {    
-    return {
-      props: {
-        path: page.path
-      }
-    }
-  }
-</script>
 <script>
-  // _imports
-  import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
-  import { beforeUpdate, onMount } from 'svelte';
-  import auth, { getRoutes } from '$lib/auth';
+	// imports
+	import { onMount } from 'svelte';
+	import { Main, Nav, Route, RouteGuarding, Sidebar, Spinner, Socketio, Title, Theme } from '$components';
+	import { token } from '$stores'
+	import '../app.css';
 
-  // components
-  import { Card, Modal, Sidebar, Spinner } from '$components'
+	// utilities
 
-  // css
-  import '$css/style.css';
+	// handlers
 
-  // props ( internal )
-  let loaded = false;
-  let routes = [];
+	// props (internal)
+	let loaded = false;
 
-  // props ( external )
-  export let path;
+	// props (external)
 
-  // props ( dynamic )
-  $: title = '';
-  $: title = `${$page.path
-    .slice(1)
-    .split('/')
-    .reverse()
-    .map(directory=>directory
-      .split('-')
-      .map(word=>word === '' ? '' : word[0].toUpperCase() + word.slice(1))
-      .join(' ')
-    )
-    .join(' - ')
-  }  - Employee Online Portal - Allen Bailey Tag & Label`
+	// props (dynamic)
 
-  beforeUpdate(async () => {
-    if ( $auth === null ) return goto('/signin')
-    if ( $auth !== null ) {
-      const data = await getRoutes($auth);
-      if ( [...routes].map(route=>route.name).join(',') !== [...data].map(route=>route.name).join(',') ) routes = data
-      if ( ![...data].map(route=>route.href).includes(path.replace(/\/add|\/edit/g,''))) return goto('/dashboard')
+	// lifecycle
+  const lifecycle = {
+    destroy : () => {},
+    mount : async () => {
+			loaded = true;
+		},
+  }
+  onMount(async() => {
+    await lifecycle.mount();
+    return () => {
+      lifecycle.destroy();
     }
   })
-  onMount(()=> loaded = true);
 </script>
 
-<svelte:head>
-  <meta name="description" content="Employee Online Portal - Allen-Bailey Tag & Label" />
-  <meta name="theme-color" content="#fff" />
-  <title>{title}</title>
-</svelte:head>
-
-<main class="relative bg-gradient-to-br from-gray-500 to-gray-800 min-h-screen text-gray-100 flex flex-col pb-[72px] lg:pb-0 lg:flex-row">
-  {#if loaded}
-    <Sidebar {routes} />
-    <slot/>
-    <Modal.Calendar />
-    <Modal.Confirmation />
-    <Modal.Error />
-    <Modal.Spinner />
-    <Modal.Success />
-  {:else}
-    <div class="w-screen h-screen flex items-center justify-center">
-      <Card>
-        <Spinner />
-      </Card>
-    </div>
-  {/if}
-</main>
+<Title>
+	<Socketio>
+		<Theme>
+			<RouteGuarding>
+				<Main>
+					{#if loaded}
+						<slot />
+						{#if $token !== ''}
+							<Nav />
+							<Sidebar/>
+						{/if}
+					{:else}
+						<Route>
+							<Spinner />
+						</Route>
+					{/if}
+				</Main>
+			</RouteGuarding>
+		</Theme>
+	</Socketio>
+</Title>

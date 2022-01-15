@@ -1,14 +1,36 @@
 <script>
-  // components
-  import { Section } from '$components';
-  import DailyCovidQuestionnaire from './_components/DailyCovidQuestionnaire.svelte';
-  // import Filler from './_components/Filler.svelte';
+  // imports
+  import { onMount } from 'svelte';
+  import { twMerge } from 'tailwind-merge';
+  // import { goto } from '$app/navigation';
+  import { H1, Route } from '$components'
+  // import { socket } from '$stores';
+
+  // utilities
+
+  // handlers
+
+  // props (internal)
+
+  // props (external)
+
+  // props (dynamic)
+
+  // lifecycle
+  const lifecycle = {
+    destroy : () => {},
+    mount : async () => {},
+  }
+  onMount(async() => {
+    await lifecycle.mount();
+    return () => {
+      lifecycle.destroy();
+    }
+  })
 </script>
 
-<Section>
-  <div class="text-[40px] font-bold">Dashboard</div>
-  <div class="grid grid-cols-1 gap-[10px] mt-[20px] lg:grid-cols-4">
-    <DailyCovidQuestionnaire />
-    <!-- <Filler /> -->
-  </div>
-</Section>
+<Route class='items-start justify-start'>
+  <H1>Dashboard</H1>
+</Route>
+
+<slot/>

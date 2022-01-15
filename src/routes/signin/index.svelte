@@ -1,63 +1,108 @@
 <script>
-  // _imports
-  import { goto } from '$app/navigation';
-  import auth, { getSignInRoute } from '$lib/auth';
+  // imports
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { Button, Field, Fieldset, Form, H1, Input, Route, Spinner } from '$components';
+  import { token, socket } from '$stores';
 
-  // components
-  import { Button, Card, Container, Input, Section, Spinner } from '$components'
+  // utilities
 
   // handlers
-  const submitHandler = async () => {
-    modal.spinner.show();
-    let data = await auth.signin({username, password});
-    if ( data.error ) {
-      modal.spinner.hide();
-      modal.error.show(data.error)
-    }
-    if ( data.accessToken ) {
-      // destructure data
-      const { accessToken } = data;
+  const submitHandler = async e => {
+    e.preventDefault();
 
-      const route = await getSignInRoute(accessToken);
+    // check if form already submitted
+    if (!submitted) {
+      // update submitted
+      submitted = true;
 
-      modal.spinner.hide();
-      goto(route)
+      // reset error message
+      errorMessage = '';
+
+      // authenticate user
+      try {
+        const tokenString = await new Promise((resolve, reject) => {
+          // generate body
+          const body = Object.keys(fields).reduce((obj, key)=>{
+            obj[key] = fields[key].value;
+            return obj;
+          }, {})
+
+          // emit to socket
+          $socket.emit('signin', body, ({error, token : tokenString}) => {
+            if (error) reject(error)
+            if (tokenString) resolve(tokenString)
+          })
+        })
+
+        // update token
+        $token = tokenString;
+
+        // route to dashboard
+        goto('/dashboard');
+      } catch(error) {
+        errorMessage = error;
+      }
+
+      // update submitted
+      submitted = false;
     }
   }
 
-  // props ( internal )
-  let loaded = false;
-  let password = '';
-  let username = '';
+  // props (internal)
+  const fields = {
+    username: {
+      classes: '',
+      label: 'Username',
+      type: 'text',
+      value: '',
+    },
+    password : {
+      classes: '',
+      label: 'Password',
+      type: 'password',
+      value: '',
+    },
+  }
+  let errorMessage = '';
+  let submitted = false;
 
-  // stores
-  import modal from '$components/Modal/store';
+  // props (external)
 
-  onMount(() => loaded = true)
+  // props (dynamic)
+
+  // lifecycle
+  const lifecycle = {
+    destroy : () => {},
+    mount : async () => {},
+  }
+  onMount(async() => {
+    await lifecycle.mount();
+    return () => {
+      lifecycle.destroy();
+    }
+  })
 </script>
 
-<svelte:head>
-  <title>Signin - Employee Online Portal - Allen-Bailey Tag & Label</title>
-</svelte:head>
+<Route>
+  <Form on:submit={submitHandler}>
+    <H1 class="text-center">Sign In</H1>
+    <Fieldset>
+      {#each Object.values(fields) as {classes, label, type, value}}
+        <Field {label}>
+          <Input class={classes} bind:value {type} />
+        </Field>
+      {/each}
+      <div class="min-h-[1.5rem] text-red-500">{errorMessage}</div>
+    </Fieldset>
+    <Button class="mt-[1rem] relative" type="submit">
+      {#if submitted}
+        <Spinner class='w-[1.5rem] h-[1.5rem]'/>
+      {:else}
+        Sign In
+      {/if}
+    </Button>
+  </Form>
+</Route>
 
-<Section padding="" class="relative flex-grow justify-center">
-  <Container class="flex justify-center">
-    {#if loaded}
-      <Card class="max-w-[500px] w-full">
-        <form on:submit|preventDefault={submitHandler} class="flex flex-col space-y-[36px]">
-          <div class="font-bold text-[36px]">Sign In</div>
-          <div class="flex flex-col space-y-[16px]">
-            <Input label="Username" name="username" placeholder="Username" bind:value={username} />
-            <Input label="Password" name="password" type="password" placeholder="Password" bind:value={password} />
-          </div>
-          <Button type="submit">Sign In</Button>
-        </form>
-      </Card>
-    {:else}
-      <Card>
-        <Spinner />
-      </Card>
-    {/if}
-  </Container>
-</Section>
+<slot/>
