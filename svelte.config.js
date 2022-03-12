@@ -1,3 +1,4 @@
+import path from 'path';
 import preprocess from 'svelte-preprocess';
 import adapter from '@sveltejs/adapter-node';
 import vitePluginSocketIO from 'vite-plugin-socket-io';
@@ -15,7 +16,14 @@ const config = {
 					serverEvents,
 					socketEvents
 				})
-			]
+			],
+			resolve: {
+				alias: {
+					'@components': path.resolve('./src/components'),
+					'@lib': path.resolve('./src/lib'),
+					'@routes': path.resolve('./src/routes')
+				}
+			}
 		}
 	},
 
