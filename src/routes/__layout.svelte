@@ -15,6 +15,7 @@
 	// lifecycle
 	onMount(() => {
 		theme.set({
+			card: 'dark:bg-white/[.025] dark:shadow-none dark:ring-1 dark:ring-white/[.05]',
 			fieldset: 'space-y-[.25rem]',
 			input: 'dark:bg-gray-900 dark:text-gray-50 dark:ring-offset-gray-700'
 		});
