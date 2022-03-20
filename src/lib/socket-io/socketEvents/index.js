@@ -1,6 +1,10 @@
+// imports
+import * as events from './events/index.js';
+
 export default (io, socket) => {
 	console.log('socket.io - connection');
-	socket.on('disconnect', () => {
-		console.log(`socket.io - socket.id \`${socket.id}\` disconnected`);
+
+	Object.values(events).forEach((event) => {
+		event(io, socket);
 	});
 };

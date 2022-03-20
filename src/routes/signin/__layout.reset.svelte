@@ -3,6 +3,6 @@
 	import { Layout } from '@components';
 </script>
 
-<Layout>
+<Layout showHeader={false}>
 	<slot />
 </Layout>

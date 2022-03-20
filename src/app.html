@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html
-	class="min-h-full flex flex-col bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-50"
+	class="min-h-screen max-h-screen flex flex-col bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-50"
 	lang="en"
 >
 	<head>
@@ -8,7 +8,9 @@
 		<meta name="description" content="" />
 		%svelte.head%
 	</head>
-	<body class="flex flex-col flex-grow">
-		<div class="flex flex-col flex-grow relative">%svelte.body%</div>
+	<body
+		class="min-h-full h-full flex flex-col flex-grow overflow-hidden selection:bg-blue-500 selection:text-white"
+	>
+		<div class="flex flex-col flex-grow relative overflow-hidden">%svelte.body%</div>
 	</body>
 </html>

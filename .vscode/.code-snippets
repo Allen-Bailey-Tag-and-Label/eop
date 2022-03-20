@@ -1,0 +1,27 @@
+{
+  "Route": {
+    "prefix": "!Route",
+    "body": [
+      "<script>",
+        "// imports",
+        "import { H6 } from '@components'",
+        "",
+        "// handlers",
+        "",
+        "// utilities",
+        "",
+        "// props (internal)",
+        "",
+        "// props (external)",
+        "",
+        "// props (dynamic)",
+        "",
+        "// lifecycle",
+      "</script>",
+      "",
+      "<div class=\"flex flex-col flex-grow p-[1.5rem] space-y-[2rem]\">",
+        "<H6>$1</H6>",
+      "</div>",
+    ]
+  }
+}
