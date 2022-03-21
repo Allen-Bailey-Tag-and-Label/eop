@@ -2,7 +2,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { handler } from './build/hander.js';
+import { handler } from './build/handler.js';
 import { serverEvents, socketEvents } from './src/lib/socket-io/index.js';
 
 // initite PORT
