@@ -15,8 +15,7 @@ const app = express();
 const server = createServer(app);
 
 // initiate io
-const io = new Server(server);
-io.listen(port);
+const io = new Server(server)(port);
 
 // add serverEvents & socketEvents
 serverEvents(io, socketEvents);
