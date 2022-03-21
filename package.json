@@ -10,7 +10,7 @@
     "test": "playwright test",
     "lint": "prettier --ignore-path .gitignore --check --plugin-search-dir=. . && eslint --ignore-path .gitignore .",
     "format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. .",
-    "start": "node build/index.js"
+    "start": "node server.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.19.1",
