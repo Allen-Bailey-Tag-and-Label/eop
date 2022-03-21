@@ -8,7 +8,11 @@ import { serverEvents, socketEvents } from './src/lib/socket-io/index.js';
 const config = {
 	kit: {
 		adapter: adapter({
-			entryPoint: ['./server.js']
+			entryPoint: ['./server.js'],
+			env: {
+				port: process.env.PORT | 3000,
+				host: '0.0.0.0'
+			}
 		}),
 		vite: {
 			plugins: [
