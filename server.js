@@ -1,18 +1,22 @@
 // imports
 import express from 'express';
-import http from 'http';
+import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { handler } from './build/hander.js';
 import { serverEvents, socketEvents } from './src/lib/socket-io/index.js';
+
+// initite PORT
+const port = process.env.PORT || 3000;
 
 // initiate app
 const app = express();
 
 // initiate server
-const server = http.createServer(app);
+const server = createServer(app);
 
 // initiate io
 const io = new Server(server);
+io.listen(port);
 
 // add serverEvents & socketEvents
 serverEvents(io, socketEvents);
@@ -21,6 +25,6 @@ serverEvents(io, socketEvents);
 app.use(handler);
 
 // server listen
-server.listen(process.env.PORT || 3000, () => {
-  console.log(`Custom server listening on port ${process.env.PORT || 3000}`);
+server.listen(port, () => {
+  console.log(`Custom server listening on port ${port}`);
 });
