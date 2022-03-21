@@ -40,8 +40,11 @@
 
 <Mongodb />
 <Pwa>
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <svelte:fragment slot="theme">
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  </svelte:fragment>
 </Pwa>
 <Socket />
 <Title base="Employee Online Portal - Allen Bailey Tag & Label" />
