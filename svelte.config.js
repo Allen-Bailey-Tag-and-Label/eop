@@ -26,7 +26,7 @@ const config = {
 				}
 			},
 			ssr: {
-				noExternal: ['svelte-hero-icons']
+				noExternal: ['sveltewind']
 			}
 		}
 	},
