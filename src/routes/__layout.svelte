@@ -1,12 +1,3 @@
-<script context="module">
-  export function load({ page }) {    
-    return {
-      props: {
-        path: page.path
-      }
-    }
-  }
-</script>
 <script>
   // _imports
   import { goto } from '$app/navigation';
@@ -25,7 +16,6 @@
   let routes = [];
 
   // props ( external )
-  export let path;
 
   // props ( dynamic )
   $: title = '';
@@ -46,7 +36,7 @@
     if ( $auth !== null ) {
       const data = await getRoutes($auth);
       if ( [...routes].map(route=>route.name).join(',') !== [...data].map(route=>route.name).join(',') ) routes = data
-      if ( ![...data].map(route=>route.href).includes(path.replace(/\/add|\/edit/g,''))) return goto('/dashboard')
+      if ( ![...data].map(route=>route.href).includes($page.path.replace(/\/add|\/edit/g,''))) return goto('/dashboard')
     }
   })
   onMount(()=> loaded = true);

@@ -17,21 +17,13 @@ export const addressValidation = async ({ address, city, state, zip }) => {
 
     const result = await serverFetch({
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'AccessLicenseNumber': import.meta.env.VITE_UPS_ACCESSLICENSENUMBER,
-        'Username': import.meta.env.VITE_UPS_USERNAME,
-        'Password': import.meta.env.VITE_UPS_PASSWORD,
-      },
-      href: `https://bobthered-cors-anywhere.herokuapp.com/${
-        import.meta.env.VITE_UPS_URL_ADDRESSVALIDATION
-        }`,
+      href: '/api/ups/validateAddress',
       body,
     });
 
     // check if address did not validate
-    if (result?.XAVResponse?.Candidate?.AddressClassification === undefined) throw 'Address could not be validated.'
+    if (result?.XAVResponse?.Candidate?.AddressClassification === undefined)
+      throw 'Address could not be validated.';
 
     // destructure result
     const {
@@ -41,13 +33,17 @@ export const addressValidation = async ({ address, city, state, zip }) => {
     } = result;
 
     // determine if residential
-    const residential = AddressClassification.Code === "1" ? false : true;
+    const residential = AddressClassification.Code === '1' ? false : true;
 
     // destructure AddressKeyFormat
-    ({ AddressLine: address, PoliticalDivision2: city, PoliticalDivision1: state, PostcodePrimaryLow: zip } = AddressKeyFormat);
+    ({
+      AddressLine: address,
+      PoliticalDivision2: city,
+      PoliticalDivision1: state,
+      PostcodePrimaryLow: zip,
+    } = AddressKeyFormat);
 
     return { address, city, residential, state, zip };
-
   } catch (error) {
     throw error;
   }
@@ -108,25 +104,20 @@ export const rates = async ({ shipFrom, shipTo, weight: Weight }) => {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'AccessLicenseNumber': import.meta.env.VITE_UPS_ACCESSLICENSENUMBER,
-        'Username': import.meta.env.VITE_UPS_USERNAME,
-        'Password': import.meta.env.VITE_UPS_PASSWORD,
-        'transId': 'Tran123',
-        'transactionSrc': 'XOLT',
       },
-      href: `https://bobthered-cors-anywhere.herokuapp.com/${
-        import.meta.env.VITE_UPS_URL_RATES
-        }`,
+      href: '/api/ups/getRates',
       body,
     });
 
-    const rates = result.RateResponse.RatedShipment.reduce((obj, { Service, TotalCharges }) => {
-      obj[Service.Code] = +TotalCharges.MonetaryValue;
-      return obj;
-    }, {})
+    const rates = result.RateResponse.RatedShipment.reduce(
+      (obj, { Service, TotalCharges }) => {
+        obj[Service.Code] = +TotalCharges.MonetaryValue;
+        return obj;
+      },
+      {},
+    );
 
     return rates;
-
   } catch (error) {
     throw error;
   }
@@ -140,4 +131,4 @@ export const serviceCodes = {
   '13': 'Next Dai Air Saver',
   '01': 'Next Day Air',
   '14': 'Next Day Air Early',
-}
+};
