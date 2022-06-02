@@ -10,7 +10,6 @@
   "devDependencies": {
     "@imask/svelte": "^6.2.0",
     "@sveltejs/adapter-node": "^1.0.0-next.35",
-    "@sveltejs/adapter-static": "^1.0.0-next.12",
     "@sveltejs/kit": "^1.0.0-next.123",
     "autoprefixer": "^10.2.5",
     "aws-sdk": "^2.949.0",
