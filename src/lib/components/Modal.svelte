@@ -1,5 +1,5 @@
 <script>
-  import { Overlay } from '$components';
+  import { Card, Overlay } from '$components';
   import { theme } from '$stores';
 
   // utilities
@@ -21,10 +21,10 @@
     on:click={toggleModal}
   />
 </slot>
-<div
+<Card
   class="{$theme.modal} {!show
-    ? 'opacity-0 pointer-events-none'
-    : 'opacity-100 pointer-events-auto'}"
+    ? 'opacity-0 pointer-events-none translate-y-full'
+    : 'opacity-100 pointer-events-auto translate-y-0'}"
 >
   <slot />
-</div>
+</Card>
