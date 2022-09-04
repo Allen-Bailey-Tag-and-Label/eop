@@ -1,0 +1,8 @@
+{
+    "add to index.js": {
+      "prefix": "exportDefaultFrom",
+      "body": [
+        "export { default as $1 } from './$1';",
+      ]
+    }
+  }

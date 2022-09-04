@@ -1,23 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="flex overflow-hidden font-normal" lang="en" style="min-height: -webkit-fill-available">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="alternate icon" href="/icon-16x16.png" />
-    <link rel="apple-touch-icon" href="/icon-apple-touch.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#1e2029" />
-    <!-- <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(function () {
-          console.log('Service Worker Registered');
-        });
-      }
-    </script> -->
-    %svelte.head%
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    %sveltekit.head%
   </head>
-  <body>
-    <div id="svelte">%svelte.body%</div>
+  <body
+    class="flex flex-grow overflow-hidden min-h-screen max-h-screen from-gray-100 to-gray-200 text-gray-900 bg-gradient-to-b dark:from-gray-800 dark:to-gray-900 dark:text-gray-50 selection:bg-primary-500 selection:text-white"
+  >
+    <div class="flex flex-grow overflow-hidden">%sveltekit.body%</div>
   </body>
 </html>
