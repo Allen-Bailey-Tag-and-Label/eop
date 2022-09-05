@@ -1,5 +1,4 @@
 import connect from '$db';
-import { redirect } from '@sveltejs/kit';
 
 export async function POST({ request }) {
   try {

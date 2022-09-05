@@ -15,8 +15,8 @@
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
-  <TitleBar showBackButton={false}
-    ><svelte:fragment slot="title">Dashboard</svelte:fragment></TitleBar
-  >
+  <TitleBar>
+    <svelte:fragment slot="title">Dashboard</svelte:fragment>
+  </TitleBar>
   <div class="flex flex-col overflow-y-auto  p-[2rem]" />
 </div>

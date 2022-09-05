@@ -3,7 +3,7 @@ import { parse } from 'cookie';
 import jwt from 'jsonwebtoken';
 import connect from '$db';
 
-export default async (request) => {
+export default async (request, options = { deletePassword: true }) => {
   // connect to db
   const client = await connect();
 
@@ -20,7 +20,7 @@ export default async (request) => {
   const user = await client.db().collection('users').findOne({ username });
 
   // delete password
-  delete user.password;
+  if (options.deletePassword) delete user.password;
 
   return user;
 };
