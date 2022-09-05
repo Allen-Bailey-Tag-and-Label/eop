@@ -2,6 +2,7 @@
   import { Button, Fieldset, Form, Icon, Input, Modal } from '$components';
   import { Plus } from '$icons';
   import { postFetch } from '$lib/helpers';
+  import { sanitizeRow } from '$lib/mongoTable';
   import { theme } from '$stores';
 
   // utilities
@@ -10,10 +11,8 @@
   const submitHandler = async (e) => {
     e.preventDefault();
     const response = await postFetch({ body: { collection, insert }, url: '/api/db/insert' });
-    const { doc } = await response.json();
-    doc._mongoTable = {
-      selected: false
-    };
+    let { doc } = await response.json();
+    doc = sanitizeRow(doc);
     rows = [...rows, doc];
     toggleModal();
   };

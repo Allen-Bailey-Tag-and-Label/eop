@@ -1,5 +1,6 @@
 <script>
   import { MongoButtonDelete, MongoButtonInsert, MongoTable, TitleBar } from '$components';
+  import store from './store';
 
   // utilities
 
@@ -8,15 +9,14 @@
   // props (internal)
   let collection = 'routes';
   let columns = ['group', 'name', 'href'];
-  let routes = [];
 
   // props (external)
   export let data;
   export let errors;
 
   // props (dynamic)
-  $: if (data?.routes !== undefined && routes.length === 0) {
-    routes = data.routes;
+  $: if (data?.routes !== undefined && $store.rows.length === 0) {
+    $store.rows = data.routes;
   }
 </script>
 
@@ -24,9 +24,9 @@
   <TitleBar>
     <svelte:fragment slot="title">Admin - Routes</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonDelete bind:rows={routes} {collection} />
-      <MongoButtonInsert bind:rows={routes} {collection} {columns} />
+      <MongoButtonDelete bind:rows={$store.rows} {collection} />
+      <MongoButtonInsert bind:rows={$store.rows} {collection} {columns} />
     </svelte:fragment>
   </TitleBar>
-  <MongoTable bind:columns bind:rows={routes} {collection} />
+  <MongoTable bind:columns bind:rows={$store.rows} {collection} />
 </div>

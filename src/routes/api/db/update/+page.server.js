@@ -8,7 +8,7 @@ export async function POST({ request }) {
     const client = await connect();
 
     // destructure request
-    let { fieldCollection: collection, query, update } = await request.json();
+    let { collection, query, update } = await request.json();
 
     // sanitize query
     query = Object.keys(query).reduce((obj, key) => {

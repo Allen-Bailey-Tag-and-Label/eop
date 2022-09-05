@@ -21,13 +21,15 @@ export default {
   ),
   buttonTransparent: 'text-current bg-transparent hover:bg-transparent focus:bg-transparent',
   card: `${inputRounded} ${common.gradientBG}`,
-  checkbox: `bg-transparent dark:ring-offset-white/[.2] text-white ${inputRounded}`,
+  checkbox: `bg-transparent focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500 dark:ring-offset-white/[.2] mr-0 text-white ${inputRounded}`,
+  checkboxChecked:
+    'bg-primary-500 dark:bg-primary-500 focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500',
   form: 'w-full max-w-[375px] space-y-[2rem]',
   header: 'z-[1] bg-white dark:bg-black/[.2] items-end lg:items-start',
   input: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent`,
   inputTd: 'rounded-none w-full',
   legend: 'text-[.75rem] opacity-[.5] peer-focus:opacity-[1]',
-  modal: `${inputRounded} ml-0 z-[2] w-auto h-auto top-auto bottom-[max(2rem,_env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 ${common.gradientBG} w-full max-w-[calc(100vw_-_1rem)] pt-[max(1.5rem,_env(safe-area-inset-top))] pr-[max(1.5rem,_env(safe-area-inset-right))] pl-[max(1.5rem,_env(safe-area-inset-left))] pb-[max(1.5rem,_env(safe-area-inset-bottom))] lg:bottom-auto lg:top-1/2 lg:translate-y-[-50%] lg:w-auto`,
+  modal: `${inputRounded} max-w-[min(375px,_calc(100vw_-_1rem))] ml-0 z-[2] w-auto h-auto top-auto bottom-[max(2rem,_env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 ${common.gradientBG} w-full pt-[max(1.5rem,_env(safe-area-inset-top))] pr-[max(1.5rem,_env(safe-area-inset-right))] pl-[max(1.5rem,_env(safe-area-inset-left))] pb-[max(1.5rem,_env(safe-area-inset-bottom))] lg:bottom-auto lg:top-1/2 lg:translate-y-[-50%] lg:w-auto`,
   nav: `space-y-[2rem] z-[2] transition duration-200 transform fixed top-0 right-0 w-[calc(100%_-_4rem)] h-screen max-h-screen overflow-y-auto items-stretch pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${common.gradientBG} lg:right-auto lg:left-0 lg:top-0 lg:w-auto lg:pl-[3rem]`,
   navA: 'before:hidden px-[2rem] py-[1rem] hover:bg-black/[.05] focus:bg-black/[.05] hover:text-current focus:text-current dark:hover:bg-white/[.1] dark:focus:bg-white/[.1] transition duration-200',
   navACurrent:

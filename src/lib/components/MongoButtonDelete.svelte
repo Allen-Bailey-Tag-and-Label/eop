@@ -47,12 +47,12 @@
 <div>
   <Modal bind:show>
     <Form on:submit={submitHandler}>
-      <div
+      <!-- <div
         class="{$theme.card} self-center mt-[-6rem] dark:ring-0 shadow-[0_1rem_2rem_rgba(18,18,18,.3)] dark:shadow-[0_1rem_2rem_rgba(18,18,18,.7)]"
         style="transform: perspective(200px) rotateY(10deg);"
       >
         <Icon class="text-red-500 w-[6rem] h-[6rem] mx-auto" src={Trash} />
-      </div>
+      </div> -->
       <div class="flex flex-col space-y-[.5rem]">
         <H6 class="text-center"
           >Are you sure you want to delete {selectedRows.length} item{selectedRows.length === 1

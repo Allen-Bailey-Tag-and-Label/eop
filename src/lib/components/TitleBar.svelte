@@ -11,7 +11,7 @@
   // props (internal)
 
   // props (external)
-  export let showBackButton = true;
+  export let showBackButton = false;
 
   // props (dynamic)
 </script>

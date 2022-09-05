@@ -1,7 +1,9 @@
+<!-- TODO - Add Sort functionality -->
 <script>
   import { browser } from '$app/environment';
   import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
   import { postFetch } from '$lib/helpers';
+  import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { theme } from '$stores';
 
   // utilities
@@ -21,34 +23,6 @@
         sel.addRange(range);
       } catch (error) {}
     }
-  };
-  const sanitizeColumns = () => {
-    columns = columns.map((column) => {
-      // initialize default column
-      const defaultColumn = {
-        type: 'string'
-      };
-
-      // check if column is string
-      if (typeof column === 'string') {
-        column = {
-          innerHTML: column,
-          key: column
-        };
-      }
-
-      return Object.assign(defaultColumn, column);
-    });
-    columnsSanitized = true;
-  };
-  const sanitizeRows = () => {
-    rows = rows.map((row) => {
-      row._mongoTable = {
-        selected: false
-      };
-      return row;
-    });
-    rowsSanitized = true;
   };
 
   // handlers
@@ -88,9 +62,9 @@
       changeTableFocus(y, x);
     }
   };
-  const updateField = async ({ fieldCollection, query, update }) => {
+  const updateField = async ({ collection, query, update }) => {
     const response = await postFetch({
-      body: { fieldCollection, query, update },
+      body: { collection, query, update },
       url: '/api/db/update'
     });
   };
@@ -106,8 +80,12 @@
   export let rows = [];
 
   // props (dynamic)
-  $: if (columns.length > 0 && !columnsSanitized) sanitizeColumns();
-  $: if (rows.length > 0 && !rowsSanitized) sanitizeRows();
+  $: if (columns.length > 0 && !columnsSanitized) {
+    [columns, columnsSanitized] = sanitizeColumns(columns);
+  }
+  $: if (rows.length > 0 && !rowsSanitized) {
+    [rows, rowsSanitized] = sanitizeRows(rows);
+  }
 </script>
 
 <div class="flex flex-grow overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
@@ -141,7 +119,7 @@
                   const query = { _id: row._id };
                   const update = { $set: {} };
                   update.$set[column.key] = row[column.key];
-                  updateField({ fieldCollection, query, update });
+                  updateField({ collection: fieldCollection, query, update });
                 }}
                 on:keydown={(e) => {
                   keyDownHandler({ e, i, j });
