@@ -23,7 +23,7 @@ export default {
   card: `${inputRounded} ${common.gradientBG}`,
   checkbox: `bg-transparent focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500 dark:ring-offset-white/[.2] mr-0 text-white ${inputRounded}`,
   checkboxChecked:
-    'bg-primary-500 dark:bg-primary-500 focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500',
+    'bg-primary-500 dark:bg-primary-500 ring-offset-primary-500 dark:ring-offset-primary-500 focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500',
   form: 'w-full max-w-[375px] space-y-[2rem]',
   header: 'z-[1] bg-white dark:bg-black/[.2] items-end lg:items-start',
   input: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent`,
