@@ -1,12 +1,9 @@
 import 'dotenv/config';
 import { parse } from 'cookie';
 import jwt from 'jsonwebtoken';
-import connect from '$db';
+import db from '$db';
 
 export default async (request, options = { deletePassword: true }) => {
-  // connect to db
-  const client = await connect();
-
   // get cookies from
   const cookies = parse(request.headers.get('cookie'));
 
@@ -17,7 +14,7 @@ export default async (request, options = { deletePassword: true }) => {
   const { username } = await jwt.verify(token, process.env.JWT_SECRET);
 
   // update user info
-  const user = await client.db().collection('users').findOne({ username });
+  const [user] = await db.find({ collection: 'users', query: { username } });
 
   // delete password
   if (options.deletePassword) delete user.password;

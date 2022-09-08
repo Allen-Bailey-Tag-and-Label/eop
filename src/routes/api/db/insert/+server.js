@@ -1,24 +1,15 @@
-import connect from '$db';
+import db from '$db';
 
 export async function POST({ request }) {
   try {
-    // connect to db
-    const client = await connect();
-
     // destructure request
     const { collection, insert } = await request.json();
 
-    // initiate options
-    const options = {
-      returnDocument: 'after',
-      upsert: true
-    };
+    // perform insert
+    await db.create({ collection, insert });
 
-    // perform update
-    const { value: doc } = await client
-      .db()
-      .collection(collection)
-      .findOneAndUpdate(insert, { $set: {} }, options);
+    // find doc
+    const [doc] = await db.find({ collection, query: insert });
 
     // return redirect location
     return new Response(JSON.stringify({ doc }));

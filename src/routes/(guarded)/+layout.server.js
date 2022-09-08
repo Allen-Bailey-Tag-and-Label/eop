@@ -2,16 +2,14 @@ import 'dotenv/config';
 import { serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
 import { getUserFromRequest } from '$lib/auth';
-import connect from '$db';
-
-const client = await connect();
+import db from '$db';
 
 const getAllRoles = async () => {
-  const roles = await client.db().collection('roles').find().toArray();
+  const roles = await db.find({ collection: 'roles' });
   return roles;
 };
 const getAllRoutes = async () => {
-  const routes = await client.db().collection('routes').find().toArray();
+  const routes = await db.find({ collection: 'routes' });
   return routes;
 };
 

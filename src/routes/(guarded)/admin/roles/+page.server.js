@@ -1,13 +1,10 @@
-import connect from '$db';
+import db from '$db';
 
 export async function load() {
-  // connect to db
-  const client = await connect();
-
   // get routes
   const [roles, routes] = await Promise.all([
-    client.db().collection('roles').find().toArray(),
-    client.db().collection('routes').find().toArray()
+    db.find({ collection: 'roles' }),
+    db.find({ collection: 'routes' })
   ]);
 
   return {

@@ -3,18 +3,15 @@ import bcrypt from 'bcrypt';
 import { serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
 import { redirect } from '@sveltejs/kit';
-import connect from '$lib/db';
+import db from '$lib/db';
 
 export async function POST({ request, setHeaders }) {
-  // connect to db
-  const client = await connect();
-
   // destructure request
   let { password, username } = await request.json();
   username = username.toLowerCase().replace(/\s/g, '');
 
   // find username in database
-  const user = await client.db().collection('users').findOne({ username });
+  const [user] = await db.find({ collection: 'users', query: { username } });
 
   // check if credentials do not match
   if (!user || !(await bcrypt.compare(password, user?.password))) {

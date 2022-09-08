@@ -1,12 +1,8 @@
 import { ObjectId } from 'mongodb';
-import connect from '$db';
-import { redirect } from '@sveltejs/kit';
+import db from '$db';
 
 export async function POST({ request }) {
   try {
-    // connect to db
-    const client = await connect();
-
     // destructure request
     let { collection, query, update } = await request.json();
 
@@ -18,12 +14,12 @@ export async function POST({ request }) {
     }, {});
 
     // perform update
-    await client.db().collection(collection).findOneAndUpdate(query, update);
+    await db.update({ collection, query, update });
 
     // return redirect location
-    return redirect(300, '/dashboard');
+    return new Response(JSON.stringify({}));
   } catch (error) {
     console.log(error);
-    return { status: 401 };
+    return new Response();
   }
 }

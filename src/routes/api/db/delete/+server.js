@@ -1,11 +1,8 @@
 import { ObjectId } from 'mongodb';
-import connect from '$db';
+import db from '$db';
 
 export async function POST({ request }) {
   try {
-    // connect to db
-    const client = await connect();
-
     // destructure request
     let { collection, query } = await request.json();
 
@@ -15,7 +12,7 @@ export async function POST({ request }) {
     });
 
     // perform update
-    await client.db().collection(collection).deleteMany(query);
+    await db.remove({ collection, query });
 
     // return response
     return new Response({});

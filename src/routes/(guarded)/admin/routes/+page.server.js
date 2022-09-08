@@ -1,11 +1,9 @@
-import connect from '$db';
+import db from '$db';
 
 export async function load() {
-  // connect to db
-  const client = await connect();
-
   // get routes
-  const routes = await client.db().collection('routes').find().toArray();
+  const routes = await db.find({ collection: 'routes' });
+
   return {
     routes: JSON.parse(
       JSON.stringify(

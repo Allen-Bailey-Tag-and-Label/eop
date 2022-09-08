@@ -3,13 +3,10 @@ import bcrypt from 'bcrypt';
 import { serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
 import { getUserFromRequest } from '$lib/auth';
-import connect from '$db';
+import db from '$db';
 
 export async function POST({ request, setHeaders }) {
   try {
-    // connect to db
-    const client = await connect();
-
     // destructure request
     let { currentPassword, password } = await request.json();
 
@@ -33,13 +30,14 @@ export async function POST({ request, setHeaders }) {
     };
 
     // update password
-    const { value: doc } = await client
-      .db()
-      .collection('users')
-      .findOneAndUpdate({ _id: user._id }, { $set: { password } }, options);
+    await db.update({
+      collection: 'users',
+      query: { _id: user._id },
+      update: { $set: { password } }
+    });
 
-    // update user
-    user = doc;
+    // find user
+    [user] = await db.find({ collection: 'users', query: { _id: user._id } });
 
     // delete user password
     delete user.password;
