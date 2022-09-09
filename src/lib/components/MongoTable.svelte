@@ -3,7 +3,7 @@
   import { browser } from '$app/environment';
   import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
   import { postFetch } from '$lib/helpers';
-  import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
+  import { mask, sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
 
@@ -79,21 +79,37 @@
   // props (external)
   export let collection = '';
   export let columns = [];
+  export let editable = true;
   export let rows = [];
+  export let sort = { index: 0 };
 
   // props (dynamic)
   $: if (columns.length > 0 && !columnsSanitized) {
     [columns, columnsSanitized] = sanitizeColumns(columns);
   }
-  $: if (rows.length > 0 && [...rows].filter((row) => row?._mongoTable === undefined).length > 0) {
+  $: if (
+    editable &&
+    rows.length > 0 &&
+    [...rows].filter((row) => row?._mongoTable === undefined).length > 0
+  ) {
     rows = sanitizeRows(rows);
+  }
+  $: if (rows.length > 0 && [...rows].filter((row) => row?._mongoTable === undefined).length > 0) {
+    rows = [...rows].sort((a, b) => {
+      const key = sort?.key !== undefined ? sort.key : columns[0].key;
+      if (a[key] < b[key]) return -1;
+      if (a[key] > b[key]) return 1;
+      return 0;
+    });
   }
 </script>
 
 <div class="flex flex-grow overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
   <Table>
     <Thead>
-      <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
+      {#if editable}
+        <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
+      {/if}
       {#each columns as column}
         <Th>{column.innerHTML}</Th>
       {/each}
@@ -101,32 +117,38 @@
     <tbody bind:this={tbodyElem} class={$theme.tbody}>
       {#each rows as row, i}
         <Tr>
-          <Td class="w-[32px]">
-            <Checkbox
-              bind:checked={row._mongoTable.selected}
-              on:keydown={(e) => {
-                keyDownHandler({ e, i, j: -1 });
-              }}
-            />
-          </Td>
-          {#each columns as column, j}
-            {#if column.type === 'string'}
-              <td
-                bind:innerHTML={row[column.key]}
-                class={$theme.td}
-                contenteditable="true"
-                on:blur={() => {
-                  const fieldCollection =
-                    column?.collection === undefined ? collection : column?.collection;
-                  const query = { _id: row._id };
-                  const update = { $set: {} };
-                  update.$set[column.key] = row[column.key];
-                  updateField({ collection: fieldCollection, query, update });
-                }}
+          {#if editable}
+            <Td class="w-[32px]">
+              <Checkbox
+                bind:checked={row._mongoTable.selected}
                 on:keydown={(e) => {
-                  keyDownHandler({ e, i, j });
+                  keyDownHandler({ e, i, j: -1 });
                 }}
               />
+            </Td>
+          {/if}
+          {#each columns as column, j}
+            {#if editable}
+              {#if column.type === 'string'}
+                <td
+                  bind:innerHTML={row[column.key]}
+                  class={$theme.td}
+                  contenteditable="true"
+                  on:blur={() => {
+                    const fieldCollection =
+                      column?.collection === undefined ? collection : column?.collection;
+                    const query = { _id: row._id };
+                    const update = { $set: {} };
+                    update.$set[column.key] = row[column.key];
+                    updateField({ collection: fieldCollection, query, update });
+                  }}
+                  on:keydown={(e) => {
+                    keyDownHandler({ e, i, j });
+                  }}
+                />
+              {/if}
+            {:else}
+              <Td>{mask[column.mask](row[column.key])}</Td>
             {/if}
           {/each}
         </Tr>
