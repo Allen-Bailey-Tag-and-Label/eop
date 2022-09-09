@@ -2,7 +2,7 @@
   import { Button, Fieldset, Form, Icon, Input, Modal } from '$components';
   import { Plus } from '$icons';
   import { postFetch } from '$lib/helpers';
-  import { sanitizeRow } from '$lib/mongoTable';
+  import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
 
   // utilities
@@ -10,10 +10,9 @@
   // handlers
   const submitHandler = async (e) => {
     e.preventDefault();
-    const response = await postFetch({ body: { collection, insert }, url: '/api/db/insert' });
+    const response = await postFetch({ body: { collection, insert }, url: '/api/db/create' });
     let { doc } = await response.json();
-    doc = sanitizeRow(doc);
-    rows = [...rows, doc];
+    socketio.emit('db.create', { collection, doc });
     toggleModal();
   };
   const toggleModal = () => (show = !show);

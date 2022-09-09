@@ -1,7 +1,8 @@
 <script>
-  import { Button, Card, Form, H6, Icon, Modal, P } from '$components';
+  import { Button, Form, H6, Icon, Modal, P } from '$components';
   import { Trash } from '$icons';
   import { postFetch } from '$lib/helpers';
+  import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
 
   // utilities
@@ -17,9 +18,10 @@
         return { _id };
       })
     };
-    await postFetch({ body: { collection, query }, url: '/api/db/delete' });
-    const deletedRows = [...selectedRows];
-    rows = [...rows].filter(({ _id }) => deletedRows.findIndex((obj) => obj._id === _id) === -1);
+    await postFetch({ body: { collection, query }, url: '/api/db/remove' });
+    [...selectedRows].map(({ _id }) => {
+      socketio.emit('db.remove', { collection, doc: { _id } });
+    });
     toggleModal();
   };
   const toggleModal = () => (show = !show);

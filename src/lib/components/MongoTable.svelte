@@ -4,6 +4,7 @@
   import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
   import { postFetch } from '$lib/helpers';
   import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
+  import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
 
   // utilities
@@ -67,11 +68,12 @@
       body: { collection, query, update },
       url: '/api/db/update'
     });
+    const { doc } = await response.json();
+    socketio.emit('db.update', { collection, doc });
   };
 
   // props (internal)
   let columnsSanitized = false;
-  let rowsSanitized = false;
   let tbodyElem;
 
   // props (external)
@@ -83,8 +85,8 @@
   $: if (columns.length > 0 && !columnsSanitized) {
     [columns, columnsSanitized] = sanitizeColumns(columns);
   }
-  $: if (rows.length > 0 && !rowsSanitized) {
-    [rows, rowsSanitized] = sanitizeRows(rows);
+  $: if (rows.length > 0 && [...rows].filter((row) => row?._mongoTable === undefined).length > 0) {
+    rows = sanitizeRows(rows);
   }
 </script>
 

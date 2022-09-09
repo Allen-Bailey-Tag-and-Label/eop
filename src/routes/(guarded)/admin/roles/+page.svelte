@@ -1,8 +1,8 @@
 <script>
   import {
     Checkbox,
-    MongoButtonDelete,
-    MongoButtonInsert,
+    MongoButtonRemove,
+    MongoButtonCreate,
     Table,
     Tbody,
     Td,
@@ -77,8 +77,8 @@
   <TitleBar>
     <svelte:fragment slot="title">Admin - Roles</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonDelete bind:rows={$store.rows} {collection} />
-      <MongoButtonInsert bind:rows={$store.rows} {collection} columns={$store.insertColumns} />
+      <MongoButtonRemove bind:rows={$store.rows} {collection} />
+      <MongoButtonCreate bind:rows={$store.rows} {collection} columns={$store.insertColumns} />
     </svelte:fragment>
   </TitleBar>
   <div class="flex flex-grow overflow-y-auto p-[2rem] pt-0 mt-[2rem]">

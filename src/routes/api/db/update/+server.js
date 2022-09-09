@@ -16,8 +16,11 @@ export async function POST({ request }) {
     // perform update
     await db.update({ collection, query, update });
 
+    // find document
+    const [doc] = await db.find({ collection, query });
+
     // return redirect location
-    return new Response(JSON.stringify({}));
+    return new Response(JSON.stringify({ doc }));
   } catch (error) {
     console.log(error);
     return new Response();

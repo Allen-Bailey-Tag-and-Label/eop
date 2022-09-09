@@ -1,6 +1,7 @@
 export default (row) => {
-  row._mongoTable = {
-    selected: false
-  };
+  if (row?._mongoTable === undefined)
+    row._mongoTable = {
+      selected: false
+    };
   return row;
 };
