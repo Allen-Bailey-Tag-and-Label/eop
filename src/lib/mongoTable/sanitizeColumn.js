@@ -1,6 +1,7 @@
 export default (column) => {
   // initialize default column
   const defaultColumn = {
+    mask: 'string',
     type: 'string'
   };
 
