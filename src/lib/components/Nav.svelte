@@ -4,7 +4,7 @@
   import { page } from '$app/stores';
   import { MenuAlt4, X } from '$icons';
   import { postFetch } from '$lib/helpers';
-  import { theme } from '$stores';
+  import { socketio, theme } from '$stores';
 
   // utilities
 
@@ -12,6 +12,7 @@
   const signOutHandler = async (e) => {
     e.preventDefault();
     const response = await postFetch({ url: '/api/auth/signout' });
+    socketio.signout();
     goto('/signin');
   };
   const toggleNav = () => (open = !open);
