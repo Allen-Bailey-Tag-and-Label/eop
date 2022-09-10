@@ -26,7 +26,10 @@
   // props (dynamic)
 </script>
 
-<Button class="{$theme.buttonIcon} {$theme.buttonTransparent} z-[3]" on:click={toggleNav}>
+<Button
+  class="{$theme.buttonIcon} {$theme.buttonTransparent} z-[3] hover:text-primary-500 focus:text-primary-500"
+  on:click={toggleNav}
+>
   <Icon class="w-[2rem] h-[2rem]" src={!open ? MenuAlt4 : X} />
 </Button>
 <div
