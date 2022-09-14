@@ -40,7 +40,7 @@ export default {
   table: 'bg-black/[.05] dark:bg-black/[.1] w-full',
   td: 'transition duration-200 outline-none ring-1 ring-transparent focus:ring-primary-500',
   titleBar:
-    'min-h-[calc(40px_+_env(safe-area-inset-top)_+_2rem)] flex justify-between pt-[calc(env(safe-area-inset-top))] ring-1 ring-black/[.1] dark:ring-white/[.05] bg-white dark:bg-black/[.2] px-[2rem]',
+    'min-h-[calc(2.5rem_+_env(safe-area-inset-top)_+_2rem)] flex justify-between pt-[calc(env(safe-area-inset-top))] ring-1 ring-black/[.1] dark:ring-white/[.05] bg-white dark:bg-black/[.2] px-[2rem]',
   th: 'bg-white dark:bg-gray-950 sticky top-0 border-b-0 shadow-[inset_0px_-1px_0px_rgba(0,0,0,_.3),_inset_0px_1px_0px_rgba(0,0,0,.03)] dark:shadow-[inset_0px_-1px_0px_rgba(255,255,255,_.3),_inset_0px_1px_0px_rgba(255,255,255,.05)] z-[1]',
   tr: 'transition duration-200 odd:bg-gray-100 even:bg-gray-50 hover:bg-white/[.1] dark:odd:bg-black/[.4] dark:even:bg-black/[.2] dark:hover:bg-white/[.05]'
 };
