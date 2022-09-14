@@ -1,5 +1,5 @@
 <script>
-  import { TitleBar } from '$components';
+  import { H5, TitleBar } from '$components';
 
   // utilities
 
@@ -18,5 +18,7 @@
   <TitleBar>
     <svelte:fragment slot="title">Dashboard</svelte:fragment>
   </TitleBar>
-  <div class="flex flex-col overflow-y-auto  p-[2rem]" />
+  <div class="flex flex-col overflow-y-auto p-[2rem]">
+    <H5>Welcome {data?.user?.firstName} {data?.user?.lastName}</H5>
+  </div>
 </div>
