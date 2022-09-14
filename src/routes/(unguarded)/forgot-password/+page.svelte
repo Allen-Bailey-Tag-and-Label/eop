@@ -9,7 +9,7 @@
   };
 
   // props (internal)
-  let username = 'bmcaleavey';
+  let username = '';
 
   // props (external)
   export let data;

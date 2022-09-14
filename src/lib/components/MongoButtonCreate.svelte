@@ -24,7 +24,6 @@
   // props (external)
   export let collection = '';
   export let columns = [];
-  export let rows = [];
 
   // props (dynamic)
   $: if (Object.keys(insert).length === 0 && columns.length > 0)

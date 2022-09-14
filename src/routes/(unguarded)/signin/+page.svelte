@@ -14,8 +14,8 @@
 
   // props (internal)
   let error = '';
-  let password = 'Superma3+';
-  let username = 'bmcaleavey';
+  let password = '';
+  let username = '';
 
   // props (external)
   export let data;
