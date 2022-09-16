@@ -1,4 +1,5 @@
 <script>
+  import { page } from '$app/stores';
   import {
     Checkbox,
     MongoButtonRemove,
@@ -13,12 +14,9 @@
   } from '$components';
   import { postFetch } from '$lib/helpers';
   import { sanitizeColumns, sanitizeRow } from '$lib/mongoTable';
-  import { collections, theme } from '$stores';
-  import store from './store';
+  import { collections, routeStates, theme } from '$stores';
 
   // utilities
-  const sortByKey = (arr, key) =>
-    arr.sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0));
 
   // handlers
   const checkboxRouteClickHandler = async (e, i) => {
@@ -60,39 +58,58 @@
   export let data;
   export let errors;
 
+  if ($routeStates?.[$page.url.pathname] === undefined) {
+    $routeStates[$page.url.pathname] = {
+      columns: [],
+      rows: [],
+      sort: {
+        direction: 1,
+        key: 'group'
+      }
+    };
+  }
+
   // props (dynamic)
-  $: columns = $collections.routes
-    .sort((a, b) =>
-      a.group < b.group
-        ? -1
-        : a.group > b.group
-        ? 1
-        : a.name < b.name
-        ? -1
-        : a.name > b.name
-        ? 1
-        : 0
-    )
-    .map((role) => {
-      return { group: role?.group, name: role.name, value: role._id };
-    });
-  $: rows = $collections.roles
-    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-    .map((role) => {
-      role = sanitizeRow(role);
-      columns.map((column) => {
-        role[column.value] = role.routes.includes(column.value);
+  $: if ($collections.routes) {
+    $routeStates[$page.url.pathname].columns = $collections.routes
+      .sort((a, b) =>
+        a.group < b.group
+          ? -1
+          : a.group > b.group
+          ? 1
+          : a.name < b.name
+          ? -1
+          : a.name > b.name
+          ? 1
+          : 0
+      )
+      .map((role) => {
+        return { group: role?.group, name: role.name, value: role._id };
       });
-      return role;
-    });
+  }
+  $: if ($collections.roles) {
+    $routeStates[$page.url.pathname].rows = $collections.roles
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+      .map((role) => {
+        role = sanitizeRow(role);
+        $routeStates[$page.url.pathname].columns.map((column) => {
+          role[column.value] = role.routes.includes(column.value);
+        });
+        return role;
+      });
+  }
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
   <TitleBar>
     <svelte:fragment slot="title">Admin - Roles</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows {collection} />
-      <MongoButtonCreate bind:rows {collection} columns={insertColumns} />
+      <MongoButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
+      <MongoButtonCreate
+        bind:rows={$routeStates[$page.url.pathname].rows}
+        {collection}
+        columns={insertColumns}
+      />
     </svelte:fragment>
   </TitleBar>
   <div class="flex flex-grow overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
@@ -110,7 +127,7 @@
             <div>All</div>
           </div>
         </Th>
-        {#each columns as { group, name }, i}
+        {#each $routeStates[$page.url.pathname].columns as { group, name }, i}
           <Th>
             <div class="flex flex-col items-center">
               <div>{group}</div>
@@ -125,7 +142,7 @@
         {/each}
       </Thead>
       <Tbody>
-        {#each rows as row}
+        {#each $routeStates[$page.url.pathname].rows as row}
           <Tr>
             <Td class="w-[32px]">
               {#if row?._mongoTable?.selected !== undefined}
@@ -145,8 +162,10 @@
             <Td>
               <Checkbox
                 on:click={(e) => {
-                  columns.map(({ value }) => (row[value] = e.target.checked));
-                  const routes = Object.values(columns)
+                  $routeStates[$page.url.pathname].columns.map(
+                    ({ value }) => (row[value] = e.target.checked)
+                  );
+                  const routes = Object.values($routeStates[$page.url.pathname].columns)
                     .map(({ value }) => (row[value] === true ? value : false))
                     .filter((route) => route);
                   const query = { _id: row._id };
@@ -155,7 +174,7 @@
                 }}
               />
             </Td>
-            {#each columns as column}
+            {#each $routeStates[$page.url.pathname].columns as column}
               <Td>
                 {#if row?.[column.value] !== undefined}
                   <Checkbox
@@ -163,7 +182,7 @@
                     class="mx-auto"
                     on:change={(e) => {
                       row[column.value] = e.target.checked;
-                      const routes = Object.values(columns)
+                      const routes = Object.values($routeStates[$page.url.pathname].columns)
                         .map(({ value }) => (row[value] === true ? value : false))
                         .filter((route) => route);
                       const query = { _id: row._id };
