@@ -1,7 +1,9 @@
 <script>
+  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { Header, Main } from '$components';
+  import { collections } from '$stores';
 
   // utilities
 
@@ -16,6 +18,9 @@
   // props (dynamic)
   $: if (browser && data?.status === 401) goto('/signin');
   $: routes = data.user?.routes || [];
+
+  // lifecycle
+  onMount(() => ($collections = data?.collections || {}));
 </script>
 
 <Main>

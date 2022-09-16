@@ -13,22 +13,24 @@
   } from '$components';
   import { postFetch } from '$lib/helpers';
   import { sanitizeColumns, sanitizeRow } from '$lib/mongoTable';
-  import { theme } from '$stores';
+  import { collections, theme } from '$stores';
   import store from './store';
 
   // utilities
+  const sortByKey = (arr, key) =>
+    arr.sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0));
 
   // handlers
   const checkboxRouteClickHandler = async (e, i) => {
     const checked = e.target.checked;
-    const key = $store.columns[i].value;
-    $store.rows = $store.rows.map((row) => {
+    const key = columns[i].value;
+    rows = rows.map((row) => {
       row[key] = checked;
       return row;
     });
     await Promise.all(
-      $store.rows.map(async (row) => {
-        const routes = Object.values($store.columns)
+      rows.map(async (row) => {
+        const routes = Object.values(columns)
           .map(({ value }) => (row[value] === true ? value : false))
           .filter((route) => route);
         const query = { _id: row._id };
@@ -38,7 +40,7 @@
     );
   };
   const checkboxSelectClickHandler = (e) => {
-    $store.rows = [...$store.rows].map((row) => {
+    rows = [...rows].map((row) => {
       row._mongoTable.selected = e.target.checked;
       return row;
     });
@@ -52,33 +54,45 @@
 
   // props (internal)
   let collection = 'roles';
+  const insertColumns = sanitizeColumns(['name']);
 
   // props (external)
   export let data;
   export let errors;
 
   // props (dynamic)
-  $: if (data?.routes !== undefined && $store.rows.length === 0) {
-    $store.columns = data.routes.map((role) => {
+  $: columns = $collections.routes
+    .sort((a, b) =>
+      a.group < b.group
+        ? -1
+        : a.group > b.group
+        ? 1
+        : a.name < b.name
+        ? -1
+        : a.name > b.name
+        ? 1
+        : 0
+    )
+    .map((role) => {
       return { group: role?.group, name: role.name, value: role._id };
     });
-    [$store.insertColumns] = sanitizeColumns($store.insertColumns);
-    $store.rows = data.roles.map((role) => {
+  $: rows = $collections.roles
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+    .map((role) => {
       role = sanitizeRow(role);
-      $store.columns.map((column) => {
+      columns.map((column) => {
         role[column.value] = role.routes.includes(column.value);
       });
       return role;
     });
-  }
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
   <TitleBar>
     <svelte:fragment slot="title">Admin - Roles</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows={$store.rows} {collection} />
-      <MongoButtonCreate bind:rows={$store.rows} {collection} columns={$store.insertColumns} />
+      <MongoButtonRemove bind:rows {collection} />
+      <MongoButtonCreate bind:rows {collection} columns={insertColumns} />
     </svelte:fragment>
   </TitleBar>
   <div class="flex flex-grow overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
@@ -96,7 +110,7 @@
             <div>All</div>
           </div>
         </Th>
-        {#each $store.columns as { group, name }, i}
+        {#each columns as { group, name }, i}
           <Th>
             <div class="flex flex-col items-center">
               <div>{group}</div>
@@ -111,7 +125,7 @@
         {/each}
       </Thead>
       <Tbody>
-        {#each $store.rows as row}
+        {#each rows as row}
           <Tr>
             <Td class="w-[32px]">
               {#if row?._mongoTable?.selected !== undefined}
@@ -131,8 +145,8 @@
             <Td>
               <Checkbox
                 on:click={(e) => {
-                  $store.columns.map(({ value }) => (row[value] = e.target.checked));
-                  const routes = Object.values($store.columns)
+                  columns.map(({ value }) => (row[value] = e.target.checked));
+                  const routes = Object.values(columns)
                     .map(({ value }) => (row[value] === true ? value : false))
                     .filter((route) => route);
                   const query = { _id: row._id };
@@ -141,7 +155,7 @@
                 }}
               />
             </Td>
-            {#each $store.columns as column}
+            {#each columns as column}
               <Td>
                 {#if row?.[column.value] !== undefined}
                   <Checkbox
@@ -149,7 +163,7 @@
                     class="mx-auto"
                     on:change={(e) => {
                       row[column.value] = e.target.checked;
-                      const routes = Object.values($store.columns)
+                      const routes = Object.values(columns)
                         .map(({ value }) => (row[value] === true ? value : false))
                         .filter((route) => route);
                       const query = { _id: row._id };

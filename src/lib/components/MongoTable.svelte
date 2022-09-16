@@ -94,11 +94,19 @@
   ) {
     rows = sanitizeRows(rows);
   }
-  $: if (rows.length > 0 && [...rows].filter((row) => row?._mongoTable === undefined).length > 0) {
+  if (sort !== false) {
+    if (sort?.direction === undefined) sort.direction = 1;
+    if (sort?.index !== undefined)
+      sort = {
+        direction: sort.direction,
+        key: columns[sort.index].key
+      };
+  }
+  $: if ((sort.direction || sort.key) && rows.length > 0) {
     rows = [...rows].sort((a, b) => {
-      const key = sort?.key !== undefined ? sort.key : columns[0].key;
-      if (a[key] < b[key]) return -1;
-      if (a[key] > b[key]) return 1;
+      const key = sort.key;
+      if (a[key] < b[key]) return -1 * sort.direction;
+      if (a[key] > b[key]) return 1 * sort.direction;
       return 0;
     });
   }
@@ -111,7 +119,15 @@
         <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
       {/if}
       {#each columns as column}
-        <Th>{column.innerHTML}</Th>
+        <Th
+          class={sort !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}
+          on:click={() => {
+            sort = {
+              direction: column.key === sort.key ? sort.direction * -1 : 1,
+              key: column.key
+            };
+          }}>{column.innerHTML}</Th
+        >
       {/each}
     </Thead>
     <tbody bind:this={tbodyElem} class={$theme.tbody}>

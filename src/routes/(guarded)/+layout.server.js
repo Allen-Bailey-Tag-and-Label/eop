@@ -15,6 +15,19 @@ const getAllRoutes = async () => {
 
 export async function load({ request, setHeaders }) {
   try {
+    // get collections
+    let collections = await db.find({ collection: 'collections' });
+    collections = await Promise.all(
+      collections.map(async ({ name: collection }) => {
+        const docs = await db.find({ collection });
+        return { collection, docs };
+      })
+    );
+    collections = collections.reduce((obj, { collection, docs }) => {
+      obj[collection] = docs;
+      return obj;
+    }, {});
+
     // get user
     const user = await getUserFromRequest(request);
 
@@ -32,18 +45,17 @@ export async function load({ request, setHeaders }) {
       })
     });
 
-    // get all roles and routes
-    const [roles, routes] = await Promise.all([getAllRoles(), getAllRoutes()]);
-
     // get user routes
     user.routes = user.roles.reduce((arr, _roleId) => {
       // find role
-      const role = roles.find((currentRole) => currentRole._id.toString() === _roleId.toString());
+      const role = collections.roles.find(
+        (currentRole) => currentRole._id.toString() === _roleId.toString()
+      );
 
       // loop through role routes
       role.routes.map((_routeId) => {
         // find route
-        const route = routes.find(
+        const route = collections.routes.find(
           (currentRoute) => currentRoute._id.toString() === _routeId.toString()
         );
 
@@ -66,7 +78,10 @@ export async function load({ request, setHeaders }) {
       return arr;
     }, []);
 
-    return { user: JSON.parse(JSON.stringify(user)) };
+    return {
+      collections: JSON.parse(JSON.stringify(collections)),
+      user: JSON.parse(JSON.stringify(user))
+    };
   } catch (error) {
     console.error(error);
     setHeaders({

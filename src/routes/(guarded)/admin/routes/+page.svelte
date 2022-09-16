@@ -1,12 +1,6 @@
 <script>
-  import {
-    MongoButtonRemove,
-    MongoButtonCreate,
-    MongoSocketRegistration,
-    MongoTable,
-    TitleBar
-  } from '$components';
-  import store from './store';
+  import { MongoButtonRemove, MongoButtonCreate, MongoTable, TitleBar } from '$components';
+  import { collections } from '$stores';
 
   // utilities
 
@@ -14,27 +8,24 @@
 
   // props (internal)
   let collection = 'routes';
-  let columns = ['group', 'name', 'href'];
+  let columns = [
+    { innerHTML: 'Group', key: 'group' },
+    { innerHTML: 'Name', key: 'name' },
+    { innerHTML: 'HREF', key: 'href' }
+  ];
 
   // props (external)
   export let data;
   export let errors;
-
-  // props (dynamic)
-  $: if (data?.routes !== undefined && $store.data.routes.length === 0) {
-    $store.data.routes = data.routes;
-  }
 </script>
-
-<MongoSocketRegistration bind:store={$store} />
 
 <div class="flex flex-col flex-grow overflow-hidden">
   <TitleBar>
     <svelte:fragment slot="title">Admin - Routes</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows={$store.data.routes} {collection} />
-      <MongoButtonCreate bind:rows={$store.data.routes} {collection} {columns} />
+      <MongoButtonRemove bind:rows={$collections.routes} {collection} />
+      <MongoButtonCreate {collection} {columns} />
     </svelte:fragment>
   </TitleBar>
-  <MongoTable bind:columns bind:rows={$store.data.routes} {collection} />
+  <MongoTable bind:columns bind:rows={$collections.routes} {collection} />
 </div>
