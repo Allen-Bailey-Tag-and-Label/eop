@@ -15,10 +15,6 @@
     { innerHTML: 'Extension', key: 'extension', mask: 'extension' }
   ];
 
-  // props (external)
-  export let data;
-  export let errors;
-
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
       rows: [],

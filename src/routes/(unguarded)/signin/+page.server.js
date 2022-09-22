@@ -1,54 +1,51 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
-import { serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
-import { redirect } from '@sveltejs/kit';
+import { invalid, redirect } from '@sveltejs/kit';
 import db from '$lib/db';
 
-export async function POST({ request, setHeaders }) {
-  // destructure request
-  let { password, username } = await request.json();
-  username = username.toLowerCase().replace(/\s/g, '');
+export const actions = {
+  default: async ({ cookies, request }) => {
+    // get form data
+    const data = await request.formData();
 
-  // find username in database
-  const [user] = await db.find({ collection: 'users', query: { username } });
+    // destructure data
+    let { password, username } = Object.fromEntries(data);
 
-  // check if credentials do not match
-  if (!user || !(await bcrypt.compare(password, user?.password))) {
-    setHeaders({
-      'Set-Cookie': serialize('token', '', {
+    // sanitize username
+    username = username.toLowerCase().replace(/\s/g, '');
+
+    // find username in database
+    const [user] = await db.find({ collection: 'users', query: { username } });
+
+    // check if credentials do not match
+    if (!user || !(await bcrypt.compare(password, user?.password))) {
+      cookies.set('token', '', {
         path: '/',
         httpOnly: true,
         sameSite: 'strict',
         secure: process.env.NODE_ENV === 'production',
         maxAge: 1
-      })
-    });
-    return {
-      status: 401,
-      errors: {
-        message: 'Credentials could not be verified'
-      }
-    };
-  }
+      });
+      return invalid(401, { error: { message: 'Could not verify credentials.' } });
+    }
 
-  // remove password from user for token
-  delete user.password;
+    // remove password from user for token
+    delete user.password;
 
-  // create token
-  const token = jwt.sign(user, process.env.JWT_SECRET);
+    // create token
+    const token = jwt.sign(user, process.env.JWT_SECRET);
 
-  // set token cookie
-  setHeaders({
-    'Set-Cookie': serialize('token', token, {
+    // set token cookie
+    cookies.set('token', token, {
       path: '/',
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7 // one week
-    })
-  });
+    });
 
-  // return redirect location
-  return redirect(300, '/dashboard');
-}
+    // return redirect location
+    throw redirect(303, '/dashboard');
+  }
+};

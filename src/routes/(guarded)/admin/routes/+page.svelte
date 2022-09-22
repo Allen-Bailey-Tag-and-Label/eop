@@ -15,10 +15,6 @@
     { innerHTML: 'HREF', key: 'href' }
   ];
 
-  // props (external)
-  export let data;
-  export let errors;
-
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
       rows: [],
@@ -37,7 +33,7 @@
   <TitleBar>
     <svelte:fragment slot="title">Admin - Routes</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows={$collections.routes} {collection} />
+      <MongoButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
       <MongoButtonCreate {collection} {columns} />
     </svelte:fragment>
   </TitleBar>

@@ -1,4 +1,5 @@
 export * from 'sveltewind/components';
+export { default as Form } from './Form.svelte';
 export { default as Header } from './Header.svelte';
 export { default as Modal } from './Modal.svelte';
 export { default as MongoButtonCreate } from './MongoButtonCreate.svelte';

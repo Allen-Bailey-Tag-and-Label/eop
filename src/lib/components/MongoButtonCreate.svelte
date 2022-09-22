@@ -1,16 +1,19 @@
 <script>
+  import { applyAction, enhance } from '$app/forms';
   import { Button, Fieldset, Form, Icon, Input, Modal } from '$components';
   import { Plus } from '$icons';
   import { postFetch } from '$lib/helpers';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
+  import { stringify } from 'postcss';
 
   // utilities
 
   // handlers
   const submitHandler = async (e) => {
     e.preventDefault();
-    const response = await postFetch({ body: { collection, insert }, url: '/api/db/create' });
+
+    const response = await postFetch({ body: { collection, insert }, url: '/api/db/?create' });
     let { doc } = await response.json();
     socketio.emit('db.create', { collection, doc });
     toggleModal();
@@ -39,11 +42,32 @@
 
 <div>
   <Modal bind:show>
-    <Form on:submit={submitHandler}>
+    <Form
+      action="/api/db?/create"
+      use={[
+        [
+          enhance,
+          () => {
+            return async ({ result }) => {
+              let { doc } = result.data;
+              socketio.emit('db.create', { collection, doc });
+              toggleModal();
+              applyAction(result);
+            };
+          }
+        ]
+      ]}
+    >
+      <input type="hidden" name="collection" value={collection} />
+      <input type="hidden" name="insert" value={JSON.stringify(insert)} />
       {#each columns as column}
-        <Fieldset legend={column?.innerHTML}>
-          <Input bind:value={insert[column.key]} />
-        </Fieldset>
+        {#if column.type === 'hidden'}
+          <input type="hidden" name={column.name} value={JSON.stringify(column.value)} />
+        {:else}
+          <Fieldset legend={column?.innerHTML}>
+            <Input bind:value={insert[column.key]} />
+          </Fieldset>
+        {/if}
       {/each}
       <div class="grid grid-cols-2 gap-[1rem]">
         <Button class="{$theme.buttonSecondary} " on:click={toggleModal} type="button"

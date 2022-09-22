@@ -1,8 +1,6 @@
-<!-- TODO - Add Sort functionality -->
 <script>
   import { browser } from '$app/environment';
   import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
-  import { postFetch } from '$lib/helpers';
   import { mask, sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
@@ -64,11 +62,17 @@
     }
   };
   const updateField = async ({ collection, query, update }) => {
-    const response = await postFetch({
-      body: { collection, query, update },
-      url: '/api/db/update'
+    const formData = new FormData();
+    formData.append('collection', collection);
+    formData.append('query', JSON.stringify(query));
+    formData.append('update', JSON.stringify(update));
+    const response = await fetch('/api/db?/update', {
+      body: formData,
+      method: 'POST'
     });
-    const { doc } = await response.json();
+    const {
+      data: { doc }
+    } = await response.json();
     socketio.emit('db.update', { collection, doc });
   };
 

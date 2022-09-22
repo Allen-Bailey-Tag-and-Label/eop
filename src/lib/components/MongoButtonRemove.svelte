@@ -1,7 +1,7 @@
 <script>
+  import { applyAction, enhance } from '$app/forms';
   import { Button, Form, H6, Icon, Modal, P } from '$components';
   import { Trash } from '$icons';
-  import { postFetch } from '$lib/helpers';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
 
@@ -18,7 +18,14 @@
         return { _id };
       })
     };
-    await postFetch({ body: { collection, query }, url: '/api/db/remove' });
+    const formData = new FormData();
+    formData.append('collection', collection);
+    formData.append('query', query);
+
+    await fetch('/api/db?/remove', {
+      body: formData,
+      method: 'POST'
+    });
     [...selectedRows].map(({ _id }) => {
       socketio.emit('db.remove', { collection, doc: { _id } });
     });
@@ -35,6 +42,11 @@
 
   // props (dynamic)
   $: selectedRows = [...rows].filter((row) => row?._mongoTable?.selected);
+  $: query = {
+    $or: [...selectedRows].map(({ _id }) => {
+      return { _id };
+    })
+  };
 </script>
 
 {#if selectedRows.length > 0}
@@ -48,13 +60,25 @@
 
 <div>
   <Modal bind:show>
-    <Form on:submit={submitHandler}>
-      <!-- <div
-        class="{$theme.card} self-center mt-[-6rem] dark:ring-0 shadow-[0_1rem_2rem_rgba(18,18,18,.3)] dark:shadow-[0_1rem_2rem_rgba(18,18,18,.7)]"
-        style="transform: perspective(200px) rotateY(10deg);"
-      >
-        <Icon class="text-red-500 w-[6rem] h-[6rem] mx-auto" src={Trash} />
-      </div> -->
+    <Form
+      action="/api/db?/remove"
+      use={[
+        [
+          enhance,
+          () => {
+            return async ({ result }) => {
+              [...selectedRows].map(({ _id }) => {
+                socketio.emit('db.remove', { collection, doc: { _id } });
+              });
+              toggleModal();
+              applyAction(result);
+            };
+          }
+        ]
+      ]}
+    >
+      <input type="hidden" name="collection" value={collection} />
+      <input type="hidden" name="query" value={JSON.stringify(query)} />
       <div class="flex flex-col space-y-[.5rem]">
         <H6 class="text-center"
           >Are you sure you want to delete {selectedRows.length} item{selectedRows.length === 1

@@ -3,7 +3,6 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { MenuAlt4, X } from '$icons';
-  import { postFetch } from '$lib/helpers';
   import { socketio, theme } from '$stores';
 
   // utilities
@@ -11,7 +10,7 @@
   // handlers
   const signOutHandler = async (e) => {
     e.preventDefault();
-    const response = await postFetch({ url: '/api/auth/signout' });
+    await fetch('/api/auth?/signout', { body: new FormData(), method: 'POST' });
     socketio.signout();
     goto('/signin');
   };

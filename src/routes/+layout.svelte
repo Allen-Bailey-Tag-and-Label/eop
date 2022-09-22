@@ -5,10 +5,6 @@
   import '../app.postcss';
 
   theme.set(cerulean);
-
-  // props (external)
-  export let data = '';
-  export let errors = '';
 </script>
 
 <Pwa themeColor="#00b0eb" />

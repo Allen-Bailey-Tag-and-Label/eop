@@ -12,8 +12,8 @@
     Tr,
     TitleBar
   } from '$components';
-  import { postFetch } from '$lib/helpers';
   import { sanitizeColumns, sanitizeRow } from '$lib/mongoTable';
+  import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates, theme } from '$stores';
 
   // utilities
@@ -21,14 +21,14 @@
   // handlers
   const checkboxRouteClickHandler = async (e, i) => {
     const checked = e.target.checked;
-    const key = columns[i].value;
-    rows = rows.map((row) => {
+    const key = $routeStates[$page.url.pathname].columns[i].value;
+    $routeStates[$page.url.pathname].rows = $routeStates[$page.url.pathname].rows.map((row) => {
       row[key] = checked;
       return row;
     });
     await Promise.all(
-      rows.map(async (row) => {
-        const routes = Object.values(columns)
+      $routeStates[$page.url.pathname].rows.map(async (row) => {
+        const routes = Object.values($routeStates[$page.url.pathname].columns)
           .map(({ value }) => (row[value] === true ? value : false))
           .filter((route) => route);
         const query = { _id: row._id };
@@ -38,25 +38,31 @@
     );
   };
   const checkboxSelectClickHandler = (e) => {
-    rows = [...rows].map((row) => {
-      row._mongoTable.selected = e.target.checked;
-      return row;
-    });
+    $routeStates[$page.url.pathname].rows = [...$routeStates[$page.url.pathname].rows].map(
+      (row) => {
+        row._mongoTable.selected = e.target.checked;
+        return row;
+      }
+    );
   };
   const updateRole = async ({ query, update }) => {
-    const response = await postFetch({
-      body: { collection, query, update },
-      url: '/api/db/update'
+    const formData = new FormData();
+    formData.append('collection', collection);
+    formData.append('query', JSON.stringify(query));
+    formData.append('update', JSON.stringify(update));
+    const response = await fetch('/api/db?/update', {
+      body: formData,
+      method: 'POST'
     });
+    const {
+      data: { doc }
+    } = await response.json();
+    socketio.emit('db.update', { collection, doc });
   };
 
   // props (internal)
   let collection = 'roles';
-  const insertColumns = sanitizeColumns(['name']);
-
-  // props (external)
-  export let data;
-  export let errors;
+  const [insertColumns] = sanitizeColumns(['name', { type: 'hidden', key: 'routes', value: [] }]);
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
@@ -98,6 +104,8 @@
         return role;
       });
   }
+
+  $: console.log(insertColumns);
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
@@ -142,7 +150,7 @@
         {/each}
       </Thead>
       <Tbody>
-        {#each $routeStates[$page.url.pathname].rows as row}
+        {#each $routeStates[$page.url.pathname].rows as row, i}
           <Tr>
             <Td class="w-[32px]">
               {#if row?._mongoTable?.selected !== undefined}
@@ -163,10 +171,13 @@
               <Checkbox
                 on:click={(e) => {
                   $routeStates[$page.url.pathname].columns.map(
-                    ({ value }) => (row[value] = e.target.checked)
+                    ({ value }) =>
+                      ($routeStates[$page.url.pathname].rows[i][value] = e.target.checked)
                   );
                   const routes = Object.values($routeStates[$page.url.pathname].columns)
-                    .map(({ value }) => (row[value] === true ? value : false))
+                    .map(({ value }) =>
+                      $routeStates[$page.url.pathname].rows[i][value] === true ? value : false
+                    )
                     .filter((route) => route);
                   const query = { _id: row._id };
                   const update = { $set: { routes } };
@@ -178,12 +189,14 @@
               <Td>
                 {#if row?.[column.value] !== undefined}
                   <Checkbox
-                    bind:checked={row[column.value]}
+                    bind:checked={$routeStates[$page.url.pathname].rows[i][column.value]}
                     class="mx-auto"
-                    on:change={(e) => {
-                      row[column.value] = e.target.checked;
+                    on:click={(e) => {
+                      $routeStates[$page.url.pathname].rows[i][column.value] = e.target.checked;
                       const routes = Object.values($routeStates[$page.url.pathname].columns)
-                        .map(({ value }) => (row[value] === true ? value : false))
+                        .map(({ value }) =>
+                          $routeStates[$page.url.pathname].rows[i][value] === true ? value : false
+                        )
                         .filter((route) => route);
                       const query = { _id: row._id };
                       const update = { $set: { routes } };
