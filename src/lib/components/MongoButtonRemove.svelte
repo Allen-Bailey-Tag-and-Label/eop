@@ -27,7 +27,7 @@
       method: 'POST'
     });
     [...selectedRows].map(({ _id }) => {
-      socketio.emit('db.remove', { collection, doc: { _id } });
+      socketio.emit('db.remove.doc', { collection, doc: { _id } });
     });
     toggleModal();
   };
@@ -68,7 +68,7 @@
           () => {
             return async ({ result }) => {
               [...selectedRows].map(({ _id }) => {
-                socketio.emit('db.remove', { collection, doc: { _id } });
+                socketio.emit('db.remove.doc', { collection, doc: { _id } });
               });
               toggleModal();
               applyAction(result);

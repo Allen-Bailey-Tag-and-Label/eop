@@ -15,7 +15,7 @@
 
     const response = await postFetch({ body: { collection, insert }, url: '/api/db/?create' });
     let { doc } = await response.json();
-    socketio.emit('db.create', { collection, doc });
+    socketio.emit('db.create.doc', { collection, doc });
     toggleModal();
   };
   const toggleModal = () => (show = !show);
@@ -50,7 +50,7 @@
           () => {
             return async ({ result }) => {
               let { doc } = result.data;
-              socketio.emit('db.create', { collection, doc });
+              socketio.emit('db.create.doc', { collection, doc });
               toggleModal();
               applyAction(result);
             };

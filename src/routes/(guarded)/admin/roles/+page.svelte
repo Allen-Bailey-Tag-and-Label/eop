@@ -57,7 +57,7 @@
     const {
       data: { doc }
     } = await response.json();
-    socketio.emit('db.update', { collection, doc });
+    socketio.emit('db.update.doc', { collection, doc });
   };
 
   // props (internal)

@@ -2,7 +2,6 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { resolve } from 'path';
 import vitePluginSocketIO from 'vite-plugin-socket-io';
 import { serverEvents, socketEvents } from './src/lib/socketio/events';
-// import { socketioVitePlugin } from './src/lib/socketio';
 
 const config = {
   plugins: [sveltekit(), vitePluginSocketIO({ serverEvents, socketEvents })],

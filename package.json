@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "vite dev --host --port 3000",
-    "build": "svelte-kit sync && svelte-package",
-    "lint": "prettier --check . && eslint .",
-    "format": "prettier --write ."
+    "build": "vite build",
+    "preview": "vite preview --host --port 3000",
+    "lint": "prettier --plugin-search-dir . --check . && eslint .",
+    "format": "prettier --plugin-search-dir . --write ."
   },
   "devDependencies": {
     "@bobthered/tailwindcss-palette-generator": "^3.0.0",
@@ -26,8 +27,8 @@
     "postcss-load-config": "^4.0.1",
     "prettier": "^2.6.2",
     "prettier-plugin-svelte": "^2.7.0",
-    "socket.io": "^4.5.2",
-    "socket.io-client": "^4.5.2",
+    "socket.io": "^4.4.0",
+    "socket.io-client": "^4.4.0",
     "svelte": "^3.44.0",
     "svelte-preprocess": "^4.10.7",
     "sveltewind": "^1.4.1",
@@ -38,5 +39,8 @@
     "vite": "^3.1.0-beta.1",
     "vite-plugin-socket-io": "^1.0.2"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
 }

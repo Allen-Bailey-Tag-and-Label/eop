@@ -9,7 +9,6 @@
 
   // props (external)
   export let data;
-  export let errors;
 
   // props (dynamic)
 </script>

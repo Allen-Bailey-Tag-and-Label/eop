@@ -12,8 +12,6 @@
   let username = '';
 
   // props (external)
-  export let data;
-  export let errors;
 </script>
 
 <Form on:submit={submitHandler}>

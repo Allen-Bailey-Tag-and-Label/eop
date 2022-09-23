@@ -30,7 +30,7 @@ export const actions = {
       password = await bcrypt.hash(password, 10);
 
       // update password
-      await db.update({
+      await db.update.doc({
         collection: 'users',
         query: { _id: user._id },
         update: { $set: { password } }

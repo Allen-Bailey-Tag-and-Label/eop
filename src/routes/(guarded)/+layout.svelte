@@ -61,13 +61,13 @@
   onMount(() => ($collections = data?.collections || {}));
 
   // socketio listeners
-  socketio.on('db.create', ({ collection, doc }) => {
+  socketio.on('db.create.doc', ({ collection, doc }) => {
     $collections[collection] = [...$collections[collection], doc];
   });
-  socketio.on('db.remove', ({ collection, doc }) => {
+  socketio.on('db.remove.doc', ({ collection, doc }) => {
     $collections[collection] = [...$collections[collection]].filter(({ _id }) => _id !== doc._id);
   });
-  socketio.on('db.update', ({ collection, doc }) => {
+  socketio.on('db.update.doc', ({ collection, doc }) => {
     $collections[collection] = [...$collections[collection]].map((storeDoc) =>
       doc._id === storeDoc._id ? doc : storeDoc
     );

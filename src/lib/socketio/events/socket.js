@@ -4,16 +4,16 @@ export default (io, socket) => {
   if (process.env.NODE_ENV !== 'production')
     console.log(`socket.io - socket.id \`${socket.id}\` connected`);
 
-  socket.on('db.create', function ({ collection, doc }, callback) {
-    if (process.env.NODE_ENV !== 'production') console.log('socket.io - db.create');
-    io.emit('db.create', { collection, doc });
+  socket.on('db.create.doc', function ({ collection, doc }, callback) {
+    if (process.env.NODE_ENV !== 'production') console.log('socket.io - db.create.doc');
+    io.emit('db.create.doc', { collection, doc });
   });
-  socket.on('db.remove', function ({ collection, doc }, callback) {
-    if (process.env.NODE_ENV !== 'production') console.log('socket.io - db.remove');
-    io.emit('db.remove', { collection, doc });
+  socket.on('db.remove.doc', function ({ collection, doc }, callback) {
+    if (process.env.NODE_ENV !== 'production') console.log('socket.io - db.remove.doc');
+    io.emit('db.remove.doc', { collection, doc });
   });
-  socket.on('db.update', function ({ collection, doc }, callback) {
-    if (process.env.NODE_ENV !== 'production') console.log('socket.io - db.update');
-    io.emit('db.update', { collection, doc });
+  socket.on('db.update.doc', function ({ collection, doc }, callback) {
+    if (process.env.NODE_ENV !== 'production') console.log('socket.io - db.update.doc');
+    io.emit('db.update.doc', { collection, doc });
   });
 };

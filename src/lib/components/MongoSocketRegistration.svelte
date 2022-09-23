@@ -10,17 +10,17 @@
   onMount(() => {
     Object.keys(store.data).map((dataCollection) => {
       const events = {
-        'db.create': ({ collection, doc }) => {
+        'db.create.doc': ({ collection, doc }) => {
           if (dataCollection === collection)
             store.data[collection] = [...store.data[collection], doc];
         },
-        'db.remove': ({ collection, doc }) => {
+        'db.remove.doc': ({ collection, doc }) => {
           if (dataCollection === collection)
             store.data[collection] = [...store.data[collection]].filter(
               ({ _id }) => _id !== doc._id
             );
         },
-        'db.update': ({ collection, doc }) => {
+        'db.update.doc': ({ collection, doc }) => {
           if (dataCollection === collection)
             store.data[collection] = [...store.data[collection]].map((storeDoc) =>
               doc._id === storeDoc._id ? doc : storeDoc
