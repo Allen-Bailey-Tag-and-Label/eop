@@ -2,22 +2,12 @@
   import { applyAction, enhance } from '$app/forms';
   import { Button, Fieldset, Form, Icon, Input, Modal } from '$components';
   import { Plus } from '$icons';
-  import { postFetch } from '$lib/helpers';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
-  import { stringify } from 'postcss';
 
   // utilities
 
   // handlers
-  const submitHandler = async (e) => {
-    e.preventDefault();
-
-    const response = await postFetch({ body: { collection, insert }, url: '/api/db/?create' });
-    let { doc } = await response.json();
-    socketio.emit('db.create.doc', { collection, doc });
-    toggleModal();
-  };
   const toggleModal = () => (show = !show);
 
   // props (internal)

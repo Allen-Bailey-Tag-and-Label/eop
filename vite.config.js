@@ -1,10 +1,16 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { resolve } from 'path';
-import vitePluginSocketIO from 'vite-plugin-socket-io';
-import { serverEvents, socketEvents } from './src/lib/socketio/events';
+import injectSocketIO from './src/lib/socketio/injectSocketIO';
+
+const webSocketServer = {
+  name: 'webSocketServer',
+  configureServer(server) {
+    injectSocketIO(server.httpServer);
+  }
+};
 
 const config = {
-  plugins: [sveltekit(), vitePluginSocketIO({ serverEvents, socketEvents })],
+  plugins: [sveltekit(), webSocketServer],
   resolve: {
     alias: {
       $components: resolve('./src/lib/components'),

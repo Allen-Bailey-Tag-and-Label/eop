@@ -18,8 +18,11 @@ export const actions = {
     // find username in database
     const [user] = await db.find({ collection: 'users', query: { username } });
 
+    // check if user doesn't exist
+    if (!user) return invalid(401, { error: { message: 'Could not verify credentials.' } });
+
     // check if password does not exist on server
-    if (user.password === undefined) {
+    if (user?.password === undefined) {
       const hash = crypto
         .createHash('sha256', process.env.JWT_SECRET)
         .update(password)
@@ -36,7 +39,7 @@ export const actions = {
     const hash = crypto.createHash('sha256', process.env.JWT_SECRET).update(password).digest('hex');
 
     // check if credentials do not match
-    if (!user || user.password !== hash) {
+    if (user.password !== hash) {
       cookies.set('token', '', {
         path: '/',
         httpOnly: true,

@@ -11,26 +11,6 @@
   const clickHandler = () => {
     toggleModal();
   };
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    const query = {
-      $or: [...selectedRows].map(({ _id }) => {
-        return { _id };
-      })
-    };
-    const formData = new FormData();
-    formData.append('collection', collection);
-    formData.append('query', query);
-
-    await fetch('/api/db?/remove', {
-      body: formData,
-      method: 'POST'
-    });
-    [...selectedRows].map(({ _id }) => {
-      socketio.emit('db.remove.doc', { collection, doc: { _id } });
-    });
-    toggleModal();
-  };
   const toggleModal = () => (show = !show);
 
   // props (internal)
