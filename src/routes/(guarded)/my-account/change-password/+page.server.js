@@ -1,6 +1,6 @@
 import { invalid } from '@sveltejs/kit';
 import 'dotenv/config';
-import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { getUserFromRequest } from '$lib/auth';
 import db from '$db';
@@ -21,16 +21,22 @@ export const actions = {
       // get user
       let user = await getUserFromRequest(request, { deletePassword: false });
 
+      // convert currentPassword to sha256 hash
+      currentPassword = crypto
+        .createHash('sha256', process.env.JWT_SECRET)
+        .update(currentPassword)
+        .digest('hex');
+
       // check if credentials do not match
-      if (!user || !(await bcrypt.compare(currentPassword, user?.password))) {
+      if (!user || user.password !== currentPassword) {
         return invalid(401, { error: { message: 'Current password does not match.' } });
       }
 
       // hash password
-      password = await bcrypt.hash(password, 10);
+      password = crypto.createHash('sha256', process.env.JWT_SECRET).update(password).digest('hex');
 
       // update password
-      await db.update.doc({
+      await db.update({
         collection: 'users',
         query: { _id: user._id },
         update: { $set: { password } }

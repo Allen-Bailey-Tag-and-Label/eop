@@ -1,5 +1,5 @@
+import crypto from 'crypto';
 import 'dotenv/config';
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { invalid, redirect } from '@sveltejs/kit';
 import db from '$lib/db';
@@ -18,8 +18,25 @@ export const actions = {
     // find username in database
     const [user] = await db.find({ collection: 'users', query: { username } });
 
+    // check if password does not exist on server
+    if (user.password === undefined) {
+      const hash = crypto
+        .createHash('sha256', process.env.JWT_SECRET)
+        .update(password)
+        .digest('hex');
+      await db.update({
+        collection: 'users',
+        query: { _id: user._id },
+        update: { $set: { password: hash } }
+      });
+      user.password = hash;
+    }
+
+    // convert password to sha256 hash
+    const hash = crypto.createHash('sha256', process.env.JWT_SECRET).update(password).digest('hex');
+
     // check if credentials do not match
-    if (!user || !(await bcrypt.compare(password, user?.password))) {
+    if (!user || user.password !== hash) {
       cookies.set('token', '', {
         path: '/',
         httpOnly: true,
