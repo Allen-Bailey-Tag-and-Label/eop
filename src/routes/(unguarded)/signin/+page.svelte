@@ -2,15 +2,6 @@
   import { enhance } from '$app/forms';
   import { A, Button, Fieldset, Form, H5, Input } from '$components';
 
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('password', password);
-    formData.append('username', username);
-    const response = await fetch('/signin', { body: formData, method: 'POST' });
-    console.log(response);
-  };
-
   // props (internal)
   let password = '';
   let username = '';
@@ -19,8 +10,7 @@
   export let form;
 </script>
 
-<Form on:submit={submitHandler} use={[]}>
-  <!-- <Form use={[enhance]}> -->
+<Form use={[enhance]}>
   <H5>Signin</H5>
   <Fieldset legend="Username">
     <Input bind:value={username} name="username" />
