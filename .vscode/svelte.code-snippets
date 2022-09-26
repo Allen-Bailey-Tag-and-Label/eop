@@ -1,4 +1,32 @@
 {
+  "mongocell": {
+    "prefix": "mongocell",
+    "body": [
+      "<script>",
+      "  // import { } from '\\$components';",
+      "  // import { mask } from '\\$lib/mongoTable';",
+      "  ",
+      "  // props (external)",
+      "  export let collection = '';",
+      "  export let column = {};",
+      "  // export let columns = [];",
+      "  export let editable = true;",
+      "  export let i = 0;",
+      "  export let j = 0;",
+      "  export let keyDownHandler;",
+      "  export let row = {};",
+      "  // export let rows = [];",
+      "  export let updateField;",
+      "  export let value = '';",
+      "</script>",
+      "",
+      "{#if editable}",
+      "  $1",
+      "{:else}",
+      "  ",
+      "{/if}",
+    ]
+  },
   "route": {
     "prefix": "route",
     "body": [

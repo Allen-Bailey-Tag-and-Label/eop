@@ -1,6 +1,9 @@
+import { MongoCellString } from '$components';
+
 export default (column) => {
   // initialize default column
   const defaultColumn = {
+    component: MongoCellString,
     mask: 'string',
     type: 'string'
   };

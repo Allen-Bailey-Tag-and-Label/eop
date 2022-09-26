@@ -1,7 +1,7 @@
 <script>
   import { browser } from '$app/environment';
-  import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
-  import { mask, sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
+  import { Checkbox, MongoCellString, Table, Td, Th, Thead, Tr } from '$components';
+  import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
 
@@ -9,7 +9,6 @@
   const changeTableFocus = (i, j) => {
     if (browser) {
       const query = `tr:nth-child(${i + 1}) > *:nth-child(${j + 2})${j > -1 ? '' : ' input'}`;
-      console.log({ query });
       const newElement = tbodyElem.querySelector(query);
       const length = newElement.innerHTML.replace('<br>', '').length;
       newElement.focus();
@@ -148,28 +147,18 @@
             </Td>
           {/if}
           {#each columns as column, j}
-            {#if editable}
-              {#if column.type === 'string'}
-                <td
-                  bind:innerHTML={row[column.key]}
-                  class={$theme.td}
-                  contenteditable="true"
-                  on:blur={() => {
-                    const fieldCollection =
-                      column?.collection === undefined ? collection : column?.collection;
-                    const query = { _id: row._id };
-                    const update = { $set: {} };
-                    update.$set[column.key] = row[column.key];
-                    updateField({ collection: fieldCollection, query, update });
-                  }}
-                  on:keydown={(e) => {
-                    keyDownHandler({ e, i, j });
-                  }}
-                />
-              {/if}
-            {:else}
-              <Td>{mask[column.mask](row[column.key])}</Td>
-            {/if}
+            <svelte:component
+              this={column.component}
+              bind:value={row[column.key]}
+              {collection}
+              {column}
+              {editable}
+              {i}
+              {j}
+              {keyDownHandler}
+              {row}
+              {updateField}
+            />
           {/each}
         </Tr>
       {/each}
