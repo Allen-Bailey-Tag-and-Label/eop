@@ -30,8 +30,8 @@ export default {
   inputTd: 'rounded-none w-full',
   legend: 'text-[.75rem] opacity-[.5] peer-focus:opacity-[1]',
   modal: `${inputRounded} max-w-[min(375px,_calc(100vw_-_1rem))] ml-0 z-[2] w-auto h-auto top-auto bottom-[max(2rem,_env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 ${common.gradientBG} w-full pt-[max(1.5rem,_env(safe-area-inset-top))] pr-[max(1.5rem,_env(safe-area-inset-right))] pl-[max(1.5rem,_env(safe-area-inset-left))] pb-[max(1.5rem,_env(safe-area-inset-bottom))] lg:bottom-auto lg:top-1/2 lg:translate-y-[-50%] lg:w-auto`,
-  nav: `space-y-[2rem] z-[2] transition duration-200 transform fixed top-0 right-0 w-[calc(100%_-_4rem)] h-screen max-h-screen overflow-y-auto items-stretch pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${common.gradientBG} lg:right-auto lg:left-0 lg:top-0 lg:w-auto lg:pl-[3rem]`,
-  navA: 'before:hidden px-[2rem] py-[1rem] hover:bg-black/[.05] focus:bg-black/[.05] hover:text-current focus:text-current dark:hover:bg-white/[.1] dark:focus:bg-white/[.1] transition duration-200',
+  nav: `space-y-[2rem] z-[2] transition duration-200 transform fixed top-0 right-0 w-[calc(100%_-_4rem)] h-screen max-h-screen overflow-y-auto items-stretch pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${common.gradientBG} lg:right-auto lg:left-0 lg:top-0 lg:w-auto lg:pl-0 lg:pt-[3rem] lg:min-w-[20rem]`,
+  navA: 'text-[.875rem] before:hidden pl-[3rem] pr-[2rem] py-[.75rem] hover:bg-black/[.05] focus:bg-black/[.05] hover:text-current focus:text-current dark:hover:bg-white/[.1] dark:focus:bg-white/[.1] transition duration-200',
   navACurrent:
     'cursor-default bg-blue-500 text-white dark:bg-blue-500 hover:bg-blue-500 focus:bg-blue-500 dark:hover:bg-blue-500 dark:focus:bg-blue-500',
   navGroupContainer: 'flex flex-col w-full',

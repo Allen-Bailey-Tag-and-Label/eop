@@ -10,4 +10,6 @@ export { default as MongoCellString } from './MongoCellString.svelte';
 export { default as MongoSocketRegistration } from './MongoSocketRegistration.svelte';
 export { default as MongoTable } from './MongoTable.svelte';
 export { default as Nav } from './Nav.svelte';
+export { default as NavGroup } from './NavGroup.svelte';
+export { default as NavLink } from './NavLink.svelte';
 export { default as TitleBar } from './TitleBar.svelte';

@@ -1,7 +1,7 @@
 <script>
-  import { A, Button, H6, Icon, Nav } from 'sveltewind/components';
+  import { Nav } from 'sveltewind/components';
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { Button, Icon, NavGroup, NavLink } from '$components';
   import { MenuAlt4, X } from '$icons';
   import { socketio, theme } from '$stores';
 
@@ -17,7 +17,7 @@
   const toggleNav = () => (open = !open);
 
   // props (internal)
-  let open = false;
+  let open = true;
 
   // props (external)
   export let routes = [];
@@ -38,30 +38,21 @@
   on:click={toggleNav}
 />
 <Nav class={!open ? 'translate-x-full lg:-translate-x-full' : 'translate-x-0'}>
-  <div class="flex flex-col space-y-[2rem]">
-    {#each routes as group}
-      <div class={$theme.navGroupContainer}>
-        {#if group.title}
-          <H6 class={$theme.navGroupTitle}>{group.title}</H6>
-        {/if}
-        {#each group.items as { href, innerHTML }}
-          <a
-            class="{$theme.a} {$theme.navA} {$page.url.pathname === href ? $theme.navACurrent : ''}"
-            {href}
-            on:click={toggleNav}
-            tabindex={!open ? '-1' : '0'}
-            >{innerHTML}
-          </a>
-        {/each}
-      </div>
-    {/each}
+  <div class="flex flex-col flex-grow justify-between">
+    <div class="flex flex-col">
+      {#each routes as group}
+        <div class={$theme.navGroupContainer}>
+          {#if !group.title}
+            {#each group.items as { href, innerHTML }}
+              <NavLink class="pl-[2rem]" {href} {open} {toggleNav}>{innerHTML}</NavLink>
+            {/each}
+          {:else}
+            <NavGroup {group} {toggleNav} />
+          {/if}
+        </div>
+      {/each}
+    </div>
+    <NavLink class="pl-[2rem]" clickHandler={signOutHandler} href="/signout" {open}>Signout</NavLink
+    >
   </div>
-  <a
-    class="{$theme.a} {$theme.navA}"
-    href="/signin"
-    on:click={signOutHandler}
-    tabindex={!open ? '-1' : '0'}
-  >
-    Signout
-  </a>
 </Nav>
