@@ -17,7 +17,9 @@
 
 <slot name="overlay">
   <Overlay
-    class={!show ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}
+    class={!show
+      ? 'opacity-0 pointer-events-none'
+      : 'opacity-100 pointer-events-auto cursor-pointer'}
     on:click={toggleModal}
   />
 </slot>
