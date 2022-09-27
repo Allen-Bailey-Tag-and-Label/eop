@@ -38,7 +38,7 @@ export default {
   navGroupTitle:
     'text-[1rem] px-[2rem] py-[.75rem] cursor-pointer hover:bg-black/[.1] dark:hover:bg-white/[.1] flex justify-between items-center',
   overlay: 'z-[2] transition duration-200',
-  select: `${inputRounded}`,
+  select: `${inputRounded} dark:focus:bg-gray-900`,
   table: 'bg-black/[.05] dark:bg-black/[.1] w-full',
   td: 'transition duration-200 outline-none ring-1 ring-transparent focus:ring-primary-500',
   titleBar:
