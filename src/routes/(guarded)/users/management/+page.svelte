@@ -16,7 +16,7 @@
     { innerHTML: 'Ennis ID', key: 'ennisId' },
     { innerHTML: 'Exempt', key: 'exempt', type: 'checkbox' },
     { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
-    { innerHTML: 'Hire Date', key: 'hireDate' },
+    { innerHTML: 'Hire Date', key: 'hireDate', type: 'date' },
     {
       innerHTML: 'Status',
       key: 'status',

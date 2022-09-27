@@ -1,9 +1,8 @@
-import { MongoCellCheckbox, MongoCellSelect, MongoCellString } from '$components';
+import { MongoCellCheckbox, MongoCellDate, MongoCellSelect, MongoCellString } from '$components';
 
 export default (column) => {
   // initialize default column
   const defaultColumn = {
-    mask: 'string',
     type: 'string'
   };
 
@@ -17,13 +16,22 @@ export default (column) => {
 
   column = Object.assign(defaultColumn, column);
 
-  // check if column types
-  column.component =
-    column.type === 'checkbox'
-      ? MongoCellCheckbox
-      : column.type === 'select'
-      ? MongoCellSelect
-      : MongoCellString;
+  // common column components
+  if (column?.component === undefined) {
+    column.component =
+      column.type === 'checkbox'
+        ? MongoCellCheckbox
+        : column.type === 'date'
+        ? MongoCellDate
+        : column.type === 'select'
+        ? MongoCellSelect
+        : MongoCellString;
+  }
+
+  // common column masks
+  if (column?.mask === undefined) {
+    column.mask = column.type;
+  }
 
   return column;
 };

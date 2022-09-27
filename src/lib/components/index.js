@@ -5,6 +5,7 @@ export { default as Modal } from './Modal.svelte';
 export { default as MongoButtonCreate } from './MongoButtonCreate.svelte';
 export { default as MongoButtonRemove } from './MongoButtonRemove.svelte';
 export { default as MongoCellCheckbox } from './MongoCellCheckbox.svelte';
+export { default as MongoCellDate } from './MongoCellDate.svelte';
 export { default as MongoCellSelect } from './MongoCellSelect.svelte';
 export { default as MongoCellString } from './MongoCellString.svelte';
 export { default as MongoSocketRegistration } from './MongoSocketRegistration.svelte';
