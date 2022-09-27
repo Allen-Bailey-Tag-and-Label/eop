@@ -23,12 +23,11 @@
     <Input
       bind:value
       class="text-right cursor-pointer mongoTableElem rounded-none ring-offset-0 ring-1 focus:ring-primary-500"
-      on:change={(e) => {
+      on:blur={(e) => {
         const fieldCollection = column?.collection === undefined ? collection : column?.collection;
         const query = { _id: row._id };
         const update = { $set: {} };
-        const date = new Date(value);
-        update.$set[column.key] = date;
+        update.$set[column.key] = value;
         updateField({ collection: fieldCollection, query, update });
       }}
       on:keydown={(e) => {
