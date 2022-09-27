@@ -17,7 +17,7 @@
   const toggleNav = () => (open = !open);
 
   // props (internal)
-  let open = true;
+  let open = false;
 
   // props (external)
   export let routes = [];

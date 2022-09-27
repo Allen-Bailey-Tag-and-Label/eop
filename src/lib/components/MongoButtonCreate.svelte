@@ -1,6 +1,6 @@
 <script>
   import { applyAction, enhance } from '$app/forms';
-  import { Button, Fieldset, Form, Icon, Input, Modal } from '$components';
+  import { Checkbox, Button, Fieldset, Form, Icon, Input, Modal, Select } from '$components';
   import { Plus } from '$icons';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
@@ -48,21 +48,27 @@
         ]
       ]}
     >
-      <input type="hidden" name="collection" value={collection} />
-      <input type="hidden" name="insert" value={JSON.stringify(insert)} />
       {#each columns as column}
         {#if column.type === 'hidden'}
           <input type="hidden" name={column.name} value={JSON.stringify(column.value)} />
         {:else}
           <Fieldset legend={column?.innerHTML}>
-            <Input bind:value={insert[column.key]} />
+            {#if column.type === 'checkbox'}
+              <Checkbox bind:checked={insert[column.key]} />
+            {:else if column.type === 'select'}
+              <Select bind:value={insert[column.key]} options={column.options} />
+            {:else}
+              <Input bind:value={insert[column.key]} />
+            {/if}
           </Fieldset>
         {/if}
       {/each}
+      <input type="hidden" name="collection" value={collection} />
+      <input type="hidden" name="insert" value={JSON.stringify(insert)} />
       <div class="grid grid-cols-2 gap-[1rem]">
-        <Button class="{$theme.buttonSecondary} " on:click={toggleModal} type="button"
-          >Cancel</Button
-        >
+        <Button class="{$theme.buttonSecondary} " on:click={toggleModal} type="button">
+          Cancel
+        </Button>
         <Button type="submit">Add</Button>
       </div>
     </Form>

@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { MongoTable, TitleBar } from '$components';
+  import { MongoButtonCreate, MongoButtonRemove, MongoTable, TitleBar } from '$components';
   import { collections, routeStates } from '$stores';
 
   // utilities
@@ -8,6 +8,7 @@
   // handlers
 
   // props (internal)
+  const collection = 'users';
   let columns = [
     { innerHTML: 'First', key: 'firstName' },
     { innerHTML: 'Last', key: 'lastName' },
@@ -46,6 +47,10 @@
 <div class="flex flex-col flex-grow overflow-hidden">
   <TitleBar>
     <svelte:fragment slot="title">Users - Management</svelte:fragment>
+    <svelte:fragment slot="right">
+      <MongoButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
+      <MongoButtonCreate {collection} {columns} />
+    </svelte:fragment>
   </TitleBar>
   <MongoTable
     bind:columns

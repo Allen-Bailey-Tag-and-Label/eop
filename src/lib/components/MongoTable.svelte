@@ -1,6 +1,8 @@
 <script>
+  import { twMerge } from 'tailwind-merge';
   import { browser } from '$app/environment';
-  import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
+  import { Checkbox, Icon, Table, Td, Th, Thead, Tr } from '$components';
+  import { Check } from '$icons';
   import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
@@ -142,6 +144,23 @@
                     }}
                     type="checkbox"
                   />
+                </svelte:fragment>
+                <svelte:fragment slot="handle">
+                  <div
+                    class={twMerge(
+                      'transition duration-200',
+                      $theme.checkbox,
+                      !row._mongoTable.selected ? '' : $theme.checkboxChecked,
+                      $$props.class
+                    )}
+                  >
+                    <Icon
+                      class="transition duration-200 transform {!row._mongoTable.selected
+                        ? 'scale-[0]'
+                        : 'scale-[1]'}"
+                      src={Check}
+                    />
+                  </div>
                 </svelte:fragment>
               </Checkbox>
             </Td>

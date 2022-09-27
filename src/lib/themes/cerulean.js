@@ -29,7 +29,7 @@ export default {
   input: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent`,
   inputTd: 'rounded-none w-full',
   legend: 'text-[.75rem] opacity-[.5] peer-focus:opacity-[1]',
-  modal: `${inputRounded} max-w-[min(375px,_calc(100vw_-_1rem))] ml-0 z-[2] w-auto h-auto top-auto bottom-[max(2rem,_env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 ${common.gradientBG} w-full pt-[max(1.5rem,_env(safe-area-inset-top))] pr-[max(1.5rem,_env(safe-area-inset-right))] pl-[max(1.5rem,_env(safe-area-inset-left))] pb-[max(1.5rem,_env(safe-area-inset-bottom))] lg:bottom-auto lg:top-1/2 lg:translate-y-[-50%] lg:w-auto`,
+  modal: `${inputRounded} items-start justify-start overflow-y-auto max-h-[calc(100vh_-_max(1.5rem,_env(safe-area-inset-bottom))_-_max(1.5rem,_env(safe-area-inset-top)))] max-w-[min(375px,_calc(100vw_-_1rem))] ml-0 z-[2] w-auto h-auto top-auto bottom-[max(2rem,_env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 ${common.gradientBG} w-full pt-[max(1.5rem,_env(safe-area-inset-top))] pr-[max(1.5rem,_env(safe-area-inset-right))] pl-[max(1.5rem,_env(safe-area-inset-left))] pb-[max(1.5rem,_env(safe-area-inset-bottom))] lg:bottom-auto lg:top-1/2 lg:translate-y-[-50%] lg:w-auto`,
   nav: `space-y-[2rem] z-[2] transition duration-200 transform fixed top-0 right-0 w-[calc(100%_-_4rem)] h-screen max-h-screen overflow-y-auto items-stretch pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${common.gradientBG} lg:right-auto lg:left-0 lg:top-0 lg:w-auto lg:pl-0 lg:pt-[3rem] lg:min-w-[20rem]`,
   navA: 'text-[1rem] before:hidden pl-[3rem] pr-[2rem] py-[.75rem] hover:bg-black/[.05] focus:bg-black/[.05] hover:text-current focus:text-current dark:hover:bg-white/[.1] dark:focus:bg-white/[.1] transition duration-200',
   navACurrent:
@@ -38,6 +38,7 @@ export default {
   navGroupTitle:
     'text-[1rem] px-[2rem] py-[.75rem] cursor-pointer hover:bg-black/[.1] dark:hover:bg-white/[.1] flex justify-between items-center',
   overlay: 'z-[2] transition duration-200',
+  select: `${inputRounded}`,
   table: 'bg-black/[.05] dark:bg-black/[.1] w-full',
   td: 'transition duration-200 outline-none ring-1 ring-transparent focus:ring-primary-500',
   titleBar:
