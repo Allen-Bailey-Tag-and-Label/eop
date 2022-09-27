@@ -1,4 +1,4 @@
-import { MongoCellCheckbox, MongoCellString } from '$components';
+import { MongoCellCheckbox, MongoCellSelect, MongoCellString } from '$components';
 
 export default (column) => {
   // initialize default column
@@ -18,7 +18,12 @@ export default (column) => {
   column = Object.assign(defaultColumn, column);
 
   // check if column types
-  column.component = column.type === 'checkbox' ? MongoCellCheckbox : MongoCellString;
+  column.component =
+    column.type === 'checkbox'
+      ? MongoCellCheckbox
+      : column.type === 'select'
+      ? MongoCellSelect
+      : MongoCellString;
 
   return column;
 };

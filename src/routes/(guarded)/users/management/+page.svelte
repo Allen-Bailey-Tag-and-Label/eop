@@ -16,7 +16,16 @@
     { innerHTML: 'Exempt', key: 'exempt', type: 'checkbox' },
     { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
     { innerHTML: 'Hire Date', key: 'hireDate' },
-    { innerHTML: 'Status', key: 'status' }
+    {
+      innerHTML: 'Status',
+      key: 'status',
+      options: [
+        { label: 'Active', value: 'Active' },
+        { label: 'Inactive', value: 'Inactive' },
+        { label: 'Unverified', value: 'Unverified' }
+      ],
+      type: 'select'
+    }
   ];
 
   if ($routeStates?.[$page.url.pathname] === undefined) {

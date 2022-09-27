@@ -1,6 +1,6 @@
 <script>
   import { browser } from '$app/environment';
-  import { Checkbox, MongoCellString, Table, Td, Th, Thead, Tr } from '$components';
+  import { Checkbox, Table, Td, Th, Thead, Tr } from '$components';
   import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
@@ -8,8 +8,8 @@
   // utilities
   const changeTableFocus = (i, j) => {
     if (browser) {
-      const query = `tr:nth-child(${i + 1}) > *:nth-child(${j + 2})${j > -1 ? '' : ' input'}`;
-      const newElement = tbodyElem.querySelector(query);
+      const query = `tr:nth-child(${i + 1}) .mongoTableElem`;
+      const newElement = tbodyElem.querySelectorAll(query)[j + 1];
       const length = newElement.innerHTML.replace('<br>', '').length;
       newElement.focus();
       try {
@@ -30,23 +30,17 @@
       return row;
     });
   };
-  const keyDownHandler = ({ e, i, j }) => {
+  const keyDownHandler = ({ e, i, j, keyCodes = [13, 37, 38, 39, 40] }) => {
     // check if key should be prevented
-    if (
-      e.keyCode === 13 ||
-      e.keyCode === 37 ||
-      e.keyCode === 38 ||
-      e.keyCode === 39 ||
-      e.keyCode === 40
-    ) {
+    if (keyCodes.includes(e.keyCode)) {
       e.preventDefault();
       let y = i;
       let x = j;
-      if (e.keyCode === 13) y += e.shiftKey ? -1 : 1; //enter
-      if (e.keyCode === 37) x += -1; // left
-      if (e.keyCode === 38) y += -1; // up
-      if (e.keyCode === 39) x += 1; // right
-      if (e.keyCode === 40) y += 1; // down
+      if (e.keyCode === 13 && keyCodes.includes(13)) y += e.shiftKey ? -1 : 1; //enter
+      if (e.keyCode === 37 && keyCodes.includes(37)) x += -1; // left
+      if (e.keyCode === 38 && keyCodes.includes(38)) y += -1; // up
+      if (e.keyCode === 39 && keyCodes.includes(39)) x += 1; // right
+      if (e.keyCode === 40 && keyCodes.includes(40)) y += 1; // down
       if (x > columns.length - 1) {
         x = -1;
         y++;
@@ -138,12 +132,18 @@
         <Tr>
           {#if editable}
             <Td class="w-[32px]">
-              <Checkbox
-                bind:checked={row._mongoTable.selected}
-                on:keydown={(e) => {
-                  keyDownHandler({ e, i, j: -1 });
-                }}
-              />
+              <Checkbox>
+                <svelte:fragment slot="input">
+                  <input
+                    bind:checked={row._mongoTable.selected}
+                    class="mongoTableElem peer absolute top-0 left-0 opacity-0 w-0"
+                    on:keydown={(e) => {
+                      keyDownHandler({ e, i, j: -1 });
+                    }}
+                    type="checkbox"
+                  />
+                </svelte:fragment>
+              </Checkbox>
             </Td>
           {/if}
           {#each columns as column, j}
