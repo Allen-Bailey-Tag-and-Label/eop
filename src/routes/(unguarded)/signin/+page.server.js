@@ -21,6 +21,10 @@ export const actions = {
     // check if user doesn't exist
     if (!user) return invalid(401, { error: { message: 'Could not verify credentials.' } });
 
+    // check if user is not active
+    if (user?.status !== 'Active')
+      return invalid(401, { error: { message: 'User is not active.' } });
+
     // check if password does not exist on server
     if (user?.password === undefined) {
       const hash = crypto
