@@ -26,7 +26,8 @@
         { label: 'Unverified', value: 'Unverified' }
       ],
       type: 'select'
-    }
+    },
+    { innerHTML: 'Supervisor', key: 'supervisor', type: 'checkbox' }
   ];
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
