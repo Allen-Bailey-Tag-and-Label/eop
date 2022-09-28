@@ -1,4 +1,5 @@
 export * from 'sveltewind/components';
+export { default as ContextMenu } from './ContextMenu.svelte';
 export { default as DBButtonCreate } from './DBButtonCreate.svelte';
 export { default as DBButtonFilter } from './DBButtonFilter.svelte';
 export { default as DBButtonRemove } from './DBButtonRemove.svelte';
