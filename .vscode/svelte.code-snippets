@@ -1,6 +1,6 @@
 {
-  "mongocell": {
-    "prefix": "mongocell",
+  "dbCell": {
+    "prefix": "dbCell",
     "body": [
       "<script>",
       "  // import { } from '\\$components';",
