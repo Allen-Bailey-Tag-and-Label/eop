@@ -8,7 +8,7 @@
   // handlers
 
   // props (internal)
-  const collection = 'users';
+  const collection = 'collections';
   let columns = [{ innerHTML: 'Name', key: 'name' }];
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
@@ -40,7 +40,7 @@
     bind:columns
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
-    collection="collections"
+    {collection}
     filters={$routeStates[$page.url.pathname].filters}
   />
 </div>
