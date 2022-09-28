@@ -36,7 +36,7 @@
         key: 'reports-to',
         options: [
           ...[...$collections.users]
-            .filter(({ supervisor = false }) => supervisor !== false)
+            .filter(({ supervisor = false }) => supervisor === true)
             .sort((a, b) =>
               a.firstName < b.firstName
                 ? -1
