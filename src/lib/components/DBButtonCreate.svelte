@@ -51,7 +51,7 @@
       {#each columns as column}
         {#if column.type === 'hidden'}
           <input type="hidden" name={column.name} value={JSON.stringify(column.value)} />
-        {:else}
+        {:else if column.type !== 'button'}
           <Fieldset legend={column?.innerHTML}>
             {#if column.type === 'checkbox'}
               <Checkbox bind:checked={insert[column.key]} />

@@ -26,7 +26,6 @@
     const sanitizedColumns = [...collectionColumns].filter(
       ({ name, type }) => name !== '' && type !== ''
     );
-
     const formData = new FormData();
     formData.append('collection', collection);
     formData.append('query', JSON.stringify({ _id }));
@@ -48,9 +47,11 @@
 
   // props (internal)
   let _id;
-  const collection = 'quick-collections';
+  let collection = 'quick-collections';
+  let collectionColumns = [];
   let columns = [
     { innerHTML: 'Name', key: 'name' },
+    { innerHTML: 'HREF', key: 'HREF' },
     {
       clickHandler: ({ row }) => {
         _id = row._id;
@@ -63,7 +64,6 @@
       type: 'button'
     }
   ];
-  let collectionColumns = [];
   let show = false;
   let toggleModal;
   const typeOptions = [
