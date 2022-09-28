@@ -55,6 +55,8 @@
           <Fieldset legend={column?.innerHTML}>
             {#if column.type === 'checkbox'}
               <Checkbox bind:checked={insert[column.key]} />
+            {:else if column.type === 'date'}
+              <Input bind:value={insert[column.key]} type="date" />
             {:else if column.type === 'select'}
               <Select bind:value={insert[column.key]} options={column.options} />
             {:else}
