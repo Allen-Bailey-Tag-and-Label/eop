@@ -34,6 +34,8 @@
               (currentRoute) => currentRoute._id.toString() === _routeId.toString()
             );
 
+            if (route === undefined) return;
+
             // initiate group
             const title = route?.group ? route.group : '';
 
