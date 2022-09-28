@@ -1,6 +1,6 @@
 <script>
   import { current_component } from 'svelte/internal';
-  import { getEvents, use as useAction } from 'sveltewind/actions';
+  import { getEvents, use as useAction } from '$actions';
   import { Checkbox, Td } from '$components';
   // import { mask } from '$lib/mongoTable';
 
