@@ -8,12 +8,15 @@ export async function load({ cookies, request }) {
   try {
     // get collections
     let collections = await db.find({ collection: 'collections' });
-    collections = await Promise.all(
-      collections.map(async ({ name: collection }) => {
-        const docs = await db.find({ collection });
-        return { collection, docs };
-      })
-    );
+    collections = [
+      { collection: 'collections', docs: collections },
+      ...(await Promise.all(
+        collections.map(async ({ name: collection }) => {
+          const docs = await db.find({ collection });
+          return { collection, docs };
+        })
+      ))
+    ];
     collections = collections.reduce((obj, { collection, docs }) => {
       obj[collection] = docs;
       return obj;
