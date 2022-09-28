@@ -3,6 +3,7 @@ export { default as ContextMenu } from './ContextMenu.svelte';
 export { default as DBButtonCreate } from './DBButtonCreate.svelte';
 export { default as DBButtonFilter } from './DBButtonFilter.svelte';
 export { default as DBButtonRemove } from './DBButtonRemove.svelte';
+export { default as DBCellButton } from './DBCellButton.svelte';
 export { default as DBCellCheckbox } from './DBCellCheckbox.svelte';
 export { default as DBCellDate } from './DBCellDate.svelte';
 export { default as DBCellSelect } from './DBCellSelect.svelte';

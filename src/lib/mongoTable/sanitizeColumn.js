@@ -1,4 +1,4 @@
-import { DBCellCheckbox, DBCellDate, DBCellSelect, DBCellString } from '$components';
+import { DBCellButton, DBCellCheckbox, DBCellDate, DBCellSelect, DBCellString } from '$components';
 
 export default (column) => {
   // initialize default column
@@ -19,7 +19,9 @@ export default (column) => {
   // common column components
   if (column?.component === undefined) {
     column.component =
-      column.type === 'checkbox'
+      column.type === 'button'
+        ? DBCellButton
+        : column.type === 'checkbox'
         ? DBCellCheckbox
         : column.type === 'date'
         ? DBCellDate
