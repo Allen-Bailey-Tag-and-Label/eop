@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { MongoButtonRemove, MongoButtonCreate, MongoTable, TitleBar } from '$components';
+  import { DBButtonFilter, DBButtonRemove, DBButtonCreate, DBTable, TitleBar } from '$components';
   import { collections, routeStates } from '$stores';
 
   // utilities
@@ -17,6 +17,7 @@
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
+      filters: [],
       rows: [],
       sort: {
         direction: 1,
@@ -33,14 +34,16 @@
   <TitleBar>
     <svelte:fragment slot="title">Admin - Routes</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
-      <MongoButtonCreate {collection} {columns} />
+      <DBButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
+      <DBButtonFilter bind:filters={$routeStates[$page.url.pathname].filters} {columns} />
+      <DBButtonCreate {collection} {columns} />
     </svelte:fragment>
   </TitleBar>
-  <MongoTable
+  <DBTable
     bind:columns
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
     {collection}
+    filters={$routeStates[$page.url.pathname].filters}
   />
 </div>

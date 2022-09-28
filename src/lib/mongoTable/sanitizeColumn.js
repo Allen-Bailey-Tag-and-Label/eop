@@ -1,4 +1,4 @@
-import { MongoCellCheckbox, MongoCellDate, MongoCellSelect, MongoCellString } from '$components';
+import { DBCellCheckbox, DBCellDate, DBCellSelect, DBCellString } from '$components';
 
 export default (column) => {
   // initialize default column
@@ -20,12 +20,12 @@ export default (column) => {
   if (column?.component === undefined) {
     column.component =
       column.type === 'checkbox'
-        ? MongoCellCheckbox
+        ? DBCellCheckbox
         : column.type === 'date'
-        ? MongoCellDate
+        ? DBCellDate
         : column.type === 'select'
-        ? MongoCellSelect
-        : MongoCellString;
+        ? DBCellSelect
+        : DBCellString;
   }
 
   // common column masks

@@ -2,8 +2,8 @@
   import { page } from '$app/stores';
   import {
     Checkbox,
-    MongoButtonRemove,
-    MongoButtonCreate,
+    DBButtonRemove,
+    DBButtonCreate,
     Table,
     Tbody,
     Td,
@@ -112,8 +112,8 @@
   <TitleBar>
     <svelte:fragment slot="title">Admin - Roles</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
-      <MongoButtonCreate
+      <DBButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
+      <DBButtonCreate
         bind:rows={$routeStates[$page.url.pathname].rows}
         {collection}
         columns={insertColumns}

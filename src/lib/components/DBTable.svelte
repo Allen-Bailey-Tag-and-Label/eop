@@ -79,6 +79,7 @@
   export let collection = '';
   export let columns = [];
   export let editable = true;
+  export let filters = [];
   export let rows = [];
   export let sort = { index: 0 };
 
@@ -109,9 +110,33 @@
       return 0;
     });
   }
+  $: filteredRows =
+    filters.length === 0
+      ? rows
+      : [...rows].filter((row) => {
+          let include = true;
+          for (let i = 0; i < filters.length; i++) {
+            const { field, operator, value } = filters[i];
+            if (
+              (operator === 'contains' && !new RegExp(value[0], 'i').test(row[field])) ||
+              (operator === 'does not contain' && new RegExp(value[0], 'i').test(row[field])) ||
+              (operator === 'ends with' && !new RegExp(`${value[0]}$`, 'i').test(row[field])) ||
+              (operator === 'is' && !new RegExp(`^${value[0]}$`, 'i').test(row[field])) ||
+              (operator === 'is after' && row[field] <= value[0]) ||
+              (operator === 'is before' && row[field] >= value[0]) ||
+              (operator === 'is between' && (row[field] < value[0] || row[field] > value[1])) ||
+              (operator === 'is not' && new RegExp(`^${value[0]}$`, 'i').test(row[field])) ||
+              (operator === 'starts with' && !new RegExp(`^${value[0]}`, 'i').test(row[field]))
+            ) {
+              include = false;
+              break;
+            }
+          }
+          return include;
+        });
 </script>
 
-<div class="flex flex-grow overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
+<div class="flex overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
   <Table>
     <Thead>
       {#if editable}
@@ -130,7 +155,7 @@
       {/each}
     </Thead>
     <tbody bind:this={tbodyElem} class={$theme.tbody}>
-      {#each rows as row, i}
+      {#each filteredRows as row, i}
         <Tr>
           {#if editable}
             <Td class="w-[32px]">

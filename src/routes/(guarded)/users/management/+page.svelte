@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { MongoButtonCreate, MongoButtonRemove, MongoTable, TitleBar } from '$components';
+  import { DBButtonCreate, DBButtonFilter, DBButtonRemove, DBTable, TitleBar } from '$components';
   import { collections, routeStates } from '$stores';
 
   // utilities
@@ -31,6 +31,7 @@
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
+      filters: [{ field: 'status', operator: 'is', value: ['Active', ''] }],
       rows: [],
       sort: {
         direction: 1,
@@ -48,14 +49,16 @@
   <TitleBar>
     <svelte:fragment slot="title">Users - Management</svelte:fragment>
     <svelte:fragment slot="right">
-      <MongoButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
-      <MongoButtonCreate {collection} {columns} />
+      <DBButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
+      <DBButtonFilter bind:filters={$routeStates[$page.url.pathname].filters} {columns} />
+      <DBButtonCreate {collection} {columns} />
     </svelte:fragment>
   </TitleBar>
-  <MongoTable
+  <DBTable
     bind:columns
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
     collection="users"
+    filters={$routeStates[$page.url.pathname].filters}
   />
 </div>
