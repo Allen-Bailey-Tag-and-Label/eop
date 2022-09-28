@@ -84,9 +84,12 @@
   export let sort = { index: 0 };
 
   // props (dynamic)
-  $: if (columns.length > 0 && !columnsSanitized) {
-    [columns, columnsSanitized] = sanitizeColumns(columns);
+  $: if (columns.length > 0) {
+    [columns] = sanitizeColumns(columns);
   }
+  // $: if (columns.length > 0 && !columnsSanitized) {
+  //   [columns, columnsSanitized] = sanitizeColumns(columns);
+  // }
   $: if (
     editable &&
     rows.length > 0 &&

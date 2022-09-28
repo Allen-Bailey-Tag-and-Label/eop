@@ -9,26 +9,7 @@
 
   // props (internal)
   const collection = 'users';
-  let columns = [
-    { innerHTML: 'First', key: 'firstName' },
-    { innerHTML: 'Last', key: 'lastName' },
-    { innerHTML: 'Email', key: 'email' },
-    { innerHTML: 'Ennis ID', key: 'ennisId' },
-    { innerHTML: 'Exempt', key: 'exempt', type: 'checkbox' },
-    { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
-    { innerHTML: 'Hire Date', key: 'hireDate', type: 'date' },
-    {
-      innerHTML: 'Status',
-      key: 'status',
-      options: [
-        { label: 'Active', value: 'Active' },
-        { label: 'Inactive', value: 'Inactive' },
-        { label: 'Unverified', value: 'Unverified' }
-      ],
-      type: 'select'
-    },
-    { innerHTML: 'Supervisor', key: 'supervisor', type: 'checkbox' }
-  ];
+  let columns = [];
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
@@ -42,6 +23,49 @@
   }
 
   $: if ($collections.users) {
+    columns = [
+      { innerHTML: 'First', key: 'firstName' },
+      { innerHTML: 'Last', key: 'lastName' },
+      { innerHTML: 'Email', key: 'email' },
+      { innerHTML: 'Ennis ID', key: 'ennisId' },
+      { innerHTML: 'Exempt', key: 'exempt', type: 'checkbox' },
+      { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
+      { innerHTML: 'Hire Date', key: 'hireDate', type: 'date' },
+      {
+        innerHTML: 'Reports To',
+        key: 'reports-to',
+        options: [
+          ...[...$collections.users]
+            .filter(({ supervisor = false }) => supervisor !== false)
+            .sort((a, b) =>
+              a.firstName < b.firstName
+                ? -1
+                : a.firstName > b.firstName
+                ? 1
+                : a.lastName < b.lastName
+                ? -1
+                : a.lastName > b.lastName
+                ? 1
+                : 0
+            )
+            .map(({ _id, firstName, lastName }) => {
+              return { label: `${firstName} ${lastName}`, value: _id };
+            })
+        ],
+        type: 'select'
+      },
+      {
+        innerHTML: 'Status',
+        key: 'status',
+        options: [
+          { label: 'Active', value: 'Active' },
+          { label: 'Inactive', value: 'Inactive' },
+          { label: 'Unverified', value: 'Unverified' }
+        ],
+        type: 'select'
+      },
+      { innerHTML: 'Supervisor', key: 'supervisor', type: 'checkbox' }
+    ];
     $routeStates[$page.url.pathname].rows = $collections.users;
   }
 </script>
