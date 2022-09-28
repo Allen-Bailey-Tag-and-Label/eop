@@ -9,6 +9,11 @@
 
   // props (internal)
   let operatorOptions = {
+    checkbox: [
+      { label: '', value: '' },
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is not' }
+    ],
     date: [
       { label: '', value: '' },
       { label: 'is', value: 'is' },
@@ -25,6 +30,11 @@
       { label: 'is', value: 'is' },
       { label: 'is not', value: 'is not' },
       { label: 'starts with', value: 'starts with' }
+    ],
+    select: [
+      { label: '', value: '' },
+      { label: 'is', value: 'is' },
+      { label: 'is not', value: 'is not' }
     ]
   };
   let show = false;
@@ -39,6 +49,17 @@
       return { label, value };
     })
   ];
+  $: if (filters) {
+    filters = filters.map((filter) => {
+      if (
+        columns.find(({ key }) => key === filter.field)?.type === 'checkbox' &&
+        filter.value[0] !== true &&
+        filter.value[0] !== false
+      )
+        filter.value[0] = false;
+      return filter;
+    });
+  }
 </script>
 
 <Button class={$theme.buttonIcon} on:click={toggleModal}>
@@ -54,14 +75,18 @@
       <Fieldset legend="Operator">
         <Select
           bind:value={filter.operator}
-          options={columns.find(({ key }) => key === filter.field)?.type === 'date'
+          options={columns.find(({ key }) => key === filter.field)?.type === 'checkbox'
+            ? operatorOptions.checkbox
+            : columns.find(({ key }) => key === filter.field)?.type === 'date'
             ? operatorOptions.date
+            : columns.find(({ key }) => key === filter.field)?.type === 'select'
+            ? operatorOptions.select
             : operatorOptions.default}
         />
       </Fieldset>
       <Fieldset legend="Filter">
         {#if columns.find(({ key }) => key === filter.field)?.type === 'checkbox'}
-          <Checkbox bind:checked={filter.value[0]} />
+          <Checkbox bind:checked={filter.value[0]} class="mt-[1rem]" />
         {:else if columns.find(({ key }) => key === filter.field)?.type === 'date'}
           {#if filter.operator === 'is between'}
             <div class="flex space-x-[1rem]">
