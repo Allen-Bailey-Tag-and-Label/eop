@@ -102,7 +102,7 @@
     if (sort?.index !== undefined)
       sort = {
         direction: sort.direction,
-        key: columns[sort.index].key
+        key: columns?.[sort.index]?.key
       };
   }
   $: if ((sort.direction || sort.key) && rows.length > 0) {
@@ -145,7 +145,7 @@
       {#if editable}
         <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
       {/if}
-      {#each columns as column}
+      {#each [...columns].filter(({ type }) => type !== 'hidden') as column}
         <Th
           class={sort !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}
           on:click={() => {
@@ -193,7 +193,7 @@
               </Checkbox>
             </Td>
           {/if}
-          {#each columns as column, j}
+          {#each [...columns].filter(({ type }) => type !== 'hidden') as column, j}
             <svelte:component
               this={column.component}
               bind:value={row[column.key]}

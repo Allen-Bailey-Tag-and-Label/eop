@@ -16,6 +16,9 @@ export default (column) => {
 
   column = Object.assign(defaultColumn, column);
 
+  // check if columns needs innerHTML
+  if (column?.innerHTML === undefined) column.innerHTML = column.key;
+
   // common column components
   if (column?.component === undefined) {
     column.component =

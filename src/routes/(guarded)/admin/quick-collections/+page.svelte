@@ -1,4 +1,5 @@
 <script>
+  import { applyAction, enhance } from '$app/forms';
   import { page } from '$app/stores';
   import {
     Button,
@@ -21,10 +22,10 @@
 
   // handlers
   const addFieldHandler = () =>
-    (collectionColumns = [...collectionColumns, { name: '', type: 'string' }]);
+    (collectionColumns = [...collectionColumns, { innerHTML: '', key: '', type: 'string' }]);
   const updateColumns = async () => {
     const sanitizedColumns = [...collectionColumns].filter(
-      ({ name, type }) => name !== '' && type !== ''
+      ({ innerHTML, key, type }) => innerHTML !== '' && key !== '' && type !== ''
     );
     const formData = new FormData();
     formData.append('collection', collection);
@@ -51,7 +52,7 @@
   let collectionColumns = [];
   let columns = [
     { innerHTML: 'Name', key: 'name' },
-    { innerHTML: 'HREF', key: 'HREF' },
+    { innerHTML: 'HREF', key: 'href' },
     {
       clickHandler: ({ row }) => {
         _id = row._id;
@@ -99,7 +100,34 @@
     <svelte:fragment slot="right">
       <DBButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
       <DBButtonFilter bind:filters={$routeStates[$page.url.pathname].filters} {columns} />
-      <DBButtonCreate {collection} {columns} />
+      <DBButtonCreate
+        {collection}
+        {columns}
+        use={[
+          [
+            enhance,
+            () => {
+              return async ({ result }) => {
+                console.log(result);
+                let { doc } = result.data;
+                socketio.emit('db.create.doc', { collection, doc });
+
+                const formData = new FormData();
+                formData.append('collection', 'collections');
+                formData.append('insert', JSON.stringify({ name: doc.href }));
+                const response = await fetch('/api/db?/create', {
+                  body: formData,
+                  method: 'POST'
+                });
+                const { data } = await response.json();
+                socketio.emit('db.update.doc', { collection: 'collections', doc: data.doc });
+
+                applyAction(result);
+              };
+            }
+          ]
+        ]}
+      />
     </svelte:fragment>
   </TitleBar>
   <DBTable
@@ -113,10 +141,21 @@
 
 <Modal bind:show bind:toggleModal>
   <div class="flex flex-col space-y-[1rem]">
-    <div class="grid grid-cols-[auto_auto_auto] gap-x-[.5rem] gap-y-[1rem] items-end">
-      {#each collectionColumns as { name, type }, i}
-        <Fieldset legend="Column">
-          <Input bind:value={name} />
+    <div class="grid grid-cols-[auto_auto_auto_auto] gap-x-[.5rem] gap-y-[1rem] items-end">
+      {#each collectionColumns as { innerHTML, key, type }, i}
+        <Fieldset legend="Key">
+          <Input
+            bind:value={key}
+            on:keyup={() => {
+              innerHTML = key
+                .split('-')
+                .map((word) => (word.length === 0 ? '' : word[0].toUpperCase() + word.slice(1)))
+                .join(' ');
+            }}
+          />
+        </Fieldset>
+        <Fieldset legend="InnerHTML">
+          <Input bind:value={innerHTML} />
         </Fieldset>
         <Fieldset legend="Type">
           <Select options={typeOptions} bind:value={type} />

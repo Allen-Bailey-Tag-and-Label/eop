@@ -28,11 +28,15 @@
     });
     await Promise.all(
       $routeStates[$page.url.pathname].rows.map(async (row) => {
-        const routes = Object.values($routeStates[$page.url.pathname].columns)
-          .map(({ value }) => (row[value] === true ? value : false))
-          .filter((route) => route);
+        const collections = [];
+        const routes = [];
+        Object.values($routeStates[$page.url.pathname].columns).map(({ type, value }) => {
+          if (row[value] === false) return;
+          if (type === 'collection') return collections.push(value);
+          if (type === 'route') return routes.push(value);
+        });
         const query = { _id: row._id };
-        const update = { $set: { routes } };
+        const update = { $set: { collections, routes } };
         await updateRole({ query, update });
       })
     );
@@ -76,22 +80,25 @@
   }
 
   // props (dynamic)
-  $: if ($collections.routes) {
-    $routeStates[$page.url.pathname].columns = $collections.routes
-      .sort((a, b) =>
-        a.group < b.group
-          ? -1
-          : a.group > b.group
-          ? 1
-          : a.name < b.name
-          ? -1
-          : a.name > b.name
-          ? 1
-          : 0
-      )
-      .map((role) => {
-        return { group: role?.group, name: role.name, value: role._id };
-      });
+  $: if ($collections.routes || $collections['quick-collections']) {
+    $routeStates[$page.url.pathname].columns = [
+      ...$collections.routes.map((route) => {
+        return { group: route?.group, name: route.name, type: 'route', value: route._id };
+      }),
+      ...$collections['quick-collections'].map((route) => {
+        return { group: 'Collections', name: route.name, type: 'collection', value: route._id };
+      })
+    ].sort((a, b) =>
+      a.group < b.group
+        ? -1
+        : a.group > b.group
+        ? 1
+        : a.name < b.name
+        ? -1
+        : a.name > b.name
+        ? 1
+        : 0
+    );
   }
   $: if ($collections.roles) {
     $routeStates[$page.url.pathname].rows = $collections.roles
@@ -99,13 +106,12 @@
       .map((role) => {
         role = sanitizeRow(role);
         $routeStates[$page.url.pathname].columns.map((column) => {
-          role[column.value] = role.routes.includes(column.value);
+          role[column.value] =
+            role?.collections?.includes(column.value) || role.routes.includes(column.value);
         });
         return role;
       });
   }
-
-  $: console.log(insertColumns);
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
@@ -174,13 +180,15 @@
                     ({ value }) =>
                       ($routeStates[$page.url.pathname].rows[i][value] = e.target.checked)
                   );
-                  const routes = Object.values($routeStates[$page.url.pathname].columns)
-                    .map(({ value }) =>
-                      $routeStates[$page.url.pathname].rows[i][value] === true ? value : false
-                    )
-                    .filter((route) => route);
+                  const collections = [];
+                  const routes = [];
+                  Object.values($routeStates[$page.url.pathname].columns).map(({ type, value }) => {
+                    if ($routeStates[$page.url.pathname].rows[i][value] === false) return;
+                    if (type === 'collection') return collections.push(value);
+                    if (type === 'route') return routes.push(value);
+                  });
                   const query = { _id: row._id };
-                  const update = { $set: { routes } };
+                  const update = { $set: { collections, routes } };
                   updateRole({ query, update });
                 }}
               />
@@ -193,13 +201,17 @@
                     class="mx-auto"
                     on:click={(e) => {
                       $routeStates[$page.url.pathname].rows[i][column.value] = e.target.checked;
-                      const routes = Object.values($routeStates[$page.url.pathname].columns)
-                        .map(({ value }) =>
-                          $routeStates[$page.url.pathname].rows[i][value] === true ? value : false
-                        )
-                        .filter((route) => route);
+                      const collections = [];
+                      const routes = [];
+                      Object.values($routeStates[$page.url.pathname].columns).map(
+                        ({ type, value }) => {
+                          if ($routeStates[$page.url.pathname].rows[i][value] === false) return;
+                          if (type === 'collection') return collections.push(value);
+                          if (type === 'route') return routes.push(value);
+                        }
+                      );
                       const query = { _id: row._id };
-                      const update = { $set: { routes } };
+                      const update = { $set: { collections, routes } };
                       updateRole({ query, update });
                     }}
                   />

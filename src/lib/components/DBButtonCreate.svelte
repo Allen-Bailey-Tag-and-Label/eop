@@ -17,6 +17,19 @@
   // props (external)
   export let collection = '';
   export let columns = [];
+  export let use = [
+    [
+      enhance,
+      () => {
+        return async ({ result }) => {
+          let { doc } = result.data;
+          socketio.emit('db.create.doc', { collection, doc });
+          toggleModal();
+          applyAction(result);
+        };
+      }
+    ]
+  ];
 
   // props (dynamic)
   $: if (Object.keys(insert).length === 0 && columns.length > 0)
@@ -32,22 +45,7 @@
 
 <div>
   <Modal bind:show>
-    <Form
-      action="/api/db?/create"
-      use={[
-        [
-          enhance,
-          () => {
-            return async ({ result }) => {
-              let { doc } = result.data;
-              socketio.emit('db.create.doc', { collection, doc });
-              toggleModal();
-              applyAction(result);
-            };
-          }
-        ]
-      ]}
-    >
+    <Form action="/api/db?/create" {use}>
       {#each columns as column}
         {#if column.type === 'hidden'}
           <input type="hidden" name={column.name} value={JSON.stringify(column.value)} />
