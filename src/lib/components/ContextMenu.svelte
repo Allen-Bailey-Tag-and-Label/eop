@@ -1,18 +1,16 @@
 <script>
   import { twMerge } from 'tailwind-merge';
   import { clickOutside } from '$actions';
-  import { Card } from '$components';
   import { theme } from '$stores';
 
   // props (external)
   export let clickOutsideHandler = () => (show = false);
-  export let contextMenuHandler = (e) => {
+  export let contextmenuHandler = (e) => {
     e.preventDefault();
     position = {
       x: mousePosition.x - (mousePosition.x > windowWidth / 2 ? elem.offsetWidth : 0),
       y: mousePosition.y - (mousePosition.y > windowHeight / 2 ? elem.offsetHeight : 0)
     };
-    console.log(elem.offsetWidth, elem.clientWidth);
     show = true;
   };
   export let elem;
@@ -41,7 +39,8 @@
   class={twMerge(
     $theme.card,
     'fixed z-[3] transition duration-200',
-    !show ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+    !show ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto',
+    $$props.class
   )}
   style="left: {position.x}px; top: {position.y}px;"
   use:clickOutside={clickOutsideHandler}
