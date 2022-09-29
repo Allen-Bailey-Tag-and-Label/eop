@@ -108,6 +108,20 @@
   $: if ((sort.direction || sort.key) && rows.length > 0) {
     rows = [...rows].sort((a, b) => {
       const key = sort.key;
+      if (columns?.find((column) => column.key === key)?.type === 'select') {
+        const column = columns.find((column) => column.key === key);
+        const aValue = column.options.find((option) => option.value === a[key])?.label;
+        const bValue = column.options.find((option) => option.value === b[key])?.label;
+        return aValue === undefined
+          ? -1
+          : bValue === undefined
+          ? 1
+          : aValue < bValue
+          ? -1
+          : aValue > bValue
+          ? 1
+          : 0;
+      }
       if (a[key] < b[key]) return -1 * sort.direction;
       if (a[key] > b[key]) return 1 * sort.direction;
       return 0;
