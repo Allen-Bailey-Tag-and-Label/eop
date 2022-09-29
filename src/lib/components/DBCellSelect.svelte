@@ -35,5 +35,5 @@
     />
   </Td>
 {:else}
-  <Td>{column?.options?.find((option) => option.value === value)?.label}</Td>
+  <Td>{column?.options?.find((option) => option.value === value)?.label || ''}</Td>
 {/if}
