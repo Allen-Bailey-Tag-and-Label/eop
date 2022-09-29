@@ -1,8 +1,10 @@
 <script>
   import { current_component } from 'svelte/internal';
+  import { twMerge } from 'tailwind-merge';
   import { getEvents, use as useAction } from '$actions';
-  import { Checkbox, Td } from '$components';
-  // import { mask } from '$lib/mongoTable';
+  import { Checkbox, Icon, Td } from '$components';
+  import { Check } from '$icons';
+  import { theme } from '$stores';
 
   // props (internal)
   const events = getEvents(current_component);
@@ -23,24 +25,22 @@
 
 <Td>
   <Checkbox bind:checked={value} class="mx-auto">
-    <svelte:fragment slot="input">
-      <input
-        bind:checked={value}
-        class="mongoTableElem peer absolute top-0 left-0 opacity-0 w-0"
-        on:change={() => {
-          const fieldCollection =
-            column?.collection === undefined ? collection : column?.collection;
-          const query = { _id: row._id };
-          const update = { $set: {} };
-          update.$set[column.key] = row[column.key];
-          updateField({ collection: fieldCollection, query, update });
-        }}
-        on:keydown={(e) => {
-          keyDownHandler({ e, i, j });
-        }}
-        type="checkbox"
-        use:useAction={[events]}
-      />
-    </svelte:fragment>
+    <input
+      bind:checked={value}
+      class="mongoTableElem peer absolute top-0 left-0 opacity-0 w-0"
+      on:click={(e) => {
+        value = e.target.checked;
+        const fieldCollection = column?.collection === undefined ? collection : column?.collection;
+        const query = { _id: row._id };
+        const update = { $set: {} };
+        update.$set[column.key] = value;
+        updateField({ collection: fieldCollection, query, update });
+      }}
+      on:keydown={(e) => {
+        keyDownHandler({ e, i, j });
+      }}
+      slot="input"
+      type="checkbox"
+    />
   </Checkbox>
 </Td>

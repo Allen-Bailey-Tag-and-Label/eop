@@ -225,7 +225,6 @@
         <Tr
           on:contextmenu={(e) => {
             contextmenu.cell.elem = e.target.nodeName === 'td' ? e.target : e.target.closest('td');
-            console.log(e.target, e.target.nodeName);
             contextmenu.cell.highlight = contextmenu.cell.elem.classList.contains(
               'even:bg-primary-500/[.1]'
             );
