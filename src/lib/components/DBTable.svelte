@@ -113,9 +113,9 @@
         const aValue = column.options.find((option) => option.value === a[key])?.label;
         const bValue = column.options.find((option) => option.value === b[key])?.label;
         return aValue === undefined
-          ? -1
-          : bValue === undefined
           ? 1
+          : bValue === undefined
+          ? -1
           : aValue < bValue
           ? -1
           : aValue > bValue
