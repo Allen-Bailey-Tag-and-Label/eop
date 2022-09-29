@@ -26,34 +26,21 @@
     columns = [
       { innerHTML: 'First', key: 'firstName' },
       { innerHTML: 'Last', key: 'lastName' },
+      {
+        innerHTML: 'Department',
+        key: 'department',
+        options: [...$collections.departments]
+          .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+          .map(({ _id, name }) => {
+            return { label: name, value: _id };
+          }),
+        type: 'select'
+      },
       { innerHTML: 'Email', key: 'email' },
       { innerHTML: 'Ennis ID', key: 'ennisId' },
       { innerHTML: 'Exempt', key: 'exempt', type: 'checkbox' },
       { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
       { innerHTML: 'Hire Date', key: 'hireDate', type: 'date' },
-      {
-        innerHTML: 'Reports To',
-        key: 'reports-to',
-        options: [
-          ...[...$collections.users]
-            .filter(({ supervisor = false }) => supervisor === true)
-            .sort((a, b) =>
-              a.firstName < b.firstName
-                ? -1
-                : a.firstName > b.firstName
-                ? 1
-                : a.lastName < b.lastName
-                ? -1
-                : a.lastName > b.lastName
-                ? 1
-                : 0
-            )
-            .map(({ _id, firstName, lastName }) => {
-              return { label: `${firstName} ${lastName}`, value: _id };
-            })
-        ],
-        type: 'select'
-      },
       {
         innerHTML: 'Status',
         key: 'status',

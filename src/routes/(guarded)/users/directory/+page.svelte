@@ -8,12 +8,7 @@
   // handlers
 
   // props (internal)
-  let columns = [
-    { innerHTML: 'First', key: 'firstName' },
-    { innerHTML: 'Last', key: 'lastName' },
-    { innerHTML: 'Email', key: 'email' },
-    { innerHTML: 'Extension', key: 'extension', mask: 'extension' }
-  ];
+  let columns = [];
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
@@ -27,6 +22,22 @@
   }
 
   $: if ($collections.users) {
+    columns = columns = [
+      { innerHTML: 'First', key: 'firstName' },
+      { innerHTML: 'Last', key: 'lastName' },
+      {
+        innerHTML: 'Department',
+        key: 'department',
+        options: [...$collections.departments]
+          .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+          .map(({ _id, name }) => {
+            return { label: name, value: _id };
+          }),
+        type: 'select'
+      },
+      { innerHTML: 'Email', key: 'email' },
+      { innerHTML: 'Extension', key: 'extension', mask: 'extension' }
+    ];
     $routeStates[$page.url.pathname].rows = $collections.users;
   }
 </script>
