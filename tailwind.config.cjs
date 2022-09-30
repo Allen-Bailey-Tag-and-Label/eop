@@ -6,7 +6,7 @@ const config = {
   theme: {
     extend: {
       colors: paletteGenerator({
-        colors: ['#3b82f6', '#5e708d'],
+        colors: ['#0b5ce0', '#5e708d'],
         names: ['primary', 'gray']
       }),
       fontFamily: {
