@@ -7,6 +7,6 @@
   theme.set(cerulean);
 </script>
 
-<Pwa themeColor="#242424" />
+<Pwa themeColor="#161A22" />
 <Title base="EOP - Allen Bailey Tag & Label" />
 <slot />
