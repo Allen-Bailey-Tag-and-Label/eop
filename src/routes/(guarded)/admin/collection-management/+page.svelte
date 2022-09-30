@@ -14,6 +14,10 @@
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
       filters: [],
+      pagination: {
+        length: undefined,
+        page: undefined
+      },
       rows: [],
       sort: {
         direction: 1,
@@ -38,6 +42,7 @@
   </TitleBar>
   <DBTable
     bind:columns
+    bind:pagination={$routeStates[$page.url.pathname].pagination}
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
     {collection}

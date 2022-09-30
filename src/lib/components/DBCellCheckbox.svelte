@@ -24,23 +24,19 @@
 </script>
 
 <Td>
-  <Checkbox bind:checked={value} class="mx-auto">
-    <input
-      bind:checked={value}
-      class="mongoTableElem peer absolute top-0 left-0 opacity-0 w-0"
-      on:click={(e) => {
-        value = e.target.checked;
-        const fieldCollection = column?.collection === undefined ? collection : column?.collection;
-        const query = { _id: row._id };
-        const update = { $set: {} };
-        update.$set[column.key] = value;
-        updateField({ collection: fieldCollection, query, update });
-      }}
-      on:keydown={(e) => {
-        keyDownHandler({ e, i, j });
-      }}
-      slot="input"
-      type="checkbox"
-    />
-  </Checkbox>
+  <Checkbox
+    checked={value}
+    class="mx-auto"
+    on:click={(e) => {
+      value = e.target.checked;
+      const fieldCollection = column?.collection === undefined ? collection : column?.collection;
+      const query = { _id: row._id };
+      const update = { $set: {} };
+      update.$set[column.key] = value;
+      updateField({ collection: fieldCollection, query, update });
+    }}
+    on:keydown={(e) => {
+      keyDownHandler({ e, i, j });
+    }}
+  />
 </Td>

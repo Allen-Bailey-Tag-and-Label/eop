@@ -20,7 +20,7 @@
 {#if editable}
   <td
     bind:innerHTML={value}
-    class="mongoTableElem {$theme.td}"
+    class={$theme.td}
     contenteditable="true"
     on:blur={() => {
       const fieldCollection = column?.collection === undefined ? collection : column?.collection;

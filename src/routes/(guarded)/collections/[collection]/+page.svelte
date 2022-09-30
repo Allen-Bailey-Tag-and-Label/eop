@@ -10,6 +10,10 @@
   // props (internal)
   let columns = [];
   let filters = [];
+  let pagination = {
+    length: undefined,
+    page: undefined
+  };
   let rows = [];
   let sort = {
     index: 0
@@ -45,5 +49,5 @@
       <DBButtonCreate {collection} {columns} />
     </svelte:fragment>
   </TitleBar>
-  <DBTable bind:columns bind:rows bind:sort {collection} {filters} />
+  <DBTable bind:columns bind:pagination bind:rows bind:sort {collection} {filters} />
 </div>

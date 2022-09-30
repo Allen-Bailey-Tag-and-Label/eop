@@ -5,8 +5,10 @@
     Button,
     Checkbox,
     ContextMenu,
+    DBPagination,
     Fieldset,
     Icon,
+    Select,
     Table,
     Td,
     Th,
@@ -17,16 +19,17 @@
   import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
   import { theme } from '$stores';
-  import e from 'cors';
 
   // utilities
   const changeTableFocus = (i, j) => {
     if (browser) {
-      const query = `tr:nth-child(${i + 1}) .mongoTableElem`;
+      const query = `tr:nth-child(${i + 1}) td[contenteditable=true], tr:nth-child(${
+        i + 1
+      }) input, tr:nth-child(${i + 1}) select`;
       const newElement = tbodyElem.querySelectorAll(query)[j + 1];
-      const length = newElement.innerHTML.replace('<br>', '').length;
       newElement.focus();
       try {
+        const length = newElement.innerHTML.replace('<br>', '').length;
         const range = document.createRange();
         const sel = window.getSelection();
         range.setStart(newElement.childNodes[0], length);
@@ -93,8 +96,8 @@
         x = columns.length - 1;
         y--;
       }
-      if (y >= rows.length) y = 0;
-      if (y < 0) y = rows.length - 1;
+      if (y >= paginatedRows.length) y = 0;
+      if (y < 0) y = paginatedRows.length - 1;
       changeTableFocus(y, x);
     }
   };
@@ -132,6 +135,10 @@
   export let columns = [];
   export let editable = true;
   export let filters = [];
+  export let pagination = {
+    length: undefined,
+    page: undefined
+  };
   export let rows = [];
   export let sort = { index: 0 };
 
@@ -200,92 +207,103 @@
           }
           return include;
         });
+  $: paginatedRows =
+    pagination === undefined
+      ? [...filteredRows]
+      : [...filteredRows].slice(
+          pagination.page * pagination.length,
+          (pagination.page + 1) * pagination.length
+        );
 </script>
 
-<div class="flex overflow-y-auto p-[2rem] pt-0 mt-[2rem]">
-  <Table>
-    <Thead>
-      {#if editable}
-        <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
-      {/if}
-      {#each [...columns].filter(({ type }) => type !== 'hidden') as column}
-        <Th
-          class={sort !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}
-          on:click={() => {
-            sort = {
-              direction: column.key === sort.key ? sort.direction * -1 : 1,
-              key: column.key
-            };
-          }}>{column.innerHTML}</Th
-        >
-      {/each}
-    </Thead>
-    <tbody bind:this={tbodyElem} class={$theme.tbody}>
-      {#each filteredRows as row, i}
-        <Tr
-          on:contextmenu={(e) => {
-            contextmenu.cell.elem = e.target.nodeName === 'td' ? e.target : e.target.closest('td');
-            contextmenu.cell.highlight = contextmenu.cell.elem.classList.contains(
-              'even:bg-primary-500/[.1]'
-            );
-            contextmenu.row.elem = e.target.closest('tr');
-            contextmenu.row.highlight = contextmenu.row.elem.classList.contains(
-              'even:bg-primary-500/[.1]'
-            );
-            contextmenu.handler(e);
-          }}
-        >
-          {#if editable}
-            <Td class="w-[32px]">
-              <Checkbox>
-                <svelte:fragment slot="input">
-                  <input
-                    bind:checked={row._mongoTable.selected}
-                    class="mongoTableElem peer absolute top-0 left-0 opacity-0 w-0"
-                    on:keydown={(e) => {
-                      keyDownHandler({ e, i, j: -1 });
-                    }}
-                    type="checkbox"
-                  />
-                </svelte:fragment>
-                <svelte:fragment slot="handle">
-                  <div
-                    class={twMerge(
-                      'transition duration-200',
-                      $theme.checkbox,
-                      !row._mongoTable.selected ? '' : $theme.checkboxChecked,
-                      $$props.class
-                    )}
-                  >
-                    <Icon
-                      class="transition duration-200 transform {!row._mongoTable.selected
-                        ? 'scale-[0]'
-                        : 'scale-[1]'}"
-                      src={Check}
+<div class="flex flex-col overflow-hidden space-y-[1rem] p-[2rem]">
+  <div class="flex overflow-y-auto mx-[-2rem] px-[2rem] lg:mx-0 lg:px-0">
+    <Table>
+      <Thead>
+        {#if editable}
+          <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
+        {/if}
+        {#each [...columns].filter(({ type }) => type !== 'hidden') as column}
+          <Th
+            class={sort !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}
+            on:click={() => {
+              sort = {
+                direction: column.key === sort.key ? sort.direction * -1 : 1,
+                key: column.key
+              };
+            }}>{column.innerHTML}</Th
+          >
+        {/each}
+      </Thead>
+      <tbody bind:this={tbodyElem} class={$theme.tbody}>
+        {#each paginatedRows as row, i}
+          <Tr
+            on:contextmenu={(e) => {
+              contextmenu.cell.elem =
+                e.target.nodeName === 'td' ? e.target : e.target.closest('td');
+              contextmenu.cell.highlight = contextmenu.cell.elem.classList.contains(
+                'even:bg-primary-500/[.1]'
+              );
+              contextmenu.row.elem = e.target.closest('tr');
+              contextmenu.row.highlight = contextmenu.row.elem.classList.contains(
+                'even:bg-primary-500/[.1]'
+              );
+              contextmenu.handler(e);
+            }}
+          >
+            {#if editable}
+              <Td class="w-[32px]">
+                <Checkbox>
+                  <svelte:fragment slot="input">
+                    <input
+                      bind:checked={row._mongoTable.selected}
+                      class="peer absolute top-0 left-0 opacity-0 w-0"
+                      on:keydown={(e) => {
+                        keyDownHandler({ e, i, j: -1 });
+                      }}
+                      type="checkbox"
                     />
-                  </div>
-                </svelte:fragment>
-              </Checkbox>
-            </Td>
-          {/if}
-          {#each [...columns].filter(({ type }) => type !== 'hidden') as column, j}
-            <svelte:component
-              this={column.component}
-              bind:value={row[column.key]}
-              {collection}
-              {column}
-              {editable}
-              {i}
-              {j}
-              {keyDownHandler}
-              {row}
-              {updateField}
-            />
-          {/each}
-        </Tr>
-      {/each}
-    </tbody>
-  </Table>
+                  </svelte:fragment>
+                  <svelte:fragment slot="handle">
+                    <div
+                      class={twMerge(
+                        'transition duration-200',
+                        $theme.checkbox,
+                        !row._mongoTable.selected ? '' : $theme.checkboxChecked,
+                        $$props.class
+                      )}
+                    >
+                      <Icon
+                        class="transition duration-200 transform {!row._mongoTable.selected
+                          ? 'scale-[0]'
+                          : 'scale-[1]'}"
+                        src={Check}
+                      />
+                    </div>
+                  </svelte:fragment>
+                </Checkbox>
+              </Td>
+            {/if}
+            {#each [...columns].filter(({ type }) => type !== 'hidden') as column, j}
+              <svelte:component
+                this={column.component}
+                bind:value={row[column.key]}
+                {collection}
+                {column}
+                {editable}
+                {i}
+                {j}
+                {keyDownHandler}
+                {row}
+                {updateField}
+              />
+            {/each}
+          </Tr>
+        {/each}
+      </tbody>
+    </Table>
+  </div>
+  <DBPagination bind:filteredRows bind:length={pagination.length} bind:page={pagination.page} />
 </div>
 
 <ContextMenu bind:contextmenuHandler={contextmenu.handler} class="space-y-[1rem]">

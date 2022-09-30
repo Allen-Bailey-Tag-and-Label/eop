@@ -22,7 +22,7 @@
   <Td class="p-0">
     <Input
       bind:value
-      class="text-right cursor-pointer mongoTableElem rounded-none ring-offset-0 ring-1 focus:ring-primary-500"
+      class="text-right cursor-pointer rounded-none ring-offset-0 ring-1 focus:ring-primary-500"
       on:blur={(e) => {
         const fieldCollection = column?.collection === undefined ? collection : column?.collection;
         const query = { _id: row._id };

@@ -20,7 +20,7 @@
   <Td class="p-0 w-[1px]">
     <Select
       bind:value
-      class="mongoTableElem bg-transparent hover:bg-transparent focus:bg-transparent dark:bg-transparent dark:hover:bg-transparent dark:focus:bg-gray-900 ring-offset-0 dark:ring-offset-0 rounded-none ring-[1px] focus:ring-primary-500"
+      class="bg-transparent hover:bg-transparent focus:bg-transparent dark:bg-transparent dark:hover:bg-transparent dark:focus:bg-gray-900 ring-offset-0 dark:ring-offset-0 rounded-none ring-[1px] focus:ring-primary-500"
       on:change={() => {
         const fieldCollection = column?.collection === undefined ? collection : column?.collection;
         const query = { _id: row._id };
