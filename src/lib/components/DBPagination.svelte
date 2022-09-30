@@ -6,7 +6,7 @@
   export let length = 10;
   export let page = 0;
   $: if (page * length >= filteredRows.length) {
-    page = Math.ceil(filteredRows.length / length) - 1;
+    page = Math.max(0, Math.ceil(filteredRows.length / length) - 1);
   }
 
   $: lengthOptions = [
