@@ -5,6 +5,7 @@
     Button,
     Checkbox,
     ContextMenu,
+    DBThead,
     DBPagination,
     Fieldset,
     Icon,
@@ -41,12 +42,6 @@
   };
 
   // handlers
-  const checkboxClickHandler = (e) => {
-    rows = [...rows].map((row) => {
-      row._mongoTable.selected = e.target.checked;
-      return row;
-    });
-  };
   const highlightCellHandler = () => {
     const methods = [
       contextmenu.cell.highlight ? 'remove' : 'add',
@@ -219,22 +214,7 @@
 <div class="flex flex-col overflow-hidden space-y-[1rem] p-[2rem]">
   <div class="flex overflow-y-auto mx-[-2rem] px-[2rem] lg:mx-0 lg:px-0">
     <Table>
-      <Thead>
-        {#if editable}
-          <Th class="w-[32px]"><Checkbox on:click={checkboxClickHandler} /></Th>
-        {/if}
-        {#each [...columns].filter(({ type }) => type !== 'hidden') as column}
-          <Th
-            class={sort !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}
-            on:click={() => {
-              sort = {
-                direction: column.key === sort.key ? sort.direction * -1 : 1,
-                key: column.key
-              };
-            }}>{column.innerHTML}</Th
-          >
-        {/each}
-      </Thead>
+      <DBThead {columns} bind:rows bind:sort {editable} />
       <tbody bind:this={tbodyElem} class={$theme.tbody}>
         {#each paginatedRows as row, i}
           <Tr
