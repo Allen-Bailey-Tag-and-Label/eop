@@ -12,6 +12,7 @@ export { default as DBPagination } from './DBPagination.svelte';
 export { default as DBSocketRegistration } from './DBSocketRegistration.svelte';
 export { default as DBTable } from './DBTable.svelte';
 export { default as DBThead } from './DBThead.svelte';
+export { default as DBTr } from './DBTr.svelte';
 export { default as Form } from './Form.svelte';
 export { default as Header } from './Header.svelte';
 export { default as Modal } from './Modal.svelte';
