@@ -4,12 +4,12 @@
     Checkbox,
     DBButtonRemove,
     DBButtonCreate,
+    DBTr,
     Table,
     Tbody,
     Td,
     Th,
     Thead,
-    Tr,
     TitleBar
   } from '$components';
   import { sanitizeColumns, sanitizeRow } from '$lib/mongoTable';
@@ -66,6 +66,17 @@
 
   // props (internal)
   let collection = 'roles';
+  let contextmenu = {
+    cell: {
+      elem: undefined,
+      highlight: false
+    },
+    handler: undefined,
+    row: {
+      elem: undefined,
+      highlight: false
+    }
+  };
   const [insertColumns] = sanitizeColumns(['name', { type: 'hidden', key: 'routes', value: [] }]);
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
@@ -157,7 +168,7 @@
       </Thead>
       <Tbody>
         {#each $routeStates[$page.url.pathname].rows as row, i}
-          <Tr>
+          <DBTr>
             <Td class="w-[32px]">
               {#if row?._mongoTable?.selected !== undefined}
                 <Checkbox bind:checked={row._mongoTable.selected} class="mx-auto" />
@@ -218,7 +229,7 @@
                 {/if}
               </Td>
             {/each}
-          </Tr>
+          </DBTr>
         {/each}
       </Tbody>
     </Table>
