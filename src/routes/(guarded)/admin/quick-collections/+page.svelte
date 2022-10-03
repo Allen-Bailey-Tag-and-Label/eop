@@ -22,7 +22,10 @@
 
   // handlers
   const addFieldHandler = () =>
-    (collectionColumns = [...collectionColumns, { innerHTML: '', key: '', type: 'string' }]);
+    (collectionColumns = [
+      ...collectionColumns,
+      { collection: '', innerHTML: '', key: '', template: '[name]', type: 'string' }
+    ]);
   const updateColumns = async () => {
     const sanitizedColumns = [...collectionColumns].filter(
       ({ innerHTML, key, type }) => innerHTML !== '' && key !== '' && type !== ''
@@ -147,7 +150,7 @@
 <Modal bind:show bind:toggleModal>
   <div class="flex flex-col space-y-[1rem]">
     <div class="grid grid-cols-[auto_auto_auto_auto] gap-x-[.5rem] gap-y-[1rem] items-end">
-      {#each collectionColumns as { innerHTML, key, type }, i}
+      {#each collectionColumns as { collection, innerHTML, key, template, type }, i}
         <Fieldset legend="Key">
           <Input
             bind:value={key}
@@ -162,9 +165,28 @@
         <Fieldset legend="InnerHTML">
           <Input bind:value={innerHTML} />
         </Fieldset>
-        <Fieldset legend="Type">
-          <Select options={typeOptions} bind:value={type} />
-        </Fieldset>
+        {#if type === 'select'}
+          <div class="flex space-x-[.5rem]">
+            <Fieldset legend="Type">
+              <Select options={typeOptions} bind:value={type} />
+            </Fieldset>
+            <Fieldset legend="Collection">
+              <Select
+                options={[...$collections.collections].map(({ name }) => {
+                  return { label: name, value: name };
+                })}
+                bind:value={collection}
+              />
+            </Fieldset>
+            <Fieldset legend="Template">
+              <Input bind:value={template} />
+            </Fieldset>
+          </div>
+        {:else}
+          <Fieldset legend="Type">
+            <Select options={typeOptions} bind:value={type} />
+          </Fieldset>
+        {/if}
         <Button
           class="{$theme.buttonIcon} bg-red-500 hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/[.3]"
           on:click={() => {

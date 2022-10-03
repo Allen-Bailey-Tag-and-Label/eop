@@ -31,13 +31,31 @@
     ({ href }) => href === data.collection
   );
   $: if (columns.length === 0 && collectionDoc) {
-    columns = collectionDoc.columns;
+    columns = collectionDoc.columns.map((column) => {
+      if (column.type === 'select' && column?.collection) {
+        column.options = $collections[column.collection]
+          .map((doc) => {
+            return {
+              label: column.template.replace(/(\[(.*?)\])/g, (match) => {
+                const key = match.slice(1, match.length - 1);
+                return doc[key];
+              }),
+              value: doc._id
+            };
+          })
+          .sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
+        delete column.collection;
+        delete column.template;
+      }
+      return column;
+    });
   }
   $: if ($collections?.[collectionDoc?.href] && collectionDoc) {
     rows = $collections[collectionDoc.href];
   }
   $: collection = collectionDoc ? collectionDoc.href : '';
   $: title = collectionDoc ? `Collections - ${collectionDoc.name}` : '';
+  $: console.log(columns);
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
