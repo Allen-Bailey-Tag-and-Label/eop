@@ -13,7 +13,11 @@
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
-      filters: [{ field: 'status', operator: 'is', value: ['Active', ''], visible: false }],
+      filters: [
+        { field: 'department', operator: 'is not', value: [undefined, ''], visible: false },
+        { field: 'department', operator: 'is not', value: ['', ''], visible: false },
+        { field: 'status', operator: 'is', value: ['Active', ''], visible: false }
+      ],
       pagination: {
         length: undefined,
         page: undefined
