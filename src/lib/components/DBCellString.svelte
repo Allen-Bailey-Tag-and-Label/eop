@@ -34,5 +34,5 @@
     }}
   />
 {:else}
-  <Td>{mask[column.mask](row[column.key])}</Td>
+  <Td>{mask?.[column.mask]?.(row[column.key]) || row[column.key]}</Td>
 {/if}
