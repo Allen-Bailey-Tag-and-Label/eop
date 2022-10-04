@@ -31,7 +31,7 @@
 
 {#if selectedRows.length > 0}
   <Button
-    class="{$theme.buttonIcon} bg-red-500 hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/[.3]"
+    class="{$theme.buttonIcon} ml-[.5rem] bg-red-500 hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/[.3]"
     on:click={clickHandler}
   >
     <Icon src={Trash} />

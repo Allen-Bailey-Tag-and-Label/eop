@@ -39,7 +39,7 @@
     }, {});
 </script>
 
-<Button class={$theme.buttonIcon} on:click={toggleModal}>
+<Button class="{$theme.buttonIcon} ml-[.5rem]" on:click={toggleModal}>
   <Icon src={Plus} />
 </Button>
 

@@ -31,7 +31,7 @@
         <H6 class="text-[1rem] leading-[1em]"><slot name="title" /></H6>
       </div>
     </slot>
-    <div class="flex space-x-[.5rem] items-center">
+    <div class="flex items-center">
       <slot name="right" />
     </div>
   </slot>
