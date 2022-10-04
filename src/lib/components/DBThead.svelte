@@ -24,10 +24,8 @@
     <Th
       class={sort !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}
       on:click={() => {
-        sort = {
-          direction: column.key === sort.key ? sort.direction * -1 : 1,
-          key: column.key
-        };
+        sort.direction = column.key === sort.key ? sort.direction * -1 : 1;
+        sort.key = column.key;
       }}>{column.innerHTML}</Th
     >
   {/each}

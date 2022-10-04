@@ -9,6 +9,7 @@
 
   // props (internal)
   let columns = [];
+  let methods = undefined;
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
@@ -25,7 +26,7 @@
     };
   }
 
-  $: if ($collections.users) {
+  $: if ($collections.departments) {
     columns = columns = [
       { innerHTML: 'First', key: 'firstName' },
       { innerHTML: 'Last', key: 'lastName' },
@@ -42,8 +43,8 @@
       { innerHTML: 'Email', key: 'email' },
       { innerHTML: 'Extension', key: 'extension', mask: 'extension' }
     ];
-    $routeStates[$page.url.pathname].rows = $collections.users;
   }
+  $: if ($collections.users && methods !== undefined) methods.update.rows($collections.users);
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
@@ -55,6 +56,7 @@
   </TitleBar>
   <DBTable
     bind:columns
+    bind:methods
     bind:pagination={$routeStates[$page.url.pathname].pagination}
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}

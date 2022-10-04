@@ -10,6 +10,7 @@
   // props (internal)
   const collection = 'collections';
   let columns = [{ innerHTML: 'Name', key: 'name' }];
+  let methods = undefined;
 
   if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
@@ -26,9 +27,8 @@
     };
   }
 
-  $: if ($collections.collections) {
-    $routeStates[$page.url.pathname].rows = $collections.collections;
-  }
+  $: if ($collections.collections && methods !== undefined)
+    methods.update.rows($collections.collections);
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
@@ -42,6 +42,7 @@
   </TitleBar>
   <DBTable
     bind:columns
+    bind:methods
     bind:pagination={$routeStates[$page.url.pathname].pagination}
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}

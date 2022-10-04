@@ -68,6 +68,7 @@
       type: 'button'
     }
   ];
+  let methods = undefined;
   let show = false;
   let toggleModal;
   const typeOptions = [
@@ -93,9 +94,9 @@
     };
   }
 
-  $: if ($collections['quick-collections']) {
-    $routeStates[$page.url.pathname].rows = $collections['quick-collections'];
-  }
+  $: if ($collections['quick-collections'] && methods !== undefined)
+    methods.update.rows($collections['quick-collections']);
+
   $: if (collectionColumns && _id !== undefined) {
     updateColumns();
   }
@@ -139,6 +140,7 @@
   </TitleBar>
   <DBTable
     bind:columns
+    bind:methods
     bind:pagination={$routeStates[$page.url.pathname].pagination}
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}

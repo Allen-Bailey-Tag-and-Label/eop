@@ -10,6 +10,7 @@
   // props (internal)
   let columns = [];
   let filters = [];
+  let methods = undefined;
   let pagination = {
     length: undefined,
     page: undefined
@@ -50,12 +51,11 @@
       return column;
     });
   }
-  $: if ($collections?.[collectionDoc?.href] && collectionDoc) {
-    rows = $collections[collectionDoc.href];
-  }
+  $: if ($collections?.[collectionDoc?.href] && collectionDoc && methods !== undefined)
+    methods.update.rows($collections[collectionDoc.href]);
+
   $: collection = collectionDoc ? collectionDoc.href : '';
   $: title = collectionDoc ? `Collections - ${collectionDoc.name}` : '';
-  $: console.log(columns);
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
@@ -67,5 +67,5 @@
       <DBButtonCreate {collection} {columns} />
     </svelte:fragment>
   </TitleBar>
-  <DBTable bind:columns bind:pagination bind:rows bind:sort {collection} {filters} />
+  <DBTable bind:columns bind:methods bind:pagination bind:rows bind:sort {collection} {filters} />
 </div>

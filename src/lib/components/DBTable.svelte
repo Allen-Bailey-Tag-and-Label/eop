@@ -41,6 +41,32 @@
       } catch (error) {}
     }
   };
+  const sortRows = () => {
+    sort.previous = {
+      direction: sort.direction,
+      key: sort.key
+    };
+    rows = [...rows].sort((a, b) => {
+      const key = sort.key;
+      if (columns?.find((column) => column.key === key)?.type === 'select') {
+        const column = columns.find((column) => column.key === key);
+        const aValue = column.options.find((option) => option.value === a[key])?.label;
+        const bValue = column.options.find((option) => option.value === b[key])?.label;
+        return aValue === undefined
+          ? 1
+          : bValue === undefined
+          ? -1
+          : aValue < bValue
+          ? -1
+          : aValue > bValue
+          ? 1
+          : 0;
+      }
+      if (a[key] < b[key]) return -1 * sort.direction;
+      if (a[key] > b[key]) return 1 * sort.direction;
+      return 0;
+    });
+  };
 
   // handlers
   const keyDownHandler = ({ e, i, j, keyCodes = [13, 37, 38, 39, 40] }) => {
@@ -90,6 +116,23 @@
   export let columns = [];
   export let editable = true;
   export let filters = [];
+  export let methods = {
+    update: {
+      rows: (arr) => {
+        // check if initial data
+        const init = rows.length === 0;
+        rows = [
+          ...rows
+            .filter(({ _id }) => arr.some((obj) => obj._id === _id))
+            .map((obj1) => {
+              return { ...obj1, ...arr.find((obj2) => obj1._id === obj2._id) };
+            }),
+          ...arr.filter(({ _id }) => !rows.some((obj) => obj._id === _id))
+        ];
+        if (init) sortRows();
+      }
+    }
+  };
   export let pagination = {
     length: undefined,
     page: undefined
@@ -115,29 +158,14 @@
         direction: sort.direction,
         key: columns?.[sort.index]?.key
       };
+    if (sort?.previous === undefined) {
+      sort.previous = {
+        direction: undefined,
+        key: undefined
+      };
+    }
   }
-  $: if ((sort.direction || sort.key) && rows.length > 0) {
-    rows = [...rows].sort((a, b) => {
-      const key = sort.key;
-      if (columns?.find((column) => column.key === key)?.type === 'select') {
-        const column = columns.find((column) => column.key === key);
-        const aValue = column.options.find((option) => option.value === a[key])?.label;
-        const bValue = column.options.find((option) => option.value === b[key])?.label;
-        return aValue === undefined
-          ? 1
-          : bValue === undefined
-          ? -1
-          : aValue < bValue
-          ? -1
-          : aValue > bValue
-          ? 1
-          : 0;
-      }
-      if (a[key] < b[key]) return -1 * sort.direction;
-      if (a[key] > b[key]) return 1 * sort.direction;
-      return 0;
-    });
-  }
+  $: if (sort.direction !== sort.previous.direction || sort.key !== sort.previous.key) sortRows();
   $: filteredRows =
     filters.length === 0
       ? rows
