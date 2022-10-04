@@ -46,6 +46,16 @@
       { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
       { innerHTML: 'Hire Date', key: 'hireDate', type: 'date' },
       {
+        innerHTML: 'PT/FT',
+        key: 'pt-ft',
+        options: [...$collections['pt-ft']]
+          .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+          .map(({ _id, name }) => {
+            return { label: name, value: _id };
+          }),
+        type: 'select'
+      },
+      {
         innerHTML: 'Status',
         key: 'status',
         options: [
@@ -55,7 +65,8 @@
         ],
         type: 'select'
       },
-      { innerHTML: 'Supervisor', key: 'supervisor', type: 'checkbox' }
+      { innerHTML: 'Supervisor', key: 'supervisor', type: 'checkbox' },
+      { innerHTML: 'Wage', key: 'wage', type: 'currency' }
     ];
   }
   $: if ($collections.users && methods !== undefined) {
@@ -79,6 +90,7 @@
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
     collection="users"
+    editable={false}
     filters={$routeStates[$page.url.pathname].filters}
   />
 </div>
