@@ -68,58 +68,62 @@
 
 <Modal bind:show>
   <div class="inline-grid grid-cols-[auto_auto_auto_auto] gap-x-[.5rem] gap-y-[1rem] items-end">
-    {#each [...filters].filter(({ visible = true }) => visible) as filter, i}
-      <Fieldset legend="Field">
-        <Select bind:value={filter.field} options={fieldOptions} />
-      </Fieldset>
-      <Fieldset legend="Operator">
-        <Select
-          bind:value={filter.operator}
-          options={columns.find(({ key }) => key === filter.field)?.type === 'checkbox'
-            ? operatorOptions.checkbox
-            : columns.find(({ key }) => key === filter.field)?.type === 'date'
-            ? operatorOptions.date
-            : columns.find(({ key }) => key === filter.field)?.type === 'select'
-            ? operatorOptions.select
-            : operatorOptions.default}
-        />
-      </Fieldset>
-      <Fieldset legend="Filter">
-        {#if columns.find(({ key }) => key === filter.field)?.type === 'checkbox'}
-          <Checkbox bind:checked={filter.value[0]} class="mt-[1rem]" />
-        {:else if columns.find(({ key }) => key === filter.field)?.type === 'date'}
-          {#if filter.operator === 'is between'}
-            <div class="flex space-x-[1rem]">
-              <Input bind:value={filter.value[0]} type="date" />
-              <Input bind:value={filter.value[1]} type="date" />
-            </div>
-          {:else}
-            <Input bind:value={filter.value[0]} type="date" />
-          {/if}
-        {:else if columns.find(({ key }) => key === filter.field)?.type === 'select'}
+    {#each [...filters] as filter, i}
+      {#if filter?.visible !== false}
+        <Fieldset legend="Field">
+          <Select bind:value={filter.field} options={fieldOptions} />
+        </Fieldset>
+        <Fieldset legend="Operator">
           <Select
-            bind:value={filter.value[0]}
-            options={[
-              { label: '', value: '' },
-              ...columns.find(({ key }) => key === filter.field)?.options
-            ]}
+            bind:value={filter.operator}
+            options={columns.find(({ key }) => key === filter.field)?.type === 'checkbox'
+              ? operatorOptions.checkbox
+              : columns.find(({ key }) => key === filter.field)?.type === 'date'
+              ? operatorOptions.date
+              : columns.find(({ key }) => key === filter.field)?.type === 'select'
+              ? operatorOptions.select
+              : operatorOptions.default}
           />
-        {:else}
-          <Input bind:value={filter.value[0]} />
-        {/if}
-      </Fieldset>
-      <Button
-        class="{$theme.buttonIcon} bg-red-500 hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/[.3]"
-        on:click={() => {
-          filters = [...filters.slice(0, i), ...filters.slice(i + 1)];
-        }}
-      >
-        <Icon src={X} />
-      </Button>
+        </Fieldset>
+        <Fieldset legend="Filter">
+          {#if columns.find(({ key }) => key === filter.field)?.type === 'checkbox'}
+            <Checkbox bind:checked={filter.value[0]} class="mt-[1rem]" />
+          {:else if columns.find(({ key }) => key === filter.field)?.type === 'date'}
+            {#if filter.operator === 'is between'}
+              <div class="flex space-x-[1rem]">
+                <Input bind:value={filter.value[0]} type="date" />
+                <Input bind:value={filter.value[1]} type="date" />
+              </div>
+            {:else}
+              <Input bind:value={filter.value[0]} type="date" />
+            {/if}
+          {:else if columns.find(({ key }) => key === filter.field)?.type === 'select'}
+            <Select
+              bind:value={filter.value[0]}
+              options={[
+                { label: '', value: '' },
+                ...columns.find(({ key }) => key === filter.field)?.options
+              ]}
+            />
+          {:else}
+            <Input bind:value={filter.value[0]} />
+          {/if}
+        </Fieldset>
+        <Button
+          class="{$theme.buttonIcon} bg-red-500 hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/[.3]"
+          on:click={() => {
+            filters = [...filters.slice(0, i), ...filters.slice(i + 1)];
+          }}
+        >
+          <Icon src={X} />
+        </Button>
+      {/if}
     {/each}
   </div>
   <div class="mt-[1rem] flex space-x-[1rem] justify-end w-full">
     <Button class="{$theme.buttonSecondary} " on:click={toggleModal} type="button">Close</Button>
-    <Button on:click={addFilter}>Add Filter</Button>
+    {#if [...filters].filter((filter) => filter.field === '' || filter.operator === '').length === 0}
+      <Button on:click={addFilter}>Add Filter</Button>
+    {/if}
   </div>
 </Modal>
