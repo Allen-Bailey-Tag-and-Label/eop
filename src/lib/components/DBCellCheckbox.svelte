@@ -24,19 +24,23 @@
 </script>
 
 <Td>
-  <Checkbox
-    checked={value}
-    class="mx-auto"
-    on:click={(e) => {
-      value = e.target.checked;
-      const fieldCollection = column?.collection === undefined ? collection : column?.collection;
-      const query = { _id: row._id };
-      const update = { $set: {} };
-      update.$set[column.key] = value;
-      updateField({ collection: fieldCollection, query, update });
-    }}
-    on:keydown={(e) => {
-      keyDownHandler({ e, i, j });
-    }}
-  />
+  {#if editable}
+    <Checkbox
+      checked={value}
+      class="mx-auto"
+      on:click={(e) => {
+        value = e.target.checked;
+        const fieldCollection = column?.collection === undefined ? collection : column?.collection;
+        const query = { _id: row._id };
+        const update = { $set: {} };
+        update.$set[column.key] = value;
+        updateField({ collection: fieldCollection, query, update });
+      }}
+      on:keydown={(e) => {
+        keyDownHandler({ e, i, j });
+      }}
+    />
+  {:else}
+    {value}
+  {/if}
 </Td>
