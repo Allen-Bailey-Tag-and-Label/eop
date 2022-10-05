@@ -48,18 +48,24 @@
     };
     rows = [...rows].sort((a, b) => {
       const key = sort.key;
-      if (columns?.find((column) => column.key === key)?.type === 'select') {
+      const type = columns?.find((column) => column.key === key)?.type;
+      if (type === 'currency') {
+        if (a?.[key] === undefined || a?.[key] === '') return 1 * sort.direction;
+        if (b?.[key] === undefined || b?.[key] === '') return -1 * sort.direction;
+        return +a[key] < +b[key] ? -1 * sort.direction : +a[key] > +b[key] ? 1 * sort.direction : 0;
+      }
+      if (type === 'select') {
         const column = columns.find((column) => column.key === key);
         const aValue = column.options.find((option) => option.value === a[key])?.label;
         const bValue = column.options.find((option) => option.value === b[key])?.label;
         return aValue === undefined
-          ? 1
+          ? 1 * sort.direction
           : bValue === undefined
-          ? -1
+          ? -1 * sort.direction
           : aValue < bValue
-          ? -1
+          ? -1 * sort.direction
           : aValue > bValue
-          ? 1
+          ? 1 * sort.direction
           : 0;
       }
       if (a[key] < b[key]) return -1 * sort.direction;
