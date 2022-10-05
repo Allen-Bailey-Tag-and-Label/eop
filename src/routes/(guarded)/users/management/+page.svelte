@@ -66,7 +66,16 @@
         type: 'select'
       },
       { innerHTML: 'Supervisor', key: 'supervisor', type: 'checkbox' },
-      { innerHTML: 'Wage', key: 'wage', type: 'currency' }
+      { innerHTML: 'Wage', key: 'wage', type: 'currency' },
+      {
+        formula: `
+        const dateHire = new Date(obj.row.hireDate);
+        const dateNow = new Date();
+        return Math.floor((dateNow.getTime() - dateHire.getTime()) / 1000 / 60 / 60 / 24 / 365.25);
+        `,
+        innerHTML: 'Years of Service',
+        type: 'formula'
+      }
     ];
   }
   $: if ($collections.users && methods !== undefined) {

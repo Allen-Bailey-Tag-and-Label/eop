@@ -48,14 +48,20 @@
     };
     rows = [...rows].sort((a, b) => {
       const key = sort.key;
-      const type = columns?.find((column) => column.key === key)?.type;
+      const column = columns?.find((column) => column.key === key);
+      const type = column?.type;
       if (type === 'currency') {
         if (a?.[key] === undefined || a?.[key] === '') return 1 * sort.direction;
         if (b?.[key] === undefined || b?.[key] === '') return -1 * sort.direction;
         return +a[key] < +b[key] ? -1 * sort.direction : +a[key] > +b[key] ? 1 * sort.direction : 0;
       }
+      if (type === 'formula') {
+        const formula = Function('obj', column.formula);
+        const aValue = formula({ collection, column, columns, row: a });
+        const bValue = formula({ collection, column, columns, row: b });
+        return (aValue < bValue ? -1 : aValue > bValue ? 1 : 0) * sort.direction;
+      }
       if (type === 'select') {
-        const column = columns.find((column) => column.key === key);
         const aValue = column.options.find((option) => option.value === a[key])?.label;
         const bValue = column.options.find((option) => option.value === b[key])?.label;
         return aValue === undefined
@@ -251,6 +257,7 @@
                 bind:value={row[column.key]}
                 {collection}
                 {column}
+                {columns}
                 {editable}
                 {i}
                 {j}

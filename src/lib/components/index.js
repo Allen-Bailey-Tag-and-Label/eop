@@ -6,6 +6,7 @@ export { default as DBButtonRemove } from './DBButtonRemove.svelte';
 export { default as DBCellButton } from './DBCellButton.svelte';
 export { default as DBCellCheckbox } from './DBCellCheckbox.svelte';
 export { default as DBCellDate } from './DBCellDate.svelte';
+export { default as DBCellFormula } from './DBCellFormula.svelte';
 export { default as DBCellSelect } from './DBCellSelect.svelte';
 export { default as DBCellString } from './DBCellString.svelte';
 export { default as DBPagination } from './DBPagination.svelte';

@@ -1,4 +1,11 @@
-import { DBCellButton, DBCellCheckbox, DBCellDate, DBCellSelect, DBCellString } from '$components';
+import {
+  DBCellButton,
+  DBCellCheckbox,
+  DBCellDate,
+  DBCellFormula,
+  DBCellSelect,
+  DBCellString
+} from '$components';
 
 export default (column) => {
   // initialize default column
@@ -28,6 +35,8 @@ export default (column) => {
         ? DBCellCheckbox
         : column.type === 'date'
         ? DBCellDate
+        : column.type === 'formula'
+        ? DBCellFormula
         : column.type === 'select'
         ? DBCellSelect
         : DBCellString;
