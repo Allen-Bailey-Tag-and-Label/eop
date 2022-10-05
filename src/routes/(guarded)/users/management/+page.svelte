@@ -90,7 +90,6 @@
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
     collection="users"
-    editable={false}
     filters={$routeStates[$page.url.pathname].filters}
   />
 </div>
