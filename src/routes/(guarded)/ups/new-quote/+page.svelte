@@ -74,7 +74,7 @@
     try {
       await getRates();
       await saveQuote();
-      goto(`/ups/quote/${quoteNum}`);
+      goto(`/ups/quote-history/${quoteNum}`);
     } catch (error) {
       modal.progress.rates.show = false;
       modal.error.body = error;
@@ -94,7 +94,7 @@
       'insert',
       JSON.stringify({
         classification,
-        data: new Date(),
+        date: new Date(),
         packageInfo: $routeStates[$page.url.pathname].PackageInfo,
         quote: +$collections['ups-quotes'][$collections['ups-quotes'].length - 1].quote + 1,
         rates,
@@ -121,7 +121,7 @@
       await validateAddress();
       await getRates();
       await saveQuote();
-      goto(`/ups/quote/${quoteNum}`);
+      goto(`/ups/quote-history/${quoteNum}`);
     } catch (error) {
       modal.error.body = error;
       modal.error.show = true;
