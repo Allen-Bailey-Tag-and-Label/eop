@@ -9,6 +9,6 @@
   export let use = [enhance];
 </script>
 
-<Form {action} {method} {style} on:submit {use}>
+<Form {action} class={$$props.class} {method} {style} on:submit {use}>
   <slot />
 </Form>
