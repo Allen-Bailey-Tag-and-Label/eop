@@ -45,9 +45,11 @@
 
   $: fieldOptions = [
     { label: '', value: '' },
-    ...columns.map(({ innerHTML: label, key: value }) => {
-      return { label, value };
-    })
+    ...columns
+      .filter(({ type = 'string' }) => type !== 'button')
+      .map(({ innerHTML: label, key: value }) => {
+        return { label, value };
+      })
   ];
   $: if (filters) {
     filters = filters.map((filter) => {
