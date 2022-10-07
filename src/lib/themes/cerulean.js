@@ -19,6 +19,7 @@ export default {
     common.button,
     'bg-gray-900 hover:bg-gray-700 focus:bg-gray-700 focus:ring-gray-900/[.3] dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300 dark:focus:bg-gray-300 dark:focus:ring-gray-100/[.3]'
   ),
+  buttonSmall: twMerge(common.button, 'py-[.25rem] px-[.75rem] text-[.875rem]'),
   buttonTransparent: 'text-current bg-transparent hover:bg-transparent focus:bg-transparent',
   card: `${inputRounded} ${common.gradientBG} shadow-xl dark:shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.5),_0_8px_10px_-6px_rgb(0_0_0_/_0.5)]`,
   checkbox: `bg-transparent focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500 dark:ring-offset-white/[.2] mr-0 text-white ${inputRounded}`,

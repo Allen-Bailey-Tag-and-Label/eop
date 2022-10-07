@@ -1,7 +1,6 @@
 <script>
   import { Button, Td } from '$components';
-  import e from 'cors';
-  // import { mask } from '$lib/mongoTable';
+  import { theme } from '$stores';
 
   // props (external)
   export let collection = '';
@@ -17,8 +16,9 @@
   export let value = '';
 </script>
 
-<Td class="py-0">
+<Td class="py-[.25rem]">
   <Button
+    class={$theme.buttonSmall}
     on:click={(e) => {
       column?.clickHandler({ e, row });
     }}
