@@ -88,13 +88,21 @@
   };
   const saveQuote = async () => {
     modal.progress.saveQuote.show = true;
+    let date = new Date();
+    date = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
+      .getDate()
+      .toString()
+      .padStart(2, '0')}T${date.getHours().toString().padStart(2, '0')}:${date
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}`;
     const formData = new FormData();
     formData.append('collection', 'ups-quotes');
     formData.append(
       'insert',
       JSON.stringify({
         classification,
-        date: new Date(),
+        date,
         packageInfo: $routeStates[$page.url.pathname].PackageInfo,
         quote: +$collections['ups-quotes'][$collections['ups-quotes'].length - 1].quote + 1,
         rates,
