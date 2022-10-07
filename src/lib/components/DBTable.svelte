@@ -41,41 +41,6 @@
       } catch (error) {}
     }
   };
-  const sortRows = () => {
-    sort.previous = {
-      direction: sort.direction,
-      key: sort.key
-    };
-    rows = [...rows].sort((a, b) => {
-      const key = sort.key;
-      const column = columns?.find((column) => column.key === key);
-      const type = column?.type;
-      let aValue = key?.split('.')?.reduce((o, k) => o?.[k], a);
-      let bValue = key?.split('.')?.reduce((o, k) => o?.[k], b);
-      if (type === 'currency') {
-        aValue = +aValue;
-        bValue = +bValue;
-      }
-      if (type === 'formula') {
-        const formula = Function('obj', column.formula);
-        aValue = formula({ collection, column, columns, row: a });
-        bValue = formula({ collection, column, columns, row: b });
-      }
-      if (type === 'select') {
-        aValue = column.options.find((option) => option.value === aValue)?.label;
-        bValue = column.options.find((option) => option.value === bValue)?.label;
-      }
-      return aValue === undefined
-        ? 1 * sort.direction
-        : bValue === undefined
-        ? -1 * sort.direction
-        : aValue < bValue
-        ? -1 * sort.direction
-        : aValue > bValue
-        ? 1 * sort.direction
-        : 0;
-    });
-  };
 
   // handlers
   const keyDownHandler = ({ e, i, j, keyCodes = [13, 37, 38, 39, 40] }) => {
@@ -126,6 +91,43 @@
   export let editable = true;
   export let filters = [];
   export let methods = {
+    sort: {
+      rows: () => {
+        sort.previous = {
+          direction: sort.direction,
+          key: sort.key
+        };
+        rows = [...rows].sort((a, b) => {
+          const key = sort.key;
+          const column = columns?.find((column) => column.key === key);
+          const type = column?.type;
+          let aValue = key?.split('.')?.reduce((o, k) => o?.[k], a);
+          let bValue = key?.split('.')?.reduce((o, k) => o?.[k], b);
+          if (type === 'currency') {
+            aValue = +aValue;
+            bValue = +bValue;
+          }
+          if (type === 'formula') {
+            const formula = Function('obj', column.formula);
+            aValue = formula({ collection, column, columns, row: a });
+            bValue = formula({ collection, column, columns, row: b });
+          }
+          if (type === 'select') {
+            aValue = column.options.find((option) => option.value === aValue)?.label;
+            bValue = column.options.find((option) => option.value === bValue)?.label;
+          }
+          return aValue === undefined
+            ? 1 * sort.direction
+            : bValue === undefined
+            ? -1 * sort.direction
+            : aValue < bValue
+            ? -1 * sort.direction
+            : aValue > bValue
+            ? 1 * sort.direction
+            : 0;
+        });
+      }
+    },
     update: {
       rows: (arr) => {
         // check if initial data
@@ -138,7 +140,7 @@
             }),
           ...arr.filter(({ _id }) => !rows.some((obj) => obj._id === _id))
         ];
-        if (init) sortRows();
+        if (init) methods.sort.rows();
       }
     }
   };
@@ -174,7 +176,8 @@
       };
     }
   }
-  $: if (sort.direction !== sort.previous.direction || sort.key !== sort.previous.key) sortRows();
+  $: if (sort.direction !== sort.previous.direction || sort.key !== sort.previous.key)
+    methods.sort.rows();
   $: filteredRows =
     filters.length === 0
       ? rows
