@@ -50,33 +50,30 @@
       const key = sort.key;
       const column = columns?.find((column) => column.key === key);
       const type = column?.type;
+      let aValue = key?.split('.')?.reduce((o, k) => o?.[k], a);
+      let bValue = key?.split('.')?.reduce((o, k) => o?.[k], b);
       if (type === 'currency') {
-        if (a?.[key] === undefined || a?.[key] === '') return 1 * sort.direction;
-        if (b?.[key] === undefined || b?.[key] === '') return -1 * sort.direction;
-        return +a[key] < +b[key] ? -1 * sort.direction : +a[key] > +b[key] ? 1 * sort.direction : 0;
+        aValue = +aValue;
+        bValue = +bValue;
       }
       if (type === 'formula') {
         const formula = Function('obj', column.formula);
-        const aValue = formula({ collection, column, columns, row: a });
-        const bValue = formula({ collection, column, columns, row: b });
-        return (aValue < bValue ? -1 : aValue > bValue ? 1 : 0) * sort.direction;
+        aValue = formula({ collection, column, columns, row: a });
+        bValue = formula({ collection, column, columns, row: b });
       }
       if (type === 'select') {
-        const aValue = column.options.find((option) => option.value === a[key])?.label;
-        const bValue = column.options.find((option) => option.value === b[key])?.label;
-        return aValue === undefined
-          ? 1 * sort.direction
-          : bValue === undefined
-          ? -1 * sort.direction
-          : aValue < bValue
-          ? -1 * sort.direction
-          : aValue > bValue
-          ? 1 * sort.direction
-          : 0;
+        aValue = column.options.find((option) => option.value === aValue)?.label;
+        bValue = column.options.find((option) => option.value === bValue)?.label;
       }
-      if (a[key] < b[key]) return -1 * sort.direction;
-      if (a[key] > b[key]) return 1 * sort.direction;
-      return 0;
+      return aValue === undefined
+        ? 1 * sort.direction
+        : bValue === undefined
+        ? -1 * sort.direction
+        : aValue < bValue
+        ? -1 * sort.direction
+        : aValue > bValue
+        ? 1 * sort.direction
+        : 0;
     });
   };
 
