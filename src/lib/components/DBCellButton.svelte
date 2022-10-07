@@ -18,7 +18,7 @@
 
 <Td class="py-[.25rem]">
   <Button
-    class={$theme.buttonSmall}
+    class="{$theme.buttonSmall} mx-auto"
     on:click={(e) => {
       column?.clickHandler({ e, row });
     }}
