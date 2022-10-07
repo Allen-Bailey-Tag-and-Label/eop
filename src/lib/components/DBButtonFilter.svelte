@@ -22,6 +22,14 @@
       { label: 'is between', value: 'is between' },
       { label: 'is not', value: 'is not' }
     ],
+    datetime: [
+      { label: '', value: '' },
+      { label: 'is', value: 'is' },
+      { label: 'is after', value: 'is after' },
+      { label: 'is before', value: 'is before' },
+      { label: 'is between', value: 'is between' },
+      { label: 'is not', value: 'is not' }
+    ],
     default: [
       { label: '', value: '' },
       { label: 'contains', value: 'contains' },
@@ -82,6 +90,8 @@
               ? operatorOptions.checkbox
               : columns.find(({ key }) => key === filter.field)?.type === 'date'
               ? operatorOptions.date
+              : columns.find(({ key }) => key === filter.field)?.type === 'datetime'
+              ? operatorOptions.datetime
               : columns.find(({ key }) => key === filter.field)?.type === 'select'
               ? operatorOptions.select
               : operatorOptions.default}
@@ -98,6 +108,15 @@
               </div>
             {:else}
               <Input bind:value={filter.value[0]} type="date" />
+            {/if}
+          {:else if columns.find(({ key }) => key === filter.field)?.type === 'datetime'}
+            {#if filter.operator === 'is between'}
+              <div class="flex space-x-[1rem]">
+                <Input bind:value={filter.value[0]} type="datetime-local" />
+                <Input bind:value={filter.value[1]} type="datetime-local" />
+              </div>
+            {:else}
+              <Input bind:value={filter.value[0]} type="datetime-local" />
             {/if}
           {:else if columns.find(({ key }) => key === filter.field)?.type === 'select'}
             <Select
