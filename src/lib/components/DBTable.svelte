@@ -185,16 +185,17 @@
           let include = true;
           for (let i = 0; i < filters.length; i++) {
             const { field, operator, value } = filters[i];
+            const testValue = field.split('.').reduce((o, k) => o[k], row);
             if (
-              (operator === 'contains' && !new RegExp(value[0], 'i').test(row[field])) ||
-              (operator === 'does not contain' && new RegExp(value[0], 'i').test(row[field])) ||
-              (operator === 'ends with' && !new RegExp(`${value[0]}$`, 'i').test(row[field])) ||
-              (operator === 'is' && !new RegExp(`^${value[0]}$`, 'i').test(row[field])) ||
-              (operator === 'is after' && row[field] <= value[0]) ||
-              (operator === 'is before' && row[field] >= value[0]) ||
-              (operator === 'is between' && (row[field] < value[0] || row[field] > value[1])) ||
-              (operator === 'is not' && new RegExp(`^${value[0]}$`, 'i').test(row[field])) ||
-              (operator === 'starts with' && !new RegExp(`^${value[0]}`, 'i').test(row[field]))
+              (operator === 'contains' && !new RegExp(value[0], 'i').test(testValue)) ||
+              (operator === 'does not contain' && new RegExp(value[0], 'i').test(testValue)) ||
+              (operator === 'ends with' && !new RegExp(`${value[0]}$`, 'i').test(testValue)) ||
+              (operator === 'is' && !new RegExp(`^${value[0]}$`, 'i').test(testValue)) ||
+              (operator === 'is after' && testValue <= value[0]) ||
+              (operator === 'is before' && testValue >= value[0]) ||
+              (operator === 'is between' && (testValue < value[0] || testValue > value[1])) ||
+              (operator === 'is not' && new RegExp(`^${value[0]}$`, 'i').test(testValue)) ||
+              (operator === 'starts with' && !new RegExp(`^${value[0]}`, 'i').test(testValue))
             ) {
               include = false;
               break;
