@@ -2,6 +2,7 @@ import {
   DBCellButton,
   DBCellCheckbox,
   DBCellDate,
+  DBCellDatetime,
   DBCellFormula,
   DBCellSelect,
   DBCellString
@@ -35,6 +36,8 @@ export default (column) => {
         ? DBCellCheckbox
         : column.type === 'date'
         ? DBCellDate
+        : column.type === 'datetime'
+        ? DBCellDatetime
         : column.type === 'formula'
         ? DBCellFormula
         : column.type === 'select'
