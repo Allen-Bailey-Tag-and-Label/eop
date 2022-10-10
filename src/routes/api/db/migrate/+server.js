@@ -12,6 +12,7 @@ export async function POST() {
   await Promise.all(
     pcrs.map(async (pcr) => {
       let $set = {};
+      let $unset = {};
       try {
         pcr.change.date = new Date(pcr.change.date);
         pcr.change.date = `${pcr.change.date.getFullYear()}-${(pcr.change.date.getMonth() + 1)
@@ -23,6 +24,8 @@ export async function POST() {
           .toString()
           .padStart(2, '0')}-${pcr.previous.date.getDate().toString().padStart(2, '0')}`;
         $set['previous.date'] = pcr.previous.date;
+        $set.user = pcr.userId;
+        $unset.userId = '';
       } catch (error) {
         console.log(error);
       }
@@ -31,7 +34,7 @@ export async function POST() {
         query: {
           _id: pcr._id
         },
-        update: { $set }
+        update: { $set, $unset }
       });
     }),
     upsQuotes.map(async (upsQuote) => {
