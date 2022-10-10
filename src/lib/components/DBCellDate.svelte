@@ -15,15 +15,19 @@
   // export let rows = [];
   export let updateField;
   export let value = '';
+
+  $: if (column.key || row) {
+    value = column.key.split('.').reduce((o, k) => o[k], row);
+  }
 </script>
 
 {#if editable}
   <Td class="p-0 text-center">
     <div class="relative inline-flex">
       <Input
-        bind:value
         class="pl-0 pr-[3rem] text-right cursor-pointer rounded-none ring-offset-0 ring-1 focus:ring-primary-500 [&::-webkit-calendar-picker-indicator]:bg-none [&::-webkit-calendar-picker-indicator]:w-0"
         on:blur={(e) => {
+          value = e.target.value;
           const fieldCollection =
             column?.collection === undefined ? collection : column?.collection;
           const query = { _id: row._id };
@@ -35,6 +39,7 @@
           keyDownHandler({ e, i, j });
         }}
         type="date"
+        value
       />
       <div
         class="absolute transform top-1/2 right-0 -translate-y-1/2 -translate-x-full cursor-pointer"
@@ -48,5 +53,5 @@
     </div>
   </Td>
 {:else}
-  <Td>{mask[column.mask](row[column.key])}</Td>
+  <Td>{mask[column.mask](column.key.split('.').reduce((o, k) => o[k], row))}</Td>
 {/if}
