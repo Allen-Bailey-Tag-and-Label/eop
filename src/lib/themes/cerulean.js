@@ -39,6 +39,9 @@ export default {
   navGroupTitle:
     'text-[1rem] px-[2rem] py-[.75rem] cursor-pointer hover:bg-black/[.1] dark:hover:bg-white/[.1] flex justify-between items-center',
   overlay: 'z-[2] transition duration-200',
+  radio:
+    'cursor-pointer hover:ring-primary-500 relative w-[1.5rem] h-[1.5rem] rounded-full transition duration-200 ring-1 ring-gray-300 dark:ring-white/[.05] after:absolute after:top-1/2 after:left-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-white after:rounded-full after:w-[.5rem] after:h-[.5rem] after:scale-0 after:transition after:duration-200',
+  radioCurrent: 'bg-primary-500 after:scale-100 ring-primary-500 dark:ring-primary-500',
   select: `${inputRounded} bg-transparent dark:bg-transparent dark:focus:bg-gray-900  [&:disabled]:ring-0 [&:disabled]:ring-offset-0`,
   table: 'bg-black/[.05] dark:bg-black/[.1] w-full',
   td: 'transition duration-200 outline-none ring-1 ring-transparent focus:ring-primary-500',
