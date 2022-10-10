@@ -2,13 +2,38 @@ import { json } from '@sveltejs/kit';
 import db from '$db';
 
 export async function POST() {
-  const [roles, upsQuotes, users] = await Promise.all([
+  const [pcrs, roles, upsQuotes, users] = await Promise.all([
+    await db.find({ collection: 'pay-change-requests' }),
     await db.find({ collection: 'roles' }),
     await db.find({ collection: 'ups-quotes' }),
     await db.find({ collection: 'users' })
   ]);
 
   await Promise.all(
+    pcrs.map(async (pcr) => {
+      let $set = {};
+      try {
+        pcr.change.date = new Date(pcr.change.date);
+        pcr.change.date = `${pcr.change.date.getFullYear()}-${(pcr.change.date.getMonth() + 1)
+          .toString()
+          .padStart(2, '0')}-${pcr.change.date.getDate().toString().padStart(2, '0')}`;
+        $set['change.date'] = pcr.change.date;
+        pcr.previous.date = new Date(pcr.previous.date);
+        pcr.previous.date = `${pcr.previous.date.getFullYear()}-${(pcr.previous.date.getMonth() + 1)
+          .toString()
+          .padStart(2, '0')}-${pcr.previous.date.getDate().toString().padStart(2, '0')}`;
+        $set['previous.date'] = pcr.previous.date;
+      } catch (error) {
+        console.log(error);
+      }
+      await db.update({
+        collection: 'pay-change-requests',
+        query: {
+          _id: pcr._id
+        },
+        update: { $set }
+      });
+    })
     upsQuotes.map(async (upsQuote) => {
       let date = new Date(+upsQuote.date);
       date = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
