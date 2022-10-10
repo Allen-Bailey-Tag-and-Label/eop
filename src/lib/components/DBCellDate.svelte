@@ -26,7 +26,7 @@
     <div class="relative inline-flex">
       <Input
         class="pl-0 pr-[3rem] text-right cursor-pointer rounded-none ring-offset-0 ring-1 focus:ring-primary-500 [&::-webkit-calendar-picker-indicator]:bg-none [&::-webkit-calendar-picker-indicator]:w-0"
-        on:blur={(e) => {
+        on:change={(e) => {
           value = e.target.value;
           const fieldCollection =
             column?.collection === undefined ? collection : column?.collection;
@@ -39,7 +39,7 @@
           keyDownHandler({ e, i, j });
         }}
         type="date"
-        value
+        {value}
       />
       <div
         class="absolute transform top-1/2 right-0 -translate-y-1/2 -translate-x-full cursor-pointer"
