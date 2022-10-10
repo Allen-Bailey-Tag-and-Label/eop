@@ -1,34 +1,58 @@
 <script>
   import { page } from '$app/stores';
   import { Button, Fieldset, Form, Input, Select, Textarea, TitleBar } from '$components';
+  import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates } from '$stores';
   import codesAndDescriptions from '../codes-and-descriptions';
 
   // utilities
 
   // handlers
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
 
     const { costCenter, jobCode, jobTitle, eeoClassification, workCompClass } =
       $routeStates[$page.url.pathname].jobTitle;
 
+    const insert = {
+      user: $routeStates[$page.url.pathname]._userId,
+      costCenter,
+      jobCode,
+      jobTitle,
+      eeoClassification,
+      workCompClass,
+      change: {
+        after: +$routeStates[$page.url.pathname].newPCR.after.replace(/\$/g, ''),
+        code: $routeStates[$page.url.pathname].newPCR.code,
+        date: $routeStates[$page.url.pathname].newPCR.date,
+        description: $routeStates[$page.url.pathname].newPCR.description,
+        explanation: $routeStates[$page.url.pathname].newPCR.explanation,
+        percent: +$routeStates[$page.url.pathname].newPCR.percent.replace(/\%/g, ''),
+        previous: +$routeStates[$page.url.pathname].newPCR.previous.replace(/\$/g, '')
+      },
+      previous: {
+        after: $routeStates[$page.url.pathname].previousPCR.change.after,
+        code: $routeStates[$page.url.pathname].previousPCR.change.code,
+        date: $routeStates[$page.url.pathname].previousPCR.change.date,
+        description: $routeStates[$page.url.pathname].previousPCR.change.description,
+        explanation: $routeStates[$page.url.pathname].previousPCR.change.explanation,
+        percent: $routeStates[$page.url.pathname].previousPCR.change.percent,
+        previous: $routeStates[$page.url.pathname].previousPCR.change.previous
+      },
+      status: 'Submitted'
+    };
     const formData = new FormData();
     formData.append('collection', 'pay-change-requests');
-    formData.append(
-      'insert',
-      JSON.stringify({
-        user: $routeStates[$page.url.pathname]._userId,
-        costCenter,
-        jobCode,
-        jobTitle,
-        eeoClassification,
-        workCompClass,
-        change: $routeStates[$page.url.pathname].newPCR,
-        previous: $routeStates[$page.url.pathname].previousPCR,
-        status: 'Submitted'
-      })
-    );
+    formData.append('insert', JSON.stringify(insert));
+
+    const response = await fetch('/api/db?/create', {
+      body: formData,
+      method: 'POST'
+    });
+    const {
+      data: { doc }
+    } = await response.json();
+    socketio.emit('db.create.doc', { collection: 'pay-change-requests', doc });
   };
   const userChangeHandler = () => {
     $routeStates[$page.url.pathname].previousPCR =
@@ -70,6 +94,10 @@
   let userOptions = [];
 
   // props (external)
+  export let data;
+  export let title = 'PCR - Submit';
+  export let userFilterFn = ({ department, user }) =>
+    user._id !== data.user._id && user.department === department._id;
 
   // props (dynamic)
   $: if ($routeStates?.[$page.url.pathname] === undefined) {
@@ -106,18 +134,23 @@
     $routeStates[$page.url.pathname].user =
       $collections.users.find(({ _id }) => _id === $routeStates?.[$page.url.pathname]?._userId) ||
       {};
+    const department = $collections.departments.find(
+      ({ supervisor }) => supervisor === data.user._id
+    );
     userOptions = [
       { label: '-- Select and Employee', value: '' },
-      ...[...$collections.users].map(({ _id, firstName, lastName }) => {
-        return { label: `${firstName} ${lastName}`, value: _id };
-      })
+      ...[...$collections.users]
+        .filter((user) => userFilterFn({ user, department }))
+        .map(({ _id, firstName, lastName }) => {
+          return { label: `${firstName} ${lastName}`, value: _id };
+        })
     ].sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
   }
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
   <TitleBar>
-    <svelte:fragment slot="title">PCR - Submit</svelte:fragment>
+    <svelte:fragment slot="title">{title}</svelte:fragment>
   </TitleBar>
   <Form
     class="flex flex-col overflow-y-auto p-[2rem] space-y-[2rem] max-w-none"
