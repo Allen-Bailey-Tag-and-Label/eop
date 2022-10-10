@@ -33,7 +33,7 @@ export async function POST() {
         },
         update: { $set }
       });
-    })
+    }),
     upsQuotes.map(async (upsQuote) => {
       let date = new Date(+upsQuote.date);
       date = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
@@ -60,6 +60,7 @@ export async function POST() {
       hireDate = `${hireDate.getFullYear()}-${(hireDate.getMonth() + 1)
         .toString()
         .padStart(2, '0')}-${hireDate.getDate().toString().padStart(2, '0')}`;
+      let jobTitle = user.jobTitleId;
       let userRoles = user.roles.map((name) => {
         const { _id } = roles.find((role) => role.name === name);
         return _id;
@@ -72,9 +73,11 @@ export async function POST() {
         update: {
           $set: {
             hireDate,
+            jobTitle,
             roles: userRoles
           },
           $unset: {
+            jobTitleId: '',
             password: ''
           }
         }
