@@ -42,6 +42,8 @@
   }
 
   // props (external)
+  export let editable = false;
+  export let title = 'PCR - Status / History';
 
   // props (dynamic)
   $: if ($collections[collection] && methods !== undefined)
@@ -50,7 +52,7 @@
 
 <div class="flex flex-col flex-grow overflow-hidden">
   <TitleBar>
-    <svelte:fragment slot="title">PCR - Status History</svelte:fragment>
+    <svelte:fragment slot="title">{title}</svelte:fragment>
     <svelte:fragment slot="right">
       <DBButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
       <DBButtonFilter bind:filters={$routeStates[$page.url.pathname].filters} {columns} />
@@ -64,7 +66,7 @@
     bind:rows={$routeStates[$page.url.pathname].rows}
     bind:sort={$routeStates[$page.url.pathname].sort}
     {collection}
-    editable={false}
+    {editable}
     filters={$routeStates[$page.url.pathname].filters}
   />
 </div>

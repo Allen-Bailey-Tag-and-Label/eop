@@ -17,33 +17,8 @@
   // export let rows = [];
   export let updateField;
   export let value = '';
-
-  $: if (column.key || row) {
-    innerHTML = column.key.split('.').reduce((o, k) => o[k], row);
-  }
 </script>
 
-{#if editable}
-  <td
-    class={$theme.td}
-    contenteditable="true"
-    on:blur={(e) => {
-      value = e.target.innerHTML;
-      const fieldCollection = column?.collection === undefined ? collection : column?.collection;
-      const query = { _id: row._id };
-      const update = { $set: {} };
-      update.$set = {};
-      update.$set[column.key] = value;
-      updateField({ collection: fieldCollection, query, update });
-    }}
-    on:keydown={(e) => {
-      keyDownHandler({ e, i, j });
-    }}
-  >
-    {innerHTML}
-  </td>
-{:else}
-  <Td>
-    {$collections.users.find((user) => user._id === innerHTML)?.[column?.populateField]}
-  </Td>
-{/if}
+<Td>
+  {$collections.users.find((user) => user._id === value)?.[column?.populateField]}
+</Td>
