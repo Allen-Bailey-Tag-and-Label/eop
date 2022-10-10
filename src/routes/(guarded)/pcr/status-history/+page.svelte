@@ -54,7 +54,7 @@
     <svelte:fragment slot="right">
       <DBButtonRemove bind:rows={$routeStates[$page.url.pathname].rows} {collection} />
       <DBButtonFilter bind:filters={$routeStates[$page.url.pathname].filters} {columns} />
-      <DBButtonCreate {collection} {columns} />
+      <!-- <DBButtonCreate {collection} {columns} /> -->
     </svelte:fragment>
   </TitleBar>
   <DBTable
