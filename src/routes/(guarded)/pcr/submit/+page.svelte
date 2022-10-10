@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { Button, Fieldset, Form, Input, Select, Textarea, TitleBar } from '$components';
+  import { Button, Fieldset, Form, Input, Radio, Select, Textarea, TitleBar } from '$components';
   import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates } from '$stores';
   import codesAndDescriptions from '../codes-and-descriptions';
@@ -39,6 +39,7 @@
         percent: $routeStates[$page.url.pathname].previousPCR.change.percent,
         previous: $routeStates[$page.url.pathname].previousPCR.change.previous
       },
+      ratings: $routeStates[$page.url.pathname].ratings,
       status: 'Submitted'
     };
     const formData = new FormData();
@@ -91,6 +92,29 @@
       maximumFractionDigits: 2
     }).format
   };
+  const initialRatings = [
+    'Quality',
+    'Quantity',
+    'Job Knowledge',
+    'Judgment',
+    'Initiative',
+    'Interpersonal Skills',
+    'Work Habits',
+    'Dependability',
+    'Attitude',
+    'Attendance'
+  ]
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    .map((legend) => {
+      return {
+        legend,
+        key: legend
+          .split(' ')
+          .map((word, i) => (i === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.slice(1)))
+          .join(''),
+        value: 0
+      };
+    });
   let userOptions = [];
 
   // props (external)
@@ -122,6 +146,7 @@
         previous: format.currency(0)
       },
       previousPCR: {},
+      ratings: [...initialRatings],
       user: {}
     };
   }
@@ -169,6 +194,28 @@
       />
     </Fieldset>
     {#if $routeStates[$page.url.pathname]._userId !== ''}
+      <div class="flex flex-col space-y-[1rem] lg:items-start">
+        <div class="grid grid-cols-[auto_auto_auto_auto_auto] gap-[1rem] items-center">
+          <div class="font-bold">Ratings</div>
+          {#each [...Array(4)] as _, i}
+            <div class="text-center">{i}</div>
+          {/each}
+          {#each $routeStates[$page.url.pathname].ratings as rating}
+            <div>{rating.legend}</div>
+            {#each [...Array(4)] as _, i}
+              <div class="text-center">
+                <Radio bind:group={rating.value} class="mx-auto" value={i} />
+              </div>
+            {/each}
+          {/each}
+          <div class="font-bold">Total</div>
+          <div class="text-right col-span-4">
+            {[...$routeStates[$page.url.pathname].ratings].reduce((t, obj) => t + obj.value, 0)} / {$routeStates[
+              $page.url.pathname
+            ].ratings.length * 3}
+          </div>
+        </div>
+      </div>
       <div class="flex flex-col space-y-[2rem] lg:flex-row lg:space-y-0 lg:space-x-[2rem]">
         <div class="flex flex-col space-y-[1rem] lg:items-start lg:flex-grow">
           <div class="font-bold">Last Change</div>
