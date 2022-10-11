@@ -27,7 +27,7 @@ export default {
     'bg-primary-500 dark:bg-primary-500 ring-offset-primary-500 dark:ring-offset-primary-500 focus:ring-primary-500/[.3] focus:ring-offset-primary-500 hover:ring-offset-primary-500 peer-focus:ring-primary-500/[.3] peer-focus:ring-offset-primary-500',
   form: 'w-full max-w-[375px] space-y-[2rem]',
   header: 'z-[1] bg-white dark:bg-black/[.2] items-end lg:items-start',
-  input: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent [&:disabled]:ring-0 [&:disabled]:ring-offset-0`,
+  input: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent [&:disabled]:ring-0 [&:disabled]:ring-offset-0 [&:disabled]:px-0 opacity-100`,
   inputTd: 'rounded-none w-full',
   legend: 'text-[.75rem] opacity-[.5] peer-focus:opacity-[1]',
   modal: `${inputRounded} items-start justify-start overflow-y-auto max-h-[calc(100vh_-_max(1.5rem,_env(safe-area-inset-bottom))_-_max(1.5rem,_env(safe-area-inset-top)))] max-w-[min(375px,_calc(100vw_-_1rem))] ml-0 z-[2] w-auto h-auto top-auto bottom-[max(2rem,_env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 ${common.gradientBG} w-full pt-[max(1.5rem,_env(safe-area-inset-top))] pr-[max(1.5rem,_env(safe-area-inset-right))] pl-[max(1.5rem,_env(safe-area-inset-left))] pb-[max(1.5rem,_env(safe-area-inset-bottom))] lg:bottom-auto lg:top-1/2 lg:translate-y-[-50%] lg:w-auto lg:max-w-full`,
@@ -42,10 +42,10 @@ export default {
   radio:
     'cursor-pointer hover:ring-primary-500 relative w-[1.5rem] h-[1.5rem] rounded-full transition duration-200 ring-1 ring-gray-300 dark:ring-white/[.05] after:absolute after:top-1/2 after:left-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-white after:rounded-full after:w-[.5rem] after:h-[.5rem] after:scale-0 after:transition after:duration-200',
   radioCurrent: 'bg-primary-500 after:scale-100 ring-primary-500 dark:ring-primary-500',
-  select: `${inputRounded} bg-transparent dark:bg-transparent dark:focus:bg-gray-900  [&:disabled]:ring-0 [&:disabled]:ring-offset-0`,
+  select: `${inputRounded} bg-transparent dark:bg-transparent dark:focus:bg-gray-900  [&:disabled]:ring-0 [&:disabled]:ring-offset-0 [&:disabled]:px-0 opacity-100`,
   table: 'bg-black/[.05] dark:bg-black/[.1] w-full',
   td: 'transition duration-200 outline-none ring-1 ring-transparent focus:ring-primary-500',
-  textarea: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent  [&:disabled]:ring-0 [&:disabled]:ring-offset-0`,
+  textarea: `${inputRounded} peer px-[1rem] hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/[.3] bg-transparent dark:bg-transparent  [&:disabled]:ring-0 [&:disabled]:ring-offset-0 [&:disabled]:px-0 opacity-100`,
   titleBar:
     'min-h-[calc(2.5rem_+_env(safe-area-inset-top)_+_2rem)] flex justify-between pt-[calc(env(safe-area-inset-top))] ring-1 ring-black/[.1] dark:ring-white/[.05] bg-white dark:bg-black/[.2] px-[2rem]',
   th: 'transition duration-200 bg-white dark:bg-gray-950 sticky top-0 border-b-0 shadow-[inset_0px_-1px_0px_rgba(0,0,0,_.3),_inset_0px_1px_0px_rgba(0,0,0,.03)] dark:shadow-[inset_0px_-1px_0px_rgba(255,255,255,_.3),_inset_0px_1px_0px_rgba(255,255,255,.05)] z-[1]',
