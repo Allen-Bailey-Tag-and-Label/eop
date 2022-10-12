@@ -184,9 +184,6 @@
   >
     <Fieldset legend="Employee">
       <Select
-        let
-        user=""
-        ;
         bind:value={$routeStates[$page.url.pathname]._userId}
         class="self-start"
         on:change={userChangeHandler}
