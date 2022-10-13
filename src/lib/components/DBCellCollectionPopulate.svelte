@@ -1,9 +1,8 @@
 <script>
   import { Td } from '$components';
-  import { collections, theme } from '$stores';
+  import { collections } from '$stores';
 
   // props (internal)
-  let innerHTML = '';
 
   // props (external)
   export let collection = '';
@@ -20,5 +19,7 @@
 </script>
 
 <Td>
-  {$collections.users.find((user) => user._id === value)?.[column?.populateField]}
+  {$collections?.[column?.collection]?.find((doc) => doc._id === row[column.key])?.[
+    column?.populateField
+  ]}
 </Td>

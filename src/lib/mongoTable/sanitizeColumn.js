@@ -1,6 +1,7 @@
 import {
   DBCellButton,
   DBCellCheckbox,
+  DBCellCollectionPopulate,
   DBCellDate,
   DBCellDatetime,
   DBCellFormula,
@@ -34,6 +35,8 @@ export default (column) => {
         ? DBCellButton
         : column.type === 'checkbox'
         ? DBCellCheckbox
+        : column.type === 'collection-populate'
+        ? DBCellCollectionPopulate
         : column.type === 'date'
         ? DBCellDate
         : column.type === 'datetime'

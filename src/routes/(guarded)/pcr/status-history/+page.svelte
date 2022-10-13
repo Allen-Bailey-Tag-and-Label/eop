@@ -1,8 +1,7 @@
 <script>
   import { page } from '$app/stores';
-  import { DBButtonCreate, DBButtonFilter, DBButtonRemove, DBTable, TitleBar } from '$components';
+  import { DBButtonFilter, DBButtonRemove, DBTable, TitleBar } from '$components';
   import { collections, routeStates } from '$stores';
-  import TDUserPopulate from './TDUserPopulate.svelte';
 
   // utilities
 
@@ -11,8 +10,20 @@
   // props (internal)
   let collection = 'pay-change-requests';
   let columns = [
-    { component: TDUserPopulate, innerHTML: 'First', key: 'user', populateField: 'firstName' },
-    { component: TDUserPopulate, innerHTML: 'Last', key: 'user', populateField: 'lastName' },
+    {
+      collection: 'users',
+      innerHTML: 'First',
+      key: 'user',
+      populateField: 'firstName',
+      type: 'collection-populate'
+    },
+    {
+      collection: 'users',
+      innerHTML: 'Last',
+      key: 'user',
+      populateField: 'lastName',
+      type: 'collection-populate'
+    },
     { innerHTML: 'Date', key: 'change.date', type: 'date' },
     {
       innerHTML: 'Status',

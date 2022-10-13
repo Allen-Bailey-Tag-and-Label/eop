@@ -46,13 +46,14 @@
   // props (dynamic)
   $: if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
-      user: '',
+      evaluator: data?.user?._id,
       jobTitle: {},
       majorOpportunitiesForImprovements: '',
       majorStrengths: '',
       potentialForAdvancment: '',
       ratings: [...initialRatings],
-      recommendedDevelopmentPlan: ''
+      recommendedDevelopmentPlan: '',
+      user: ''
     };
   }
   $: initialRatings =
