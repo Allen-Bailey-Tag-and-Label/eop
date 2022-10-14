@@ -5,4 +5,4 @@
   export let data;
 </script>
 
-<Route _id={data._id} {data} title="Employee Review - Edit" />
+<Route _id={data._id} {data} title="Employee Review - Edit" userFilterFn={() => true} />

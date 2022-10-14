@@ -1,4 +1,5 @@
 <script>
+  import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import { Button, Fieldset, Form, Input, Radio, Select, Textarea, TitleBar } from '$components';
   import { clientConnection as socketio } from '$lib/socketio';
@@ -45,14 +46,32 @@
       data: { doc }
     } = await response.json();
     socketio.emit(`db.${_id ? 'update' : 'create'}.doc`, { collection: 'employee-reviews', doc });
+    if (_id !== undefined && browser) window.history.back();
+    if (_id === undefined) {
+      $routeStates[$page.url.pathname] = {
+        evaluator: data?.user?._id,
+        jobTitle: {},
+        majorOpportunitiesForImprovements: '',
+        majorStrengths: '',
+        potentialForAdvancment: '',
+        ratings: [...initialRatings],
+        recommendedDevelopmentPlan: '',
+        user: ''
+      };
+    }
   };
 
   // props (internal)
   let jobTitleOptions = [];
   const potentialForAdvancments = [
-    'Should be considered for promotion',
-    'Good potential, but needs additional training or experience',
-    'Limited potential beyond present level'
+    { label: 'N/A', value: '' },
+    ...[
+      'Should be considered for promotion',
+      'Good potential, but needs additional training or experience',
+      'Limited potential beyond present level'
+    ].map((s) => {
+      return { label: s, value: s };
+    })
   ];
   let userOptions = [];
 
@@ -192,13 +211,13 @@
             />
           </Fieldset>
           <Fieldset legend="Potential for Advancement">
-            {#each potentialForAdvancments as potentialForAdvancment}
+            {#each potentialForAdvancments as { label, value }}
               <Radio
                 bind:group={$routeStates[$page.url.pathname].potentialForAdvancment}
                 class="mr-[1rem]"
-                value={potentialForAdvancment}
+                {value}
               >
-                {potentialForAdvancment}
+                {label}
               </Radio>
             {/each}
           </Fieldset>
@@ -207,7 +226,7 @@
           </Fieldset>
         </div>
       </div>
+      <Button class="lg:self-end" type="submit">{_id ? 'Update' : 'Submit'}</Button>
     {/if}
-    <Button class="lg:self-end" type="submit">{_id ? 'Edit' : 'Submit'}</Button>
   </Form>
 </div>
