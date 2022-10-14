@@ -72,6 +72,7 @@
     formData.append('collection', collection);
     formData.append('query', JSON.stringify(query));
     formData.append('update', JSON.stringify(update));
+    console.log({ collection, query, update });
     const response = await fetch('/api/db?/update', {
       body: formData,
       method: 'POST'
@@ -255,7 +256,6 @@
             {#each [...columns].filter(({ type }) => type !== 'hidden') as column, j}
               <svelte:component
                 this={column.component}
-                bind:value={row[column.key]}
                 {collection}
                 {column}
                 {columns}

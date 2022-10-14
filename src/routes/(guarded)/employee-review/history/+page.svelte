@@ -25,18 +25,17 @@
       populateField: 'lastName',
       type: 'collection-populate'
     },
-    { innerHTML: 'Date', key: 'date', type: 'date' },
     {
-      clickHandler: ({ row }) => goto(`/employee-review/edit/${row._id}`),
-      innerHTML: 'Edit',
-      key: 'edit',
-      type: 'button'
+      innerHTML: 'Date',
+      key: 'date',
+      type: 'date'
     },
     {
       formula: `
         return obj.row.ratings.reduce((total, obj) => total + obj.value, 0);
       `,
       innerHTML: 'Score',
+      key: 'score',
       type: 'formula'
     },
     {
@@ -44,14 +43,21 @@
         return obj.row.ratings.reduce((total, obj) => total + 3, 0);
       `,
       innerHTML: 'Total',
+      key: 'total',
       type: 'formula'
+    },
+    {
+      clickHandler: ({ row }) => goto(`/employee-review/edit/${row._id}`),
+      innerHTML: 'Edit',
+      key: 'edit',
+      type: 'button'
     }
   ];
   let methods = undefined;
 
   // props (external)
   export let data;
-  export let editable = false;
+  export let editable = true;
   export let title = 'Employee Review - History';
 
   // props (dynamic)

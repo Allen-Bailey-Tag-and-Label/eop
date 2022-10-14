@@ -12,20 +12,39 @@
 
     const formData = new FormData();
     formData.append('collection', 'employee-reviews');
-    const insert = $routeStates[$page.url.pathname];
-    insert.date = `${new Date().getFullYear()}-${(new Date().getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')}`;
-    formData.append('insert', JSON.stringify(insert));
+    if (_id) {
+      formData.append('query', JSON.stringify({ _id }));
+      const update = {
+        $set: {
+          evaluator: $routeStates[$page.url.pathname].evaluator,
+          jobTitle: $routeStates[$page.url.pathname].jobTitle,
+          majorOpportunitiesForImprovements:
+            $routeStates[$page.url.pathname].majorOpportunitiesForImprovements,
+          majorStrengths: $routeStates[$page.url.pathname].majorStrengths,
+          potentialForAdvancment: $routeStates[$page.url.pathname].potentialForAdvancment,
+          ratings: $routeStates[$page.url.pathname].ratings,
+          recommendedDevelopmentPlan: $routeStates[$page.url.pathname].recommendedDevelopmentPlan,
+          user: $routeStates[$page.url.pathname].user
+        }
+      };
+      formData.append('update', JSON.stringify(update));
+    }
+    if (_id === undefined) {
+      const insert = $routeStates[$page.url.pathname];
+      insert.date = `${new Date().getFullYear()}-${(new Date().getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')}`;
+      formData.append('insert', JSON.stringify(insert));
+    }
 
-    const response = await fetch('/api/db?/create', {
+    const response = await fetch(`/api/db?/${_id ? 'update' : 'create'}`, {
       body: formData,
       method: 'POST'
     });
     const {
       data: { doc }
     } = await response.json();
-    socketio.emit('db.create.doc', { collection: 'employee-reviews', doc });
+    socketio.emit(`db.${_id ? 'update' : 'create'}.doc`, { collection: 'employee-reviews', doc });
   };
 
   // props (internal)
@@ -38,23 +57,26 @@
   let userOptions = [];
 
   // props (external)
+  export let _id;
   export let data;
   export let title = 'Employee Review - Submit';
   export let userFilterFn = ({ department, user }) =>
     user._id !== data.user._id && user.department === department._id;
 
   // props (dynamic)
-  $: if ($routeStates?.[$page.url.pathname] === undefined) {
-    $routeStates[$page.url.pathname] = {
-      evaluator: data?.user?._id,
-      jobTitle: {},
-      majorOpportunitiesForImprovements: '',
-      majorStrengths: '',
-      potentialForAdvancment: '',
-      ratings: [...initialRatings],
-      recommendedDevelopmentPlan: '',
-      user: ''
-    };
+  $: if ($collections['employee-reviews'] && $routeStates?.[$page.url.pathname] === undefined) {
+    $routeStates[$page.url.pathname] = _id
+      ? $collections['employee-reviews'].find((doc) => doc._id === _id)
+      : {
+          evaluator: data?.user?._id,
+          jobTitle: {},
+          majorOpportunitiesForImprovements: '',
+          majorStrengths: '',
+          potentialForAdvancment: '',
+          ratings: [...initialRatings],
+          recommendedDevelopmentPlan: '',
+          user: ''
+        };
   }
   $: initialRatings =
     [...$collections?.['employee-ratings']]
@@ -119,6 +141,7 @@
     <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
       <Fieldset legend="Employee">
         <Select
+          disabled={_id ? true : undefined}
           bind:value={$routeStates[$page.url.pathname].user}
           class="self-start"
           options={userOptions}
@@ -185,6 +208,6 @@
         </div>
       </div>
     {/if}
-    <Button class="lg:self-end" type="submit">Submit</Button>
+    <Button class="lg:self-end" type="submit">{_id ? 'Edit' : 'Submit'}</Button>
   </Form>
 </div>

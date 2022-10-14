@@ -71,6 +71,26 @@ export const actions = {
         return obj;
       }, {});
 
+      const sanitizeUpdateFN = (obj) => {
+        if (
+          !Array.isArray(obj) &&
+          !(typeof obj === 'object' && !Array.isArray(obj) && obj !== null)
+        )
+          return obj;
+        if (Array.isArray(obj)) return obj.map((elem) => sanitizeUpdateFN(elem));
+        if (typeof obj === 'object' && !Array.isArray(obj) && obj !== null)
+          return Object.keys(obj).reduce((o, key) => {
+            if (key !== '_id') o[key] = sanitizeUpdateFN(obj[key]);
+            return o;
+          }, {});
+      };
+
+      // sanitize update
+      update = Object.keys(update).reduce((obj, key) => {
+        if (key !== '_id') obj[key] = sanitizeUpdateFN(update[key]);
+        return obj;
+      }, {});
+
       // perform update
       await db.update({ collection, query, update });
 
