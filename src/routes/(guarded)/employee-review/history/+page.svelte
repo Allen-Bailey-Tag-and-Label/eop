@@ -58,14 +58,15 @@
   // props (external)
   export let data;
   export let editable = true;
+  export let filters = [
+    { field: 'evaluator', operator: 'is', value: [data?.user?._id, ''], visible: false }
+  ];
   export let title = 'Employee Review - History';
 
   // props (dynamic)
   $: if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
-      filters: [
-        { field: 'evaluator', operator: 'is', value: [data?.user?._id, ''], visible: false }
-      ],
+      filters,
       pagination: {
         length: undefined,
         page: undefined
