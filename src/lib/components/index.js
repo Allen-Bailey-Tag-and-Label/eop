@@ -23,4 +23,5 @@ export { default as Nav } from './Nav.svelte';
 export { default as NavGroup } from './NavGroup.svelte';
 export { default as NavLink } from './NavLink.svelte';
 export { default as Radio } from './Radio.svelte';
+export { default as Range } from './Range.svelte';
 export { default as TitleBar } from './TitleBar.svelte';
