@@ -1,7 +1,7 @@
 <script>
   import { browser } from '$app/environment';
   import { page } from '$app/stores';
-  import { Button, Fieldset, Form, Input, Radio, Select, Textarea, TitleBar } from '$components';
+  import { Button, Fieldset, Form, Radio, Range, Select, Textarea, TitleBar } from '$components';
   import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates } from '$stores';
 
@@ -22,7 +22,7 @@
           majorOpportunitiesForImprovements:
             $routeStates[$page.url.pathname].majorOpportunitiesForImprovements,
           majorStrengths: $routeStates[$page.url.pathname].majorStrengths,
-          potentialForAdvancment: $routeStates[$page.url.pathname].potentialForAdvancment,
+          potentialForAdvancement: $routeStates[$page.url.pathname].potentialForAdvancement,
           ratings: $routeStates[$page.url.pathname].ratings,
           recommendedDevelopmentPlan: $routeStates[$page.url.pathname].recommendedDevelopmentPlan,
           user: $routeStates[$page.url.pathname].user
@@ -53,7 +53,7 @@
         jobTitle: {},
         majorOpportunitiesForImprovements: '',
         majorStrengths: '',
-        potentialForAdvancment: '',
+        potentialForAdvancement: '',
         ratings: [...initialRatings],
         recommendedDevelopmentPlan: '',
         user: ''
@@ -63,7 +63,7 @@
 
   // props (internal)
   let jobTitleOptions = [];
-  const potentialForAdvancments = [
+  const potentialForAdvancements = [
     { label: 'N/A', value: '' },
     ...[
       'Should be considered for promotion',
@@ -83,6 +83,14 @@
     user._id !== data.user._id && user.department === department._id;
 
   // props (dynamic)
+  $: initialRatings =
+    [...$collections?.['employee-ratings']]
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+      .reduce((obj, rating) => {
+        const key = rating.name[0].toLowerCase() + rating.name.slice(1).replace(' ', '');
+        obj[key] = 1;
+        return obj;
+      }, {}) || {};
   $: if ($collections['employee-reviews'] && $routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = _id
       ? $collections['employee-reviews'].find((doc) => doc._id === _id)
@@ -91,27 +99,12 @@
           jobTitle: {},
           majorOpportunitiesForImprovements: '',
           majorStrengths: '',
-          potentialForAdvancment: '',
-          ratings: [...initialRatings],
+          potentialForAdvancement: '',
+          ratings: { ...initialRatings },
           recommendedDevelopmentPlan: '',
           user: ''
         };
   }
-  $: initialRatings =
-    [...$collections?.['employee-ratings']]
-      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-      .map(({ name: legend }) => {
-        return {
-          legend,
-          key: legend
-            ?.split(' ')
-            ?.map((word, i) =>
-              i === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.slice(1)
-            )
-            ?.join(''),
-          value: 0
-        };
-      }) || [];
   $: if ($collections['job-titles']) {
     jobTitleOptions = [
       { label: '', value: '' },
@@ -181,23 +174,21 @@
     {#if $routeStates[$page.url.pathname].user !== ''}
       <div class="flex flex-col space-y-[2rem] lg:flex-row lg:space-y-0 lg:space-x-[2rem]">
         <div class="flex flex-col space-y-[1rem] lg:items-start">
-          <div class="grid grid-cols-[auto_auto_auto_auto_auto] gap-[1rem] items-center">
-            <div class="font-bold">Ratings</div>
-            {#each [...Array(4)] as _, i}
-              <div class="text-center">{i}</div>
+          <div class="grid grid-cols-[auto_1fr_1rem] gap-[1rem] items-center">
+            <div class="font-bold col-span-3">Ratings</div>
+            {#each Object.keys($routeStates[$page.url.pathname].ratings) as key}
+              <div>{key[0].toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}</div>
+              <Range bind:value={$routeStates[$page.url.pathname].ratings[key]} max="9" min="1" />
+              <div class="text-right">{$routeStates[$page.url.pathname].ratings[key]}</div>
             {/each}
-            {#each $routeStates[$page.url.pathname].ratings as rating}
-              <div>{rating.legend}</div>
-              {#each [...Array(4)] as _, i}
-                <div class="text-center">
-                  <Radio bind:group={rating.value} class="mx-auto" value={i} />
-                </div>
-              {/each}
-            {/each}
-            <div class="font-bold">Total</div>
-            <div class="text-right col-span-4">
-              {[...$routeStates[$page.url.pathname].ratings].reduce((t, obj) => t + obj.value, 0)} /
-              {$routeStates[$page.url.pathname].ratings.length * 3}
+            <div class="font-bold col-span-2">Overall</div>
+            <div class="text-right">
+              {Math.round(
+                [...Object.values($routeStates[$page.url.pathname].ratings)].reduce(
+                  (t, v) => t + v,
+                  0
+                ) / Object.keys($routeStates[$page.url.pathname].ratings).length
+              )}
             </div>
           </div>
         </div>
@@ -211,9 +202,9 @@
             />
           </Fieldset>
           <Fieldset legend="Potential for Advancement">
-            {#each potentialForAdvancments as { label, value }}
+            {#each potentialForAdvancements as { label, value }}
               <Radio
-                bind:group={$routeStates[$page.url.pathname].potentialForAdvancment}
+                bind:group={$routeStates[$page.url.pathname].potentialForAdvancement}
                 class="mr-[1rem]"
                 {value}
               >

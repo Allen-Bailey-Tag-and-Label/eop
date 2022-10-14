@@ -32,7 +32,7 @@
     },
     {
       formula: `
-        return obj.row.ratings.reduce((total, obj) => total + obj.value, 0);
+        return Object.values(obj.row.ratings).reduce((total, value) => total + value, 0);
       `,
       innerHTML: 'Score',
       key: 'score',
@@ -40,7 +40,7 @@
     },
     {
       formula: `
-        return obj.row.ratings.reduce((total, obj) => total + 3, 0);
+        return Object.keys(obj.row.ratings).length * 9;
       `,
       innerHTML: 'Total',
       key: 'total',
