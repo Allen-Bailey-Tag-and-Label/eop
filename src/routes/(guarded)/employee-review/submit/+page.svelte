@@ -62,6 +62,7 @@
   };
 
   // props (internal)
+  let departmentOptions = [];
   let jobTitleOptions = [];
   const potentialForAdvancements = [
     { label: 'N/A', value: '' },
@@ -95,6 +96,7 @@
     $routeStates[$page.url.pathname] = _id
       ? $collections['employee-reviews'].find((doc) => doc._id === _id)
       : {
+          department: '',
           evaluator: data?.user?._id,
           jobTitle: {},
           majorOpportunitiesForImprovements: '',
@@ -105,6 +107,14 @@
           user: ''
         };
   }
+  $: if ($collections['departments']) {
+    departmentOptions = [
+      { label: '', value: '' },
+      ...[...$collections['departments']].map(({ _id, name }) => {
+        return { label: name, value: _id };
+      })
+    ].sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
+  }
   $: if ($collections['job-titles']) {
     jobTitleOptions = [
       { label: '', value: '' },
@@ -114,6 +124,7 @@
     ].sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
   }
   $: if (
+    $collections.departments &&
     $collections['job-titles'] &&
     $collections.users &&
     $routeStates[$page.url.pathname].user
@@ -122,9 +133,12 @@
       ({ _id }) => _id === $routeStates?.[$page.url.pathname]?.user
     );
     $routeStates[$page.url.pathname].user = user?._id;
+    $routeStates[$page.url.pathname].department = $collections.departments.find(
+      ({ _id }) => _id === user?.department
+    )?._id;
     $routeStates[$page.url.pathname].jobTitle = $collections['job-titles'].find(
       ({ _id }) => _id === user?.jobTitle
-    )._id;
+    )?._id;
   }
   $: if ($collections.users) {
     const department = $collections.departments.find(
@@ -160,6 +174,14 @@
         />
       </Fieldset>
       {#if $routeStates[$page.url.pathname].user !== ''}
+        <Fieldset legend="Department">
+          <Select
+            disabled={true}
+            options={departmentOptions}
+            readonly={true}
+            value={$routeStates[$page.url.pathname].department}
+          />
+        </Fieldset>
         <Fieldset legend="Job Title">
           <Select
             disabled={true}
