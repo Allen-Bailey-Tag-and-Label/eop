@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { DBButtonFilter, DBButtonRemove, DBTable, TitleBar } from '$components';
   import { collections, routeStates } from '$stores';
+  import Options from './Options.svelte';
 
   // utilities
 
@@ -47,10 +48,9 @@
       type: 'formula'
     },
     {
-      clickHandler: ({ row }) => goto(`/employee-review/edit/${row._id}`),
-      innerHTML: 'Edit',
-      key: 'edit',
-      type: 'button'
+      component: Options,
+      innerHTML: 'Options',
+      key: 'edit'
     }
   ];
   let methods = undefined;
