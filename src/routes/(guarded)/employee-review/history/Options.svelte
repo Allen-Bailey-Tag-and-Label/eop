@@ -8,6 +8,16 @@
     const doc = { ...$collections['employee-reviews'].find(({ _id }) => _id === row._id) };
 
     // update doc fields
+    doc.dateFrom = [
+      new Date(doc.dateFrom).getMonth() + 1,
+      new Date(doc.dateFrom).getDate() + 1,
+      new Date(doc.dateFrom).getFullYear()
+    ].join('/');
+    doc.dateTo = [
+      new Date(doc.dateTo).getMonth() + 1,
+      new Date(doc.dateTo).getDate() + 1,
+      new Date(doc.dateTo).getFullYear()
+    ].join('/');
     doc.department = $collections['departments'].find(({ _id }) => _id === doc.department).name;
     doc.jobTitle = $collections['job-titles'].find(({ _id }) => _id === doc.jobTitle).jobTitle;
     doc.overall = Math.round(

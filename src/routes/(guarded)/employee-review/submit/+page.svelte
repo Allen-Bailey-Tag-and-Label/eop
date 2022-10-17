@@ -18,6 +18,12 @@
   // utilities
   const formReset = () => {
     $routeStates[$page.url.pathname] = {
+      dateFrom: [new Date().getFullYear() - 1, new Date().getMonth() + 1, new Date().getDate() + 1]
+        .map((date) => date.toString().padStart(2, '0'))
+        .join('-'),
+      dateTo: [new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()]
+        .map((date) => date.toString().padStart(2, '0'))
+        .join('-'),
       department: '',
       evaluator: data?.user?._id,
       jobTitle: {},
@@ -26,16 +32,6 @@
       potentialForAdvancement: '',
       ratings: { ...initialRatings },
       recommendedDevelopmentPlan: '',
-      reviewFrom: [
-        new Date().getFullYear() - 1,
-        new Date().getMonth() + 1,
-        new Date().getDate() + 1
-      ]
-        .map((date) => date.toString().padStart(2, '0'))
-        .join('-'),
-      reviewTo: [new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()]
-        .map((date) => date.toString().padStart(2, '0'))
-        .join('-'),
       user: ''
     };
   };
@@ -202,10 +198,10 @@
         </Fieldset>
         <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
           <Fieldset legend="Review From">
-            <Input bind:value={$routeStates[$page.url.pathname].reviewFrom} type="date" />
+            <Input bind:value={$routeStates[$page.url.pathname].dateFrom} type="date" />
           </Fieldset>
           <Fieldset legend="Review To">
-            <Input bind:value={$routeStates[$page.url.pathname].reviewTo} type="date" />
+            <Input bind:value={$routeStates[$page.url.pathname].dateTo} type="date" />
           </Fieldset>
         </div>
       {/if}
