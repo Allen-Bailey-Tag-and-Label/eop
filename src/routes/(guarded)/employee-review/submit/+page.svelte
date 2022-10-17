@@ -1,11 +1,44 @@
 <script>
   import { browser } from '$app/environment';
   import { page } from '$app/stores';
-  import { Button, Fieldset, Form, Radio, Range, Select, Textarea, TitleBar } from '$components';
+  import {
+    Button,
+    Fieldset,
+    Form,
+    Input,
+    Radio,
+    Range,
+    Select,
+    Textarea,
+    TitleBar
+  } from '$components';
   import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates } from '$stores';
 
   // utilities
+  const formReset = () => {
+    $routeStates[$page.url.pathname] = {
+      department: '',
+      evaluator: data?.user?._id,
+      jobTitle: {},
+      majorOpportunitiesForImprovements: '',
+      majorStrengths: '',
+      potentialForAdvancement: '',
+      ratings: { ...initialRatings },
+      recommendedDevelopmentPlan: '',
+      reviewFrom: [
+        new Date().getFullYear() - 1,
+        new Date().getMonth() + 1,
+        new Date().getDate() + 1
+      ]
+        .map((date) => date.toString().padStart(2, '0'))
+        .join('-'),
+      reviewTo: [new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()]
+        .map((date) => date.toString().padStart(2, '0'))
+        .join('-'),
+      user: ''
+    };
+  };
 
   // handlers
   const submitHandler = async (e) => {
@@ -16,22 +49,18 @@
     if (_id) {
       formData.append('query', JSON.stringify({ _id }));
       const update = {
-        $set: {
-          evaluator: $routeStates[$page.url.pathname].evaluator,
-          jobTitle: $routeStates[$page.url.pathname].jobTitle,
-          majorOpportunitiesForImprovements:
-            $routeStates[$page.url.pathname].majorOpportunitiesForImprovements,
-          majorStrengths: $routeStates[$page.url.pathname].majorStrengths,
-          potentialForAdvancement: $routeStates[$page.url.pathname].potentialForAdvancement,
-          ratings: $routeStates[$page.url.pathname].ratings,
-          recommendedDevelopmentPlan: $routeStates[$page.url.pathname].recommendedDevelopmentPlan,
-          user: $routeStates[$page.url.pathname].user
-        }
+        $set: Object.keys($routeStates[$page.url.pathname]).reduce((obj, key) => {
+          obj[key] = $routeStates[$page.url.pathname][key];
+          return obj;
+        }, {})
       };
       formData.append('update', JSON.stringify(update));
     }
     if (_id === undefined) {
-      const insert = $routeStates[$page.url.pathname];
+      const insert = Object.keys($routeStates[$page.url.pathname]).reduce((obj, key) => {
+        obj[key] = $routeStates[$page.url.pathname][key];
+        return obj;
+      }, {});
       insert.date = `${new Date().getFullYear()}-${(new Date().getMonth() + 1)
         .toString()
         .padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')}`;
@@ -47,18 +76,7 @@
     } = await response.json();
     socketio.emit(`db.${_id ? 'update' : 'create'}.doc`, { collection: 'employee-reviews', doc });
     if (_id !== undefined && browser) window.history.back();
-    if (_id === undefined) {
-      $routeStates[$page.url.pathname] = {
-        evaluator: data?.user?._id,
-        jobTitle: {},
-        majorOpportunitiesForImprovements: '',
-        majorStrengths: '',
-        potentialForAdvancement: '',
-        ratings: [...initialRatings],
-        recommendedDevelopmentPlan: '',
-        user: ''
-      };
-    }
+    if (_id === undefined) formReset();
   };
 
   // props (internal)
@@ -93,19 +111,11 @@
         return obj;
       }, {}) || {};
   $: if ($collections['employee-reviews'] && $routeStates?.[$page.url.pathname] === undefined) {
-    $routeStates[$page.url.pathname] = _id
-      ? $collections['employee-reviews'].find((doc) => doc._id === _id)
-      : {
-          department: '',
-          evaluator: data?.user?._id,
-          jobTitle: {},
-          majorOpportunitiesForImprovements: '',
-          majorStrengths: '',
-          potentialForAdvancement: '',
-          ratings: { ...initialRatings },
-          recommendedDevelopmentPlan: '',
-          user: ''
-        };
+    if (_id !== undefined)
+      $routeStates[$page.url.pathname] = $collections['employee-reviews'].find(
+        (doc) => doc._id === _id
+      );
+    if (_id === undefined) formReset();
   }
   $: if ($collections['departments']) {
     departmentOptions = [
@@ -189,6 +199,12 @@
             readonly={true}
             value={$routeStates[$page.url.pathname].jobTitle}
           />
+        </Fieldset>
+        <Fieldset legend="Review From">
+          <Input bind:value={$routeStates[$page.url.pathname].reviewFrom} type="date" />
+        </Fieldset>
+        <Fieldset legend="Review To">
+          <Input bind:value={$routeStates[$page.url.pathname].reviewTo} type="date" />
         </Fieldset>
       {/if}
     </div>
