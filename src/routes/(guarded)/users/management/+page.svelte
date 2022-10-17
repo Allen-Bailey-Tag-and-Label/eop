@@ -46,6 +46,16 @@
       { innerHTML: 'Extension', key: 'extension', mask: 'extension' },
       { innerHTML: 'Hire Date', key: 'hireDate', type: 'date' },
       {
+        innerHTML: 'Job Title',
+        key: 'jobTitle',
+        options: [...$collections['job-titles']]
+          .sort((a, b) => (a.jobTitle < b.jobTitle ? -1 : a.jobTitle > b.jobTitle ? 1 : 0))
+          .map(({ _id, jobTitle }) => {
+            return { label: jobTitle, value: _id };
+          }),
+        type: 'select'
+      },
+      {
         innerHTML: 'PT/FT',
         key: 'pt-ft',
         options: [...$collections['pt-ft']]
