@@ -187,20 +187,18 @@
       </Fieldset>
       {#if $routeStates[$page.url.pathname].user !== ''}
         <Fieldset legend="Department">
-          <Select
-            disabled={true}
-            options={departmentOptions}
-            readonly={true}
-            value={$routeStates[$page.url.pathname].department}
-          />
+          <div class="py-[.5rem]">
+            {$collections?.['departments']?.find(
+              ({ _id }) => _id === $routeStates?.[$page.url.pathname]?.department
+            )?.name}
+          </div>
         </Fieldset>
         <Fieldset legend="Job Title">
-          <Select
-            disabled={true}
-            options={jobTitleOptions}
-            readonly={true}
-            value={$routeStates[$page.url.pathname].jobTitle}
-          />
+          <div class="py-[.5rem]">
+            {$collections?.['job-titles']?.find(
+              ({ _id }) => _id === $routeStates?.[$page.url.pathname]?.jobTitle
+            )?.jobTitle}
+          </div>
         </Fieldset>
         <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
           <Fieldset legend="Review From">
