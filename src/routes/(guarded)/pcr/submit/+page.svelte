@@ -6,6 +6,26 @@
   import codesAndDescriptions from '../codes-and-descriptions';
 
   // utilities
+  const formReset = () => {
+    let date = new Date();
+    const day = date.getDay();
+    const dayOffset = 14 + ((7 - day) % 7);
+    date = new Date(date.getTime() + 1000 * 60 * 60 * 24 * dayOffset);
+
+    $routeStates[$page.url.pathname] = {
+      _userId: '',
+      jobTitle: {},
+      newPCR: {
+        after: format.currency(0),
+        code: '',
+        date: [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+          .map((d) => d.toString().padStart(2, '0'))
+          .join('-')
+      },
+      previousPCR: {},
+      user: {}
+    };
+  };
 
   // handlers
   const submitHandler = async (e) => {
@@ -92,29 +112,6 @@
       maximumFractionDigits: 2
     }).format
   };
-  const initialRatings = [
-    'Quality',
-    'Quantity',
-    'Job Knowledge',
-    'Judgment',
-    'Initiative',
-    'Interpersonal Skills',
-    'Work Habits',
-    'Dependability',
-    'Attitude',
-    'Attendance'
-  ]
-    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-    .map((legend) => {
-      return {
-        legend,
-        key: legend
-          .split(' ')
-          .map((word, i) => (i === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.slice(1)))
-          .join(''),
-        value: 0
-      };
-    });
   let userOptions = [];
 
   // props (external)
@@ -125,30 +122,7 @@
 
   // props (dynamic)
   $: if ($routeStates?.[$page.url.pathname] === undefined) {
-    let date = new Date();
-    const day = date.getDay();
-    const dayOffset = 14 + ((7 - day) % 7);
-    date = new Date(date.getTime() + 1000 * 60 * 60 * 24 * dayOffset);
-
-    $routeStates[$page.url.pathname] = {
-      _userId: '',
-      jobTitle: {},
-      newPCR: {
-        after: format.currency(0),
-        code: '',
-        date: `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
-          .getDate()
-          .toString()
-          .padStart(2, '0')}`,
-        description: '',
-        explanation: '',
-        percent: format.percent(0),
-        previous: format.currency(0)
-      },
-      previousPCR: {},
-      ratings: [...initialRatings],
-      user: {}
-    };
+    formReset();
   }
   $: if ($collections['job-titles'] && $routeStates?.[$page.url.pathname]?._userId) {
     $routeStates[$page.url.pathname].jobTitle = $collections['job-titles'].find(
@@ -191,28 +165,6 @@
       />
     </Fieldset>
     {#if $routeStates[$page.url.pathname]._userId !== ''}
-      <div class="flex flex-col space-y-[1rem] lg:items-start">
-        <div class="grid grid-cols-[auto_auto_auto_auto_auto] gap-[1rem] items-center">
-          <div class="font-bold">Ratings</div>
-          {#each [...Array(4)] as _, i}
-            <div class="text-center">{i}</div>
-          {/each}
-          {#each $routeStates[$page.url.pathname].ratings as rating}
-            <div>{rating.legend}</div>
-            {#each [...Array(4)] as _, i}
-              <div class="text-center">
-                <Radio bind:group={rating.value} class="mx-auto" value={i} />
-              </div>
-            {/each}
-          {/each}
-          <div class="font-bold">Total</div>
-          <div class="text-right col-span-4">
-            {[...$routeStates[$page.url.pathname].ratings].reduce((t, obj) => t + obj.value, 0)} / {$routeStates[
-              $page.url.pathname
-            ].ratings.length * 3}
-          </div>
-        </div>
-      </div>
       <div class="flex flex-col space-y-[2rem] lg:flex-row lg:space-y-0 lg:space-x-[2rem]">
         <div class="flex flex-col space-y-[1rem] lg:items-start lg:flex-grow">
           <div class="font-bold">Last Change</div>
