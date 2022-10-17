@@ -26,14 +26,14 @@
 <Td>
   {#if editable}
     <Checkbox
-      checked={value}
+      checked={row[column.key]}
       class="mx-auto"
       on:click={(e) => {
-        value = e.target.checked;
+        row[column.key] = e.target.checked;
         const fieldCollection = column?.collection === undefined ? collection : column?.collection;
         const query = { _id: row._id };
         const update = { $set: {} };
-        update.$set[column.key] = value;
+        update.$set[column.key] = row[column.key];
         updateField({ collection: fieldCollection, query, update });
       }}
       on:keydown={(e) => {
@@ -41,6 +41,6 @@
       }}
     />
   {:else}
-    {value}
+    {row[column.key]}
   {/if}
 </Td>
