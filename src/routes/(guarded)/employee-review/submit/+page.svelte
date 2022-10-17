@@ -174,7 +174,9 @@
     on:submit={submitHandler}
     use={[]}
   >
-    <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
+    <div
+      class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem] lg:flex-wrap"
+    >
       <Fieldset legend="Employee">
         <Select
           disabled={_id ? true : undefined}
@@ -200,12 +202,14 @@
             value={$routeStates[$page.url.pathname].jobTitle}
           />
         </Fieldset>
-        <Fieldset legend="Review From">
-          <Input bind:value={$routeStates[$page.url.pathname].reviewFrom} type="date" />
-        </Fieldset>
-        <Fieldset legend="Review To">
-          <Input bind:value={$routeStates[$page.url.pathname].reviewTo} type="date" />
-        </Fieldset>
+        <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
+          <Fieldset legend="Review From">
+            <Input bind:value={$routeStates[$page.url.pathname].reviewFrom} type="date" />
+          </Fieldset>
+          <Fieldset legend="Review To">
+            <Input bind:value={$routeStates[$page.url.pathname].reviewTo} type="date" />
+          </Fieldset>
+        </div>
       {/if}
     </div>
 
