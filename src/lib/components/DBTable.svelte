@@ -1,26 +1,11 @@
 <script>
   import { twMerge } from 'tailwind-merge';
   import { browser } from '$app/environment';
-  import {
-    Button,
-    Checkbox,
-    ContextMenu,
-    DBThead,
-    DBTr,
-    DBPagination,
-    Fieldset,
-    Icon,
-    Select,
-    Table,
-    Td,
-    Th,
-    Thead,
-    Tr
-  } from '$components';
+  import { Checkbox, DBThead, DBTr, DBPagination, Icon, Table, Td } from '$components';
   import { Check } from '$icons';
   import { sanitizeColumns, sanitizeRows } from '$lib/mongoTable';
   import { clientConnection as socketio } from '$lib/socketio';
-  import { theme } from '$stores';
+  import { collections, theme } from '$stores';
 
   // utilities
   const changeTableFocus = (i, j) => {
@@ -104,6 +89,14 @@
           const type = column?.type;
           let aValue = key?.split('.')?.reduce((o, k) => o?.[k], a);
           let bValue = key?.split('.')?.reduce((o, k) => o?.[k], b);
+          if (type === 'collection-populate') {
+            aValue = $collections?.[column?.collection]?.find((doc) => doc._id === aValue)?.[
+              column?.populateField
+            ];
+            bValue = $collections?.[column?.collection]?.find((doc) => doc._id === bValue)?.[
+              column?.populateField
+            ];
+          }
           if (type === 'currency') {
             aValue = +aValue;
             bValue = +bValue;
