@@ -5,29 +5,33 @@ import { MongoClient } from 'mongodb';
 const options = { useUnifiedTopology: true };
 
 // initialize client and connection
-let client, connection;
-
-// close connection
-const close = () => client.close();
+let client = {};
+let connection = {};
 
 // create connection
-const connect = async () => {
+const connect = async (params) => {
+  // get db
+  const db = params?.db || process.env.MONGODB_DB;
+
   // check if client is undefined
-  if (client === undefined) {
-    client = new MongoClient(
+  if (client[db] === undefined) {
+    client[db] = new MongoClient(
       process.env.MONGODB_CONNECTION_STRING.replace(
         '<password>',
         process.env.MONGODB_PASSWORD
-      ).replace('?retryWrites', `${process.env.MONGODB_DB}?retryWrites`)
+      ).replace('?retryWrites', `${db}?retryWrites`)
     );
-    connection = await client.connect();
+    connection[db] = await client[db].connect();
   }
-  return client;
+  return client[db];
 };
 
 const create = async (params) => {
+  // get db
+  const db = params?.db || process.env.MONGODB_DB;
+
   // connect to db
-  const client = await connect();
+  const client = await connect({ db });
 
   // default parameters
   const defaultParams = {
@@ -44,8 +48,11 @@ const create = async (params) => {
 };
 
 const find = async (params) => {
+  // get db
+  const db = params?.db || process.env.MONGODB_DB;
+
   // connect to db
-  const client = await connect();
+  const client = await connect({ db });
 
   // default parameters
   const defaultParams = {
@@ -64,8 +71,11 @@ const find = async (params) => {
 };
 
 const remove = async (params) => {
+  // get db
+  const db = params?.db || process.env.MONGODB_DB;
+
   // connect to db
-  const client = await connect();
+  const client = await connect({ db });
 
   // default parameters
   const defaultParams = {
@@ -82,8 +92,11 @@ const remove = async (params) => {
 };
 
 const update = async (params) => {
+  // get db
+  const db = params?.db || process.env.MONGODB_DB;
+
   // connect to db
-  const client = await connect();
+  const client = await connect({ db });
 
   // default parameters
   const defaultParams = {
