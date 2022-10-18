@@ -9,37 +9,21 @@
 
   // props (internal)
   let collection = 'pay-change-requests';
-  let columns = [
-    {
-      collection: 'users',
-      innerHTML: 'First',
-      key: 'user',
-      populateField: 'firstName',
-      type: 'collection-populate'
-    },
-    {
-      collection: 'users',
-      innerHTML: 'Last',
-      key: 'user',
-      populateField: 'lastName',
-      type: 'collection-populate'
-    },
-    { innerHTML: 'Date', key: 'change.date', type: 'date' },
-    {
-      innerHTML: 'Status',
-      key: 'status',
-      options: [
-        { label: 'Approved', value: 'Approved' },
-        { label: 'Submitted', value: 'Submitted' }
-      ],
-      type: 'select'
-    }
-  ];
+  let columns = [];
   let methods = undefined;
 
-  if ($routeStates?.[$page.url.pathname] === undefined) {
+  // props (external)
+  export let data;
+  export let editable = true;
+  export let filters = [
+    { field: 'requestedBy', operator: 'is', value: [data?.user?._id, ''], visible: false }
+  ];
+  export let title = 'PCR - Status / History';
+
+  // props (dynamic)
+  $: if ($routeStates?.[$page.url.pathname] === undefined) {
     $routeStates[$page.url.pathname] = {
-      filters: [],
+      filters,
       pagination: {
         length: undefined,
         page: undefined
@@ -51,12 +35,47 @@
       }
     };
   }
-
-  // props (external)
-  export let editable = false;
-  export let title = 'PCR - Status / History';
-
-  // props (dynamic)
+  $: if ($collections.users) {
+    columns = [
+      {
+        collection: 'users',
+        innerHTML: 'First',
+        key: 'user',
+        populateField: 'firstName',
+        type: 'collection-populate'
+      },
+      {
+        collection: 'users',
+        innerHTML: 'Last',
+        key: 'user',
+        populateField: 'lastName',
+        type: 'collection-populate'
+      },
+      {
+        innerHTML: 'Requested By',
+        key: 'requestedBy',
+        options: [
+          { label: '', value: '' },
+          ...[...$collections.users]
+            .map((user) => {
+              return { label: `${user.firstName} ${user.lastName}`, value: user._id };
+            })
+            .sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0))
+        ],
+        type: 'select'
+      },
+      { innerHTML: 'Date', key: 'change.date', type: 'date' },
+      {
+        innerHTML: 'Status',
+        key: 'status',
+        options: [
+          { label: 'Approved', value: 'Approved' },
+          { label: 'Submitted', value: 'Submitted' }
+        ],
+        type: 'select'
+      }
+    ];
+  }
   $: if ($collections[collection] && methods !== undefined)
     methods.update.rows($collections[collection]);
 </script>

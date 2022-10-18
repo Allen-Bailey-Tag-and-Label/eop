@@ -1,6 +1,7 @@
 <script>
   import { page } from '$app/stores';
   import { A, Button, Fieldset, Form, Input, Radio, Select, Textarea, TitleBar } from '$components';
+  import fileGeneration from '$lib/fileGeneration';
   import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates, theme } from '$stores';
   import codesAndDescriptions from '../codes-and-descriptions';
@@ -76,6 +77,7 @@
       data: { doc }
     } = await response.json();
     socketio.emit('db.create.doc', { collection: 'pay-change-requests', doc });
+    formReset();
   };
   const userChangeHandler = () => {
     $routeStates[$page.url.pathname].previousPCR =
@@ -124,10 +126,9 @@
     user._id !== data.user._id && user.department === department._id;
 
   // props (dynamic)
-  $: if ($routeStates?.[$page.url.pathname] === undefined) {
-    formReset();
-  }
-  $: if ($collections?.['employee-reviews']) {
+  $: if ($routeStates?.[$page.url.pathname] === undefined) formReset();
+  $: if ($collections['employee-reviews']) {
+    if ($routeStates?.[$page.url.pathname] === undefined) formReset();
     reviewOptions =
       $routeStates?.[$page.url.pathname]?._userId === ''
         ? []
@@ -135,7 +136,7 @@
             .filter(({ date, user }) => {
               const dateDiff = new Date() - new Date(date);
               if (dateDiff > 1000 * 60 * 60 * 24 * 365) return false;
-              if (user !== $routeStates[$page.url.pathname]._userId) return false;
+              if (user !== $routeStates[$page.url.pathname]?._userId) return false;
               return true;
             })
             .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
@@ -151,12 +152,14 @@
     if (reviewOptions.length === 1)
       $routeStates[$page.url.pathname].review = reviewOptions[0].value;
   }
-  $: if ($collections['job-titles'] && $routeStates?.[$page.url.pathname]?._userId) {
+  $: if ($collections['job-titles']) {
+    if ($routeStates?.[$page.url.pathname] === undefined) formReset();
     $routeStates[$page.url.pathname].jobTitle = $collections['job-titles'].find(
-      ({ _id }) => _id === $routeStates[$page.url.pathname].user.jobTitle
+      ({ _id }) => _id === $routeStates[$page.url.pathname]?.user?.jobTitle
     );
   }
   $: if ($collections.users) {
+    if ($routeStates?.[$page.url.pathname] === undefined) formReset();
     $routeStates[$page.url.pathname].user =
       $collections.users.find(({ _id }) => _id === $routeStates?.[$page.url.pathname]?._userId) ||
       {};
@@ -194,9 +197,16 @@
     {#if $routeStates[$page.url.pathname]._userId !== ''}
       <Fieldset legend="Review">
         {#if reviewOptions.length === 0}
-          <A class="{$theme.button} before:hidden lg:self-start" href="/employee-review/submit"
-            >Submit</A
+          <A
+            class="{$theme.button} before:hidden lg:self-start"
+            href={`/employee-review/${
+              $page.url.pathname === '/pcr/submit' ? 'submit' : 'submit-admin'
+            }?_id=${$routeStates[$page.url.pathname]._userId}&redirect=${encodeURIComponent(
+              $page.url.pathname === '/pcr/submit' ? '/pcr/submit' : '/pcr/submit-admin'
+            )}`}
           >
+            Submit
+          </A>
         {:else}
           <Select
             bind:value={$routeStates[$page.url.pathname].review}

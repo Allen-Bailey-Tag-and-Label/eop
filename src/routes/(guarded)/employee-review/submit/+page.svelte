@@ -1,5 +1,7 @@
 <script>
+  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import {
     Button,
@@ -71,8 +73,9 @@
       data: { doc }
     } = await response.json();
     socketio.emit(`db.${_id ? 'update' : 'create'}.doc`, { collection: 'employee-reviews', doc });
-    if (_id !== undefined && browser) window.history.back();
-    if (_id === undefined) formReset();
+    if (data?.redirect) goto(data.redirect);
+    if (_id !== undefined && browser) return window.history.back();
+    if (_id === undefined) return formReset();
   };
 
   // props (internal)
@@ -159,6 +162,10 @@
         })
     ].sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
   }
+
+  onMount(() => {
+    $routeStates[$page.url.pathname].user = data?._id ? data._id : '';
+  });
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
