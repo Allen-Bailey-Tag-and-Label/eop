@@ -113,4 +113,4 @@ const update = async (params) => {
   await client.db().collection(collection).updateMany(query, update, options);
 };
 
-export { create, find, remove, update };
+export { connect, create, find, remove, update };
