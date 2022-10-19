@@ -1,11 +1,26 @@
 import 'dotenv/config';
-import { readFile } from 'fs/promises';
+import { readdir, readFile } from 'fs/promises';
+import { ObjectId } from 'mongodb';
 import { resolve } from 'path';
 import db from '$db';
 
 export async function POST({ request }) {
-  // destructure request.formData
-  const { db: dbName, date } = Object.fromEntries(await request.formData());
+  // initialize dbName & date variables
+  let dbName, date;
+
+  try {
+    // destructure request.formData
+    let { db: dbName, date } = Object.fromEntries(await request?.formData()) || {};
+  } catch (error) {}
+
+  // check if no db provided
+  if (dbName === undefined) dbName = process.env.MONGODB_DB;
+
+  // check if no date provided
+  if (date === undefined) {
+    const files = await readdir(resolve(process.env.DB_BACKUP_DIR, dbName));
+    date = files.sort((a, b) => (a < b ? 1 : a > b ? 1 : 0))[0].replace(/\.json/g, '');
+  }
 
   // initialize connection to db
   const client = await db.connect({ db: dbName });
@@ -21,7 +36,10 @@ export async function POST({ request }) {
       await client.db().collection(collection).deleteMany();
 
       // get backup docs
-      const docs = contents[collection];
+      const docs = contents[collection].map((doc) => {
+        doc._id = ObjectId(doc._id);
+        return doc;
+      });
 
       // insert backup docs
       await client.db().collection(collection).insertMany(docs);
