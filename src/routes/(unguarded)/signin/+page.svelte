@@ -1,16 +1,31 @@
 <script>
-  import { enhance } from '$app/forms';
-  import { A, Button, Fieldset, Form, H5, Input } from '$components';
+  import { applyAction, enhance } from '$app/forms';
+  import { A, ButtonSubmit, Fieldset, Form, H5, Input } from '$components';
 
   // props (internal)
   let password = '';
+  let submitted = false;
   let username = '';
 
   // props (external)
   export let form;
 </script>
 
-<Form use={[enhance]}>
+<Form
+  use={[
+    [
+      enhance,
+      () => {
+        form = {};
+        submitted = true;
+        return async ({ result }) => {
+          await applyAction(result);
+          if (result.type === 'invalid') submitted = false;
+        };
+      }
+    ]
+  ]}
+>
   <H5>Signin</H5>
   <Fieldset legend="Username">
     <Input bind:value={username} name="username" />
@@ -23,7 +38,7 @@
       {form.error.message}
     {/if}
   </div>
-  <Button type="submit">Signin</Button>
+  <ButtonSubmit {submitted}>Signin</ButtonSubmit>
   <div class="flex items-center justify-end">
     <A href="/forgot-password">Forgot Password?</A>
   </div>
