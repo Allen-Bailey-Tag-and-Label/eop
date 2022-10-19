@@ -1,7 +1,7 @@
 <script>
+  import { browser } from '$app/environment';
   import { page } from '$app/stores';
-  import { A, Button, Fieldset, Form, Input, Radio, Select, Textarea, TitleBar } from '$components';
-  import fileGeneration from '$lib/fileGeneration';
+  import { A, Button, Fieldset, Form, Input, Select, Textarea, TitleBar } from '$components';
   import { clientConnection as socketio } from '$lib/socketio';
   import { collections, routeStates, theme } from '$stores';
   import codesAndDescriptions from '../codes-and-descriptions';
@@ -14,18 +14,37 @@
     date = new Date(date.getTime() + 1000 * 60 * 60 * 24 * dayOffset);
 
     $routeStates[$page.url.pathname] = {
-      _userId: '',
-      jobTitle: {},
-      newPCR: {
+      change: {
         after: format.currency(0),
         code: '',
         date: [date.getFullYear(), date.getMonth() + 1, date.getDate()]
           .map((d) => d.toString().padStart(2, '0'))
-          .join('-')
+          .join('-'),
+        description: '',
+        explanation: '',
+        percent: format.percent(0),
+        previous: format.currency(0)
       },
-      previousPCR: {},
+      costCenter: '',
+      eeoClassification: '',
+      jobCode: '',
+      jobTitle: '',
+      previous: {
+        after: format.currency(0),
+        code: '',
+        date: [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+          .map((d) => d.toString().padStart(2, '0'))
+          .join('-'),
+        description: '',
+        explanation: '',
+        percent: format.percent(0),
+        previous: format.currency(0)
+      },
+      requestedBy: data.user._id,
       review: '',
-      user: {}
+      status: 'Submitted',
+      user: '',
+      workCompClass: ''
     };
   };
 
@@ -33,65 +52,54 @@
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    const { costCenter, jobCode, jobTitle, eeoClassification, workCompClass } =
-      $routeStates[$page.url.pathname].jobTitle;
+    const insert = JSON.parse(JSON.stringify($routeStates[$page.url.pathname]));
+    insert.change.after = +insert.change.after.toString().replace(/(\$|\,)/g, '');
+    insert.change.previous = +insert.change.previous.toString().replace(/(\$|\,)/g, '');
+    insert.change.percent = +insert.change.percent.toString().replace(/(\%|\,)/g, '');
 
-    const insert = {
-      user: $routeStates[$page.url.pathname]._userId,
-      costCenter,
-      jobCode,
-      jobTitle,
-      eeoClassification,
-      workCompClass,
-      change: {
-        after: +$routeStates[$page.url.pathname].newPCR.after.replace(/\$/g, ''),
-        code: $routeStates[$page.url.pathname].newPCR.code,
-        date: $routeStates[$page.url.pathname].newPCR.date,
-        description: $routeStates[$page.url.pathname].newPCR.description,
-        explanation: $routeStates[$page.url.pathname].newPCR.explanation,
-        percent: +$routeStates[$page.url.pathname].newPCR.percent.replace(/\%/g, ''),
-        previous: +$routeStates[$page.url.pathname].newPCR.previous.replace(/\$/g, '')
-      },
-      previous: {
-        after: $routeStates[$page.url.pathname].previousPCR.change.after,
-        code: $routeStates[$page.url.pathname].previousPCR.change.code,
-        date: $routeStates[$page.url.pathname].previousPCR.change.date,
-        description: $routeStates[$page.url.pathname].previousPCR.change.description,
-        explanation: $routeStates[$page.url.pathname].previousPCR.change.explanation,
-        percent: $routeStates[$page.url.pathname].previousPCR.change.percent,
-        previous: $routeStates[$page.url.pathname].previousPCR.change.previous
-      },
-      ratings: $routeStates[$page.url.pathname].ratings,
-      review: $routeStates[$page.url.pathname].review,
-      status: 'Submitted'
-    };
     const formData = new FormData();
     formData.append('collection', 'pay-change-requests');
-    formData.append('insert', JSON.stringify(insert));
 
-    const response = await fetch('/api/db?/create', {
+    if (data?._id) {
+      formData.append('query', JSON.stringify({ _id: data._id }));
+      formData.append('update', JSON.stringify({ $set: insert }));
+    }
+    if (!data?._id) formData.append('insert', JSON.stringify(insert));
+
+    const response = await fetch(`/api/db?/${data?._id ? 'update' : 'create'}`, {
       body: formData,
       method: 'POST'
     });
+
     const {
       data: { doc }
     } = await response.json();
-    socketio.emit('db.create.doc', { collection: 'pay-change-requests', doc });
+    socketio.emit(`db.${data?._id ? 'update' : 'create'}.doc`, {
+      collection: 'pay-change-requests',
+      doc
+    });
     formReset();
+    if (data?._id !== undefined && browser) return window.history.back();
   };
   const userChangeHandler = () => {
-    $routeStates[$page.url.pathname].previousPCR =
+    const user = $collections.users.find(
+      ({ _id }) => _id === $routeStates[$page.url.pathname].user
+    );
+    $routeStates[$page.url.pathname].previous =
       [...$collections['pay-change-requests']]
-        .filter(({ user }) => user === $routeStates[$page.url.pathname]._userId)
+        .filter(({ user }) => user === $routeStates[$page.url.pathname].user)
         .sort((a, b) =>
           a.change.date < b.change.date ? 1 : a.change.date > b.change.date ? -1 : 0
-        )[0] || {};
-    $routeStates[$page.url.pathname].newPCR.previous = format.currency(
-      $routeStates[$page.url.pathname].previousPCR?.change?.after || 0
-    );
-    $routeStates[$page.url.pathname].newPCR.after =
-      $routeStates[$page.url.pathname].newPCR.previous;
-    $routeStates[$page.url.pathname].newPCR.percent = format.percent(0);
+        )[0]?.change || {};
+    $routeStates[$page.url.pathname].change.previous =
+      user?.exempt === $routeStates[$page.url.pathname].previous?.exempt
+        ? format.currency($routeStates[$page.url.pathname].previous.after || 0)
+        : user?.exempt
+        ? format.currency($routeStates[$page.url.pathname].previous.after * 40 * 52 || 0)
+        : format.currency($routeStates[$page.url.pathname].previous.after / (40 * 52) || 0) || 0;
+    $routeStates[$page.url.pathname].change.after =
+      $routeStates[$page.url.pathname].change.previous;
+    $routeStates[$page.url.pathname].change.percent = format.percent(0);
   };
 
   // props (internal)
@@ -127,16 +135,39 @@
 
   // props (dynamic)
   $: if ($routeStates?.[$page.url.pathname] === undefined) formReset();
-  $: if ($collections['employee-reviews']) {
-    if ($routeStates?.[$page.url.pathname] === undefined) formReset();
+  $: if ($collections['pay-change-requests'] && data?._id) {
+    const doc = [...$collections['pay-change-requests']].find(({ _id }) => _id === data._id);
+    $routeStates[$page.url.pathname] = doc;
+    $routeStates[$page.url.pathname].change.after = format.currency(
+      +$routeStates[$page.url.pathname].change.after.toString().replace(/(\$|\,)/g, '')
+    );
+    $routeStates[$page.url.pathname].change.previous = format.currency(
+      +$routeStates[$page.url.pathname].change.previous.toString().replace(/(\$|\,)/g, '')
+    );
+    $routeStates[$page.url.pathname].change.percent = format.percent(
+      +$routeStates[$page.url.pathname].change.percent.toString().replace(/(\%|\,)/g, '') / 100
+    );
+  }
+  $: if ($collections.users && $routeStates?.[$page.url.pathname]?.user) {
+    const user =
+      $collections.users.find(({ _id }) => _id === $routeStates[$page.url.pathname]?.user) || {};
+    const jobTitle = $collections['job-titles'].find(({ _id }) => _id === user?.jobTitle) || {};
+    $routeStates[$page.url.pathname].change.exempt = user?.exempt;
+    $routeStates[$page.url.pathname].costCenter = jobTitle?.costCenter || '';
+    $routeStates[$page.url.pathname].eeoClassification = jobTitle?.eeoClassification || '';
+    $routeStates[$page.url.pathname].jobCode = jobTitle?.jobCode || '';
+    $routeStates[$page.url.pathname].jobTitle = jobTitle?.jobTitle || '';
+    $routeStates[$page.url.pathname].workCompClass = jobTitle?.workCompClass || '';
+  }
+  $: if ($collections['employee-reviews'] && $routeStates?.[$page.url.pathname] !== undefined) {
     reviewOptions =
-      $routeStates?.[$page.url.pathname]?._userId === ''
+      $routeStates?.[$page.url.pathname]?.user === ''
         ? []
         : [...$collections['employee-reviews']]
             .filter(({ date, user }) => {
               const dateDiff = new Date() - new Date(date);
               if (dateDiff > 1000 * 60 * 60 * 24 * 365) return false;
-              if (user !== $routeStates[$page.url.pathname]?._userId) return false;
+              if (user !== $routeStates[$page.url.pathname]?.user) return false;
               return true;
             })
             .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
@@ -152,17 +183,7 @@
     if (reviewOptions.length === 1)
       $routeStates[$page.url.pathname].review = reviewOptions[0].value;
   }
-  $: if ($collections['job-titles']) {
-    if ($routeStates?.[$page.url.pathname] === undefined) formReset();
-    $routeStates[$page.url.pathname].jobTitle = $collections['job-titles'].find(
-      ({ _id }) => _id === $routeStates[$page.url.pathname]?.user?.jobTitle
-    );
-  }
-  $: if ($collections.users) {
-    if ($routeStates?.[$page.url.pathname] === undefined) formReset();
-    $routeStates[$page.url.pathname].user =
-      $collections.users.find(({ _id }) => _id === $routeStates?.[$page.url.pathname]?._userId) ||
-      {};
+  $: if ($collections.users && $routeStates?.[$page.url.pathname] !== undefined) {
     const department = $collections.departments.find(
       ({ supervisor }) => supervisor === data.user._id
     );
@@ -175,6 +196,14 @@
         })
     ].sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
   }
+  $: formDisabled =
+    $routeStates?.[$page.url.pathname].review === '' ||
+    $routeStates?.[$page.url.pathname].change.date === '' ||
+    $routeStates?.[$page.url.pathname].change.code === '' ||
+    $routeStates?.[$page.url.pathname].change.description === '' ||
+    $routeStates?.[$page.url.pathname].change.explanation === ''
+      ? true
+      : undefined;
 </script>
 
 <div class="flex flex-col flex-grow overflow-hidden">
@@ -188,20 +217,20 @@
   >
     <Fieldset legend="Employee">
       <Select
-        bind:value={$routeStates[$page.url.pathname]._userId}
+        bind:value={$routeStates[$page.url.pathname].user}
         class="lg:self-start"
         on:change={userChangeHandler}
         options={userOptions}
       />
     </Fieldset>
-    {#if $routeStates[$page.url.pathname]._userId !== ''}
+    {#if $routeStates[$page.url.pathname]?.user !== ''}
       <Fieldset legend="Review">
         {#if reviewOptions.length === 0}
           <A
             class="{$theme.button} before:hidden lg:self-start"
             href={`/employee-review/${
               $page.url.pathname === '/pcr/submit' ? 'submit' : 'submit-admin'
-            }?_id=${$routeStates[$page.url.pathname]._userId}&redirect=${encodeURIComponent(
+            }?_id=${$routeStates[$page.url.pathname].user}&redirect=${encodeURIComponent(
               $page.url.pathname === '/pcr/submit' ? '/pcr/submit' : '/pcr/submit-admin'
             )}`}
           >
@@ -211,7 +240,7 @@
           <Select
             bind:value={$routeStates[$page.url.pathname].review}
             class="lg:self-start"
-            options={[{ label: '-- Select Review', value: '' }, ...reviewOptions]}
+            options={reviewOptions}
           />
         {/if}
       </Fieldset>
@@ -224,40 +253,32 @@
                 disabled={true}
                 readonly={true}
                 type="date"
-                value={$routeStates[$page.url.pathname].previousPCR?.change?.date}
+                value={$routeStates[$page.url.pathname].previous?.date}
               />
             </Fieldset>
             <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
               <Fieldset
                 legend={`Previous (${
-                  $routeStates[$page.url.pathname].previousPCR?.change?.exempt
-                    ? 'Annually'
-                    : 'Hourly'
+                  $routeStates[$page.url.pathname].previous?.exempt ? 'Annually' : 'Hourly'
                 })`}
               >
                 <Input
                   class="text-right lg:w-[8rem]"
                   disabled={true}
                   readonly={true}
-                  value={format.currency(
-                    $routeStates[$page.url.pathname].previousPCR?.change?.previous
-                  )}
+                  value={format.currency($routeStates[$page.url.pathname].previous?.previous)}
                 />
               </Fieldset>
               <Fieldset
                 legend={`After (${
-                  $routeStates[$page.url.pathname].previousPCR?.change?.exempt
-                    ? 'Annually'
-                    : 'Hourly'
+                  $routeStates[$page.url.pathname].previous?.exempt ? 'Annually' : 'Hourly'
                 })`}
               >
                 <Input
                   class="text-right lg:w-[8rem]"
                   disabled={true}
                   readonly={true}
-                  value={format.currency(
-                    $routeStates[$page.url.pathname].previousPCR?.change?.after
-                  )}
+                  value={format.currency($routeStates[$page.url.pathname].previous?.after)}
                 />
               </Fieldset>
               <Fieldset legend="Percent">
@@ -266,8 +287,8 @@
                   disabled={true}
                   readonly={true}
                   value={format.percent(
-                    $routeStates[$page.url.pathname].previousPCR?.change?.after /
-                      $routeStates[$page.url.pathname].previousPCR?.change?.previous -
+                    $routeStates[$page.url.pathname].previous?.after /
+                      $routeStates[$page.url.pathname].previous?.previous -
                       1
                   )}
                 />
@@ -280,7 +301,7 @@
                   disabled={true}
                   options={codeOptions}
                   readonly={true}
-                  value={$routeStates[$page.url.pathname].previousPCR?.change?.code}
+                  value={$routeStates[$page.url.pathname].previous?.code}
                 />
               </Fieldset>
               <Fieldset legend="Description">
@@ -288,7 +309,7 @@
                   disabled={true}
                   options={descriptionOptions}
                   readonly={true}
-                  value={$routeStates[$page.url.pathname].previousPCR?.change?.description}
+                  value={$routeStates[$page.url.pathname].previous?.description}
                 />
               </Fieldset>
             </div>
@@ -296,45 +317,47 @@
               <Textarea
                 disabled={true}
                 readonly={true}
-                value={$routeStates[$page.url.pathname].previousPCR?.change?.explanation}
+                value={$routeStates[$page.url.pathname].previous?.explanation}
               />
             </Fieldset>
           </div>
           <div class="flex flex-col space-y-[1rem] lg:items-start lg:flex-grow">
             <div class="font-bold">New Change</div>
             <Fieldset legend="Effective Date">
-              <Input type="date" value={$routeStates[$page.url.pathname].newPCR.date} />
+              <Input type="date" value={$routeStates[$page.url.pathname].change.date} />
             </Fieldset>
             <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
               <Fieldset
                 legend={`Previous (${
-                  $routeStates[$page.url.pathname].newPCR?.exempt ? 'Annually' : 'Hourly'
+                  $routeStates[$page.url.pathname].change?.exempt ? 'Annually' : 'Hourly'
                 })`}
               >
                 <Input
                   class="text-right lg:w-[8rem]"
                   disabled={true}
                   readonly={true}
-                  value={$routeStates[$page.url.pathname].newPCR.previous}
+                  value={$routeStates[$page.url.pathname].change.previous}
                 />
               </Fieldset>
               <Fieldset
                 legend={`After (${
-                  $routeStates[$page.url.pathname].newPCR?.exempt ? 'Annually' : 'Hourly'
+                  $routeStates[$page.url.pathname].change?.exempt ? 'Annually' : 'Hourly'
                 })`}
               >
                 <Input
-                  bind:value={$routeStates[$page.url.pathname].newPCR.after}
+                  bind:value={$routeStates[$page.url.pathname].change.after}
                   class="text-right lg:w-[8rem]"
                   on:blur={() => {
-                    $routeStates[$page.url.pathname].newPCR.after = format.currency(
-                      +$routeStates[$page.url.pathname].newPCR.after.replace(/\$/g, '')
+                    $routeStates[$page.url.pathname].change.after = format.currency(
+                      +$routeStates[$page.url.pathname].change.after.replace(/(\$|\,)/g, '')
                     );
                   }}
                   on:keyup={() => {
-                    $routeStates[$page.url.pathname].newPCR.percent = format.percent(
-                      +$routeStates[$page.url.pathname].newPCR.after.replace(/\$/g, '') /
-                        +$routeStates[$page.url.pathname].newPCR.previous.replace(/\$/g, '') -
+                    $routeStates[$page.url.pathname].change.percent = format.percent(
+                      +$routeStates[$page.url.pathname].change.after.replace(/(\$|\,)/g, '') /
+                        +$routeStates[$page.url.pathname].change.previous
+                          .toString()
+                          .replace(/(\$|\,)/g, '') -
                         1
                     );
                   }}
@@ -342,18 +365,20 @@
               </Fieldset>
               <Fieldset legend="Percent">
                 <Input
-                  bind:value={$routeStates[$page.url.pathname].newPCR.percent}
+                  bind:value={$routeStates[$page.url.pathname].change.percent}
                   class="text-right lg:w-[6rem]"
                   on:blur={() => {
-                    $routeStates[$page.url.pathname].newPCR.percent = format.percent(
-                      +$routeStates[$page.url.pathname].newPCR.percent.replace(/\%/g, '') / 100
+                    $routeStates[$page.url.pathname].change.percent = format.percent(
+                      +$routeStates[$page.url.pathname].change.percent.replace(/(\%|\,)/g, '') / 100
                     );
                   }}
                   on:keyup={() => {
-                    $routeStates[$page.url.pathname].newPCR.after = format.currency(
-                      +$routeStates[$page.url.pathname].newPCR.previous.replace(/\$/g, '') *
+                    $routeStates[$page.url.pathname].change.after = format.currency(
+                      +$routeStates[$page.url.pathname].change.previous
+                        .toString()
+                        .replace(/(\$|\,)/g, '') *
                         (1 +
-                          +$routeStates[$page.url.pathname].newPCR.percent.replace(/\%/g, '') / 100)
+                          +$routeStates[$page.url.pathname].change.percent.replace(/\%/g, '') / 100)
                     );
                   }}
                 />
@@ -362,25 +387,25 @@
             <div class="flex flex-col space-y-[1rem] lg:flex-row lg:space-y-0 lg:space-x-[1rem]">
               <Fieldset legend="Code">
                 <Select
-                  bind:value={$routeStates[$page.url.pathname].newPCR.code}
+                  bind:value={$routeStates[$page.url.pathname].change.code}
                   class="text-right"
                   on:change={() => {
-                    $routeStates[$page.url.pathname].newPCR.description =
-                      codesAndDescriptions[$routeStates[$page.url.pathname].newPCR.code];
+                    $routeStates[$page.url.pathname].change.description =
+                      codesAndDescriptions[$routeStates[$page.url.pathname].change.code];
                   }}
                   options={codeOptions}
                 />
               </Fieldset>
               <Fieldset legend="Description">
                 <Select
-                  bind:value={$routeStates[$page.url.pathname].newPCR.description}
+                  bind:value={$routeStates[$page.url.pathname].change.description}
                   on:change={() => {
-                    $routeStates[$page.url.pathname].newPCR.code = Object.keys(
+                    $routeStates[$page.url.pathname].change.code = Object.keys(
                       codesAndDescriptions
                     ).find(
                       (key) =>
                         codesAndDescriptions[key] ===
-                        $routeStates[$page.url.pathname].newPCR.description
+                        $routeStates[$page.url.pathname].change.description
                     );
                   }}
                   options={descriptionOptions}
@@ -388,11 +413,13 @@
               </Fieldset>
             </div>
             <Fieldset class="w-full" legend="Explanation">
-              <Textarea bind:value={$routeStates[$page.url.pathname].newPCR.explanation} />
+              <Textarea bind:value={$routeStates[$page.url.pathname].change.explanation} />
             </Fieldset>
           </div>
         </div>
-        <Button class="self-end" type="submit">Submit</Button>
+        <Button class="self-end" disabled={formDisabled} type="submit"
+          >{data?._id ? 'Update' : 'Submit'}</Button
+        >
       {/if}
     {/if}
   </Form>

@@ -3,7 +3,7 @@ import { twMerge } from 'tailwind-merge';
 const inputRounded = 'rounded-[.5rem]';
 
 const common = {
-  button: `bg-primary-500 hover:bg-primary-600 focus:bg-primary-600 focus:ring-primary-500/[.3] uppercase ${inputRounded}`,
+  button: `bg-primary-500 hover:bg-primary-600 focus:bg-primary-600 focus:ring-primary-500/[.3] uppercase ${inputRounded} disabled:bg-gray-500`,
   gradientBG: 'bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900'
 };
 

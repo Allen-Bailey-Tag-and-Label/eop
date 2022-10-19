@@ -5,4 +5,10 @@
   export let data;
 </script>
 
-<Route {data} editable={true} filters={[]} title="PCR - Status / History - Admin" />
+<Route
+  columnFilter={() => true}
+  {data}
+  editable={true}
+  filters={[]}
+  title="PCR - Status / History - Admin"
+/>

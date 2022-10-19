@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { DBButtonFilter, DBButtonRemove, DBTable, TitleBar } from '$components';
   import { collections, routeStates } from '$stores';
+  import Options from './Options.svelte';
 
   // utilities
 
@@ -13,8 +14,9 @@
   let methods = undefined;
 
   // props (external)
+  export let columnFilter = (column) => column.key !== 'requestedBy';
   export let data;
-  export let editable = true;
+  export let editable = false;
   export let filters = [
     { field: 'requestedBy', operator: 'is', value: [data?.user?._id, ''], visible: false }
   ];
@@ -73,8 +75,14 @@
           { label: 'Submitted', value: 'Submitted' }
         ],
         type: 'select'
+      },
+      {
+        component: Options,
+        innerHTML: 'Options',
+        key: 'options'
       }
     ];
+    columns = columns.filter(columnFilter);
   }
   $: if ($collections[collection] && methods !== undefined)
     methods.update.rows($collections[collection]);

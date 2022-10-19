@@ -10,7 +10,7 @@ export async function POST({ request }) {
 
   try {
     // destructure request.formData
-    let { db: dbName, date } = Object.fromEntries(await request?.formData()) || {};
+    ({ db: dbName, date } = Object.fromEntries(await request?.formData()) || {});
   } catch (error) {}
 
   // check if no db provided
