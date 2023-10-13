@@ -1,9 +1,18 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
-export default defineConfig({
+const config = {
 	plugins: [sveltekit()],
-	test: {
-		include: ['src/**/*.{test,spec}.{js,ts}']
+	resolve: {
+		alias: {
+			$actions: resolve('./src/actions'),
+			$components: resolve('./src/components'),
+			$icons: resolve('./src/icons'),
+			$routes: resolve('./src/routes'),
+			$src: resolve('./src'),
+			$stores: resolve('./src/stores')
+		}
 	}
-});
+};
+
+export default config;
