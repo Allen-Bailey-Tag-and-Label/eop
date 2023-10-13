@@ -1,0 +1,16 @@
+{
+	"background_color": "#101014",
+	"theme_color": "#101014",
+	"name": "ABTL - EOP",
+	"short_name": "EOP",
+	"display": "standalone",
+	"start_url": "./",
+	"scope": "./",
+	"icons": [
+		{
+			"src": "icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		}
+	]
+}
