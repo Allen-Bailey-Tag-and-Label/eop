@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model Faq {
+  id       Int    @id @default(autoincrement())
+  answer   String
+  category String
+  question String
+}
+
+model JobTitle {
+  id                Int                @id @default(autoincrement())
+  costCenter        String
+  eeoClassification String
+  jobCode           String
+  jobTitle          String
+  workCompClass     String
+  payChangeRequest  PayChangeRequest[]
+  profile           Profile[]
+}
+
+model PayChangeRequest {
+  id         Int      @id @default(autoincrement())
+  change     Json
+  isApproved Boolean  @default(false)
+  jobTitle   JobTitle @relation(fields: [jobTitleId], references: [id])
+  jobTitleId Int
+  previous   Json
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+}
+
+model Profile {
+  id         Int      @id @default(autoincrement())
+  dateHired  String
+  email      String?
+  ennisId    Int?
+  extension  Int?
+  firstName  String
+  isExempt   Boolean  @default(false)
+  jobTitle   JobTitle @relation(fields: [jobTitleId], references: [id])
+  jobTitleId Int
+  lastName   String
+  title      String?
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int      @unique
+}
+
+model Role {
+  id     Int     @id @default(autoincrement())
+  name   String
+  routes Route[]
+  users  User[]
+}
+
+model Route {
+  id    Int     @id @default(autoincrement())
+  href  String
+  group String?
+  name  String
+  roles Role[]
+}
+
+model UpsQuote {
+  id                Int      @id @default(autoincrement())
+  classification    String
+  datetimeCreatedAt DateTime
+  packageInfo       Json
+  quote             Int
+  rates             Json
+  shipper           Json
+  shipTo            Json
+}
+
+model User {
+  id                       Int                       @id @default(autoincrement())
+  isActive                 Boolean                   @default(true)
+  password                 String
+  payChangeRequest         PayChangeRequest[]
+  profile                  Profile?
+  roles                    Role[]
+  username                 String
+  userPasswordResetRequest UserPasswordResetRequest?
+}
+
+model UserPasswordResetRequest {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+}
