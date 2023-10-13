@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="flex overflow-hidden font-normal" lang="en" style="min-height: -webkit-fill-available">
-  <head>
-    <meta charset="utf-8" />
-    %sveltekit.head%
-  </head>
-  <body
-    class="flex flex-grow overflow-hidden min-h-screen max-h-screen from-gray-100 to-gray-200 text-gray-900 bg-gradient-to-b dark:from-gray-800 dark:to-gray-900 dark:text-gray-50 selection:bg-primary-500 selection:text-white"
-  >
-    <div class="flex flex-grow overflow-hidden">%sveltekit.body%</div>
-  </body>
+<html class="text-[16px] lg:text-[16px]" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		%sveltekit.head%
+	</head>
+	<body
+		class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-white selection:bg-primary-500 selection:text-white"
+		data-sveltekit-preload-data="hover"
+	>
+		<div>%sveltekit.body%</div>
+	</body>
 </html>

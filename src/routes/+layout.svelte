@@ -1,12 +1,5 @@
 <script>
-  import { Pwa, Title } from '$components';
-  import { theme } from '$stores';
-  import { cerulean } from '$themes';
-  import '../app.postcss';
-
-  theme.set(cerulean);
+	import '../app.postcss';
 </script>
 
-<Pwa themeColor="#161A22" />
-<Title base="EOP - Allen Bailey Tag & Label" />
 <slot />
