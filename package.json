@@ -13,7 +13,8 @@
 		"format": "prettier --plugin-search-dir . --write .",
 		"test:integration": "playwright test",
 		"test:unit": "vitest",
-		"prisma:migrate": "rimraf prisma/migrations && npx prisma migrate dev --name init"
+		"prisma:migrate": "rimraf prisma/migrations && npx prisma migrate dev --name init",
+		"preinstall": "npx only-allow pnpm"
 	},
 	"devDependencies": {
 		"@bobthered/tailwindcss-palette-generator": "^3.1.1",
