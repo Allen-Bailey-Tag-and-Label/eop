@@ -7,7 +7,6 @@
 
 	// props (external)
 	export let form;
-	$: console.log(form);
 
 	// props (internal)
 	let username = '';
@@ -38,7 +37,7 @@
 			class={twMerge(
 				$theme.button,
 				$theme.a,
-				'text-current bg-transparent hover:bg-primary-500/[.1] focus:bg-primary-500/[.1] rounded-none self-center hover:rounded focus:rounded focus:shadow-none dark:focus:shadow-none text-center'
+				'hover:shadow-[inset_0_-1px_0px_#6366f1] dark:hover:shadow-[inset_0_-1px_0px_#6366f1] text-current bg-transparent hover:bg-primary-500/[.1] focus:bg-primary-500/[.1] rounded-none self-center hover:rounded focus:rounded focus:shadow-none dark:focus:shadow-none text-center'
 			)}
 			href="/sign-in">Sign In</A
 		>
