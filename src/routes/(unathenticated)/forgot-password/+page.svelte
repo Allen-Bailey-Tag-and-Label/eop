@@ -12,7 +12,17 @@
 	let username = '';
 </script>
 
-<Form class="space-y-[3rem]" use={[enhance]}>
+<Form
+	class="space-y-[3rem]"
+	use={[
+		[
+			enhance,
+			() => {
+				username = username.replace(/\s/g, '').toLowerCase();
+			}
+		]
+	]}
+>
 	<img alt="Logo" class="mx-auto w-[6rem] h-[6rem]" src="/icon.svg" />
 	{#if form?.success === undefined}
 		<div class="text-[1.5rem] font-semibold">Forgot your password?</div>
