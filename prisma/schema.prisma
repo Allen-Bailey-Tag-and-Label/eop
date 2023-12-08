@@ -14,7 +14,7 @@ model User {
   id           String      @id @default(auto()) @map("_id") @db.ObjectId
   isActive     Boolean
   lastLogin    DateTime
-  passwordHash String
+  passwordHash String?
   username     String      @unique
   profile      UserProfile @relation(fields: [profileId], references: [id])
   profileId    String      @unique @db.ObjectId
