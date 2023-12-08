@@ -9,7 +9,16 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		"paths":{
+			"$actions":["./src/actions"],
+			"$components":["./src/components"],
+			"$icons":["./src/icons"],
+			"$lib":["./src/lib"],
+			"$lib/*":["./src/lib/*"],
+			"$stores":["./src/stores"],
+			"$transitions":["./src/transitions"]
+		}
 	}
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//
