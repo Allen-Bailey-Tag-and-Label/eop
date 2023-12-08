@@ -1,4 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
 /* Write your global styles here, in PostCSS syntax */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+*::-webkit-scrollbar {
+  @apply h-2 w-2;
+}
+*::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-violet-500;
+}
