@@ -23,6 +23,13 @@ export const actions = {
         throw 'Username does not exist';
       }
 
+      // check if username is not active
+      try {
+        if (!user.isActive) throw 'Username is not active';
+      } catch (error) {
+        throw error;
+      }
+
       // check if password matches user hash
       try {
         if (!bcrypt.compareSync(password, user.passwordHash)) throw 'Incorrect password';
@@ -39,7 +46,6 @@ export const actions = {
         maxAge: 60 * 60 * 24 * 7
       });
     } catch (error) {
-      console.log(error);
       return fail(401, { error });
     }
     throw redirect(303, '/dashboard');
