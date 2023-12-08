@@ -23,6 +23,7 @@ export const GET = async ({ url: { searchParams } }) => {
 
       // delete all users in current db
       await prisma.user.deleteMany();
+      await prisma.userProfile.deleteMany();
 
       // add users to current db
       await Promise.all(
@@ -39,29 +40,37 @@ export const GET = async ({ url: { searchParams } }) => {
             username
           } = user;
 
+          if (username === '') return;
+
           // parse ennisIdString
           const ennisId = +ennisIdString;
 
           // parse hireDate
-          const dateOfHire = DateTime.fromMillis(hireDate);
-          const { id: profileId } = await prisma.userProfile.create({
-            data: {
-              dateOfHire,
-              ennisId,
-              email,
-              firstName,
-              lastName
-            }
-          });
-          await prisma.user.create({
-            data: {
-              isActive,
-              lastLogin: DateTime.now(),
-              passwordHash,
-              profileId,
-              username
-            }
-          });
+          const dateOfHire = DateTime.fromMillis(
+            typeof hireDate === 'string' ? +hireDate : hireDate
+          );
+          try {
+            const { id: profileId } = await prisma.userProfile.create({
+              data: {
+                dateOfHire,
+                ennisId,
+                email,
+                firstName,
+                lastName
+              }
+            });
+            await prisma.user.create({
+              data: {
+                isActive,
+                lastLogin: DateTime.now(),
+                passwordHash,
+                profileId,
+                username
+              }
+            });
+          } catch (error) {
+            console.log({ username, error });
+          }
         })
       );
     } catch (error) {
