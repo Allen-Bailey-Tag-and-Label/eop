@@ -1,0 +1,6 @@
+{
+	"Sveltekit - Load Function": {
+		"prefix": "@sk-load",
+		"body": ["export const load = async () => {", "\t$1", "}"]
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"Initiate Component": {
+		"prefix": "@component",
+		"body": [
+			"<script lang=\"ts\">",
+			"\t// imports",
+			"\timport { current_component } from 'svelte/internal';",
+			"\timport { twMerge } from 'tailwind-merge';",
+			"\timport { getEvents } from '\\$actions';",
+			"\timport { $1 } from '\\$components';",
+			"\timport { theme } from '\\$stores';",
+			"\t",
+			"\t// props (external)",
+			"\texport let style: string | undefined = undefined;",
+			"\texport let use: any[] = [];",
+			"\t",
+			"\t// props (internal)",
+			"\tconst events = getEvents(current_component);",
+			"\t",
+			"\t// props (dynamic)",
+			"\t\\$: classes = twMerge('', \\$theme.${1:div}, \\$\\$props.class);",
+			"</script>",
+			"",
+			"<${1:div} class={classes} {style} use={[events, ...use]}>",
+			"\t<slot/>",
+			"</${1:div}>"
+		]
+	}
+}

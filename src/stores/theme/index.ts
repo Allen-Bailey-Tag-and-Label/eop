@@ -1,8 +1,10 @@
 import { theme } from 'sveltewind/stores';
 import { sveltewind } from 'sveltewind/themes';
 
-console.log(sveltewind);
-
 theme.set(sveltewind);
 
+theme.set({
+  form: 'space-y-8',
+  inputGroup: 'space-y-4'
+});
 export { theme };
