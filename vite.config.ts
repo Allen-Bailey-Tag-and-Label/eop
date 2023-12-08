@@ -10,7 +10,8 @@ export default defineConfig({
       $components: resolve('./src/components'),
       $icons: resolve('./src/icons'),
       $stores: resolve('./src/stores'),
-      $transitions: resolve('./src/transitions')
+      $transitions: resolve('./src/transitions'),
+      $utilities: resolve('./src/utilities')
     }
   },
   test: {

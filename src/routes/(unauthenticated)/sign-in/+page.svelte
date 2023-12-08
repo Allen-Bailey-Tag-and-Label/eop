@@ -1,6 +1,12 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Button, Card, Fieldset, Form, H1, Input, InputGroup, Logo } from '$components';
+  import { slide } from '$transitions';
+
+  // props (external)
+  export let form;
+
+  $: console.log(form);
 </script>
 
 <div class="flex flex-col items-center space-y-8 p-6">
@@ -13,8 +19,11 @@
           <Input name="username" required="required" />
         </Fieldset>
         <Fieldset legend="Password">
-          <Input name="Password" required="required" type="password" />
+          <Input name="password" required="required" type="password" />
         </Fieldset>
+        {#if form?.error}
+          <div class="text-red-500" transition:slide>{form.error}</div>
+        {/if}
       </InputGroup>
       <Button type="submit">Sign In</Button>
     </Form>
