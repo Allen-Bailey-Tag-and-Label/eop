@@ -18,9 +18,16 @@
     Tr
   } from '$components';
   import { Pencil, Plus, Trash } from '$icons';
-  import { theme } from '$stores';
+  import { theme, toast } from '$stores';
 
   // handlers
+  const createEnhanceHandler = async () => {
+    return async ({ result }) => {
+      await applyAction(result);
+      invalidateAll();
+      toast('Successfully created route');
+    };
+  };
   const deleteButtonClickHandler = (route) => {
     modal.delete.values = { ...route };
     modal.delete.toggle();
@@ -35,6 +42,13 @@
   const editButtonClickHandler = (route) => {
     modal.edit.values = { ...route };
     modal.edit.toggle();
+  };
+  const editEnhanceHandler = async () => {
+    return async ({ result }) => {
+      await applyAction(result);
+      invalidateAll();
+      modal.edit.toggle();
+    };
   };
 
   // props (external)
@@ -71,7 +85,7 @@
       <Th>Href</Th>
     </Thead>
     <Tbody>
-      {#each data?.routes as route}
+      {#each data.routes as route}
         <Tr>
           <Td class="py-2">
             <div class="flex space-x-2 items-center">
@@ -104,7 +118,7 @@
   bind:open={modal.create.open}
   bind:toggle={modal.create.toggle}
 >
-  <Form action="?/create" use={[enhance]}>
+  <Form action="?/create" use={[[enhance, createEnhanceHandler]]}>
     <InputGroup>
       <Fieldset legend="Group">
         <Input name="group" />
@@ -125,7 +139,7 @@
   bind:open={modal.edit.open}
   bind:toggle={modal.edit.toggle}
 >
-  <Form action="?/edit" use={[enhance]}>
+  <Form action="?/edit" use={[[enhance, editEnhanceHandler]]}>
     <InputGroup>
       <Fieldset legend="Group">
         <Input bind:value={modal.edit.values.group} name="group" />

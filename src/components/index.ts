@@ -6,3 +6,5 @@ export { default as Nav } from './Nav/Nav.svelte';
 export { default as NavToggleButton } from './NavToggleButton/NavToggleButton.svelte';
 export { default as Pwa } from './Pwa/Pwa.svelte';
 export { default as ResponsiveTable } from './ResponsiveTable/ResponsiveTable.svelte';
+export { default as Toast } from './Toast/Toast.svelte';
+export { default as Toasts } from './Toasts/Toasts.svelte';
