@@ -4,7 +4,7 @@
   import { invalidateAll } from '$app/navigation';
   import {
     Button,
-    Checkbox,
+    ChipInput,
     Fieldset,
     Form,
     Icon,
@@ -41,7 +41,11 @@
     };
   };
   const editButtonClickHandler = (role) => {
-    modal.edit.values = { ...role };
+    modal.edit.values = {
+      ...role,
+      routes: role.routes.map((route) => route.id),
+      users: role.users.map((user) => user.id)
+    };
     modal.edit.toggle();
   };
   const editEnhanceHandler = async () => {
@@ -50,21 +54,6 @@
       invalidateAll();
       modal.edit.toggle();
     };
-  };
-  const roleCheckboxClickHandler = async (e, roleId, routeId) => {
-    // initiate form data
-    const formData = new FormData();
-
-    // append items
-    formData.append('checked', e.target.checked);
-    formData.append('roleId', roleId);
-    formData.append('routeId', routeId);
-
-    // post to server
-    await fetch('?/updateCheckbox', {
-      body: formData,
-      method: 'POST'
-    });
   };
 
   // props (external)
@@ -81,23 +70,25 @@
     edit: {
       values: {
         id: '',
-        group: '',
-        label: '',
-        href: ''
+        name: '',
+        routeIds: '',
+        userIds: ''
       }
     }
   };
 
   // props (dynamic)
-  $: routeGroups = data.routes.reduce((obj, route) => {
-    // check if group doesn't exist in object
-    if (obj?.[route.group] === undefined) obj[route.group] = [];
+  $: routeOptions = data.routes.map(({ id, group, label }) => {
+    return { label: [group, label].filter((value) => value !== '').join(' - '), value: id };
+  });
+  $: userOptions = data.users.map(({ id, profile }) => {
+    return {
+      label: [profile?.firstName, profile?.lastName].filter((value) => value !== '').join(' '),
+      value: id
+    };
+  });
 
-    // add label to group
-    obj[route.group].push(route);
-
-    return obj;
-  }, {});
+  $: console.log(userOptions);
 </script>
 
 <div class="flex flex-col space-y-8">
@@ -106,20 +97,10 @@
   </Button>
   <ResponsiveTable>
     <Thead>
-      <Tr>
-        <Th rowspan="2">Actions</Th>
-        <Th rowspan="2">Name</Th>
-        {#each Object.keys(routeGroups) as groupKey}
-          <Th class="text-center" colspan={routeGroups[groupKey].length}>{groupKey}</Th>
-        {/each}
-      </Tr>
-      <Tr>
-        {#each Object.values(routeGroups) as values}
-          {#each values as { label }}
-            <Th>{label}</Th>
-          {/each}
-        {/each}
-      </Tr>
+      <Th>Actions</Th>
+      <Th>Name</Th>
+      <Th>Routes</Th>
+      <Th>Users</Th>
     </Thead>
     <Tbody>
       {#each data.roles as role}
@@ -141,19 +122,36 @@
             </div>
           </Td>
           <Td>{role.name}</Td>
-          {#each Object.keys(routeGroups) as groupKey}
-            {#each routeGroups[groupKey] as route}
-              <Td>
-                <Checkbox
-                  checked={role.routeIds.includes(route.id)}
-                  class="mr-0"
-                  on:click={(e) => {
-                    roleCheckboxClickHandler(e, role.id, route.id);
-                  }}
-                />
-              </Td>
-            {/each}
-          {/each}
+          <Td>
+            {role.routes
+              .sort((a, b) => {
+                if (a.group < b.group) return -1;
+                if (a.group > b.group) return 1;
+                if (a.label < b.label) return -1;
+                if (a.label > b.label) return 1;
+                return 0;
+              })
+              .map((route) =>
+                [route.group, route.label].filter((string) => string !== '').join(' - ')
+              )
+              .join(' | ')}
+          </Td>
+          <Td>
+            {role.users
+              .sort((a, b) => {
+                if (a.profile.firstName < b.profile.firstName) return -1;
+                if (a.profile.firstName > b.profile.firstName) return 1;
+                if (a.profile.lastName < b.profile.lastName) return -1;
+                if (a.profile.lastName > b.profile.lastName) return 1;
+                return 0;
+              })
+              .map((user) =>
+                [user.profile.firstName, user.profile.lastName]
+                  .filter((string) => string !== '')
+                  .join(' ')
+              )
+              .join(' | ')}
+          </Td>
         </Tr>
       {/each}
     </Tbody>
@@ -199,6 +197,12 @@
     <InputGroup>
       <Fieldset legend="Name">
         <Input bind:value={modal.edit.values.name} name="name" />
+      </Fieldset>
+      <Fieldset legend="Routes">
+        <ChipInput bind:values={modal.edit.values.routes} name="routeIds" options={routeOptions} />
+      </Fieldset>
+      <Fieldset legend="Users">
+        <ChipInput bind:values={modal.edit.values.users} name="userIds" options={userOptions} />
       </Fieldset>
     </InputGroup>
     <Button type="submit">Update</Button>

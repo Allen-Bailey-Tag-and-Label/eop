@@ -1,5 +1,7 @@
+import { get } from 'svelte/store';
 import { theme } from 'sveltewind/stores';
 import { sveltewind } from 'sveltewind/themes';
+import { twMerge } from 'tailwind-merge';
 
 theme.set(sveltewind);
 
@@ -15,13 +17,20 @@ theme.set({
   modalIsClosed: 'pointer-events-none opacity-0 scale-[.97]',
   modalIsOpen: 'pointer-events-auto opacity-100 scale-100',
   nav: 'fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[3rem] lg:right-auto lg:left-0 lg:pb-0 lg:pl-[3rem] lg:min-w-0',
-  responsiveTable: 'p-0 rounded-lg',
+  responsiveTable: 'p-0 rounded-lg overflow-auto',
   table: 'rounded-lg',
   th: '[&:first-child]:rounded-tl-lg [&:last-child]:rounded-tr-lg bg-slate-50 dark:bg-slate-800',
   tr: 'even:bg-slate-50 dark:even:bg-slate-800 [&:last-child_>_td:first-child]:rounded-bl-lg [&:last-child_>_td:last-child]:rounded-br-lg'
 });
 
+const state = get(theme);
+
 theme.set({
+  chip: twMerge(state.button, state.buttonSm, 'px-4 py-[.375rem]'),
+  chipInput: twMerge(
+    state.input,
+    'space-y-0 py-[.375rem] px-[.375rem] flex flex-row space-x-[.375rem] items-center'
+  ),
   navToggleButton: 'z-[2] relative px-0 py-0 w-[3rem] h-[3rem]'
 });
 export { theme };

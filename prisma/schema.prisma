@@ -13,8 +13,10 @@ datasource db {
 model Role {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
   name     String
-  routes   Route[]  @relation(fields: [routeIds], references: [id])
   routeIds String[] @db.ObjectId
+  routes   Route[]  @relation(fields: [routeIds], references: [id])
+  userIds  String[] @db.ObjectId
+  users    User[]   @relation(fields: [userIds], references: [id])
 }
 
 model Route {
@@ -22,8 +24,8 @@ model Route {
   group   String
   href    String
   label   String
-  roles   Role[]   @relation(fields: [roleIds], references: [id])
   roleIds String[] @db.ObjectId
+  roles   Role[]   @relation(fields: [roleIds], references: [id])
 }
 
 model User {
@@ -31,9 +33,11 @@ model User {
   isActive     Boolean
   lastLogin    DateTime
   passwordHash String?
-  username     String      @unique
   profile      UserProfile @relation(fields: [profileId], references: [id])
   profileId    String      @unique @db.ObjectId
+  roleIds      String[]    @db.ObjectId
+  roles        Role[]      @relation(fields: [roleIds], references: [id])
+  username     String      @unique
 }
 
 model UserProfile {
