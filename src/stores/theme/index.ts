@@ -12,6 +12,8 @@ theme.set({
   form: 'space-y-8',
   icon: 'w-[calc(16_*_1.5em_/_14)] h-[calc(16_*1.5em_/_14)]',
   inputGroup: 'space-y-4',
+  modalIsClosed: 'pointer-events-none opacity-0 scale-[.97]',
+  modalIsOpen: 'pointer-events-auto opacity-100 scale-100',
   nav: 'fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[3rem] lg:right-auto lg:left-0 lg:pb-0 lg:pl-[3rem] lg:min-w-0',
   responsiveTable: 'p-0 rounded-lg',
   table: 'rounded-lg',
