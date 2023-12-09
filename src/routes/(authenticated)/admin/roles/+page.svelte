@@ -4,6 +4,7 @@
   import { invalidateAll } from '$app/navigation';
   import {
     Button,
+    Checkbox,
     Fieldset,
     Form,
     Icon,
@@ -28,8 +29,8 @@
       toast('Successfully created route');
     };
   };
-  const deleteButtonClickHandler = (route) => {
-    modal.delete.values = { ...route };
+  const deleteButtonClickHandler = (role) => {
+    modal.delete.values = { ...role };
     modal.delete.toggle();
   };
   const deleteEnhanceHandler = async () => {
@@ -39,8 +40,8 @@
       modal.delete.toggle();
     };
   };
-  const editButtonClickHandler = (route) => {
-    modal.edit.values = { ...route };
+  const editButtonClickHandler = (role) => {
+    modal.edit.values = { ...role };
     modal.edit.toggle();
   };
   const editEnhanceHandler = async () => {
@@ -49,6 +50,21 @@
       invalidateAll();
       modal.edit.toggle();
     };
+  };
+  const roleCheckboxClickHandler = async (e, roleId, routeId) => {
+    // initiate form data
+    const formData = new FormData();
+
+    // append items
+    formData.append('checked', e.target.checked);
+    formData.append('roleId', roleId);
+    formData.append('routeId', routeId);
+
+    // post to server
+    await fetch('?/updateCheckbox', {
+      body: formData,
+      method: 'POST'
+    });
   };
 
   // props (external)
@@ -71,6 +87,17 @@
       }
     }
   };
+
+  // props (dynamic)
+  $: routeGroups = data.routes.reduce((obj, route) => {
+    // check if group doesn't exist in object
+    if (obj?.[route.group] === undefined) obj[route.group] = [];
+
+    // add label to group
+    obj[route.group].push(route);
+
+    return obj;
+  }, {});
 </script>
 
 <div class="flex flex-col space-y-8">
@@ -79,33 +106,54 @@
   </Button>
   <ResponsiveTable>
     <Thead>
-      <Th>Actions</Th>
-      <Th>Group</Th>
-      <Th>Label</Th>
-      <Th>Href</Th>
+      <Tr>
+        <Th rowspan="2">Actions</Th>
+        <Th rowspan="2">Name</Th>
+        {#each Object.keys(routeGroups) as groupKey}
+          <Th class="text-center" colspan={routeGroups[groupKey].length}>{groupKey}</Th>
+        {/each}
+      </Tr>
+      <Tr>
+        {#each Object.values(routeGroups) as values}
+          {#each values as { label }}
+            <Th>{label}</Th>
+          {/each}
+        {/each}
+      </Tr>
     </Thead>
     <Tbody>
-      {#each data.routes as route}
+      {#each data.roles as role}
         <Tr>
           <Td class="py-2">
             <div class="flex space-x-2 items-center">
               <Button
                 class={twMerge($theme.buttonIcon, $theme.buttonSm)}
-                on:click={() => editButtonClickHandler(route)}
+                on:click={() => editButtonClickHandler(role)}
               >
                 <Icon src={Pencil} />
               </Button>
               <Button
                 class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
-                on:click={() => deleteButtonClickHandler(route)}
+                on:click={() => deleteButtonClickHandler(role)}
               >
                 <Icon src={Trash} />
               </Button>
             </div>
           </Td>
-          <Td>{route.group}</Td>
-          <Td>{route.label}</Td>
-          <Td>{route.href}</Td>
+          <Td>{role.name}</Td>
+          {#each Object.keys(routeGroups) as groupKey}
+            {#each routeGroups[groupKey] as route}
+              <Td>
+                <Checkbox
+                  checked={role.routeIds.includes(route.id)}
+                  class="mr-0"
+                  on:click={(e) => {
+                    roleCheckboxClickHandler(e, role.id, route.id);
+                  }}
+                />
+              </Td>
+            {/each}
+          {/each}
         </Tr>
       {/each}
     </Tbody>
@@ -120,17 +168,11 @@
 >
   <Form action="?/create" use={[[enhance, createEnhanceHandler]]}>
     <InputGroup>
-      <Fieldset legend="Group">
-        <Input name="group" />
-      </Fieldset>
-      <Fieldset legend="Label">
-        <Input name="label" required="required" />
-      </Fieldset>
-      <Fieldset legend="Href">
-        <Input name="href" required="required" />
+      <Fieldset legend="Name">
+        <Input name="name" />
       </Fieldset>
     </InputGroup>
-    <Button type="submit">Add Route</Button>
+    <Button type="submit">Add</Button>
   </Form>
 </Modal>
 
@@ -142,7 +184,7 @@
 >
   <Form action="?/delete" use={[[enhance, deleteEnhanceHandler]]}>
     <div>Are you sure you want to delete this route?</div>
-    <Button class={twMerge($theme.buttonDelete)} type="submit">Delete Route</Button>
+    <Button class={twMerge($theme.buttonDelete)} type="submit">Delete</Button>
     <Input bind:value={modal.delete.values.id} class="hidden absolute" name="id" type="hidden" />
   </Form>
 </Modal>
@@ -155,17 +197,11 @@
 >
   <Form action="?/edit" use={[[enhance, editEnhanceHandler]]}>
     <InputGroup>
-      <Fieldset legend="Group">
-        <Input bind:value={modal.edit.values.group} name="group" />
-      </Fieldset>
-      <Fieldset legend="Label">
-        <Input bind:value={modal.edit.values.label} name="label" required="required" />
-      </Fieldset>
-      <Fieldset legend="Href">
-        <Input bind:value={modal.edit.values.href} name="href" required="required" />
+      <Fieldset legend="Name">
+        <Input bind:value={modal.edit.values.name} name="name" />
       </Fieldset>
     </InputGroup>
-    <Button type="submit">Update Route</Button>
+    <Button type="submit">Update</Button>
     <Input bind:value={modal.edit.values.id} class="hidden absolute" name="id" type="hidden" />
   </Form>
 </Modal>

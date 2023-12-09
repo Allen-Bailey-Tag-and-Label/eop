@@ -17,7 +17,7 @@ theme.set({
   nav: 'fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[3rem] lg:right-auto lg:left-0 lg:pb-0 lg:pl-[3rem] lg:min-w-0',
   responsiveTable: 'p-0 rounded-lg',
   table: 'rounded-lg',
-  th: '[&:first-child]:rounded-tl-lg [&:last-child]:rounded-tr-lg',
+  th: '[&:first-child]:rounded-tl-lg [&:last-child]:rounded-tr-lg bg-slate-50 dark:bg-slate-800',
   tr: 'even:bg-slate-50 dark:even:bg-slate-800 [&:last-child_>_td:first-child]:rounded-bl-lg [&:last-child_>_td:last-child]:rounded-br-lg'
 });
 
