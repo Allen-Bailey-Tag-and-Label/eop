@@ -5,11 +5,12 @@ export const load = async ({ locals }) => {
   // get nav groups
   const navGroups = user.roles.reduce((navGroups, role) => {
     role.routes.map((route) => {
-      if (navGroups?.[route.group] === undefined) navGroups[route.group] = new Set();
-      navGroups[route.group].add(route);
+      if (!navGroups.has(route.group)) navGroups.set(route.group, new Map());
+      if (!navGroups.get(route.group).has(route.label))
+        navGroups.get(route.group).set(route.label, route);
     });
     return navGroups;
-  }, {});
+  }, new Map());
 
   return { navGroups, user };
 };

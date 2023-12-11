@@ -23,8 +23,8 @@
 
 <Nav class={classes} {style} use={[events, ...use]}>
   <slot>
-    {#each Object.keys($nav.groups).sort((a, b) => a.localeCompare(b)) as title}
-      <NavGroup routes={$nav.groups[title]} {title} />
+    {#each [...$nav.groups.keys()].sort((a, b) => a.localeCompare(b)) as title}
+      <NavGroup routes={$nav.groups.get(title)} {title} />
     {/each}
   </slot>
 </Nav>

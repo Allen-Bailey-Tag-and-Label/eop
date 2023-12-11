@@ -7,7 +7,7 @@
   import { theme } from '$stores';
 
   // props (external)
-  export let routes = [];
+  export let routes = new Map();
   export let style: string | undefined = undefined;
   export let title = '';
   export let use: any[] = [];
@@ -24,7 +24,7 @@
     {#if title !== ''}
       <NavGroupTitle>{title}</NavGroupTitle>
     {/if}
-    {#each [...routes].sort((a, b) => a.label.localeCompare(b.label)) as { label, href }}
+    {#each [...routes.values()].sort((a, b) => a.label.localeCompare(b.label)) as { label, href }}
       <NavItem {label} {href} />
     {/each}
   </slot>
