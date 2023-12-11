@@ -16,7 +16,13 @@ theme.set({
   inputGroup: 'space-y-4',
   modalIsClosed: 'pointer-events-none opacity-0 scale-[.97]',
   modalIsOpen: 'pointer-events-auto opacity-100 scale-100',
-  nav: 'fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[3rem] lg:right-auto lg:left-0 lg:pb-0 lg:pl-[3rem] lg:min-w-0',
+  nav: 'space-y-8 fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[3rem] lg:right-auto lg:left-0 lg:pb-0 lg:min-w-[20rem]',
+  navGroup: 'flex flex-col',
+  navGroupTitle: 'px-4 py-2 uppercase font-semibold lg:pl-[4rem]',
+  navItem:
+    'pr-4 pl-8 py-2 shadow-[] opacity-50 hover:text-violet-500 focus:text-violet-500 hover:opacity-100 focus:opacity-100 transition duration-200 lg:pl-[5rem]',
+  navItemCurrent:
+    'opacity-100 text-white dark:text-white bg-violet-500 hover:text-white focus:text-white cursor-default',
   responsiveTable: 'p-0 rounded-lg overflow-auto',
   table: 'rounded-lg',
   th: '[&:first-child]:rounded-tl-lg [&:last-child]:rounded-tr-lg bg-slate-50 dark:bg-slate-800',

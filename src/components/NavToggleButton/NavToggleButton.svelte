@@ -4,14 +4,10 @@
   import { twMerge } from 'tailwind-merge';
   import { getEvents } from '$actions';
   import { Button } from '$components';
-  import { theme } from '$stores';
+  import { nav, theme } from '$stores';
 
   // props (external)
-  export let close;
-  export let isOpen;
-  export let open;
   export let style: string | undefined = undefined;
-  export let toggle;
   export let use: any[] = [];
 
   // props (internal)
@@ -36,11 +32,11 @@
   );
 </script>
 
-<Button class={classes} on:click={toggle} {style} use={[events, ...use]}>
+<Button class={classes} on:click={nav.toggle} {style} use={[events, ...use]}>
   <slot>
     {#each menuButtonClasses as classes}
       <div
-        class="absolute top-1/2 left-1/2 w-4 h-[2px] bg-current -translate-x-1/2 -translate-y-1/2 rounded-full transition duration-200 {isOpen
+        class="absolute top-1/2 left-1/2 w-4 h-[2px] bg-current -translate-x-1/2 -translate-y-1/2 rounded-full transition duration-200 {$nav.isOpen
           ? classes.true
           : classes.false}"
       />

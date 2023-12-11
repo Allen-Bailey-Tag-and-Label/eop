@@ -10,7 +10,11 @@ export const handle = async ({ event, resolve }) => {
       where: { id },
       include: {
         profile: true,
-        roles: true
+        roles: {
+          include: {
+            routes: true
+          }
+        }
       }
     });
     if (user === null)

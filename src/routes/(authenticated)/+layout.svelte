@@ -1,5 +1,24 @@
 <script lang="ts">
-  import { Header } from '$components';
+  import { twMerge } from 'tailwind-merge';
+  import { afterNavigate, beforeNavigate } from '$app/navigation';
+  import { Header, Modal, ProgressIndicator } from '$components';
+  import { nav } from '$stores';
+  import { onMount } from 'svelte';
+
+  // props (external)
+  export let data;
+
+  // props (internal)
+  let isNavigating = true;
+
+  nav.setGroups(data.navGroups);
+
+  afterNavigate(() => {
+    isNavigating = false;
+    nav.close();
+  });
+  beforeNavigate(() => (isNavigating = true));
+  onMount(() => (isNavigating = false));
 </script>
 
 <div class="min-h-[100dvh] max-h-[100dvh] flex flex-col lg:flex-row">
@@ -8,3 +27,7 @@
   </div>
   <Header />
 </div>
+
+<Modal class="min-w-[0px]" isOpen={isNavigating}>
+  <ProgressIndicator />
+</Modal>

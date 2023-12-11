@@ -5,9 +5,9 @@
   import { twMerge } from 'tailwind-merge';
   import { getEvents } from '$actions';
   import { Overlay, Nav, NavToggleButton } from '$components';
+  import { nav } from '$stores';
 
   // props (external)
-  export let nav = {};
   export let style: string | undefined = undefined;
   export let use: any[] = [];
 
@@ -21,20 +21,10 @@
 <Header class={classes} {style} use={[events, ...use]}>
   <slot>
     <Overlay
-      class={nav?.isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}
+      class={$nav?.isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}
       on:click={nav.toggle}
     />
-    <Nav
-      bind:close={nav.close}
-      bind:isOpen={nav.isOpen}
-      bind:open={nav.open}
-      bind:toggle={nav.toggle}
-    />
-    <NavToggleButton
-      bind:close={nav.close}
-      bind:isOpen={nav.isOpen}
-      bind:open={nav.open}
-      bind:toggle={nav.toggle}
-    />
+    <Nav />
+    <NavToggleButton />
   </slot>
 </Header>

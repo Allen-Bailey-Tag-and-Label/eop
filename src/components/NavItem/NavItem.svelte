@@ -1,13 +1,15 @@
 <script lang="ts">
   // imports
   import { current_component } from 'svelte/internal';
-  import { Nav } from 'sveltewind/components';
   import { twMerge } from 'tailwind-merge';
   import { getEvents } from '$actions';
-  import { NavGroup } from '$components';
-  import { nav } from '$stores';
+  import { page } from '$app/stores';
+  import { A } from '$components';
+  import { theme } from '$stores';
 
   // props (external)
+  export let href = '';
+  export let label = '';
   export let style: string | undefined = undefined;
   export let use: any[] = [];
 
@@ -16,15 +18,15 @@
 
   // props (dynamic)
   $: classes = twMerge(
-    $nav.isOpen ? 'translate-x-0' : 'translate-x-full lg:-translate-x-full',
+    '',
+    $theme.navItem,
+    $page.url.pathname === href ? $theme.navItemCurrent : undefined,
     $$props.class
   );
 </script>
 
-<Nav class={classes} {style} use={[events, ...use]}>
+<A class={classes} {href} {style} use={[events, ...use]}>
   <slot>
-    {#each Object.keys($nav.groups).sort((a, b) => a.localeCompare(b)) as title}
-      <NavGroup routes={$nav.groups[title]} {title} />
-    {/each}
+    {label}
   </slot>
-</Nav>
+</A>
