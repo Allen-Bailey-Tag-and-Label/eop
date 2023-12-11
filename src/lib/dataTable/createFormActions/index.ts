@@ -28,6 +28,16 @@ export const createFormActions = (modelName) => {
     // destructure request
     const { id } = formDataToObject(await request.formData());
 
+    // determine if there are any connected keys
+    if (dataHasConnectedKeys(schema)) {
+      await prisma[modelName].update({
+        where: {
+          id
+        },
+        data: getDisconnectData(schema)
+      });
+    }
+
     await prisma[modelName].delete({
       where: {
         id

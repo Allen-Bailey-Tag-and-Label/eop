@@ -1,11 +1,7 @@
 import { prisma } from '$lib/prisma';
 import { createFormActions } from '$lib/dataTable';
 
-const schema = {
-  roles: 'many-to-many'
-};
-
-export const actions = createFormActions('route', schema);
+export const actions = createFormActions('Route');
 
 export const load = async () => {
   const [roles, routes] = await Promise.all([
