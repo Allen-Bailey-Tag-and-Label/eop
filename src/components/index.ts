@@ -1,6 +1,7 @@
 export * from 'sveltewind/components';
 export { default as Chip } from './Chip/Chip.svelte';
 export { default as ChipInput } from './ChipInput/ChipInput.svelte';
+export { default as DataTable } from './DataTable/DataTable.svelte';
 export { default as Header } from './Header/Header.svelte';
 export { default as InputGroup } from './InputGroup/InputGroup.svelte';
 export { default as Logo } from './Logo/Logo.svelte';

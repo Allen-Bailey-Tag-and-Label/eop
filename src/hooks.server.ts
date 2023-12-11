@@ -9,7 +9,8 @@ export const handle = async ({ event, resolve }) => {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        profile: true
+        profile: true,
+        roles: true
       }
     });
     if (user === null)

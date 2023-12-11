@@ -1,6 +1,6 @@
 export const formDataToObject = (formData: FormData) => {
   // initiate object
-  const object: { [key: string]: string } = {};
+  const object: any = {};
 
   // loop over form data
   formData.forEach((value, key) => {

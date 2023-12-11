@@ -29,8 +29,8 @@
       toast('Successfully created route');
     };
   };
-  const deleteButtonClickHandler = (role) => {
-    modal.delete.values = { ...role };
+  const deleteButtonClickHandler = (route) => {
+    modal.delete.values = { ...route };
     modal.delete.toggle();
   };
   const deleteEnhanceHandler = async () => {
@@ -40,12 +40,8 @@
       modal.delete.toggle();
     };
   };
-  const editButtonClickHandler = (role) => {
-    modal.edit.values = {
-      ...role,
-      routes: role.routes.map((route) => route.id),
-      users: role.users.map((user) => user.id)
-    };
+  const editButtonClickHandler = (route) => {
+    modal.edit.values = { ...route };
     modal.edit.toggle();
   };
   const editEnhanceHandler = async () => {
@@ -70,22 +66,15 @@
     edit: {
       values: {
         id: '',
-        name: '',
-        routes: '',
-        users: ''
+        group: '',
+        label: '',
+        href: ''
       }
     }
   };
 
-  // props (dynamic)
-  $: routeOptions = data.routes.map(({ id, group, label }) => {
-    return { label: [group, label].filter((value) => value !== '').join(' - '), value: id };
-  });
-  $: userOptions = data.users.map(({ id, profile }) => {
-    return {
-      label: [profile?.firstName, profile?.lastName].filter((value) => value !== '').join(' '),
-      value: id
-    };
+  $: roleOptions = data.roles.map((role) => {
+    return { label: role.name, value: role.id };
   });
 </script>
 
@@ -96,59 +85,35 @@
   <ResponsiveTable>
     <Thead>
       <Th>Actions</Th>
-      <Th>Name</Th>
-      <Th>Routes</Th>
-      <Th>Users</Th>
+      <Th>Group</Th>
+      <Th>Label</Th>
+      <Th>Href</Th>
+      <Th>Roles</Th>
     </Thead>
     <Tbody>
-      {#each data.roles as role}
+      {#each data.routes as route}
         <Tr>
           <Td class="py-2">
             <div class="flex space-x-2 items-center">
               <Button
                 class={twMerge($theme.buttonIcon, $theme.buttonSm)}
-                on:click={() => editButtonClickHandler(role)}
+                on:click={() => editButtonClickHandler(route)}
               >
                 <Icon src={Pencil} />
               </Button>
               <Button
                 class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
-                on:click={() => deleteButtonClickHandler(role)}
+                on:click={() => deleteButtonClickHandler(route)}
               >
                 <Icon src={Trash} />
               </Button>
             </div>
           </Td>
-          <Td>{role.name}</Td>
+          <Td>{route.group}</Td>
+          <Td>{route.label}</Td>
+          <Td>{route.href}</Td>
           <Td>
-            {role.routes
-              .sort((a, b) => {
-                if (a.group < b.group) return -1;
-                if (a.group > b.group) return 1;
-                if (a.label < b.label) return -1;
-                if (a.label > b.label) return 1;
-                return 0;
-              })
-              .map((route) =>
-                [route.group, route.label].filter((string) => string !== '').join(' - ')
-              )
-              .join(' | ')}
-          </Td>
-          <Td>
-            {role.users
-              .sort((a, b) => {
-                if (a.profile.firstName < b.profile.firstName) return -1;
-                if (a.profile.firstName > b.profile.firstName) return 1;
-                if (a.profile.lastName < b.profile.lastName) return -1;
-                if (a.profile.lastName > b.profile.lastName) return 1;
-                return 0;
-              })
-              .map((user) =>
-                [user.profile.firstName, user.profile.lastName]
-                  .filter((string) => string !== '')
-                  .join(' ')
-              )
-              .join(' | ')}
+            {route.roles.map((role) => role.name).join(' | ')}
           </Td>
         </Tr>
       {/each}
@@ -164,17 +129,20 @@
 >
   <Form action="?/create" use={[[enhance, createEnhanceHandler]]}>
     <InputGroup>
-      <Fieldset legend="Name">
-        <Input name="name" />
+      <Fieldset legend="Group">
+        <Input name="group" />
       </Fieldset>
-      <Fieldset legend="Routes">
-        <ChipInput name="routes" options={routeOptions} />
+      <Fieldset legend="Label">
+        <Input name="label" required="required" />
       </Fieldset>
-      <Fieldset legend="Users">
-        <ChipInput name="users" options={userOptions} />
+      <Fieldset legend="Href">
+        <Input name="href" required="required" />
+      </Fieldset>
+      <Fieldset legend="Roles">
+        <ChipInput name="roles" options={roleOptions} />
       </Fieldset>
     </InputGroup>
-    <Button type="submit">Add</Button>
+    <Button type="submit">Add Route</Button>
   </Form>
 </Modal>
 
@@ -186,7 +154,7 @@
 >
   <Form action="?/delete" use={[[enhance, deleteEnhanceHandler]]}>
     <div>Are you sure you want to delete this route?</div>
-    <Button class={twMerge($theme.buttonDelete)} type="submit">Delete</Button>
+    <Button class={twMerge($theme.buttonDelete)} type="submit">Delete Route</Button>
     <Input bind:value={modal.delete.values.id} class="hidden absolute" name="id" type="hidden" />
   </Form>
 </Modal>
@@ -199,17 +167,17 @@
 >
   <Form action="?/edit" use={[[enhance, editEnhanceHandler]]}>
     <InputGroup>
-      <Fieldset legend="Name">
-        <Input bind:value={modal.edit.values.name} name="name" />
+      <Fieldset legend="Group">
+        <Input bind:value={modal.edit.values.group} name="group" />
       </Fieldset>
-      <Fieldset legend="Routes">
-        <ChipInput bind:values={modal.edit.values.routes} name="routes" options={routeOptions} />
+      <Fieldset legend="Label">
+        <Input bind:value={modal.edit.values.label} name="label" required="required" />
       </Fieldset>
-      <Fieldset legend="Users">
-        <ChipInput bind:values={modal.edit.values.users} name="users" options={userOptions} />
+      <Fieldset legend="Href">
+        <Input bind:value={modal.edit.values.href} name="href" required="required" />
       </Fieldset>
     </InputGroup>
-    <Button type="submit">Update</Button>
+    <Button type="submit">Update Route</Button>
     <Input bind:value={modal.edit.values.id} class="hidden absolute" name="id" type="hidden" />
   </Form>
 </Modal>

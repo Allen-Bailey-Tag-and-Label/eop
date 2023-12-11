@@ -12,7 +12,7 @@ datasource db {
 
 model Role {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  name     String
+  name     String   @unique
   routeIds String[] @db.ObjectId
   routes   Route[]  @relation(fields: [routeIds], references: [id])
   userIds  String[] @db.ObjectId

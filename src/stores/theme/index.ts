@@ -29,7 +29,7 @@ theme.set({
   chip: twMerge(state.button, state.buttonSm, 'px-4 py-[.375rem]'),
   chipInput: twMerge(
     state.input,
-    'space-y-0 py-[.375rem] px-[.375rem] flex flex-row space-x-[.375rem] items-center'
+    'min-h-[3rem] space-y-0 py-[.375rem] px-[.375rem] flex flex-row space-x-[.375rem] items-center'
   ),
   navToggleButton: 'z-[2] relative px-0 py-0 w-[3rem] h-[3rem]'
 });
