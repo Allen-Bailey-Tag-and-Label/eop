@@ -5,7 +5,7 @@
   import { getEvents } from '$actions';
   import { page } from '$app/stores';
   import { A } from '$components';
-  import { theme } from '$stores';
+  import { nav, theme } from '$stores';
 
   // props (external)
   export let href = '';
@@ -25,7 +25,13 @@
   );
 </script>
 
-<A class={classes} {href} {style} use={[events, ...use]}>
+<A
+  class={classes}
+  {href}
+  {style}
+  tabIndex={$nav.isOpen && $page.url.pathname !== href ? undefined : '-1'}
+  use={[events, ...use]}
+>
   <slot>
     {label}
   </slot>

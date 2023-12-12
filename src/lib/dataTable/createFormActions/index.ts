@@ -54,7 +54,6 @@ export const createFormActions = (modelName) => {
 
     // determine if there are any connected keys
     if (dataHasConnectedKeys(schema)) {
-      console.log(schema);
       await prisma[modelName].update({
         where: {
           id

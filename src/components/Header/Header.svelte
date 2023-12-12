@@ -24,7 +24,7 @@
       class={$nav?.isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}
       on:click={nav.toggle}
     />
-    <Nav />
     <NavToggleButton />
+    <Nav />
   </slot>
 </Header>
