@@ -35,7 +35,6 @@ const getPrismaPromises = (name: String) => {
 export const actions = createFormActions('Route');
 export const load = async () => {
   const prismaModels = getPrismaPromises('Route');
-  console.log(prismaModels);
   const [roles, routes] = await Promise.all([
     prisma.role.findMany({
       orderBy: [{ name: 'asc' }]

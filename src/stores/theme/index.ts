@@ -24,6 +24,7 @@ theme.set({
   navItemCurrent:
     'opacity-100 text-white dark:text-white bg-violet-500 hover:text-white focus:text-white cursor-default',
   responsiveTable: 'p-0 rounded-lg overflow-auto',
+  select: 'py-3',
   table: 'rounded-lg',
   th: '[&:first-child]:rounded-tl-lg [&:last-child]:rounded-tr-lg bg-slate-50 dark:bg-slate-800',
   tr: 'even:bg-slate-50 dark:even:bg-slate-800 [&:last-child_>_td:first-child]:rounded-bl-lg [&:last-child_>_td:last-child]:rounded-br-lg'

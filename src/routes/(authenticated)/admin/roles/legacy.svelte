@@ -12,7 +12,6 @@
     InputGroup,
     Modal,
     ResponsiveTable,
-    Select,
     Tbody,
     Td,
     Th,
@@ -30,8 +29,8 @@
       toast('Successfully created route');
     };
   };
-  const deleteButtonClickHandler = (route) => {
-    modal.delete.values = { ...route };
+  const deleteButtonClickHandler = (role) => {
+    modal.delete.values = { ...role };
     modal.delete.toggle();
   };
   const deleteEnhanceHandler = async () => {
@@ -41,15 +40,12 @@
       modal.delete.toggle();
     };
   };
-  const editButtonClickHandler = (route) => {
-    modal.edit.values = columns.reduce(
-      (obj, column) => {
-        if (column.getValues !== undefined) obj[column.key] = column.getValues(route);
-
-        return obj;
-      },
-      { ...route }
-    );
+  const editButtonClickHandler = (role) => {
+    modal.edit.values = {
+      ...role,
+      routes: role.routes.map((route) => route.id),
+      users: role.users.map((user) => user.id)
+    };
     modal.edit.toggle();
   };
   const editEnhanceHandler = async () => {
@@ -61,18 +57,7 @@
   };
 
   // props (external)
-  export let columns:
-    | { key: string; label: string; type?: string }[]
-    | {
-        getInnerHTML: Function;
-        getValues: Function;
-        key: string;
-        label: string;
-        options: { label: string; value: string }[];
-        type: string;
-      }[] = [];
-  export let model = '';
-  export let rows: { [key: string]: string }[] = [];
+  export let data;
 
   // props (internal)
   const modal = {
@@ -84,10 +69,24 @@
     },
     edit: {
       values: {
-        id: ''
+        id: '',
+        name: '',
+        routes: '',
+        users: ''
       }
     }
   };
+
+  // props (dynamic)
+  $: routeOptions = data.routes.map(({ id, group, label }) => {
+    return { label: [group, label].filter((value) => value !== '').join(' - '), value: id };
+  });
+  $: userOptions = data.users.map(({ id, profile }) => {
+    return {
+      label: [profile?.firstName, profile?.lastName].filter((value) => value !== '').join(' '),
+      value: id
+    };
+  });
 </script>
 
 <div class="flex flex-col space-y-8">
@@ -97,39 +96,60 @@
   <ResponsiveTable>
     <Thead>
       <Th>Actions</Th>
-      {#each columns as { label }}
-        <Th>{label}</Th>
-      {/each}
+      <Th>Name</Th>
+      <Th>Routes</Th>
+      <Th>Users</Th>
     </Thead>
     <Tbody>
-      {#each rows as row}
+      {#each data.roles as role}
         <Tr>
           <Td class="py-2">
             <div class="flex space-x-2 items-center">
               <Button
                 class={twMerge($theme.buttonIcon, $theme.buttonSm)}
-                on:click={() => editButtonClickHandler(row)}
+                on:click={() => editButtonClickHandler(role)}
               >
                 <Icon src={Pencil} />
               </Button>
               <Button
                 class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
-                on:click={() => deleteButtonClickHandler(row)}
+                on:click={() => deleteButtonClickHandler(role)}
               >
                 <Icon src={Trash} />
               </Button>
             </div>
           </Td>
-          {#each columns as column}
-            <Td>
-              {#if column.getInnerHTML === undefined}
-                {row[column.key]}
-              {/if}
-              {#if column.getInnerHTML !== undefined}
-                {column.getInnerHTML(row)}
-              {/if}
-            </Td>
-          {/each}
+          <Td>{role.name}</Td>
+          <Td>
+            {role.routes
+              .sort((a, b) => {
+                if (a.group < b.group) return -1;
+                if (a.group > b.group) return 1;
+                if (a.label < b.label) return -1;
+                if (a.label > b.label) return 1;
+                return 0;
+              })
+              .map((route) =>
+                [route.group, route.label].filter((string) => string !== '').join(' - ')
+              )
+              .join(' | ')}
+          </Td>
+          <Td>
+            {role.users
+              .sort((a, b) => {
+                if (a.profile.firstName < b.profile.firstName) return -1;
+                if (a.profile.firstName > b.profile.firstName) return 1;
+                if (a.profile.lastName < b.profile.lastName) return -1;
+                if (a.profile.lastName > b.profile.lastName) return 1;
+                return 0;
+              })
+              .map((user) =>
+                [user.profile.firstName, user.profile.lastName]
+                  .filter((string) => string !== '')
+                  .join(' ')
+              )
+              .join(' | ')}
+          </Td>
         </Tr>
       {/each}
     </Tbody>
@@ -144,17 +164,17 @@
 >
   <Form action="?/create" use={[[enhance, createEnhanceHandler]]}>
     <InputGroup>
-      {#each columns as column}
-        <Fieldset legend={column.label}>
-          {#if column?.type === 'many-to-many'}
-            <ChipInput name={column.key} options={column.options} />
-          {:else}
-            <Input name={column.key} />
-          {/if}
-        </Fieldset>
-      {/each}
+      <Fieldset legend="Name">
+        <Input name="name" />
+      </Fieldset>
+      <Fieldset legend="Routes">
+        <ChipInput name="routes" options={routeOptions} />
+      </Fieldset>
+      <Fieldset legend="Users">
+        <ChipInput name="users" options={userOptions} />
+      </Fieldset>
     </InputGroup>
-    <Button type="submit">Create</Button>
+    <Button type="submit">Add</Button>
   </Form>
 </Modal>
 
@@ -179,25 +199,15 @@
 >
   <Form action="?/edit" use={[[enhance, editEnhanceHandler]]}>
     <InputGroup>
-      {#each columns as column}
-        <Fieldset legend={column.label}>
-          {#if column?.type === 'many-to-many'}
-            <ChipInput
-              bind:values={modal.edit.values[column.key]}
-              name={column.key}
-              options={column.options}
-            />
-          {:else if column?.type === 'select'}
-            <Select
-              bind:value={modal.edit.values[column.key]}
-              name={column.key}
-              options={column.options}
-            />
-          {:else}
-            <Input bind:value={modal.edit.values[column.key]} name={column.key} />
-          {/if}
-        </Fieldset>
-      {/each}
+      <Fieldset legend="Name">
+        <Input bind:value={modal.edit.values.name} name="name" />
+      </Fieldset>
+      <Fieldset legend="Routes">
+        <ChipInput bind:values={modal.edit.values.routes} name="routes" options={routeOptions} />
+      </Fieldset>
+      <Fieldset legend="Users">
+        <ChipInput bind:values={modal.edit.values.users} name="users" options={userOptions} />
+      </Fieldset>
     </InputGroup>
     <Button type="submit">Update</Button>
     <Input bind:value={modal.edit.values.id} class="hidden absolute" name="id" type="hidden" />

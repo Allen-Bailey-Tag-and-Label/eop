@@ -19,12 +19,12 @@ model JobTitle {
   payChangeRequests   PayChangeRequest[]
   title               String
   workCompClass       Int
-  userIds             String[]           @db.ObjectId
-  users               User[]
+  userProfileIds      String[]           @db.ObjectId
+  userProfiles        UserProfile[]
 }
 
 model PayChangeRequest {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
   lastAfter       Float
   lastDate        String
   lastDescription String
@@ -40,19 +40,19 @@ model PayChangeRequest {
   newPrevious     Float
   newPercent      Float
   status          String
-  jobTitleId      String   @db.ObjectId
-  jobTitle        JobTitle @relation(fields: [jobTitleId], references: [id])
-  userId          String   @db.ObjectId
-  user            User     @relation(fields: [userId], references: [id])
+  jobTitleId      String      @db.ObjectId
+  jobTitle        JobTitle    @relation(fields: [jobTitleId], references: [id])
+  userProfileId   String      @db.ObjectId
+  userProfile     UserProfile @relation(fields: [userProfileId], references: [id])
 }
 
 model Role {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  name     String   @unique
-  routeIds String[] @db.ObjectId
-  routes   Route[]  @relation(fields: [routeIds], references: [id])
-  userIds  String[] @db.ObjectId
-  users    User[]   @relation(fields: [userIds], references: [id])
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  name           String        @unique
+  routeIds       String[]      @db.ObjectId
+  routes         Route[]       @relation(fields: [routeIds], references: [id])
+  userProfileIds String[]      @db.ObjectId
+  userProfiles   UserProfile[] @relation(fields: [userProfileIds], references: [id])
 }
 
 model Route {
@@ -65,27 +65,27 @@ model Route {
 }
 
 model User {
-  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
-  isActive            Boolean
-  jobTitleId          String?            @db.ObjectId
-  jobTitle            JobTitle?          @relation(fields: [jobTitleId], references: [id])
-  lastLogin           DateTime
-  passwordHash        String?
-  payChangeRequestIds String[]           @db.ObjectId
-  payChangeRequests   PayChangeRequest[]
-  profile             UserProfile        @relation(fields: [profileId], references: [id])
-  profileId           String             @unique @db.ObjectId
-  roleIds             String[]           @db.ObjectId
-  roles               Role[]             @relation(fields: [roleIds], references: [id])
-  username            String             @unique
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  isActive     Boolean
+  lastLogin    DateTime
+  passwordHash String?
+  profileId    String      @unique @db.ObjectId
+  profile      UserProfile @relation(fields: [profileId], references: [id])
+  username     String      @unique
 }
 
 model UserProfile {
-  id         String  @id @default(auto()) @map("_id") @db.ObjectId
-  dateOfHire String
-  ennisId    Int
-  email      String?
-  firstName  String
-  lastName   String
-  user       User?
+  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
+  dateOfHire          String
+  ennisId             Int
+  email               String?
+  firstName           String
+  jobTitleId          String?            @db.ObjectId
+  jobTitle            JobTitle?          @relation(fields: [jobTitleId], references: [id])
+  lastName            String
+  payChangeRequestIds String[]           @db.ObjectId
+  payChangeRequests   PayChangeRequest[]
+  roleIds             String[]           @db.ObjectId
+  roles               Role[]             @relation(fields: [roleIds], references: [id])
+  user                User?
 }

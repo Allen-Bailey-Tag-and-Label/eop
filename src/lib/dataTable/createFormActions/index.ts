@@ -54,6 +54,7 @@ export const createFormActions = (modelName) => {
 
     // determine if there are any connected keys
     if (dataHasConnectedKeys(schema)) {
+      console.log(schema);
       await prisma[modelName].update({
         where: {
           id
@@ -81,7 +82,9 @@ export const createFormActions = (modelName) => {
 
 const dataHasConnectedKeys = (schema) => getConnectedKeys(schema).length > 0;
 const getConnectedKeys = (schema) =>
-  Object.keys(schema).filter((key) => schema[key]?.relationName !== undefined);
+  Object.keys(schema).filter(
+    (key) => schema[key]?.relationName !== undefined && schema[key]?.isList === true
+  );
 const getDisconnectData = (schema) =>
   getConnectedKeys(schema).reduce((obj, key) => {
     obj[key] = {

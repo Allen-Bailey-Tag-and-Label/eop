@@ -5,8 +5,6 @@
 
   // props (external)
   export let form;
-
-  $: console.log(form);
 </script>
 
 <div class="flex flex-col items-center space-y-8 p-6">
