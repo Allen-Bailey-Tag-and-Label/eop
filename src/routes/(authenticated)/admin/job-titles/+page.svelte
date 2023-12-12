@@ -6,15 +6,15 @@
 
   // props (dynamic)
   $: columns = [
-    { key: 'title', label: 'Title' },
-    { key: 'costCenter', label: 'Cost Center' },
-    { key: 'code', label: 'Code' },
+    { key: 'title' },
+    { key: 'costCenter' },
+    { key: 'code' },
     {
       getInnerHTML: (jobTitle) => jobTitle.eeoClassification.toString().padStart(3, '0'),
       key: 'eeoClassification',
       label: 'EEO Classification'
     },
-    { key: 'workCompClass', label: 'Work Comp Class' }
+    { key: 'workCompClass' }
   ];
 
   $: rows = data.jobTitles;

@@ -9,14 +9,13 @@
     return { label: role.name, value: role.id };
   });
   $: columns = [
-    { key: 'group', label: 'Group' },
-    { key: 'label', label: 'Label' },
-    { key: 'href', label: 'Href' },
+    { key: 'group' },
+    { key: 'label' },
+    { key: 'href' },
     {
       getInnerHTML: (route) => route.roles.map((role) => role.name).join(' | '),
       getValues: (route) => route.roles.map((role) => role.id),
       key: 'roles',
-      label: 'Roles',
       options: roleOptions,
       type: 'many-to-many'
     }

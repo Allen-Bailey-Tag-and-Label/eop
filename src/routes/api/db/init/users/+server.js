@@ -48,7 +48,7 @@ export const GET = async ({ url: { searchParams } }) => {
           // parse hireDate
           const dateOfHire = DateTime.fromMillis(
             typeof hireDate === 'string' ? +hireDate : hireDate
-          );
+          ).toFormat('yyyy-MM-dd');
           try {
             const { id: profileId } = await prisma.userProfile.create({
               data: {

@@ -22,7 +22,6 @@
           .map((route) => [route.group, route.label].filter((s) => s !== '').join(' - '))
           .join(' | '),
       key: 'routes',
-      label: 'Routes',
       options: routeOptions,
       type: 'many-to-many'
     },

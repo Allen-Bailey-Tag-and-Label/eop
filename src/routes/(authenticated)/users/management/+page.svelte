@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { DateTime } from 'luxon';
   import { DataTable } from '$components';
 
   // props (external)
@@ -11,12 +12,19 @@
   $: columns = [
     { key: 'firstName', label: 'First' },
     { key: 'lastName', label: 'Last' },
-    { key: 'ennisId', label: 'Ennis ID' },
-    { key: 'email', label: 'Email' },
+    {
+      getInnerHTML: (userProfile) =>
+        // userProfile.dateOfHire,
+        DateTime.fromFormat(userProfile.dateOfHire, 'yyyy-MM-dd').toFormat('M/d/yyyy'),
+      key: 'dateOfHire',
+      type: 'date'
+    },
+    { key: 'ennisId' },
+    { key: 'email' },
     {
       getInnerHTML: (userProfile) => userProfile.jobTitle?.title || '',
       key: 'jobTitleId',
-      label: 'Title',
+      label: 'Job Title',
       options: jobTitleOptions,
       type: 'select'
     }

@@ -21,6 +21,7 @@
   } from '$components';
   import { Pencil, Plus, Trash } from '$icons';
   import { theme, toast } from '$stores';
+  import { pascalCaseToSentence } from '$utilities';
 
   // handlers
   const createEnhanceHandler = async () => {
@@ -62,12 +63,12 @@
 
   // props (external)
   export let columns:
-    | { key: string; label: string; type?: string }[]
+    | { key: string; label?: string; type?: string }[]
     | {
         getInnerHTML: Function;
         getValues: Function;
         key: string;
-        label: string;
+        label?: string;
         options: { label: string; value: string }[];
         type: string;
       }[] = [];
@@ -97,8 +98,8 @@
   <ResponsiveTable>
     <Thead>
       <Th>Actions</Th>
-      {#each columns as { label }}
-        <Th>{label}</Th>
+      {#each columns as { key, label }}
+        <Th>{label === undefined ? pascalCaseToSentence(key) : label}</Th>
       {/each}
     </Thead>
     <Tbody>
@@ -145,9 +146,15 @@
   <Form action="?/create" use={[[enhance, createEnhanceHandler]]}>
     <InputGroup>
       {#each columns as column}
-        <Fieldset legend={column.label}>
-          {#if column?.type === 'many-to-many'}
+        <Fieldset
+          legend={column?.label == undefined ? pascalCaseToSentence(column.key) : column.label}
+        >
+          {#if column?.type === 'date'}
+            <Input name={column.key} type="date" />
+          {:else if column?.type === 'many-to-many'}
             <ChipInput name={column.key} options={column.options} />
+          {:else if column?.type === 'select'}
+            <Select name={column.key} options={column.options} />
           {:else}
             <Input name={column.key} />
           {/if}
@@ -180,8 +187,12 @@
   <Form action="?/edit" use={[[enhance, editEnhanceHandler]]}>
     <InputGroup>
       {#each columns as column}
-        <Fieldset legend={column.label}>
-          {#if column?.type === 'many-to-many'}
+        <Fieldset
+          legend={column?.label === undefined ? pascalCaseToSentence(column.key) : column.label}
+        >
+          {#if column?.type === 'date'}
+            <Input bind:value={modal.edit.values[column.key]} name={column.key} type="date" />
+          {:else if column?.type === 'many-to-many'}
             <ChipInput
               bind:values={modal.edit.values[column.key]}
               name={column.key}
