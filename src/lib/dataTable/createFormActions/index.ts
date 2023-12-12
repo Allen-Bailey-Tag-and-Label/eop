@@ -102,6 +102,7 @@ const parseData = (data, schema) => {
         })
       };
     }
+    if (schema?.[key]?.type === 'Int') data[key] = +data[key];
   });
   return data;
 };
