@@ -8,7 +8,7 @@ theme.set(sveltewind);
 theme.set({
   buttonDelete: 'bg-red-500 text-white hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/30',
   buttonTransparent:
-    'bg-transparent text-current hover:bg-transparent focus:bg-transparent focus:ring-slate-900/30 dark:focus:ring-white/30',
+    'bg-transparent text-current hover:bg-transparent focus:bg-transparent focus:ring-slate-900/30 dark:focus:ring-white/30 shadow-[inset]',
   buttonSm: 'px-2 py-2 text-[.7295rem]',
   buttonXs: 'px-1 py-1 text-[.5835rem]',
   form: 'space-y-8',
