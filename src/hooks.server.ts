@@ -1,6 +1,11 @@
 import { prisma } from '$lib/prisma';
 
 export const handle = async ({ event, resolve }) => {
+  // allow traffic to routes starting with /api
+  if (event.url.pathname.startsWith('/api')) {
+    const response = await resolve(event);
+    return response;
+  }
   const unauthenticatedPathnames = ['/sign-in'];
   if (!unauthenticatedPathnames.includes(event.url.pathname)) {
     const id = event.cookies.get('session_id');

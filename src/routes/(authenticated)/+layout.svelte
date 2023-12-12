@@ -28,6 +28,6 @@
   <Header />
 </div>
 
-<Modal class="min-w-[0px]" isOpen={isNavigating}>
+<Modal class="min-w-[0px] text-violet-500" isOpen={isNavigating}>
   <ProgressIndicator />
 </Modal>
