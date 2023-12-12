@@ -11,27 +11,25 @@ datasource db {
 }
 
 model JobTitle {
-  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
-  costCenter          Int
-  code                Int
-  eeoClassification   Int
-  payChangeRequestIds String[]           @db.ObjectId
-  payChangeRequests   PayChangeRequest[]
-  title               String
-  workCompClass       Int
-  userProfileIds      String[]           @db.ObjectId
-  userProfiles        UserProfile[]
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  costCenter        Int
+  code              Int
+  eeoClassification Int
+  title             String
+  workCompClass     Int
+  userProfileIds    String[]      @db.ObjectId
+  userProfiles      UserProfile[]
 }
 
 model PayChangeRequest {
   id              String      @id @default(auto()) @map("_id") @db.ObjectId
-  lastAfter       Float
-  lastDate        String
-  lastDescription String
-  lastExempt      Boolean
-  lastExplanation String
-  lastPrevious    Float
-  lastPercent     Float
+  lastAfter       Float?
+  lastDate        String?
+  lastDescription String?
+  lastExempt      Boolean?
+  lastExplanation String?
+  lastPrevious    Float?
+  lastPercent     Float?
   newAfter        Float
   newDate         String
   newDescription  String
@@ -40,8 +38,6 @@ model PayChangeRequest {
   newPrevious     Float
   newPercent      Float
   status          String
-  jobTitleId      String      @db.ObjectId
-  jobTitle        JobTitle    @relation(fields: [jobTitleId], references: [id])
   userProfileId   String      @db.ObjectId
   userProfile     UserProfile @relation(fields: [userProfileId], references: [id])
 }
