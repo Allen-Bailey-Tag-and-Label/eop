@@ -25,7 +25,9 @@
       <NavGroupTitle>{title}</NavGroupTitle>
     {/if}
     {#each [...routes.values()].sort((a, b) => a.label.localeCompare(b.label)) as { label, href }}
-      <NavItem {label} {href} />
+      <NavItem {href}>
+        {label}
+      </NavItem>
     {/each}
   </slot>
 </div>

@@ -9,7 +9,6 @@
 
   // props (external)
   export let href = '';
-  export let label = '';
   export let style: string | undefined = undefined;
   export let use: any[] = [];
 
@@ -32,7 +31,5 @@
   tabIndex={$nav.isOpen && $page.url.pathname !== href ? undefined : '-1'}
   use={[events, ...use]}
 >
-  <slot>
-    {label}
-  </slot>
+  <slot />
 </A>

@@ -4,7 +4,7 @@
   import { Nav } from 'sveltewind/components';
   import { twMerge } from 'tailwind-merge';
   import { getEvents } from '$actions';
-  import { NavGroup } from '$components';
+  import { NavGroup, NavItem } from '$components';
   import { nav } from '$stores';
 
   // props (external)
@@ -26,5 +26,8 @@
     {#each [...$nav.groups.keys()].sort((a, b) => a.localeCompare(b)) as title}
       <NavGroup routes={$nav.groups.get(title)} {title} />
     {/each}
+    <div class="flex flex-col flex-grow justify-end">
+      <NavItem href="/sign-out">Sign Out</NavItem>
+    </div>
   </slot>
 </Nav>
