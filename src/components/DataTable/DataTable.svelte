@@ -73,6 +73,8 @@
         options: { label: string; value: string }[];
         type: string;
       }[] = [];
+  export let isCreatable = true;
+  export let isEditable = true;
   export let model = '';
   export let rows: { [key: string]: string }[] = [];
 
@@ -93,12 +95,16 @@
 </script>
 
 <div class="flex flex-col space-y-8 overflow-auto m-[-1.5rem] p-[1.5rem]">
-  <Button class={twMerge($theme.buttonIcon, 'self-end')} on:click={modal.create.toggle}>
-    <Icon src={Plus} />
-  </Button>
+  {#if isCreatable}
+    <Button class={twMerge($theme.buttonIcon, 'self-end')} on:click={modal.create.toggle}>
+      <Icon src={Plus} />
+    </Button>
+  {/if}
   <ResponsiveTable>
     <Thead>
-      <Th>Actions</Th>
+      {#if isEditable}
+        <Th>Actions</Th>
+      {/if}
       {#each columns as { key, label }}
         <Th>{label === undefined ? pascalCaseToSentence(key) : label}</Th>
       {/each}
@@ -106,22 +112,24 @@
     <Tbody>
       {#each rows as row}
         <Tr>
-          <Td class="py-2">
-            <div class="flex space-x-2 items-center">
-              <Button
-                class={twMerge($theme.buttonIcon, $theme.buttonSm)}
-                on:click={() => editButtonClickHandler(row)}
-              >
-                <Icon src={Pencil} />
-              </Button>
-              <Button
-                class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
-                on:click={() => deleteButtonClickHandler(row)}
-              >
-                <Icon src={Trash} />
-              </Button>
-            </div>
-          </Td>
+          {#if isEditable}
+            <Td class="py-2">
+              <div class="flex space-x-2 items-center">
+                <Button
+                  class={twMerge($theme.buttonIcon, $theme.buttonSm)}
+                  on:click={() => editButtonClickHandler(row)}
+                >
+                  <Icon src={Pencil} />
+                </Button>
+                <Button
+                  class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
+                  on:click={() => deleteButtonClickHandler(row)}
+                >
+                  <Icon src={Trash} />
+                </Button>
+              </div>
+            </Td>
+          {/if}
           {#each columns as column}
             <Td>
               {#if column.getInnerHTML === undefined}
