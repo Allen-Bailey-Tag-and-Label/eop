@@ -5,6 +5,9 @@
   // props (external)
   export let data;
 
+  // props (internal)
+  let isReadonly = true;
+
   // props (dynamic)
   $: jobTitleOptions = data.jobTitles.map((jobTitle) => {
     return { label: jobTitle.title, value: jobTitle.id };
@@ -29,8 +32,10 @@
       type: 'select'
     }
   ];
-
   $: rows = data.userProfiles;
+  $: if (data.user.profile.roles.find((role) => role.name === 'Admin') !== undefined) {
+    isReadonly = false;
+  }
 </script>
 
-<DataTable {columns} {rows} />
+<DataTable {columns} {isReadonly} {rows} />
