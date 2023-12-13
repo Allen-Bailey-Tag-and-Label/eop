@@ -12,7 +12,7 @@ theme.set({
   buttonSm: 'px-2 py-2 text-[.7295rem]',
   buttonXs: 'px-1 py-1 text-[.5835rem]',
   form: 'space-y-8',
-  header: 'order-2 z-[2] lg:order-1',
+  header: 'order-2 z-[2] lg:order-1 pb-[env(safe-area-inset-bottom)]',
   icon: 'w-[calc(16_*_1.5em_/_14)] h-[calc(16_*1.5em_/_14)]',
   inputGroup: 'space-y-4',
   modal: 'min-w-0',
