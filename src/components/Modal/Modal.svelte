@@ -24,7 +24,7 @@
     on:click={close}
   />
   <div class={twMerge($theme.modal, !isOpen ? $theme.modalIsClosed : $theme.modalIsOpen)}>
-    <Card class={twMerge($theme.modal, $$props.class)} {style} use={[events, ...use]}>
+    <Card class={twMerge('overflow-auto', $$props.class)} {style} use={[events, ...use]}>
       <slot />
     </Card>
   </div>

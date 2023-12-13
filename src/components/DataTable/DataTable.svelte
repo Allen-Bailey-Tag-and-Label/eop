@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { DateTime } from 'luxon';
   import { twMerge } from 'tailwind-merge';
   import { applyAction, enhance } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
@@ -124,7 +125,11 @@
           {#each columns as column}
             <Td>
               {#if column.getInnerHTML === undefined}
-                {row[column.key]}
+                {#if column?.type === 'date'}
+                  {DateTime.fromFormat(row[column.key], 'yyyy-MM-dd').toFormat('M/d/yyyy')}
+                {:else}
+                  {row[column.key]}
+                {/if}
               {/if}
               {#if column.getInnerHTML !== undefined}
                 {column.getInnerHTML(row)}

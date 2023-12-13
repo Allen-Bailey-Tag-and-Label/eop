@@ -31,6 +31,9 @@ export const GET = async ({ url: { searchParams } }) => {
       // find all user profiles
       const userProfiles = await prisma.userProfile.findMany();
 
+      // find all pay change request codes
+      const payChangeRequestCodes = await prisma.payChangeRequestCode.findMany();
+
       // delete all users in current db
       await prisma.payChangeRequest.deleteMany();
 
@@ -43,6 +46,9 @@ export const GET = async ({ url: { searchParams } }) => {
           // create db fields
           const lastAfter =
             typeof previous?.after === 'string' ? parseFloat(previous.after) : previous?.after;
+          const lastCodeId = payChangeRequestCodes.find(
+            (payChangeRequestCode) => payChangeRequestCode.code === previous?.code
+          )?.id;
           const lastDate = DateTime.fromMillis(
             previous?.date === undefined
               ? 0
@@ -60,6 +66,9 @@ export const GET = async ({ url: { searchParams } }) => {
           const lastPercent = lastAfter / lastPrevious - 1;
           const newAfter =
             typeof change?.after === 'string' ? parseFloat(change.after) : change?.after;
+          const newCodeId = payChangeRequestCodes.find(
+            (payChangeRequestCode) => payChangeRequestCode.code === change?.code
+          )?.id;
           const newDate = DateTime.fromMillis(
             change?.date === undefined
               ? 0
@@ -86,6 +95,7 @@ export const GET = async ({ url: { searchParams } }) => {
             await prisma.payChangeRequest.create({
               data: {
                 lastAfter,
+                lastCodeId,
                 lastDate,
                 lastDescription,
                 lastExempt,
@@ -93,6 +103,7 @@ export const GET = async ({ url: { searchParams } }) => {
                 lastPrevious,
                 lastPercent,
                 newAfter,
+                newCodeId,
                 newDate,
                 newDescription,
                 newExempt,

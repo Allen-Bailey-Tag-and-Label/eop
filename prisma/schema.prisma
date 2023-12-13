@@ -22,8 +22,10 @@ model JobTitle {
 }
 
 model PayChangeRequest {
-  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  id              String                @id @default(auto()) @map("_id") @db.ObjectId
   lastAfter       Float?
+  lastCodeId      String?               @db.ObjectId
+  lastCode        PayChangeRequestCode? @relation("lastCode", fields: [lastCodeId], references: [id])
   lastDate        String?
   lastDescription String?
   lastExempt      Boolean?
@@ -31,6 +33,8 @@ model PayChangeRequest {
   lastPrevious    Float?
   lastPercent     Float?
   newAfter        Float
+  newCodeId       String                @db.ObjectId
+  newCode         PayChangeRequestCode  @relation("newCode", fields: [newCodeId], references: [id])
   newDate         String
   newDescription  String
   newExempt       Boolean
@@ -38,8 +42,16 @@ model PayChangeRequest {
   newPrevious     Float
   newPercent      Float
   status          String
-  userProfileId   String      @db.ObjectId
-  userProfile     UserProfile @relation(fields: [userProfileId], references: [id])
+  userProfileId   String                @db.ObjectId
+  userProfile     UserProfile           @relation(fields: [userProfileId], references: [id])
+}
+
+model PayChangeRequestCode {
+  id                        String             @id @default(auto()) @map("_id") @db.ObjectId
+  code                      String
+  description               String
+  payChangeRequestLastCodes PayChangeRequest[] @relation("lastCode")
+  payChangeRequestNewCodes  PayChangeRequest[] @relation("newCode")
 }
 
 model Role {
