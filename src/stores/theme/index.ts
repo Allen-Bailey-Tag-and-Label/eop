@@ -18,7 +18,7 @@ theme.set({
   modal: 'min-w-0',
   modalIsClosed: 'pointer-events-none opacity-0 scale-[.97]',
   modalIsOpen: 'pointer-events-auto opacity-100 scale-100',
-  nav: 'space-y-8 fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[3rem] lg:right-auto lg:left-0 lg:pb-0 lg:min-w-[20rem]',
+  nav: 'space-y-8 fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] lg:right-auto lg:left-0 lg:pb-[env(safe-area-inset-bottom)] lg:min-w-[20rem]',
   navGroup: 'flex flex-col',
   navGroupTitle: 'px-4 py-2 uppercase font-semibold lg:pl-[4rem]',
   navItem:
