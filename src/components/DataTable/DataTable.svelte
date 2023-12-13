@@ -74,7 +74,9 @@
         type: string;
       }[] = [];
   export let isCreatable = true;
+  export let isDeletable = true;
   export let isEditable = true;
+  export let isReadonly = false;
   export let model = '';
   export let rows: { [key: string]: string }[] = [];
 
@@ -92,6 +94,13 @@
       }
     }
   };
+
+  // props (dynamic)
+  if (isReadonly) {
+    isCreatable = false;
+    isDeletable = false;
+    isEditable = false;
+  }
 </script>
 
 <div class="flex flex-col space-y-8 overflow-auto m-[-1.5rem] p-[1.5rem]">
@@ -102,7 +111,7 @@
   {/if}
   <ResponsiveTable>
     <Thead>
-      {#if isEditable}
+      {#if isDeletable || isEditable}
         <Th>Actions</Th>
       {/if}
       {#each columns as { key, label }}
@@ -112,21 +121,25 @@
     <Tbody>
       {#each rows as row}
         <Tr>
-          {#if isEditable}
+          {#if isDeletable || isEditable}
             <Td class="py-2">
               <div class="flex space-x-2 items-center">
-                <Button
-                  class={twMerge($theme.buttonIcon, $theme.buttonSm)}
-                  on:click={() => editButtonClickHandler(row)}
-                >
-                  <Icon src={Pencil} />
-                </Button>
-                <Button
-                  class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
-                  on:click={() => deleteButtonClickHandler(row)}
-                >
-                  <Icon src={Trash} />
-                </Button>
+                {#if isEditable}
+                  <Button
+                    class={twMerge($theme.buttonIcon, $theme.buttonSm)}
+                    on:click={() => editButtonClickHandler(row)}
+                  >
+                    <Icon src={Pencil} />
+                  </Button>
+                {/if}
+                {#if isDeletable}
+                  <Button
+                    class={twMerge($theme.buttonIcon, $theme.buttonSm, $theme.buttonDelete)}
+                    on:click={() => deleteButtonClickHandler(row)}
+                  >
+                    <Icon src={Trash} />
+                  </Button>
+                {/if}
               </div>
             </Td>
           {/if}
