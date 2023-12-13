@@ -48,10 +48,6 @@
       key: 'workCompClass'
     },
     {
-      getInnerHTML: (payChangeRequest) => payChangeRequest.userProfile.jobTitle.workCompClass,
-      key: 'workCompClass'
-    },
-    {
       getInnerHTML: (payChangeRequest) =>
         DateTime.fromFormat(payChangeRequest.newDate, 'yyyy-MM-dd').toFormat('M/d/yyyy'),
       key: 'effectiveDate'

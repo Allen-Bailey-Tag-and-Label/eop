@@ -22,10 +22,10 @@
 </script>
 
 <div class="min-h-[100dvh] max-h-[100dvh] flex flex-col lg:flex-row">
+  <Header />
   <div class="flex flex-col flex-grow overflow-auto lg:order-2 p-[1.5rem]">
     <slot />
   </div>
-  <Header />
 </div>
 
 <Modal class="min-w-[0px] text-violet-500" isOpen={isNavigating}>
