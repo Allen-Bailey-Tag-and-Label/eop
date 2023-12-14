@@ -16,7 +16,7 @@ theme.set({
   icon: 'w-[calc(16_*_1.5em_/_14)] h-[calc(16_*1.5em_/_14)]',
   inputGroup: 'space-y-4',
   modal:
-    'min-w-0 max-h-[min(calc(100dvh_-_3rem),_calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom)))] pwa:max-h-[min(calc(100nh_-_3rem),_calc(100vh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom)))]',
+    'min-w-0 max-h-[min(calc(100dvh_-_3rem),_calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom)))] pwa:max-h-[min(calc(100vh_-_3rem),_calc(100vh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom)))]',
   modalIsClosed: 'pointer-events-none opacity-0 scale-[.97]',
   modalIsOpen: 'pointer-events-auto opacity-100 scale-100',
   nav: 'space-y-8 fixed top-0 right-0 min-h-[100dvh] max-h-[100dvh] pwa:min-h-[100vh] pwa:max-h-[100vh] overflow-auto transition duration-200 bg-white dark:bg-slate-950 min-w-[calc(100dvw_-_1.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:right-auto lg:left-0 lg:min-w-[20rem]',
