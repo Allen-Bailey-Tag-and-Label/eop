@@ -103,11 +103,13 @@
   }
 </script>
 
-<div class="flex flex-col space-y-8 overflow-auto m-[-1.5rem] p-[1.5rem]">
+<div class="flex flex-col space-y-6 overflow-auto -m-6 md:p-6">
   {#if isCreatable}
-    <Button class={twMerge($theme.buttonIcon, 'self-end')} on:click={modal.create.toggle}>
-      <Icon src={Plus} />
-    </Button>
+    <div class="flex flex-row items-center justify-end px-6 md:px-0">
+      <Button class={twMerge($theme.buttonIcon, 'self-end')} on:click={modal.create.toggle}>
+        <Icon src={Plus} />
+      </Button>
+    </div>
   {/if}
   <ResponsiveTable>
     <Thead>
