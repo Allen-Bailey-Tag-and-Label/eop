@@ -3,6 +3,11 @@
   import { Button, Card, Fieldset, Form, H1, Input, InputGroup, Logo } from '$components';
   import { slide } from '$transitions';
 
+  // handlers
+  const usernameChangeHandler = (e: CustomEvent<HTMLInputElement>) => {
+    if (e.target) e.target.value = e.target.value.replace(/\s/g, '').toLowerCase();
+  };
+
   // props (external)
   export let form;
 </script>
@@ -14,7 +19,7 @@
     <Form use={[enhance]}>
       <InputGroup>
         <Fieldset legend="Username">
-          <Input name="username" required="required" />
+          <Input name="username" on:change={usernameChangeHandler} required="required" />
         </Fieldset>
         <Fieldset legend="Password">
           <Input name="password" required="required" type="password" />
