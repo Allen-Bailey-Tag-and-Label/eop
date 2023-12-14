@@ -21,7 +21,9 @@
   onMount(() => (isNavigating = false));
 </script>
 
-<div class="min-h-[100dvh] max-h-[100dvh] flex flex-col lg:flex-row">
+<div
+  class="min-h-[100dvh] max-h-[100dvh] flex flex-col lg:flex-row pwa:min-h-[100vh] pwa:max-h-[100vh]"
+>
   <Header />
   <div
     class="flex flex-col flex-grow overflow-auto lg:order-2 p-[1.5rem] pt-[max(1.5rem,_env(safe-area-inset-top))]"
