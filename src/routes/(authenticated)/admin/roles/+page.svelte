@@ -21,6 +21,8 @@
         role.routes
           .map((route) => [route.group, route.label].filter((s) => s !== '').join(' - '))
           .join(' | '),
+      getValues: (role) =>
+        role.routes.map((route) => [route.group, route.label].filter((s) => s !== '').join(' - ')),
       key: 'routes',
       options: routeOptions,
       type: 'many-to-many'

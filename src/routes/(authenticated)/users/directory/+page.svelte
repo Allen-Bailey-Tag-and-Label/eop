@@ -6,7 +6,7 @@
   export let data;
 
   // props (internal)
-  let isReadonly = true;
+  let isReadonly = false;
 
   // props (dynamic)
   $: jobTitleOptions = data.jobTitles.map((jobTitle) => {
