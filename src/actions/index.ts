@@ -1,1 +1,1 @@
-export * from 'sveltewind/actions';
+export * from 'sveltewind/actions'

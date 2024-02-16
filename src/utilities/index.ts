@@ -1,2 +1,2 @@
-export { formDataToObject } from './formDataToObject';
-export { pascalCaseToSentence } from './pascalCaseToSentence';
+export * from 'sveltewind/utilities';
+export { convert } from './convert';

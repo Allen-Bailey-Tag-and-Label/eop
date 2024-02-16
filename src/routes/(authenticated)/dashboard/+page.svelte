@@ -1,8 +1,9 @@
 <script lang="ts">
-  // props (external)
-  export let data;
+import { H1, H3 } from '$components';
+
+// props (external)
+export let data;
 </script>
 
-{#each [...Array(100)] as _, i}
-  <div>{i}</div>
-{/each}
+<H3>Hi {data.user.profile?.firstName}</H3>
+<H1>Welcome Back</H1>

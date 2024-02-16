@@ -10,62 +10,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model JobTitle {
-  id                String        @id @default(auto()) @map("_id") @db.ObjectId
-  costCenter        Int
-  code              Int
-  eeoClassification Int
-  title             String
-  workCompClass     Int
-  userProfileIds    String[]      @db.ObjectId
-  userProfiles      UserProfile[]
-}
-
-model PayChangeRequest {
-  id              String                @id @default(auto()) @map("_id") @db.ObjectId
-  lastAfter       Float?
-  lastCodeId      String?               @db.ObjectId
-  lastCode        PayChangeRequestCode? @relation("lastCode", fields: [lastCodeId], references: [id])
-  lastDate        String?
-  lastDescription String?
-  lastExempt      Boolean?
-  lastExplanation String?
-  lastPrevious    Float?
-  lastPercent     Float?
-  newAfter        Float
-  newCodeId       String                @db.ObjectId
-  newCode         PayChangeRequestCode  @relation("newCode", fields: [newCodeId], references: [id])
-  newDate         String
-  newDescription  String
-  newExempt       Boolean
-  newExplanation  String
-  newPrevious     Float
-  newPercent      Float
-  status          String
-  userProfileId   String                @db.ObjectId
-  userProfile     UserProfile           @relation(fields: [userProfileId], references: [id])
-}
-
-model PayChangeRequestCode {
-  id                        String             @id @default(auto()) @map("_id") @db.ObjectId
-  code                      String
-  description               String
-  payChangeRequestLastCodes PayChangeRequest[] @relation("lastCode")
-  payChangeRequestNewCodes  PayChangeRequest[] @relation("newCode")
-}
-
 model Role {
-  id             String        @id @default(auto()) @map("_id") @db.ObjectId
-  name           String        @unique
-  routeIds       String[]      @db.ObjectId
-  routes         Route[]       @relation(fields: [routeIds], references: [id])
-  userProfileIds String[]      @db.ObjectId
-  userProfiles   UserProfile[] @relation(fields: [userProfileIds], references: [id])
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  label    String   @unique
+  routeIds String[] @db.ObjectId
+  routes   Route[]  @relation(fields: [routeIds], references: [id])
+  userIds  String[] @db.ObjectId
+  users    User[]   @relation(fields: [userIds], references: [id])
 }
 
 model Route {
   id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  group   String
   href    String
   label   String
   roleIds String[] @db.ObjectId
@@ -73,27 +28,20 @@ model Route {
 }
 
 model User {
-  id           String      @id @default(auto()) @map("_id") @db.ObjectId
-  isActive     Boolean
-  lastLogin    DateTime
-  passwordHash String?
-  profileId    String      @unique @db.ObjectId
-  profile      UserProfile @relation(fields: [profileId], references: [id])
-  username     String      @unique
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  email        String       @unique
+  isActive     Boolean      @default(false)
+  isOnboarded  Boolean      @default(false)
+  passwordHash String
+  profile      UserProfile?
+  roleIds      String[]     @db.ObjectId
+  roles        Role[]       @relation(fields: [roleIds], references: [id])
 }
 
 model UserProfile {
-  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
-  dateOfHire          String
-  ennisId             Int
-  email               String?
-  firstName           String
-  jobTitleId          String?            @db.ObjectId
-  jobTitle            JobTitle?          @relation(fields: [jobTitleId], references: [id])
-  lastName            String
-  payChangeRequestIds String[]           @db.ObjectId
-  payChangeRequests   PayChangeRequest[]
-  roleIds             String[]           @db.ObjectId
-  roles               Role[]             @relation(fields: [roleIds], references: [id])
-  user                User?
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  firstName String
+  lastName  String
+  userId    String @unique @db.ObjectId
+  user      User   @relation(fields: [userId], references: [id])
 }

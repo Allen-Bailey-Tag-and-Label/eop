@@ -1,27 +1,33 @@
 // See https://kit.svelte.dev/docs/types#app
+
+import type { Role, Route } from '$lib/types';
+
 // for information about these interfaces
 declare global {
-  namespace App {
-    // interface Error {}
-    interface Locals {
-      user: {
-        id: string;
-        isActive: Boolean;
-        lastLogin: Date;
-        username: String;
-        profile: {
-          id: string;
-          dateOfHire: string;
-          ennisId: Number;
-          email?: string;
-          firstName: string;
-          lastName: string;
-        };
-      };
-    }
-    // interface PageData {}
-    // interface Platform {}
-  }
+	namespace App {
+		// interface Error {}
+		interface Locals {
+			user: {
+				profile: {
+					id: string;
+					firstName: string;
+					lastName: string;
+					userId: string;
+				} | null;
+			} & {
+				id: string;
+				email: string;
+				isActive: boolean;
+				passwordHash: string;
+			} & {
+				roles: Role[];
+				routes: Route[];
+			};
+		}
+		// interface PageData {}
+		// interface PageState {}
+		// interface Platform {}
+	}
 }
 
 export {};

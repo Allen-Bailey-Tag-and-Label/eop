@@ -1,28 +1,34 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
-  "compilerOptions": {
-    "allowJs": true,
-    "checkJs": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strict": true,
-    "moduleResolution": "bundler",
-    "paths": {
-      "$actions": ["./src/actions"],
-      "$components": ["./src/components"],
-      "$icons": ["./src/icons"],
-      "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"],
-      "$stores": ["./src/stores"],
-      "$transitions": ["./src/transitions"],
-      "$utilities": ["./src/utilities"]
-    }
-  }
-  // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
-  //
-  // If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
-  // from the referenced tsconfig.json - TypeScript does not merge them in
+	"extends": "./.svelte-kit/tsconfig.json",
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"moduleResolution": "bundler",
+		"paths": {
+		  "$actions": ["./src/actions"],
+		  "$actions/*": ["./src/actions/*"],
+		  "$components": ["./src/components"],
+		  "$components/*": ["./src/components/*"],
+		  "$icons": ["./src/icons"],
+		  "$icons/*": ["./src/icons/*"],
+		  "$lib": ["./src/lib"],
+		  "$lib/*": ["./src/lib/*"],
+		  "$stores": ["./src/stores"],
+		  "$stores/*": ["./src/stores/*"],
+		  "$transitions": ["./src/transitions"],
+		  "$transitions/*": ["./src/transitions/*"],
+		  "$utilities": ["./src/utilities"],
+		  "$utilities/*": ["./src/utilities/*"]
+		}
+	}
+	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
+	//
+	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
+	// from the referenced tsconfig.json - TypeScript does not merge them in
 }

@@ -1,33 +1,33 @@
 <script lang="ts">
-  // imports
-  import { current_component } from 'svelte/internal';
-  import { Nav } from 'sveltewind/components';
-  import { twMerge } from 'tailwind-merge';
-  import { getEvents } from '$actions';
-  import { NavGroup, NavItem } from '$components';
-  import { nav } from '$stores';
+import { Nav } from 'sveltewind/components';
+import { A, NavItem, Overlay } from '$components';
+import { fade, slide } from '$transitions';
 
-  // props (external)
-  export let style: string | undefined = undefined;
-  export let use: any[] = [];
-
-  // props (internal)
-  const events = getEvents(current_component);
-
-  // props (dynamic)
-  $: classes = twMerge(
-    $nav.isOpen ? 'translate-x-0' : 'translate-x-full lg:-translate-x-full',
-    $$props.class
-  );
+// props (external)
+export let data;
+export let close = () => (isOpen = false);
+export let isOpen = false;
+export let open = () => (isOpen = true);
+export let toggle = () => (isOpen = !isOpen);
 </script>
 
-<Nav class={classes} {style} use={[events, ...use]}>
-  <slot>
-    {#each [...$nav.groups.keys()].sort((a, b) => a.localeCompare(b)) as title}
-      <NavGroup routes={$nav.groups.get(title)} {title} />
-    {/each}
-    <div class="flex flex-col flex-grow justify-end">
-      <NavItem href="/sign-out">Sign Out</NavItem>
-    </div>
-  </slot>
-</Nav>
+{#if isOpen}
+	<div transition:fade={{duration:200}}>
+		<Overlay on:click={toggle} />
+	</div>
+	<div
+		class="fixed left-auto right-0 top-0 lg:left-0 lg:right-auto"
+		transition:slide={{axis:'x',duration:200}}
+	>
+		<Nav>
+			<slot>
+				<div class="flex flex-grow flex-col">
+					{#each data.user.routes as { href, label }}
+						<NavItem href={href} on:click={toggle}>{label}</NavItem>
+					{/each}
+				</div>
+				<NavItem href="/sign-out">Sign Out</NavItem>
+			</slot>
+		</Nav>
+	</div>
+{/if}
