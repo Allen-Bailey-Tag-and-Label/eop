@@ -13,10 +13,10 @@ let open: () => boolean;
 let toggle: () => boolean;
 </script>
 
-<Header class={"pwa:order-2 pwa:pb-[env(safe-area-inset-bottom)]"}>
+<Header>
 	<slot>
 		<Button
-			class="relative z-[1] h-[3rem] w-[3rem] text-current"
+			class="relative z-[1] h-[3rem] w-[3rem]"
 			on:click={toggle}
 			variants={['icon', 'transparent']}
 		>

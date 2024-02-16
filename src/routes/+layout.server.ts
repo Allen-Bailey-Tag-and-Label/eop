@@ -1,5 +1,5 @@
-import {DateTime} from 'luxon'
-import seedUsers from '$lib/mongodb/seed.users.json'
+import { DateTime } from 'luxon';
+import seedUsers from '$lib/mongodb/seed.users.json';
 import { prisma } from '$lib/prisma';
 import type { Role, Route } from '$lib/types';
 
@@ -26,7 +26,7 @@ export const load = async () => {
 				// add routeIds to data
 				data.routeIds = [...routes].map(({ id }) => id);
 				const role = await prisma.role.create({ data });
-				roles.push(role)
+				roles.push(role);
 			})
 		);
 	}
@@ -35,32 +35,35 @@ export const load = async () => {
 	const users = await prisma.user.findMany();
 
 	// check if there aren't any users
-	if (users.length ===0) {
-		await Promise.all(seedUsers.map(async seed => {
-		const user = await prisma.user.create({
-			data:{
-				isActive:seed?.isActive || false,
-				isOnboarded:false,
-				passwordHash:seed.password,
-				roleIds:roles.map(role=>role.id),
-				username:seed.username
-			}
-		})
-		
-		const userProfile = await prisma.userProfile.create({
-			data:{
-				dateHired:DateTime.fromMillis(+seed?.hireDate || 0).toJSDate(),
-				email:seed?.email,
-				emailSignatureTitle:seed?.title || '',
-				ennisId:+seed.ennisId,
-				extension:+seed.extension,
-				firstName:seed.firstName,
-				lastName:seed.lastName,
-				userId: user.id
-			}
-		})
-	}))
-}
+	if (users.length === 0) {
+		console.log(users.length);
+		await Promise.all(
+			seedUsers.map(async (seed) => {
+				const user = await prisma.user.create({
+					data: {
+						isActive: seed?.isActive || false,
+						isOnboarded: true,
+						passwordHash: seed.password,
+						roleIds: roles.map((role) => role.id),
+						username: seed.username
+					}
+				});
+
+				await prisma.userProfile.create({
+					data: {
+						dateHired: DateTime.fromMillis(+seed?.hireDate || 0).toJSDate(),
+						email: seed?.email,
+						emailSignatureTitle: seed?.title || '',
+						ennisId: +seed.ennisId,
+						extension: +seed.extension,
+						firstName: seed.firstName,
+						lastName: seed.lastName,
+						userId: user.id
+					}
+				});
+			})
+		);
+	}
 
 	return {};
 };

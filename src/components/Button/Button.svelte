@@ -8,7 +8,7 @@ import { theme } from '$stores';
 // props (external)
 export let type = 'button';
 export let use: any[] = [];
-export let variants: ('icon' | 'transparent')[] = [];
+export let variants: ('delete' | 'icon' | 'outline' | 'sm' | 'transparent' | 'xs')[] = [];
 
 // props (internal)
 const events = getEvents(current_component);
