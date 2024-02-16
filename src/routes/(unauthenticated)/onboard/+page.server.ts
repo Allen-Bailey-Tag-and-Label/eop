@@ -12,11 +12,13 @@ export const actions: Actions = {
 			);
 
 			// create user profile
-			await prisma.userProfile.create({
+			await prisma.userProfile.update({
+				where:{
+					id:locals.user.profile.id
+				},
 				data: {
 					firstName,
 					lastName,
-					userId: locals.user.id
 				}
 			});
 
@@ -30,6 +32,7 @@ export const actions: Actions = {
 				}
 			});
 		} catch (error) {
+			console.log(error)
 			return fail(401, { error: 'Could not update your profile' });
 		}
 		throw redirect(303, '/dashboard');

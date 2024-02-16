@@ -13,8 +13,8 @@ export let form;
 </div>
 <Form class="w-full max-w-[25rem] lg:space-y-6" use={[enhance]}>
 	<div class="flex flex-col space-y-2 lg:space-y-3">
-		<Fieldset legend="Email">
-			<Input inputmode="email" name="email" required="required" type="email" />
+		<Fieldset legend="Username">
+			<Input name="username" required="required" />
 		</Fieldset>
 		<Fieldset legend="Password">
 			<Input name="password" required="required" type="password" />

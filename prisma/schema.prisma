@@ -29,19 +29,24 @@ model Route {
 
 model User {
   id           String       @id @default(auto()) @map("_id") @db.ObjectId
-  email        String       @unique
   isActive     Boolean      @default(false)
   isOnboarded  Boolean      @default(false)
   passwordHash String
   profile      UserProfile?
   roleIds      String[]     @db.ObjectId
   roles        Role[]       @relation(fields: [roleIds], references: [id])
+  username     String       @unique
 }
 
 model UserProfile {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  firstName String
-  lastName  String
-  userId    String @unique @db.ObjectId
-  user      User   @relation(fields: [userId], references: [id])
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  dateHired           DateTime
+  ennisId             Int
+  email               String   @default("")
+  emailSignatureTitle String
+  extension           Int
+  firstName           String
+  lastName            String
+  userId              String   @unique @db.ObjectId
+  user                User     @relation(fields: [userId], references: [id])
 }

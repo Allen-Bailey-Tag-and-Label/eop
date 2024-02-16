@@ -12,22 +12,22 @@ export const actions: Actions = {
 
 		try {
 			// get password and email from request
-			const { password, email } = <{ password: string; email: string }>(
+			const { password, username } = <{ password: string; username: string }>(
 				convert(await request.formData()).formData.to.Object()
 			);
 
 			// check if email doesn't exist
 			try {
 				user = await prisma.user.findUniqueOrThrow({
-					where: { email }
+					where: { username }
 				});
 			} catch (error) {
-				throw 'Email does not exist';
+				throw 'Username does not exist';
 			}
 
 			// check if username is not active
 			try {
-				if (!user.isActive) throw 'Email is not active';
+				if (!user.isActive) throw 'Username is not active';
 			} catch (error) {
 				throw error;
 			}
