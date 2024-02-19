@@ -30,6 +30,17 @@ export let deleteHandler = async () => {
 };
 export let model: string | undefined = undefined;
 export let rows: DataTableRow[] = [];
+export let updateHandler = async (key: string, row: DataTableRow) => {
+	const formData = new FormData();
+	formData.append('id', row.id);
+	formData.append('key', key);
+	if (model) formData.append('model', model);
+	formData.append('value', JSON.stringify(row[key]));
+	await fetch('/api/dbTable?/update', {
+		method: 'POST',
+		body: formData
+	});
+};
 </script>
 
 {#if model === undefined}
@@ -40,6 +51,7 @@ export let rows: DataTableRow[] = [];
 		bind:rows={rows}
 		createHandler={createHandler}
 		deleteHandler={deleteHandler}
+		updateHandler={updateHandler}
 		{...$$restProps}
 	/>
 {/if}

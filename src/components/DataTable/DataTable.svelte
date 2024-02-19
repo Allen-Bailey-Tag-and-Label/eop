@@ -13,7 +13,10 @@ export let createHandler: ((values: { [key: string]: any }) => void) | undefined
 export let deleteHandler: (() => void) | undefined = undefined;
 export let isCreatable = true;
 export let isDeleteable = true;
+export let isEditable = true;
+export let errors: { key: string; error: string }[] = [];
 export let rows: DataTableRow[] = [];
+export let updateHandler: ((key: string, row: DataTableRow) => void) | undefined = undefined;
 
 // props (internal)
 let isInitiated = false;
@@ -31,6 +34,7 @@ onMount(() => {
 		return row;
 	});
 	columns = columns.map((column) => {
+		if (column?.isEditable === undefined) column.isEditable = isEditable;
 		if (column?.type === undefined) column.type = 'string';
 		return column;
 	});
@@ -38,32 +42,42 @@ onMount(() => {
 });
 </script>
 
-<Card class={twMerge("rounded-none", !isInitiated?'self-start':'overflow-auto p-0')}>
-	{#if !isInitiated}
-		<ProgressIndicator />
-	{/if}
-	{#if isInitiated}
-		{#if isToolbarNeeded}
-			<DataTableToolbar
-				bind:rows={rows}
-				columns={columns}
-				createHandler={createHandler}
-				deleteHandler={deleteHandler}
-				isCreatable={isCreatable}
-				isDeleteable={isDeleteable}
-				selectedRows={selectedRows}
-			/>
+{#if errors.length > 0}
+	<pre>{JSON.stringify(errors,null,2)}</pre>
+{/if}
+{#if errors.length === 0}
+	<Card class={twMerge("rounded-none", !isInitiated?'self-start':'overflow-auto p-0')}>
+		{#if !isInitiated}
+			<ProgressIndicator />
 		{/if}
-		<Card class="overflow-auto rounded-none p-0">
-			<Table>
-				<DataTableThead
+		{#if isInitiated}
+			{#if isToolbarNeeded}
+				<DataTableToolbar
 					bind:rows={rows}
 					columns={columns}
+					createHandler={createHandler}
+					deleteHandler={deleteHandler}
+					isCreatable={isCreatable}
 					isDeleteable={isDeleteable}
 					selectedRows={selectedRows}
 				/>
-				<DataTableTbody bind:rows={rows} columns={columns} isDeleteable={isDeleteable} />
-			</Table>
-		</Card>
-	{/if}
-</Card>
+			{/if}
+			<Card class="overflow-auto rounded-none p-0">
+				<Table>
+					<DataTableThead
+						bind:rows={rows}
+						columns={columns}
+						isDeleteable={isDeleteable}
+						selectedRows={selectedRows}
+					/>
+					<DataTableTbody
+						bind:rows={rows}
+						columns={columns}
+						isDeleteable={isDeleteable}
+						updateHandler={updateHandler}
+					/>
+				</Table>
+			</Card>
+		{/if}
+	</Card>
+{/if}

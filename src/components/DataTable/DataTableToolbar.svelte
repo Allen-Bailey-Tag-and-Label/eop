@@ -1,5 +1,14 @@
 <script lang="ts">
-import { Button, Form, Icon, Input, Modal, ProgressIndicator } from '$components';
+import {
+	Button,
+	Form,
+	Icon,
+	Input,
+	InputManyToMany,
+	Modal,
+	ProgressIndicator,
+	Select
+} from '$components';
 import { ExclamationTriangle, Plus, Trash } from '$icons';
 import type { DataTableColumn, DataTableRow } from '$lib/types';
 
@@ -79,9 +88,14 @@ const modal: { create: Modal & { values: { [key: string]: any } }; delete: Modal
 >
 	<Form class="flex flex-col space-y-6" on:submit={modal.create.submitHandler}>
 		<div class="grid grid-cols-[fit-content(0px)_1fr] items-center gap-x-6 gap-y-3">
-			{#each columns as { key, label, type }}
+			{#each columns as { key, label, options, type }}
 				<div>{label}</div>
-				<Input bind:value={modal.create.values[key]} />
+				{#if type === 'string'}
+					<Input bind:value={modal.create.values[key]} />
+				{/if}
+				{#if type === 'many-to-many'}
+					<InputManyToMany bind:value={modal.create.values[key]} class="py-0" options={options} />
+				{/if}
 			{/each}
 		</div>
 		<div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end lg:gap-2">

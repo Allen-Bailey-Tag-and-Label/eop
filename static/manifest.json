@@ -5,10 +5,10 @@
 	"display": "standalone",
 	"dir": "auto",
 	"lang": "en-US",
-	"name": "Sveltekit Template",
-	"short_name": "Sveltekit Template",
+	"name": "Employee Online Portal - Allen-Bailey Tag & Label",
+	"short_name": "EOP",
 	"start_url": "/",
-	"description": "Template for Sveltekit Projects",
+	"description": "Employee Online Portal for Allen-Bailey Tag & Label",
 	"icons": [
 		{
 			"src": "/icons/icon-16x16.png",

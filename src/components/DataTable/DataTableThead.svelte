@@ -27,7 +27,11 @@ $: src = rows.length === selectedRows.length ? Check : selectedRows.length > 0 ?
 <Thead>
 	{#if isDeleteable}
 		<Th>
-			<Checkbox bind:checked={isDeleteableValue} on:change={isDeleteableChangeHandler}>
+			<Checkbox
+				bind:checked={isDeleteableValue}
+				on:change={isDeleteableChangeHandler}
+				tabindex="-1"
+			>
 				<svelte:fragment slot="handle">
 					<div
 						class={twMerge(

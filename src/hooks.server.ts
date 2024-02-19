@@ -14,13 +14,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const user = await prisma.user.findFirst({
 			where: { id },
 			include: {
-				profile: {
-					select: {
-						id: true,
-						firstName: true,
-						lastName: true
-					}
-				},
+				profile: true,
 				roles: {
 					include: {
 						routes: true

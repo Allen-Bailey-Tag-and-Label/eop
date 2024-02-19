@@ -1,7 +1,8 @@
-import { prisma } from "$lib/prisma"
+import { getLoadData } from '$lib/dbTable';
 
 export const load = async () => {
-    const routes = await prisma.route.findMany();
-
-    return { routes }
-}
+	const dbTable = await getLoadData('Route', {
+		columnOverrides: new Map([['roles', { getLabel: (row) => row.label }]])
+	});
+	return { dbTable };
+};

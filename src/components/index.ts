@@ -3,6 +3,7 @@ export { default as Button } from './Button/Button.svelte';
 export { default as DataTable } from './DataTable/DataTable.svelte';
 export { default as DBTable } from './DBTable/DBTable.svelte';
 export { default as Header } from './Header/Header.svelte';
+export { default as InputManyToMany } from './InputManyToMany/InputManyToMany.svelte';
 export { default as Nav } from './Nav/Nav.svelte';
 export { default as NavItem } from './NavItem/NavItem.svelte';
 export { default as Modal } from './Modal/Modal.svelte';

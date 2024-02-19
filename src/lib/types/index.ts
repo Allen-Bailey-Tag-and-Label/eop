@@ -1,6 +1,8 @@
 export type DataTableColumn = {
+	isEditable: boolean;
 	label: string;
 	key: string;
+	props?: { [key: string]: any };
 	type?: 'string' | 'int';
 };
 export type DataTableRow = { [key: string]: any };

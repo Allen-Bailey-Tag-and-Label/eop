@@ -1,6 +1,6 @@
 export const head = {
-	description: 'Template for Sveltekit Projects',
-	title: 'Template - Sveltekit'
+	description: 'Employee Online Portal for Allen-Bailey Tag & Label',
+	title: 'EOP - ABTL'
 };
 export const hooks = {
 	unauthenticatedRoutes: ['/forgot-password', '/sign-in', '/sign-up']

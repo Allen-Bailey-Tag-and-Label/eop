@@ -27,5 +27,21 @@ export const actions = {
 		} catch (error) {
 			console.log(error);
 		}
+	},
+	update: async ({ request }) => {
+		try {
+			const { id, key, model, value } = convert(await request.formData()).formData.to.Object();
+			const data: { [key: string]: any } = {};
+			data[key] = JSON.parse(value);
+			await prisma[model].update({
+				where: {
+					id
+				},
+				data
+			});
+			return { success: true };
+		} catch (error) {
+			console.log(error);
+		}
 	}
 };

@@ -1,14 +1,11 @@
 <script lang="ts">
+import { browser } from '$app/environment';
 import { DBTable } from '$components';
 
 // props (external)
 export let data;
 
-// props (internal)
-const columns = [
-	{ label: 'HREF', key: 'href' },
-	{ label: 'Label', key: 'label' }
-];
+$: if (browser) console.log(data);
 </script>
 
-<DBTable columns={columns} model="Route" rows={data.routes} />
+<DBTable {...data.dbTable} />
