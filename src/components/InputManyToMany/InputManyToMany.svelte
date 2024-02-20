@@ -7,6 +7,7 @@ import { theme } from '$stores';
 
 // handlers
 const buttonClickHandler = () => {
+	if (!Array.isArray(value)) value = [];
 	values = [...options].map((option) => ({
 		checked: value.includes(option.value),
 		label: option.label,
@@ -35,7 +36,9 @@ let toggle: () => boolean;
 let values: { checked: boolean; label: string; value: any }[] = [];
 </script>
 
-<div class={twMerge($theme.input, "relative flex min-h-[3rem] w-full items-center", $$props.class)}>
+<div
+	class={twMerge($theme.input, "relative flex min-h-[3rem] w-full items-center pr-16", $$props.class)}
+>
 	<div class="flex items-center space-x-2">
 		{#if Array.isArray(value)}
 			{#each value as id}
@@ -59,14 +62,20 @@ let values: { checked: boolean; label: string; value: any }[] = [];
 	{/if}
 </div>
 
-<Modal bind:close={close} bind:isOpen={isOpen} bind:open={open} bind:toggle={toggle} class="pt-16">
-	<Form class="flex flex-col space-y-6" on:submit={submitHandler}>
-		<div class="flex flex-col space-y-2">
+<Modal
+	bind:close={close}
+	bind:isOpen={isOpen}
+	bind:open={open}
+	bind:toggle={toggle}
+	class="p-0 pt-10"
+>
+	<Form class="flex flex-col space-y-0 overflow-auto" on:submit={submitHandler}>
+		<div class="flex flex-col space-y-2 overflow-auto p-6">
 			{#each values as modalValue}
 				<Checkbox bind:checked={modalValue.checked}>{modalValue.label}</Checkbox>
 			{/each}
 		</div>
-		<div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end lg:gap-2">
+		<div class="grid grid-cols-2 gap-4 p-6 pt-0 lg:flex lg:justify-end lg:gap-2">
 			<Button on:click={close} variants={['outline']}>Cancel</Button>
 			<Button type="submit">Update</Button>
 		</div>

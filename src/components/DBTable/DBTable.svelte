@@ -30,12 +30,13 @@ export let deleteHandler = async () => {
 };
 export let model: string | undefined = undefined;
 export let rows: DataTableRow[] = [];
-export let updateHandler = async (key: string, row: DataTableRow) => {
+export let updateHandler = async (id: string, key: string, type: string, value: any) => {
 	const formData = new FormData();
-	formData.append('id', row.id);
+	formData.append('id', id);
 	formData.append('key', key);
 	if (model) formData.append('model', model);
-	formData.append('value', JSON.stringify(row[key]));
+	formData.append('type', type);
+	formData.append('value', JSON.stringify(value));
 	await fetch('/api/dbTable?/update', {
 		method: 'POST',
 		body: formData

@@ -2,5 +2,18 @@
 	"Sveltekit - Load Function": {
 		"prefix": "@sk-load",
 		"body": ["export const load = async () => {", "\t$1", "}"]
+	},
+	"Sveltekit - DBTable Load Function": {
+		"prefix": "@sk-dbtable-load",
+		"body": [
+			"import { getLoadData } from '\\$lib/dbTable';",
+			"",
+			"export const load = async () => {",
+			"	const dbTable = await getLoadData('$1', {",
+			"		columnOverrides: new Map([$2])",
+			"	});",
+			"	return { dbTable };",
+			"};"
+		]
 	}
 }

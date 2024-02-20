@@ -3,7 +3,9 @@ import { Checkbox, Td } from '$components';
 import type { DataTableRow } from '$lib/types';
 
 // handlers
-const changeHandler = (e) => {};
+const changeHandler = (e) => {
+	if (updateHandler !== undefined) updateHandler(row.id, key, 'boolean', row[key]);
+};
 const clickHandler = (e) => {
 	if (!isEditable) e.preventDefault();
 };
@@ -15,6 +17,7 @@ export let isEditable: boolean;
 export let key: string;
 export let keydownHandler: (e: any) => void;
 export let row: DataTableRow;
+export let updateHandler: ((id: string, key: string, type: string, value: any) => void) | undefined;
 </script>
 
 <Td>

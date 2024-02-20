@@ -30,9 +30,10 @@ export const actions = {
 	},
 	update: async ({ request }) => {
 		try {
-			const { id, key, model, value } = convert(await request.formData()).formData.to.Object();
+			let { id, key, model, type, value } = convert(await request.formData()).formData.to.Object();
 			const data: { [key: string]: any } = {};
 			data[key] = JSON.parse(value);
+			if (type === 'int') data[key] = parseInt(value.replace(/\"/g, ''));
 			await prisma[model].update({
 				where: {
 					id

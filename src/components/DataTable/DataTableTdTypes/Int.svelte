@@ -6,7 +6,7 @@ import type { DataTableRow } from '$lib/types';
 // handlers
 const blurHandlerInternal = (e) => {
 	row[key] = e.target.innerText;
-	if (updateHandler !== undefined) updateHandler(row.id, key, 'string', row[key]);
+	if (updateHandler !== undefined) updateHandler(row.id, key, 'int', row[key]);
 	blurHandler(e);
 };
 
@@ -26,6 +26,7 @@ export let updateHandler: ((id: string, key: string, type: string, value: any) =
 	on:blur={blurHandlerInternal}
 	on:focus={focusHandler}
 	on:keydown={keydownHandler}
+	type="number"
 >
 	{row[key]}
 </Td>

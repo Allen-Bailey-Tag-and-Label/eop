@@ -4,6 +4,8 @@ import Boolean from './DataTableTdTypes/Boolean.svelte';
 import OneToOne from './DataTableTdTypes/OneToOne.svelte';
 import ManyToMany from './DataTableTdTypes/ManyToMany.svelte';
 import String from './DataTableTdTypes/String.svelte';
+import DateTime from './DataTableTdTypes/DateTime.svelte';
+import Int from './DataTableTdTypes/Int.svelte';
 
 // handlers
 const blurHandler = (e) => {
@@ -45,7 +47,7 @@ export let isEditable: boolean;
 export let key: string;
 export let row: DataTableRow;
 export let type: string;
-export let updateHandler: ((key: string, row: DataTableRow) => void) | undefined;
+export let updateHandler: ((id: string, key: string, type: string, value: any) => void) | undefined;
 
 // props (internal)
 const keydownMap = new Map([
@@ -82,6 +84,30 @@ const keydownMap = new Map([
 
 {#if type === 'boolean'}
 	<Boolean
+		bind:row={row}
+		blurHandler={blurHandler}
+		focusHandler={focusHandler}
+		isEditable={isEditable}
+		key={key}
+		keydownHandler={keydownHandler}
+		updateHandler={updateHandler}
+		{...$$restProps}
+	/>
+{/if}
+{#if type === 'dateTime'}
+	<DateTime
+		bind:row={row}
+		blurHandler={blurHandler}
+		focusHandler={focusHandler}
+		isEditable={isEditable}
+		key={key}
+		keydownHandler={keydownHandler}
+		updateHandler={updateHandler}
+		{...$$restProps}
+	/>
+{/if}
+{#if type === 'int'}
+	<Int
 		bind:row={row}
 		blurHandler={blurHandler}
 		focusHandler={focusHandler}

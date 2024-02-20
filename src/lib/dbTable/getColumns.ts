@@ -33,29 +33,19 @@ export const getColumns = async (modelName: string, options: GetColumnsOptions) 
 					errors = [...errors, { key: name, error: 'Missing "getLabel" function' }];
 					return;
 				}
-				const options = (await prisma[type].findMany()).map((row) => ({
-					label: getLabel(row),
-					value: row.id
-				}));
-				// one-to-one
-				if (!isList && relationFromFields !== undefined && relationFromFields.length === 0) {
-					column.options = options;
-					column.type = 'one-to-one';
-				}
-				// one-to-many
-				if (isList && relationFromFields !== undefined && relationFromFields.length === 0) {
-					column.options = options;
-					column.type = 'one-to-many';
-				}
-				// many-to-many
-				if (
-					relationFromFields !== undefined &&
-					relationFromFields?.length !== 0 &&
-					relationToFields?.length !== 0
-				) {
+				const options = (await prisma[type].findMany())
+					.map((row) => ({
+						label: getLabel(row),
+						value: row.id
+					}))
+					.sort((a, b) => a.label.localeCompare(b.label));
+				// one-to-one & many-to-may
+				if (relationFromFields !== undefined && relationFromFields.length > 0) {
+					let relationshipType;
+					if (!isList) relationshipType = 'one-to-one';
+					if (isList) relationshipType = 'many-to-many';
 					const relationshipFieldName = relationFromFields[0];
 					const relationshipField = fieldMap.get(relationshipFieldName);
-					const relationshipType = 'many-to-many';
 					relationshipField.dbTable = {
 						...relationshipField?.dbTable,
 						label: name,

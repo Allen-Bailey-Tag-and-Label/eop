@@ -36,7 +36,6 @@ export const load = async () => {
 
 	// check if there aren't any users
 	if (users.length === 0) {
-		console.log(users.length);
 		await Promise.all(
 			seedUsers.map(async (seed) => {
 				const user = await prisma.user.create({

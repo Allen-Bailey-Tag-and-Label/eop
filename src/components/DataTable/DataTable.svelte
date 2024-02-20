@@ -16,7 +16,9 @@ export let isDeleteable = true;
 export let isEditable = true;
 export let errors: { key: string; error: string }[] = [];
 export let rows: DataTableRow[] = [];
-export let updateHandler: ((key: string, row: DataTableRow) => void) | undefined = undefined;
+export let updateHandler:
+	| ((id: string, key: string, type: string, value: any) => void)
+	| undefined = undefined;
 
 // props (internal)
 let isInitiated = false;

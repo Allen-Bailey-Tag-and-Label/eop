@@ -25,5 +25,18 @@
 			"\t<slot/>",
 			"</${1:div}>"
 		]
+	},
+	"DB Table": {
+		"prefix": "@dbTable",
+		"body": [
+			"<script lang=\"ts\">",
+			"import { DBTable } from '\\$components';",
+			"",
+			"// props (external)",
+			"export let data;",
+			"</script>",
+			"",
+			"<DBTable {...data.dbTable} />"
+		]
 	}
 }

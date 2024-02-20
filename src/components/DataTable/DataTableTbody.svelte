@@ -7,7 +7,7 @@ import DataTableTd from './DataTableTd.svelte';
 export let columns: DataTableColumn[] = [];
 export let isDeleteable: boolean;
 export let rows: DataTableRow[] = [];
-export let updateHandler: ((key: string, row: DataTableRow) => void) | undefined;
+export let updateHandler: ((id: string, key: string, type: string, value: any) => void) | undefined;
 </script>
 
 <Tbody>
