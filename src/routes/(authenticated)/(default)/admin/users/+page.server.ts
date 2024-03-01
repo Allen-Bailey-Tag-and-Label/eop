@@ -6,7 +6,10 @@ export const load = async () => {
 			['profile', { isEditable: false, getLabel: (row) => `${row.firstName} ${row.lastName}` }],
 			['roles', { getLabel: (row) => row.label }]
 		]),
-		fieldFilterNames: ['passwordHash']
+		fieldFilterNames: ['passwordHash'],
+		findManyParamaters: {
+			orderBy: [{ username: 'asc' }]
+		}
 	});
 	return { dbTable };
 };

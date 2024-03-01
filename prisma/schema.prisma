@@ -21,6 +21,7 @@ model Role {
 
 model Route {
   id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  group   String?
   href    String
   label   String
   roleIds String[] @db.ObjectId

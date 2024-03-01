@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
 	Button,
+	Checkbox,
 	Form,
 	Icon,
 	Input,
@@ -90,11 +91,23 @@ const modal: { create: Modal & { values: { [key: string]: any } }; delete: Modal
 		<div class="grid grid-cols-[fit-content(0px)_1fr] items-center gap-x-6 gap-y-3">
 			{#each columns as { key, label, options, type }}
 				<div>{label}</div>
-				{#if type === 'string'}
-					<Input bind:value={modal.create.values[key]} />
+				{#if type ==='boolean'}
+					<Checkbox bind:checked={modal.create.values[key]} />
+				{/if}
+				{#if type ==='dateTime'}
+					<Input bind:value={modal.create.values[key]} type="datetime-local" />
+				{/if}
+				{#if type ==='int'}
+					<Input bind:value={modal.create.values[key]} type="number" />
 				{/if}
 				{#if type === 'many-to-many'}
 					<InputManyToMany bind:value={modal.create.values[key]} class="py-0" options={options} />
+				{/if}
+				{#if type === 'one-to-one'}
+					<Select bind:value={modal.create.values[key]} options={options} />
+				{/if}
+				{#if type === 'string'}
+					<Input bind:value={modal.create.values[key]} />
 				{/if}
 			{/each}
 		</div>

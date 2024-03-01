@@ -2,14 +2,9 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '$lib/prisma';
 import { filterFields } from './filterFields';
 import { typeMap } from './typeMap';
-import type { GetColumnsOptions, Error, FindManyParamaters } from './types';
+import type { GetColumnsOptions, Error, Include } from './types';
 
 export const getColumns = async (modelName: string, options: GetColumnsOptions) => {
-	const defaultOptions = {
-		columnOverrides: new Map(),
-		fieldFilterNames: []
-	};
-	options = Object.assign(defaultOptions, options);
 	const models = Prisma.dmmf.datamodel.models;
 	const model = models.find((model) => model.name === modelName);
 	if (model === undefined) throw 'Could not find model';
@@ -20,7 +15,7 @@ export const getColumns = async (modelName: string, options: GetColumnsOptions) 
 		return map;
 	}, new Map());
 	let errors: Error[] = [];
-	let findManyParamaters: FindManyParamaters = { include: {} };
+	const include: Include = {};
 	await Promise.all(
 		fields.map(async (field) => {
 			const { isList, name, relationName, relationFromFields, relationToFields, type } = field;
@@ -63,5 +58,5 @@ export const getColumns = async (modelName: string, options: GetColumnsOptions) 
 			return filterFields(field, options);
 		})
 		.map(([_, field]) => field.dbTable);
-	return { columns, errors, findManyParamaters };
+	return { columns, errors, include };
 };

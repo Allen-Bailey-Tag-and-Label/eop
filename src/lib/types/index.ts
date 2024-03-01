@@ -5,6 +5,7 @@ export type DataTableColumn = {
 	props?: { [key: string]: any };
 	type?: 'string' | 'int';
 };
+export type DataTableOrderBy = { [key: string]: 'asc' | 'desc' }[];
 export type DataTableRow = { [key: string]: any };
 export type Role = {
 	label: string;

@@ -25,14 +25,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (user === undefined || user === null)
 			return new Response('Redirect', { status: 303, headers: { Location: '/sign-in' } });
 
-		user.routes = [
-			...new Set(
-				user.roles
-					.flat()
-					.map(({ routes }) => routes.map(({ id, href, label }) => ({ id, href, label })))
-					.flat()
-			)
-		].sort((a, b) => a.label.localeCompare(b.label));
+		user.routes = user.roles.reduce((map, role) => {
+			role.routes.map((route) => {
+				if (!map.has(route.group)) map.set(route.group, { isOpen: false, routes: new Map() });
+				if (!map.get(route.group).routes.has(route.href))
+					map.get(route.group).routes.set(route.href, route);
+			});
+			return map;
+		}, new Map());
+
+		console.log(user.routes);
+
 		user.roles = user.roles.map(({ id, label }) => ({ id, label }));
 
 		// remove user keys

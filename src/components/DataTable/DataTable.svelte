@@ -2,7 +2,7 @@
 import { onMount } from 'svelte';
 import { twMerge } from 'tailwind-merge';
 import { Card, ProgressIndicator, Table } from '$components';
-import type { DataTableColumn, DataTableRow } from '$lib/types';
+import type { DataTableColumn, DataTableOrderBy, DataTableRow } from '$lib/types';
 import DataTableThead from './DataTableThead.svelte';
 import DataTableToolbar from './DataTableToolbar.svelte';
 import DataTableTbody from './DataTableTbody.svelte';
@@ -15,6 +15,7 @@ export let isCreatable = true;
 export let isDeleteable = true;
 export let isEditable = true;
 export let errors: { key: string; error: string }[] = [];
+export let orderBy: DataTableOrderBy = [];
 export let rows: DataTableRow[] = [];
 export let updateHandler:
 	| ((id: string, key: string, type: string, value: any) => void)
@@ -68,6 +69,7 @@ onMount(() => {
 				<Table>
 					<DataTableThead
 						bind:rows={rows}
+						bind:orderBy={orderBy}
 						columns={columns}
 						isDeleteable={isDeleteable}
 						selectedRows={selectedRows}

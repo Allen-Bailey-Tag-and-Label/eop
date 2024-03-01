@@ -1,7 +1,7 @@
 <script lang="ts">
 import { deserialize } from '$app/forms';
 import { DataTable } from '$components';
-import type { DataTableRow } from '$lib/types';
+import type { DataTableOrderBy, DataTableRow } from '$lib/types';
 
 // props (external)
 export let createHandler = async (values: { [key: string]: any }) => {
@@ -29,6 +29,7 @@ export let deleteHandler = async () => {
 	rows = rows.filter((row) => !row._dataTable.selected);
 };
 export let model: string | undefined = undefined;
+export let orderBy: DataTableOrderBy = undefined;
 export let rows: DataTableRow[] = [];
 export let updateHandler = async (id: string, key: string, type: string, value: any) => {
 	const formData = new FormData();
@@ -52,6 +53,7 @@ export let updateHandler = async (id: string, key: string, type: string, value: 
 		bind:rows={rows}
 		createHandler={createHandler}
 		deleteHandler={deleteHandler}
+		orderBy={orderBy}
 		updateHandler={updateHandler}
 		{...$$restProps}
 	/>

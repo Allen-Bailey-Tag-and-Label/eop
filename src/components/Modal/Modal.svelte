@@ -26,7 +26,7 @@ export let use: any[] = [];
 	{#if isOpen}
 		<Overlay on:click={() => {if (isCloseable) toggle()}} />
 		<div
-			class="pointer-events-none fixed left-0 top-0 flex h-[100dvh] w-[100dvw] items-center justify-center p-6 pwa:h-[100vh] pwa:w-[100vw]"
+			class="pointer-events-none fixed left-0 top-0 z-[2] flex h-[100dvh] w-[100dvw] items-center justify-center p-6 pwa:h-[100vh] pwa:w-[100vw]"
 			transition:fade={{duration}}
 		>
 			<Card
