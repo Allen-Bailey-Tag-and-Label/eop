@@ -27,14 +27,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		user.routes = user.roles.reduce((map, role) => {
 			role.routes.map((route) => {
+				if (route.href === '/onboard') return;
 				if (!map.has(route.group)) map.set(route.group, { isOpen: false, routes: new Map() });
 				if (!map.get(route.group).routes.has(route.href))
 					map.get(route.group).routes.set(route.href, route);
+				if (event.url.pathname === route.href) map.get(route.group).isOpen = true;
 			});
 			return map;
 		}, new Map());
-
-		console.log(user.routes);
 
 		user.roles = user.roles.map(({ id, label }) => ({ id, label }));
 

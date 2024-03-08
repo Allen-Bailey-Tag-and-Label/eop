@@ -21,12 +21,12 @@ export let updateHandler: ((id: string, key: string, type: string, value: any) =
 </script>
 
 <Td
-	class={twMerge(isEditable ? "outline-none ring-1 ring-inset ring-transparent transition duration-200 hover:ring-violet-500/30 focus:ring-violet-500" : undefined)}
+	class={twMerge(isEditable ? "outline-none ring-1 ring-inset ring-transparent transition duration-200 hover:ring-primary-500/30 focus:ring-primary-500" : undefined)}
 	contenteditable={isEditable ? "true":undefined}
 	on:blur={blurHandlerInternal}
 	on:focus={focusHandler}
 	on:keydown={keydownHandler}
 	type="number"
 >
-	{row[key]}
+	{row?.[key]}
 </Td>

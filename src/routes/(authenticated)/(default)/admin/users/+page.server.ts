@@ -1,15 +1,19 @@
-import { getLoadData } from '$lib/dbTable';
+import { getServerFunctions } from '$lib/dbTable';
 
-export const load = async () => {
-	const dbTable = await getLoadData('User', {
-		columnOverrides: new Map([
-			['profile', { isEditable: false, getLabel: (row) => `${row.firstName} ${row.lastName}` }],
-			['roles', { getLabel: (row) => row.label }]
-		]),
-		fieldFilterNames: ['passwordHash'],
-		findManyParamaters: {
-			orderBy: [{ username: 'asc' }]
-		}
-	});
-	return { dbTable };
-};
+const { actions, load } = await getServerFunctions('User', {
+	columns: new Map([]),
+	getRelationLabelFunctions: new Map([
+		['profile', (row) => `${row.firstName} ${row.lastName}`],
+		['roles', (row) => row.label]
+	]),
+	filteredColumns: [
+		'aesFeatureEnterIds',
+		'aesFeatureEnters',
+		'aesFeatureModifyIds',
+		'aesFeatureModifys',
+		'passwordHash'
+	],
+	orderBy: [{ username: 'asc' }]
+});
+
+export { actions, load };

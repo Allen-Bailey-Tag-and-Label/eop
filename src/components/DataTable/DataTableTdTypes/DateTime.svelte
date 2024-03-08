@@ -24,7 +24,7 @@ export let updateHandler: ((id: string, key: string, type: string, value: any) =
 	{#if isEditable}
 		<Input
 			bind:value={row[key]}
-			class="rounded-none ring-1 ring-inset ring-offset-0 hover:ring-violet-500/30 focus:ring-violet-500"
+			class="hover:ring-primary-500/30 focus:ring-primary-500 rounded-none ring-1 ring-inset ring-offset-0"
 			on:blur={blurHandlerInternal}
 			on:focus={focusHandler}
 			on:keydown={keydownHandler}

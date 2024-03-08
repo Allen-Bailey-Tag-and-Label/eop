@@ -6,6 +6,13 @@ import { ChevronDown } from '$icons';
 import { fade, slide } from '$transitions';
 import { theme } from '$stores';
 
+// helpers
+const sortGroups = ([a], [b]) => {
+	if (a === '' || a === null || a === undefined) return -1;
+	if (b === '' || b === null || b === undefined) return 1;
+	return a.localeCompare(b);
+};
+
 // props (external)
 export let data;
 export let close = () => (isOpen = false);
@@ -25,8 +32,8 @@ export let toggle = () => (isOpen = !isOpen);
 		>
 			<Nav class="min-w-[20rem]">
 				<slot>
-					<div class="flex flex-grow flex-col">
-						{#each data.user.routes as [group, { isOpen, routes }]}
+					<div class="flex flex-grow flex-col space-y-6">
+						{#each new Map([...data.user.routes.entries()].sort(sortGroups)) as [group, { isOpen, routes }]}
 							<div class="flex flex-col">
 								{#if group !== '' && group !== null && group !== undefined}
 									<Button

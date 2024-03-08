@@ -1,35 +1,29 @@
 import { prisma } from '$lib/prisma';
 import { getColumns } from './getColumns';
 import { mutateRows } from './mutateRows';
-import type { GetColumnsOptions } from './types';
+import type { ModelName, Options, OrderBy } from './types';
 
-export const getLoadData = async (modelName: string, options: GetColumnsOptions = {}) => {
-	const defaultOptions = {
-		columnOverrides: new Map(),
-		fieldFilterNames: [],
-		findManyParamaters: {
-			include: {},
-			orderBy: []
-		}
-	};
-	options = Object.assign(defaultOptions, options);
+export const getLoadData = async (modelName: ModelName, options: Options = {}) => {
 	try {
 		const { columns, errors, include } = await getColumns(modelName, options);
-		let { orderBy } = options?.findManyParamaters || { orderBy: [] };
+		let orderBy = options?.orderBy || [];
 		if (orderBy.length === 0) {
-			const orderByColumn: { [key: string]: 'asc' | 'desc' } = {};
+			const orderByColumn: OrderBy = {};
 			orderByColumn[columns[0].key] = 'asc';
 			orderBy = [orderByColumn];
 		}
 		const rows = await mutateRows(columns, await prisma[modelName].findMany({ include, orderBy }));
-		return { columns, errors, model: modelName, orderBy, rows };
+		return { dbTable: { columns, errors, model: modelName, orderBy, rows } };
 	} catch (error) {
+		console.log(error);
 		return {
-			columns: [],
-			errors: [{ key: 'global', error }],
-			model: modelName,
-			orderBy: [],
-			rows: []
+			dbTable: {
+				columns: [],
+				errors: [{ key: 'global', error }],
+				model: modelName,
+				orderBy: [],
+				rows: []
+			}
 		};
 	}
 };

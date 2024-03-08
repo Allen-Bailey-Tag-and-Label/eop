@@ -1,7 +1,9 @@
-import type { GetColumnsOptions } from './types';
+import type { Options } from './types';
 
-export const filterFields = (field: { [key: string]: any }, options: GetColumnsOptions) =>
-	!field.isId &&
-	options?.fieldFilterNames !== undefined &&
-	!options.fieldFilterNames.includes(field.name) &&
-	field?.dbTable?.type !== undefined;
+export const filterFields = (field: { [key: string]: any }, options: Options) => {
+	return (
+		!field.isId &&
+		field?.dbTable?.type !== undefined &&
+		!options?.filteredColumns?.includes(field.name)
+	);
+};

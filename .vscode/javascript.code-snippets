@@ -4,16 +4,23 @@
 		"body": ["export const load = async () => {", "\t$1", "}"]
 	},
 	"Sveltekit - DBTable Load Function": {
-		"prefix": "@sk-dbtable-load",
+		"prefix": "@dbtable",
 		"body": [
-			"import { getLoadData } from '\\$lib/dbTable';",
+			"import { getServerFunctions } from '\\$lib/dbTable';",
 			"",
-			"export const load = async () => {",
-			"	const dbTable = await getLoadData('$1', {",
-			"		columnOverrides: new Map([$2])",
-			"	});",
-			"	return { dbTable };",
-			"};"
+			"const { actions, load } = await getServerFunctions('$1', {",
+			"\tcolumns: new Map([",
+			"\t\t// ['$2', {",
+			"\t\t\t// $3",
+			"\t\t// }]",
+			"\t]),",
+			"\tgetRelationLabelFunctions: new Map([",
+			"\t\t// ['$4', (row) => $5]",
+			"\t]),",
+			"\torderBy: [$6]",
+			"});",
+			"",
+			"export { actions, load };"
 		]
 	}
 }

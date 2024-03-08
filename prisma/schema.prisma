@@ -10,6 +10,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AESFeature {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  description String
+  isPrintable Boolean
+  key         String
+  seq         Int
+  type        String
+}
+
+model FirePricing {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  options  Json
+  quantity Int
+  type     String
+}
+
 model Role {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
   label    String   @unique
@@ -28,30 +44,15 @@ model Route {
   roles   Role[]   @relation(fields: [roleIds], references: [id])
 }
 
-model Test {
-  id            String                  @id @default(auto()) @map("_id") @db.ObjectId
-  oneToOne      TestOneToOneRelation?
-  oneToMany     TestOneToManyRelation[]
-  manyToManyIds String[]                @db.ObjectId
-  manyToManys   TestManyToMany[]        @relation(fields: [manyToManyIds], references: [id])
-}
-
-model TestOneToOneRelation {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  testId String @unique @db.ObjectId
-  test   Test   @relation(fields: [testId], references: [id])
-}
-
-model TestOneToManyRelation {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  testId String @db.ObjectId
-  test   Test   @relation(fields: [testId], references: [id])
-}
-
-model TestManyToMany {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  testIds String[] @db.ObjectId
-  tests   Test[]   @relation(fields: [testIds], references: [id])
+model Setting {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  key      String
+  boolean  Boolean?
+  dateTime DateTime?
+  float    Float?
+  int      Int?
+  json     Json?
+  string   String?
 }
 
 model User {

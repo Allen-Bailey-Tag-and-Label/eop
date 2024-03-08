@@ -1,3 +1,4 @@
+const colors = require('tailwindcss/colors');
 const plugin = require('tailwindcss/plugin');
 
 /** @type {import('tailwindcss').Config}*/
@@ -7,6 +8,7 @@ const config = {
 	theme: {
 		extend: {
 			colors: {
+				primary: colors.violet,
 				slate: {
 					50: '#f9f8fb',
 					100: '#f1eef6',

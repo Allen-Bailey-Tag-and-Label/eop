@@ -42,7 +42,7 @@ let values: { checked: boolean; label: string; value: any }[] = [];
 	<div class="flex items-center space-x-2">
 		{#if Array.isArray(value)}
 			{#each value as id}
-				<div class="rounded-lg bg-violet-500 px-2 py-1">
+				<div class="bg-primary-500 rounded-lg px-2 py-1">
 					{options.find(option=>option.value === id)?.label}
 				</div>
 			{/each}
@@ -50,7 +50,7 @@ let values: { checked: boolean; label: string; value: any }[] = [];
 	</div>
 	{#if readonly === undefined}
 		<Button
-			class="absolute left-0 top-0 h-full w-full justify-end rounded-none ring-1 ring-inset ring-transparent hover:ring-violet-500/30 focus:ring-violet-500"
+			class="hover:ring-primary-500/30 focus:ring-primary-500 absolute left-0 top-0 h-full w-full justify-end rounded-none ring-1 ring-inset ring-transparent"
 			on:blur
 			on:click={buttonClickHandler}
 			on:focus

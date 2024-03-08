@@ -1,8 +1,9 @@
-import { getLoadData } from '$lib/dbTable';
+import { getServerFunctions } from '$lib/dbTable';
 
-export const load = async () => {
-	const dbTable = await getLoadData('Route', {
-		columnOverrides: new Map([['roles', { getLabel: (row) => row.label }]])
-	});
-	return { dbTable };
-};
+const { actions, load } = await getServerFunctions('Route', {
+	columns: new Map([]),
+	getRelationLabelFunctions: new Map([['roles', (row) => row.label]]),
+	orderBy: []
+});
+
+export { actions, load };

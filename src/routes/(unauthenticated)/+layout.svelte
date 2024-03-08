@@ -1,14 +1,14 @@
 <script lang="ts">
 </script>
 
-<div class="pwa:min-h-[100vh] pwa:max-h-[100vh] grid max-h-[100dvh] min-h-[100dvh] md:grid-cols-12">
+<div class="grid max-h-[100dvh] min-h-[100dvh] pwa:max-h-[100vh] pwa:min-h-[100vh] md:grid-cols-12">
 	<div
 		class="flex flex-col items-center justify-center space-y-6 p-6 md:col-span-8 lg:col-span-6 lg:space-y-12"
 	>
 		<slot />
 	</div>
 	<div
-		class="relative hidden max-h-[100dvh] overflow-hidden bg-violet-500 md:col-span-4 md:flex lg:col-span-6"
+		class="bg-primary-500 relative hidden max-h-[100dvh] overflow-hidden md:col-span-4 md:flex lg:col-span-6"
 	>
 		<video
 			autoplay

@@ -1,11 +1,12 @@
-import { getLoadData } from '$lib/dbTable';
+import { getServerFunctions } from '$lib/dbTable';
 
-export const load = async () => {
-	const dbTable = await getLoadData('Role', {
-		columnOverrides: new Map([
-			['routes', { getLabel: (row) => row.href }],
-			['users', { getLabel: (row) => `${row.username}` }]
-		])
-	});
-	return { dbTable };
-};
+const { actions, load } = await getServerFunctions('Role', {
+	columns: new Map([]),
+	getRelationLabelFunctions: new Map([
+		['routes', (row) => row.href],
+		['users', (row) => row.username]
+	]),
+	orderBy: []
+});
+
+export { actions, load };

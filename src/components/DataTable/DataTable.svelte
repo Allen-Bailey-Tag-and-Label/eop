@@ -9,17 +9,68 @@ import DataTableTbody from './DataTableTbody.svelte';
 
 // props (external)
 export let columns: DataTableColumn[] = [];
-export let createHandler: ((values: { [key: string]: any }) => void) | undefined = undefined;
+export let createHandler: ((values: { [key: string]: any }) => void) | undefined = () => {
+	sortRows();
+};
 export let deleteHandler: (() => void) | undefined = undefined;
+export let errors: { key: string; error: string }[] = [];
+export let initializeRow = (row: any) => {
+	row._dataTable = row?._dataTable || {};
+	if (isDeleteable) {
+		row._dataTable.selected = false;
+	}
+	return row;
+};
 export let isCreatable = true;
 export let isDeleteable = true;
 export let isEditable = true;
-export let errors: { key: string; error: string }[] = [];
+export let isUploadable = true;
 export let orderBy: DataTableOrderBy = [];
+export let parseUploadValue = (value: string) => {
+	// trim value
+	value = value.trim();
+
+	// split into rows
+	const uploadRows: DataTableRow[] = value.split('\n').map((rowString: string) => {
+		// split into array
+		const rowArray = rowString.split('\t');
+
+		// create row object
+		let row = rowArray.reduce((obj: DataTableRow, value: string, i: number) => {
+			const { key, type } = columns[i];
+			try {
+				obj[key] = value;
+				if (type === 'boolean') obj[key] = value.toLowerCase() === 'true' ? true : false;
+				if (type === 'int') obj[key] = +value;
+			} catch (error) {
+				console.log({ key, error, type });
+			}
+			return obj;
+		}, {});
+
+		// initialize row
+		row = initializeRow(row);
+
+		return row;
+	});
+
+	return uploadRows;
+};
 export let rows: DataTableRow[] = [];
+export let sortRows: () => void;
 export let updateHandler:
 	| ((id: string, key: string, type: string, value: any) => void)
 	| undefined = undefined;
+export let uploadHandler = (value: string) => {
+	// parse upload value
+	const uploadRows = parseUploadValue(value);
+
+	// add uploadRows to rows
+	rows = [...rows, ...uploadRows];
+
+	// sortRows
+	sortRows();
+};
 
 // props (internal)
 let isInitiated = false;
@@ -29,13 +80,7 @@ $: isToolbarNeeded = isDeleteable;
 $: selectedRows = [...rows].filter((row) => row?._dataTable?.selected === true);
 
 onMount(() => {
-	rows = rows.map((row) => {
-		row._dataTable = {};
-		if (isDeleteable) {
-			row._dataTable.selected = false;
-		}
-		return row;
-	});
+	rows = rows.map(initializeRow);
 	columns = columns.map((column) => {
 		if (column?.isEditable === undefined) column.isEditable = isEditable;
 		if (column?.type === undefined) column.type = 'string';
@@ -62,14 +107,17 @@ onMount(() => {
 					deleteHandler={deleteHandler}
 					isCreatable={isCreatable}
 					isDeleteable={isDeleteable}
+					isUploadable={isUploadable}
 					selectedRows={selectedRows}
+					uploadHandler={uploadHandler}
 				/>
 			{/if}
 			<Card class="overflow-auto rounded-none p-0">
 				<Table>
 					<DataTableThead
-						bind:rows={rows}
 						bind:orderBy={orderBy}
+						bind:rows={rows}
+						bind:sortRows={sortRows}
 						columns={columns}
 						isDeleteable={isDeleteable}
 						selectedRows={selectedRows}

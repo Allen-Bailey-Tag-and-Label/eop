@@ -8,3 +8,4 @@ export { default as Nav } from './Nav/Nav.svelte';
 export { default as NavItem } from './NavItem/NavItem.svelte';
 export { default as Modal } from './Modal/Modal.svelte';
 export { default as Overlay } from './Overlay/Overlay.svelte';
+export { default as Tooltip } from './Tooltip/Tooltip.svelte';

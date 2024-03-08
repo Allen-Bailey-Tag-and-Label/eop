@@ -3,7 +3,7 @@ export type DataTableColumn = {
 	label: string;
 	key: string;
 	props?: { [key: string]: any };
-	type?: 'string' | 'int';
+	type?: 'boolean' | 'dateTime' | 'int' | 'string';
 };
 export type DataTableOrderBy = { [key: string]: 'asc' | 'desc' }[];
 export type DataTableRow = { [key: string]: any };

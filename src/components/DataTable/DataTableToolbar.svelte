@@ -2,15 +2,17 @@
 import {
 	Button,
 	Checkbox,
+	Fieldset,
 	Form,
 	Icon,
 	Input,
 	InputManyToMany,
 	Modal,
 	ProgressIndicator,
-	Select
+	Select,
+	Textarea
 } from '$components';
-import { ExclamationTriangle, Plus, Trash } from '$icons';
+import { ArrowUpTray, ExclamationTriangle, Plus, Trash } from '$icons';
 import type { DataTableColumn, DataTableRow } from '$lib/types';
 
 type Modal = {
@@ -33,34 +35,50 @@ export let deleteHandler: (() => void) | undefined = async () => {
 };
 export let isCreatable: boolean;
 export let isDeleteable: boolean;
+export let isUploadable: boolean;
 export let rows: DataTableRow[];
 export let selectedRows: DataTableRow[];
+export let uploadHandler: (value: string) => void;
 
 // props (internal)
-const modal: { create: Modal & { values: { [key: string]: any } }; delete: Modal; loading: Modal } =
-	{
-		create: {
-			submitHandler: async (e) => {
-				e.preventDefault();
-				if (modal?.loading?.open) modal.loading.open();
-				if (createHandler) await createHandler(modal.create.values);
-				if (modal?.loading?.close) modal.loading.close();
-			},
-			values: {}
+const modal: {
+	create: Modal & { values: { [key: string]: any } };
+	delete: Modal;
+	loading: Modal;
+	upload: Modal & { value: string };
+} = {
+	create: {
+		submitHandler: async (e) => {
+			e.preventDefault();
+			if (modal?.loading?.open) modal.loading.open();
+			if (createHandler) await createHandler(modal.create.values);
+			if (modal?.loading?.close) modal.loading.close();
 		},
-		delete: {
-			submitHandler: async (e) => {
-				e.preventDefault();
-				if (modal?.loading?.open) modal.loading.open();
-				if (modal?.delete?.close !== undefined) modal.delete.close();
-				if (deleteHandler) await deleteHandler();
-				if (modal?.loading?.close) modal.loading.close();
-			}
-		},
-		loading: {
-			submitHandler: () => {}
+		values: {}
+	},
+	delete: {
+		submitHandler: async (e) => {
+			e.preventDefault();
+			if (modal?.loading?.open) modal.loading.open();
+			if (modal?.delete?.close !== undefined) modal.delete.close();
+			if (deleteHandler) await deleteHandler();
+			if (modal?.loading?.close) modal.loading.close();
 		}
-	};
+	},
+	loading: {
+		submitHandler: () => {}
+	},
+	upload: {
+		submitHandler: async (e) => {
+			e.preventDefault();
+			if (modal?.loading?.open) modal.loading.open();
+			if (uploadHandler !== undefined) await uploadHandler(modal.upload.value);
+			if (modal?.upload?.close) modal.upload.close();
+			if (modal?.loading?.close) modal.loading.close();
+		},
+		value: ''
+	}
+};
 </script>
 
 <div class="flex items-center justify-end space-x-2 bg-slate-50 px-6 py-2 dark:bg-slate-900">
@@ -71,6 +89,11 @@ const modal: { create: Modal & { values: { [key: string]: any } }; delete: Modal
 			variants={['icon', 'delete', 'xs']}
 		>
 			<Icon src={Trash} />
+		</Button>
+	{/if}
+	{#if isUploadable}
+		<Button on:click={modal.upload.toggle} variants={['icon', 'xs']}>
+			<Icon src={ArrowUpTray} />
 		</Button>
 	{/if}
 	{#if isCreatable}
@@ -136,6 +159,25 @@ const modal: { create: Modal & { values: { [key: string]: any } }; delete: Modal
 		</div>
 	</Form>
 </Modal>
+
+<Modal
+	bind:close={modal.upload.close}
+	bind:isOpen={modal.upload.isOpen}
+	bind:open={modal.upload.open}
+	bind:toggle={modal.upload.toggle}
+	class="pt-12"
+>
+	<Form class="flex flex-col space-y-6" on:submit={modal.upload.submitHandler}>
+		<Fieldset legend="CSV">
+			<Textarea bind:value={modal.upload.value} />
+		</Fieldset>
+		<div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end lg:gap-2">
+			<Button on:click={modal.upload.close} variants={['outline']}>Cancel</Button>
+			<Button type="submit">Upload</Button>
+		</div>
+	</Form>
+</Modal>
+
 <Modal
 	bind:close={modal.loading.close}
 	bind:isOpen={modal.loading.isOpen}

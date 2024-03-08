@@ -44,7 +44,7 @@ afterNavigate(() => {
 	bind:isOpen={isOpen}
 	bind:open={open}
 	bind:toggle={toggle}
-	class="bg-transparent text-violet-500 shadow-[inset] ring-0 dark:bg-transparent dark:shadow-none"
+	class="text-primary-500 bg-transparent shadow-[inset] ring-0 dark:bg-transparent dark:shadow-none"
 	isCloseable={false}
 >
 	<ProgressIndicator />
