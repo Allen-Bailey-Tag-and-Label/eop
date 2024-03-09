@@ -10,6 +10,7 @@ theme.set(
 
 theme.set({
 	a: 'transition duration-200 shadow-[inset] decoration-primary-500 underline underline-offset-4 decoration-1 hover:text-primary-500 focus:text-primary-500',
+	button: 'disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-600',
 	buttonDelete: 'bg-red-500 hover:bg-red-600 focus:bg-red-600 focus:ring-red-500/30',
 	buttonIcon: 'aspect-square',
 	buttonOutline:

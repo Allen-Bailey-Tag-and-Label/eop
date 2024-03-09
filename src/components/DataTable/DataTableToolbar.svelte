@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
 	Button,
+	Card,
 	Checkbox,
 	Fieldset,
 	Form,
@@ -13,7 +14,7 @@ import {
 	Textarea,
 	Tooltip
 } from '$components';
-import { ArrowUpTray, ExclamationTriangle, Plus, Trash } from '$icons';
+import { ArrowUpTray, Cog6Tooth, ExclamationTriangle, Plus, Trash } from '$icons';
 import type { DataTableColumn, DataTableRow } from '$lib/types';
 
 type Modal = {
@@ -38,6 +39,7 @@ export let isCreatable: boolean;
 export let isDeleteable: boolean;
 export let isUploadable: boolean;
 export let rows: DataTableRow[];
+export let rowsPerPage: number;
 export let selectedRows: DataTableRow[];
 export let uploadHandler: (value: string) => void;
 
@@ -46,6 +48,7 @@ const modal: {
 	create: Modal & { values: { [key: string]: any } };
 	delete: Modal;
 	loading: Modal;
+	settings: Modal & { clickHandler: () => void; value: string };
 	upload: Modal & { value: string };
 } = {
 	create: {
@@ -69,6 +72,18 @@ const modal: {
 	loading: {
 		submitHandler: () => {}
 	},
+	settings: {
+		clickHandler: () => {
+			modal.settings.value = rowsPerPage.toString();
+			if (modal.settings.open) modal.settings.open();
+		},
+		submitHandler: (e) => {
+			e.preventDefault();
+			rowsPerPage = +modal.settings.value;
+			if (modal.settings.close) modal.settings.close();
+		},
+		value: ''
+	},
 	upload: {
 		submitHandler: async (e) => {
 			e.preventDefault();
@@ -82,33 +97,39 @@ const modal: {
 };
 </script>
 
-<div class="flex items-center justify-end space-x-2 bg-slate-50 px-6 py-2 dark:bg-slate-900">
+<Card class="flex-row justify-end space-x-2 rounded-none px-6 py-2">
 	{#if isDeleteable}
 		<Tooltip class="z-[2]" position="bottom" tooltip="Delete">
 			<Button
+				class="px-2 py-2"
 				disabled={selectedRows.length === 0 ? 'disabled' : undefined}
 				on:click={modal.delete.toggle}
 				variants={['icon', 'delete', 'xs']}
 			>
-				<Icon src={Trash} />
+				<Icon class="h-4 w-4" src={Trash} />
 			</Button>
 		</Tooltip>
 	{/if}
 	{#if isUploadable}
 		<Tooltip class="z-[2]" position="bottom" tooltip="Import">
-			<Button on:click={modal.upload.toggle} variants={['icon', 'xs']}>
-				<Icon src={ArrowUpTray} />
+			<Button class="px-2 py-2" on:click={modal.upload.toggle} variants={['icon', 'xs']}>
+				<Icon class="h-4 w-4" src={ArrowUpTray} />
 			</Button>
 		</Tooltip>
 	{/if}
+	<Tooltip position="bottom" tooltip="Settings">
+		<Button class="px-2 py-2" on:click={modal.settings.clickHandler} variants={['icon', 'xs']}>
+			<Icon class="h-4 w-4" src={Cog6Tooth} />
+		</Button>
+	</Tooltip>
 	{#if isCreatable}
 		<Tooltip class="z-[2]" position="bottom" tooltip="Create">
-			<Button on:click={modal.create.toggle} variants={['icon', 'xs']}>
-				<Icon src={Plus} />
+			<Button class="px-2 py-2" on:click={modal.create.toggle} variants={['icon', 'xs']}>
+				<Icon class="h-4 w-4" src={Plus} />
 			</Button>
 		</Tooltip>
 	{/if}
-</div>
+</Card>
 
 <Modal
 	bind:close={modal.create.close}
@@ -163,6 +184,24 @@ const modal: {
 		<div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end lg:gap-2">
 			<Button on:click={modal.delete.close} variants={['outline']}>Cancel</Button>
 			<Button type="submit" variants={['delete']}>Delete</Button>
+		</div>
+	</Form>
+</Modal>
+
+<Modal
+	bind:close={modal.settings.close}
+	bind:isOpen={modal.settings.isOpen}
+	bind:open={modal.settings.open}
+	bind:toggle={modal.settings.toggle}
+	class="pt-12"
+>
+	<Form class="flex flex-col space-y-6" on:submit={modal.settings.submitHandler}>
+		<Fieldset legend="Rows Per Page">
+			<Input bind:value={modal.settings.value} type="number" />
+		</Fieldset>
+		<div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end lg:gap-2">
+			<Button on:click={modal.settings.close} variants={['outline']}>Cancel</Button>
+			<Button type="submit">Update</Button>
 		</div>
 	</Form>
 </Modal>
