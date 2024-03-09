@@ -15,6 +15,8 @@ export type ModelName = Prisma.ModelName;
 export type Options = {
 	columns?: Map<string, Column>;
 	columnOrder?: string[];
+	fields?: {}[];
+	fieldMap?: Map<any, any>;
 	filteredColumns?: string[];
 	getRelationLabelFunctions?: Map<string, GetRelationLabelFunction>;
 	orderBy?: OrderBy[];

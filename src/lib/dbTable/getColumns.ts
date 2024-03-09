@@ -1,36 +1,30 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '$lib/prisma';
 import { filterFields } from './filterFields';
 import { typeMap } from './typeMap';
 import type { Column, Error, Include, ModelName, Options } from './types';
 
-export const getColumns = async (modelName: ModelName, options: Options) => {
-	const models = Prisma.dmmf.datamodel.models;
-	const model = models.find((model) => model.name === modelName);
-	if (model === undefined) throw 'Could not find model';
-	const fields = model?.fields;
-	if (fields === undefined) throw 'Could not find fields';
-	const fieldMap = fields.reduce((map, field) => {
-		map.set(field.name, field);
-		return map;
-	}, new Map());
+const getLabel = (name: string) =>
+	name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1');
+
+export const getColumns = async (options: Options) => {
 	let errors: Error[] = [];
 	const include: Include = {};
+	if (options.fields === undefined) return;
 	await Promise.all(
-		fields
+		options.fields
 			.filter((field) => !options.filteredColumns.includes(field.name))
 			.map(async (field) => {
 				const { isList, name, relationName, relationFromFields, relationToFields, type } = field;
 				const { getRelationLabel, ...column }: Column = options?.columns?.get(field.name) || {};
 				column.key = column.key || name;
-				column.label = column.label || name;
+				column.label = column.label || getLabel(name);
 				column.type = column.type || typeMap.get(type);
 				if (relationName !== undefined) {
 					if (getRelationLabel === undefined) {
 						errors = [...errors, { key: name, error: 'Missing "getRelationLabel" function' }];
 						return;
 					}
-					const options = (await prisma[type as ModelName].findMany())
+					const columnOptions = (await prisma[type as ModelName].findMany())
 						.map((row: any) => ({
 							label: getRelationLabel(row),
 							value: row.id
@@ -42,20 +36,20 @@ export const getColumns = async (modelName: ModelName, options: Options) => {
 						if (!isList) relationshipType = 'one-to-one';
 						if (isList) relationshipType = 'many-to-many';
 						const relationshipFieldName = relationFromFields[0];
-						const relationshipField = fieldMap.get(relationshipFieldName);
+						const relationshipField = options?.fieldMap?.get(relationshipFieldName) || {};
 						relationshipField.dbTable = {
 							...relationshipField?.dbTable,
-							label: name,
-							options,
+							label: getLabel(name),
+							options: columnOptions,
 							type: relationshipType
 						};
-						fieldMap.set(relationshipFieldName, relationshipField);
+						options.fieldMap.set(relationshipFieldName, relationshipField);
 					}
 				}
-				fieldMap.set(name, { ...fieldMap.get(name), dbTable: column });
+				options.fieldMap.set(name, { ...options.fieldMap.get(name), dbTable: column });
 			})
 	);
-	const columns = Array.from(fieldMap)
+	const columns = Array.from(options.fieldMap)
 		.filter(([_, field]) => {
 			return filterFields(field, options);
 		})

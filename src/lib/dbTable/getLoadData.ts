@@ -5,7 +5,7 @@ import type { ModelName, Options, OrderBy } from './types';
 
 export const getLoadData = async (modelName: ModelName, options: Options = {}) => {
 	try {
-		const { columns, errors, include } = await getColumns(modelName, options);
+		const { columns, errors, include } = await getColumns(options);
 		let orderBy = options?.orderBy || [];
 		if (orderBy.length === 0) {
 			const orderByColumn: OrderBy = {};

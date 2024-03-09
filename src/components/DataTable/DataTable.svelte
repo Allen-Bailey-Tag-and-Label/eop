@@ -10,7 +10,7 @@ import DataTableTbody from './DataTableTbody.svelte';
 // props (external)
 export let columns: DataTableColumn[] = [];
 export let createHandler: ((values: { [key: string]: any }) => void) | undefined = () => {
-	sortRows();
+	rows = sortRows(rows);
 };
 export let deleteHandler: (() => void) | undefined = undefined;
 export let errors: { key: string; error: string }[] = [];
@@ -57,7 +57,7 @@ export let parseUploadValue = (value: string) => {
 	return uploadRows;
 };
 export let rows: DataTableRow[] = [];
-export let sortRows: () => void;
+export let sortRows: (rows: DataTableRow[]) => DataTableRow[];
 export let updateHandler:
 	| ((id: string, key: string, type: string, value: any) => void)
 	| undefined = undefined;
@@ -69,21 +69,21 @@ export let uploadHandler = (value: string) => {
 	rows = [...rows, ...uploadRows];
 
 	// sortRows
-	sortRows();
+	if (sortRows) rows = sortRows(rows);
 };
 
 // props (internal)
 let isInitiated = false;
 
 // props (dynamic)
-$: isToolbarNeeded = isDeleteable;
+$: isToolbarNeeded = isCreatable || isDeleteable || isUploadable;
 $: selectedRows = [...rows].filter((row) => row?._dataTable?.selected === true);
 
 onMount(() => {
 	rows = rows.map(initializeRow);
 	columns = columns.map((column) => {
-		if (column?.isEditable === undefined) column.isEditable = isEditable;
-		if (column?.type === undefined) column.type = 'string';
+		column.isEditable = column.isEditable || isEditable;
+		column.type = column.type || 'string';
 		return column;
 	});
 	isInitiated = true;

@@ -1,16 +1,26 @@
 import { prisma } from '$lib/prisma/index.js';
 import { convert } from '$utilities';
 import type { Actions } from '@sveltejs/kit';
-import type { ModelName } from './types';
+import type { ModelName, Options } from './types';
 
-export const getActions = () => {
+export const getActions = (options: Options = {}) => {
 	const actions: Actions = {
 		create: async ({ request }) => {
 			try {
 				const { values, model }: { values: any; model: ModelName } = convert(
 					await request.formData()
 				).formData.to.Object();
-				const data = JSON.parse(values);
+				let data = JSON.parse(values);
+				data = Object.keys(data).reduce((obj, key) => {
+					obj[key] = data[key];
+					const field = options.fieldMap?.get(key);
+					if (field) {
+						if (field.type === 'Boolean' && typeof obj[key] === 'string')
+							obj[key] = obj[key].toLowerCase() === 'true';
+						if (field.type === 'Int' && typeof obj[key] === 'string') obj[key] = +obj[key];
+					}
+					return obj;
+				}, {});
 				const row = await prisma[model].create({ data });
 				return { success: true, row };
 			} catch (error) {

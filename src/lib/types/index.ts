@@ -2,8 +2,8 @@ export type DataTableColumn = {
 	isEditable: boolean;
 	label: string;
 	key: string;
-	props?: { [key: string]: any };
-	type?: 'boolean' | 'dateTime' | 'int' | 'string';
+	options?: { label: string; value: string }[];
+	type?: 'boolean' | 'dateTime' | 'int' | 'many-to-many' | 'one-to-one' | 'string';
 };
 export type DataTableOrderBy = { [key: string]: 'asc' | 'desc' }[];
 export type DataTableRow = { [key: string]: any };

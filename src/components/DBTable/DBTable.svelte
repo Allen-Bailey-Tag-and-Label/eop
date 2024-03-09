@@ -31,7 +31,7 @@ export let deleteHandler = async () => {
 };
 export let model: string | undefined = undefined;
 export let orderBy: DataTableOrderBy | undefined = undefined;
-export let parseUploadValue: (value: string) => DataTableRow[];
+export let parseUploadValue: ((value: string) => DataTableRow[]) | undefined = undefined;
 export let rows: DataTableRow[] = [];
 export let sortRows: ((rows: DataTableRow[]) => DataTableRow[]) | undefined = undefined;
 export let updateHandler = async (id: string, key: string, type: string, value: any) => {
@@ -47,7 +47,7 @@ export let updateHandler = async (id: string, key: string, type: string, value: 
 	});
 };
 export let uploadHandler = async (value: string) => {
-	const uploadRows = parseUploadValue(value);
+	const uploadRows = parseUploadValue?.(value);
 	const formData = new FormData();
 	formData.append('uploadRows', JSON.stringify(uploadRows));
 	if (model) formData.append('model', model);
@@ -57,7 +57,7 @@ export let uploadHandler = async (value: string) => {
 	});
 
 	// add uploadRows to rows
-	rows = [...rows, ...uploadRows];
+	if (uploadRows) rows = [...rows, ...uploadRows];
 
 	// sort rows
 	if (sortRows) rows = sortRows(rows);

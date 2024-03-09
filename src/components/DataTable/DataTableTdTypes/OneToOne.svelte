@@ -3,8 +3,7 @@ import { Select, Td } from '$components';
 import type { DataTableRow } from '$lib/types';
 
 // handlers
-const changeHandler = (e) => {
-	console.log(key, row);
+const changeHandler = () => {
 	if (updateHandler !== undefined) updateHandler(row.id, key, 'one-to-one', row[key]);
 };
 // props (external)
@@ -19,11 +18,11 @@ export let updateHandler: ((id: string, key: string, type: string, value: any) =
 </script>
 
 <Td
-	class="hover:ring-primary-500/30 focus:ring-primary-500 px-0 py-0 outline-none ring-1 ring-inset ring-transparent transition duration-200"
+	class="px-0 py-0 outline-none ring-1 ring-inset ring-transparent transition duration-200 hover:ring-primary-500/30 focus:ring-primary-500"
 >
 	<Select
 		bind:value={row[key]}
-		class="focus:ring-primary-500 w-full rounded-none py-3 ring-1 ring-inset ring-offset-0"
+		class="w-full rounded-none py-3 ring-1 ring-inset ring-offset-0 focus:ring-primary-500"
 		on:change={changeHandler}
 		options={options}
 		disabled={!isEditable ? 'disabled' : undefined}

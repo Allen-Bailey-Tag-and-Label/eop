@@ -123,7 +123,7 @@ const modal: {
 				{#if type ==='int'}
 					<Input bind:value={modal.create.values[key]} type="number" />
 				{/if}
-				{#if type === 'many-to-many'}
+				{#if type === 'many-to-many' && options !== undefined}
 					<InputManyToMany bind:value={modal.create.values[key]} class="py-0" options={options} />
 				{/if}
 				{#if type === 'one-to-one'}
