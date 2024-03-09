@@ -5,10 +5,4 @@ import { DBTable } from '$components';
 export let data;
 </script>
 
-<DBTable
-	{...data.dbTable}
-	isCreatable={false}
-	isDeleteable={false}
-	isEditable={false}
-	isUploadable={false}
-/>
+<DBTable {...data.dbTable} />
