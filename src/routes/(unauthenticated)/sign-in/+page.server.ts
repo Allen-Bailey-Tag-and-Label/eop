@@ -1,9 +1,9 @@
+import type { Actions } from '@sveltejs/kit';
 import bcrypt from 'bcryptjs';
 import { fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { prisma } from '$lib/prisma';
 import { convert } from '$utilities';
-import type { Actions } from '@sveltejs/kit';
 
 export const actions: Actions = {
 	default: async ({ cookies, request }) => {
@@ -19,7 +19,7 @@ export const actions: Actions = {
 			// check if email doesn't exist
 			try {
 				user = await prisma.user.findUniqueOrThrow({
-					where: { username }
+					where: { username: username.trim().toLowerCase() }
 				});
 			} catch (error) {
 				throw 'Username does not exist';
