@@ -30,7 +30,7 @@ export let toggle = () => (isOpen = !isOpen);
 			class="fixed left-auto right-0 top-0 z-[2] lg:left-0 lg:right-auto"
 			transition:slide={{axis:'x',duration:200}}
 		>
-			<Nav class="min-w-[20rem]">
+			<Nav class="min-w-[20rem] space-y-6">
 				<slot>
 					<div class="flex flex-grow flex-col space-y-6">
 						{#each new Map([...data.user.routes.entries()].sort(sortGroups)) as [group, { isOpen, routes }]}
