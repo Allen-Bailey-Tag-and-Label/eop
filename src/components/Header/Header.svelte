@@ -17,7 +17,7 @@ let toggle: () => boolean;
 	<slot>
 		<Portal>
 			<Button
-				class="fixed right-0 top-0 z-[3] h-[3rem] w-[3rem] pwa:bottom-0 pwa:top-auto lg:left-0 lg:right-auto pwa:lg:bottom-auto pwa:lg:top-0"
+				class="fixed right-0 top-0 z-[3] h-[3rem] w-[3rem] pwa:bottom-[env(safe-area-inset-bottom)] pwa:top-auto lg:left-0 lg:right-auto pwa:lg:bottom-auto pwa:lg:top-0"
 				on:click={toggle}
 				variants={['icon', 'transparent']}
 			>
