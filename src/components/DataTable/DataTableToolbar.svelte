@@ -10,7 +10,8 @@ import {
 	Modal,
 	ProgressIndicator,
 	Select,
-	Textarea
+	Textarea,
+	Tooltip
 } from '$components';
 import { ArrowUpTray, ExclamationTriangle, Plus, Trash } from '$icons';
 import type { DataTableColumn, DataTableRow } from '$lib/types';
@@ -83,23 +84,29 @@ const modal: {
 
 <div class="flex items-center justify-end space-x-2 bg-slate-50 px-6 py-2 dark:bg-slate-900">
 	{#if isDeleteable}
-		<Button
-			disabled={selectedRows.length === 0 ? 'disabled' : undefined}
-			on:click={modal.delete.toggle}
-			variants={['icon', 'delete', 'xs']}
-		>
-			<Icon src={Trash} />
-		</Button>
+		<Tooltip class="z-[2]" position="bottom" tooltip="Delete">
+			<Button
+				disabled={selectedRows.length === 0 ? 'disabled' : undefined}
+				on:click={modal.delete.toggle}
+				variants={['icon', 'delete', 'xs']}
+			>
+				<Icon src={Trash} />
+			</Button>
+		</Tooltip>
 	{/if}
 	{#if isUploadable}
-		<Button on:click={modal.upload.toggle} variants={['icon', 'xs']}>
-			<Icon src={ArrowUpTray} />
-		</Button>
+		<Tooltip class="z-[2]" position="bottom" tooltip="Import">
+			<Button on:click={modal.upload.toggle} variants={['icon', 'xs']}>
+				<Icon src={ArrowUpTray} />
+			</Button>
+		</Tooltip>
 	{/if}
 	{#if isCreatable}
-		<Button on:click={modal.create.toggle} variants={['icon', 'xs']}>
-			<Icon src={Plus} />
-		</Button>
+		<Tooltip class="z-[2]" position="bottom" tooltip="Create">
+			<Button on:click={modal.create.toggle} variants={['icon', 'xs']}>
+				<Icon src={Plus} />
+			</Button>
+		</Tooltip>
 	{/if}
 </div>
 
