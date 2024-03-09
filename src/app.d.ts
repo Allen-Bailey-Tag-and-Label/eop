@@ -8,20 +8,18 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			user: {
+				id: string;
+				isActive: boolean;
+				isOnboarded: boolean;
+				passwordHash?: string;
 				profile: {
 					id: string;
 					firstName: string;
 					lastName: string;
 					userId: string;
 				} | null;
-			} & {
-				id: string;
-				email: string;
-				isActive: boolean;
-				passwordHash: string;
-			} & {
 				roles: Role[];
-				routes: Route[];
+				username: string;
 			};
 		}
 		// interface PageData {}
