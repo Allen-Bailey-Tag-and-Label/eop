@@ -29,7 +29,7 @@ theme.set({
 	select: 'min-h-[3rem]',
 	th: 'z-[1]',
 	tooltip:
-		'absolute transition duration-200 delay-300 text-xs px-2 py-1 scale-0 group-hover/tooltip:scale-100 pointer-events-none',
+		'absolute transition duration-200 delay-300 text-xs px-2 py-1 scale-0 group-hover/tooltip:scale-100 pointer-events-none z-[2]',
 	tr: 'dark:even:bg-white/5 dark:last:border-b-0 even:bg-black/5'
 });
 
