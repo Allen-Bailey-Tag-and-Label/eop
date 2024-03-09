@@ -8,7 +8,7 @@ export let form;
 $: console.log(form);
 </script>
 
-<div class="flex flex-grow flex-col items-center justify-center overflow-auto">
+<div class="flex flex-grow flex-col lg:items-center lg:justify-center lg:overflow-auto">
 	<Card>
 		<Form use={[enhance]}>
 			<Fieldset legend="Current Password">
