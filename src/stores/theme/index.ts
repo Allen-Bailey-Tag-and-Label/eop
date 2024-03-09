@@ -19,7 +19,7 @@ theme.set({
 		'bg-transparent hover:bg-transparent focus:bg-transparent shadow-[inset] text-current',
 	buttonXs: 'px-2 py-1',
 	checkbox: 'text-white',
-	header: 'z-[1] pwa:order-2 pwa:pb-[env(safe-area-inset-bottom)]',
+	header: 'z-[1] pwa:order-2 pwa:pb-[env(safe-area-inset-bottom)] pwa:lg:order-none',
 	nav: 'z-[2] max-h-[100dvh] pwa:max-h-[100vh] min-h-[100dvh] pwa:min-h-[100vh] overflow-y-auto w-[calc(100dvw_-_3rem)] lg:w-auto bg-slate-50 dark:bg-slate-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
 	navItem: 'px-6 pl-9 lg:px-16 lg:pl-20 py-3 no-underline whitespace-nowrap',
 	navItemIsCurrent: 'bg-primary-500 text-white hover:text-white focus:text-white cursor-default',
