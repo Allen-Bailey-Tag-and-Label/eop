@@ -1,11 +1,12 @@
 <script lang="ts">
 import type { DataTableRow } from '$lib/types';
 import Boolean from './DataTableTdTypes/Boolean.svelte';
-import OneToOne from './DataTableTdTypes/OneToOne.svelte';
-import ManyToMany from './DataTableTdTypes/ManyToMany.svelte';
-import String from './DataTableTdTypes/String.svelte';
 import DateTime from './DataTableTdTypes/DateTime.svelte';
+import Float from './DataTableTdTypes/Float.svelte';
 import Int from './DataTableTdTypes/Int.svelte';
+import ManyToMany from './DataTableTdTypes/ManyToMany.svelte';
+import OneToOne from './DataTableTdTypes/OneToOne.svelte';
+import String from './DataTableTdTypes/String.svelte';
 
 // handlers
 const blurHandler = (e) => {
@@ -96,6 +97,18 @@ const keydownMap = new Map([
 {/if}
 {#if type === 'dateTime'}
 	<DateTime
+		bind:row={row}
+		blurHandler={blurHandler}
+		focusHandler={focusHandler}
+		isEditable={isEditable}
+		key={key}
+		keydownHandler={keydownHandler}
+		updateHandler={updateHandler}
+		{...$$restProps}
+	/>
+{/if}
+{#if type === 'float'}
+	<Float
 		bind:row={row}
 		blurHandler={blurHandler}
 		focusHandler={focusHandler}

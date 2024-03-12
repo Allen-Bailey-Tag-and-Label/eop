@@ -141,12 +141,15 @@ const modal: {
 	<Form class="flex flex-col space-y-6" on:submit={modal.create.submitHandler}>
 		<div class="grid grid-cols-[fit-content(0px)_1fr] items-center gap-x-6 gap-y-3">
 			{#each columns as { key, label, options, type }}
-				<div>{label}</div>
+				<div class="whitespace-nowrap">{label}</div>
 				{#if type ==='boolean'}
 					<Checkbox bind:checked={modal.create.values[key]} />
 				{/if}
 				{#if type ==='dateTime'}
 					<Input bind:value={modal.create.values[key]} type="datetime-local" />
+				{/if}
+				{#if type ==='float'}
+					<Input bind:value={modal.create.values[key]} type="number" />
 				{/if}
 				{#if type ==='int'}
 					<Input bind:value={modal.create.values[key]} type="number" />

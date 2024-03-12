@@ -19,9 +19,22 @@ model AESFeature {
   type        String
 }
 
+model AESWorkCenter {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  description   String
+  fixedOH       Float
+  machSetupRate Float
+  machRunRate   Float
+  number        Int
+  setupLabor    Float
+  runLabor      Float
+  variableOH    Float
+}
+
 model FirePricing {
   id       String @id @default(auto()) @map("_id") @db.ObjectId
   options  Json
+  price    Float
   quantity Int
   type     String
 }

@@ -17,6 +17,8 @@ export const getActions = (options: Options = {}) => {
 					if (field) {
 						if (field.type === 'Boolean' && typeof obj[key] === 'string')
 							obj[key] = obj[key].toLowerCase() === 'true';
+						if (field.type === 'Float' && typeof obj[key] === 'string')
+							obj[key] = parseFloat(obj[key]);
 						if (field.type === 'Int' && typeof obj[key] === 'string') obj[key] = +obj[key];
 					}
 					return obj;
@@ -50,6 +52,7 @@ export const getActions = (options: Options = {}) => {
 				).formData.to.Object();
 				const data: { [key: string]: any } = {};
 				data[key] = JSON.parse(value);
+				if (type === 'float') data[key] = parseFloat(value.replace(/\"/g, ''));
 				if (type === 'int') data[key] = parseInt(value.replace(/\"/g, ''));
 				await prisma[model].update({
 					where: {

@@ -39,6 +39,7 @@ export let sortRows = (rows: DataTableRow[]) => {
 			let comparison = 0;
 			if (column.type === 'boolean') comparison = a[key] === b[key] ? 0 : a[key] ? -1 : 1;
 			if (column.type === 'dateTime') comparison = a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0;
+			if (column.type === 'float') comparison = a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0;
 			if (column.type === 'int') comparison = a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0;
 			if (column.type === 'string') comparison = a[key].localeCompare(b[key]);
 			return comparison * (directionMap.get(direction) || 1);

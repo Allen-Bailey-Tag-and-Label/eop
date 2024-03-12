@@ -43,6 +43,7 @@ export let parseUploadValue = (value: string) => {
 			try {
 				obj[key] = value;
 				if (type === 'boolean') obj[key] = value.toLowerCase() === 'true' ? true : false;
+				if (type === 'float') obj[key] = parseFloat(value);
 				if (type === 'int') obj[key] = +value;
 			} catch (error) {
 				console.log({ key, error, type });
