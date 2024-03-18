@@ -5,7 +5,8 @@ const { actions, load } = await getServerFunctions('AESFeature', {
 		['key', { label: 'ID' }],
 		['isPrintable', { label: 'Printable' }]
 	]),
-	columnOrder: ['ID', 'Description', 'Type', 'Seq', 'Printable']
+	columnOrder: ['ID', 'Description', 'Type', 'Seq', 'Printable'],
+	filteredColumns: ['itemProductFeature']
 });
 
 export { actions, load };

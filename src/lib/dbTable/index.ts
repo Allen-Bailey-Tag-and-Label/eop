@@ -1,7 +1,10 @@
 export { filterFields } from './filterFields';
 export { getActions } from './getActions';
 export { getColumns } from './getColumns';
+export { getFields } from './getFields';
 export { getLoadData } from './getLoadData';
+export { getModel } from './getModel';
 export { getServerFunctions } from './getServerFunctions';
 export { typeMap } from './typeMap';
+export { updateOptions } from './updateOptions';
 export type * as types from './types';

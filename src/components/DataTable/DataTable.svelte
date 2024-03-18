@@ -23,7 +23,7 @@ export let initializeRow = (row: any) => {
 	}
 	return row;
 };
-export let isCreatable = true;
+export let isCreateable = true;
 export let isDeleteable = true;
 export let isEditable = true;
 export let isUploadable = true;
@@ -80,13 +80,12 @@ export let uploadHandler = (value: string) => {
 let isInitiated = false;
 
 // props (dynamic)
-$: isToolbarNeeded = isCreatable || isDeleteable || isUploadable;
 $: selectedRows = [...rows].filter((row) => row?._dataTable?.selected === true);
 
 onMount(() => {
 	rows = rows.map(initializeRow);
 	columns = columns.map((column) => {
-		column.isEditable = column.isEditable || isEditable;
+		column.isEditable = column?.isEditable !== undefined ? column.isEditable : isEditable;
 		column.type = column.type || 'string';
 		return column;
 	});
@@ -103,20 +102,18 @@ onMount(() => {
 			<ProgressIndicator />
 		{/if}
 		{#if isInitiated}
-			{#if isToolbarNeeded}
-				<DataTableToolbar
-					bind:rows={rows}
-					bind:rowsPerPage={rowsPerPage}
-					columns={columns}
-					createHandler={createHandler}
-					deleteHandler={deleteHandler}
-					isCreatable={isCreatable}
-					isDeleteable={isDeleteable}
-					isUploadable={isUploadable}
-					selectedRows={selectedRows}
-					uploadHandler={uploadHandler}
-				/>
-			{/if}
+			<DataTableToolbar
+				bind:rows={rows}
+				bind:rowsPerPage={rowsPerPage}
+				columns={columns}
+				createHandler={createHandler}
+				deleteHandler={deleteHandler}
+				isCreateable={isCreateable}
+				isDeleteable={isDeleteable}
+				isUploadable={isUploadable}
+				selectedRows={selectedRows}
+				uploadHandler={uploadHandler}
+			/>
 			<Card class="flex-grow overflow-auto rounded-none p-0">
 				<Table>
 					<DataTableThead

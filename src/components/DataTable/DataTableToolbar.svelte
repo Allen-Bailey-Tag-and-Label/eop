@@ -35,7 +35,7 @@ export let createHandler: ((values: { [key: string]: any }) => void) | undefined
 export let deleteHandler: (() => void) | undefined = async () => {
 	rows = rows.filter((row) => !row._dataTable.selected);
 };
-export let isCreatable: boolean;
+export let isCreateable: boolean;
 export let isDeleteable: boolean;
 export let isUploadable: boolean;
 export let rows: DataTableRow[];
@@ -122,7 +122,7 @@ const modal: {
 			<Icon class="h-4 w-4" src={Cog6Tooth} />
 		</Button>
 	</Tooltip>
-	{#if isCreatable}
+	{#if isCreateable}
 		<Tooltip class="z-[2]" position="bottom" tooltip="Create">
 			<Button class="px-2 py-2" on:click={modal.create.toggle} variants={['icon', 'xs']}>
 				<Icon class="h-4 w-4" src={Plus} />

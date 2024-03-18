@@ -7,7 +7,7 @@ export let data;
 
 <DBTable
 	{...data.dbTable}
-	isCreatable={false}
+	isCreateable={false}
 	isDeleteable={false}
 	isEditable={false}
 	isUploadable={false}
