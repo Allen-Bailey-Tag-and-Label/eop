@@ -109,15 +109,11 @@ model Setting {
 }
 
 model LaborEntry {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  ennisId   Int
-  workOrder Int
-  sequence  Int
-  start     DateTime
-  end       DateTime
-  total     Float
-  completed Int
-  status    Int
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  date           DateTime
+  ennisId        Int
+  entries        Json
+  dateAndEnnisId String   @unique
 }
 
 model User {

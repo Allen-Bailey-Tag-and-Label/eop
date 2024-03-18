@@ -1,7 +1,7 @@
 <script lang="ts">
 import { DateTime } from 'luxon';
 import { twMerge } from 'tailwind-merge';
-import { enhance } from '$app/forms';
+import { deserialize } from '$app/forms';
 import {
 	Button,
 	Fieldset,
@@ -17,9 +17,23 @@ import {
 	Tr
 } from '$components';
 import { Check, XMark } from '$icons';
-import { format } from '$lib';
 
 // utilities
+const clearTimeSheet = () => {
+	ennisId = '';
+	entries = [];
+};
+const findEntries = async () => {
+	const formData = new FormData();
+	formData.append('date', date);
+	formData.append('ennisId', ennisId);
+	const response = await fetch('?/find', {
+		method: 'POST',
+		body: formData
+	});
+	const result = deserialize(await response.text());
+	entries = result.data;
+};
 const getSequenceOptions = (workOrder: string) =>
 	workOrder === '6755818'
 		? indirectCodeOptions
@@ -32,12 +46,16 @@ const getSequenceOptions = (workOrder: string) =>
 						value: workOrderRouting.sequence
 					}))
 			].sort((a: any, b: any) => a.label.localeCompare(b.label));
-const updateEntryTotal = (entryIndex: number) =>
-	(entries[entryIndex].total = format.hours(
-		DateTime.fromFormat(entries[entryIndex].end, 'hh:mm')
-			.diff(DateTime.fromFormat(entries[entryIndex].start, 'hh:mm'), 'hours')
-			.toObject().hours
-	));
+const updateTimeSheet = async () => {
+	const formData = new FormData();
+	formData.append('date', date);
+	formData.append('ennisId', ennisId);
+	formData.append('entries', JSON.stringify(entries));
+	await fetch('?/update', {
+		method: 'POST',
+		body: formData
+	});
+};
 
 // props (external)
 export let data;
@@ -45,15 +63,7 @@ export let data;
 // props (internal)
 let date = DateTime.now().toFormat('yyyy-MM-dd');
 let ennisId = '';
-let entries = [...Array(10)].map((_, i) => ({
-	workOrder: '',
-	sequence: 0,
-	start: '',
-	end: '',
-	total: '0.0',
-	completed: '',
-	status: 20
-}));
+let entries = [];
 const statusOptions = [
 	{ label: '20 - Partial', value: 20 },
 	{ label: '95 - Complete', value: 95 }
@@ -74,35 +84,52 @@ $: indirectCodeOptions = [
 		{ code: '900', description: 'Miscellaneous' }
 	].map(({ code, description }) => ({ label: `${code} - ${description}`, value: code }))
 ];
-$: if (entries) console.log('yup');
 </script>
 
-<Form use={[enhance]}>
-	<div class="flex space-x-4">
-		<Fieldset legend="Date">
-			<Input bind:value={date} name="date" required="required" type="date" />
-		</Fieldset>
-		<Fieldset class="items-start" legend="Ennis ID">
-			<div class="flex items-center space-x-2">
-				<Input
-					bind:value={ennisId}
-					class="w-[8rem] text-right"
-					name="ennisId"
-					required="required"
-					type="number"
-				/>
-				{#if ennisId !== ''}
-					{#if ennisIdIsValid}
-						<Icon class="text-green-500" src={Check} />
-						<div>{userProfile?.firstName} {userProfile?.lastName}</div>
-					{:else}
-						<Icon class="text-red-500" src={XMark} />
+<Form on:submit={e=>e.preventDefault()}>
+	<div class="flex items-end space-x-4">
+		{#if entries.length == 0}
+			<Fieldset legend="Date">
+				<Input bind:value={date} name="date" required="required" type="date" />
+			</Fieldset>
+			<Fieldset class="items-start" legend="Ennis ID">
+				<div class="flex items-center space-x-2">
+					<Input
+						bind:value={ennisId}
+						class="w-[8rem] text-right"
+						name="ennisId"
+						required="required"
+						type="number"
+					/>
+					{#if ennisId !== ''}
+						{#if ennisIdIsValid}
+							<Icon class="text-green-500" src={Check} />
+							<div>{userProfile?.firstName} {userProfile?.lastName}</div>
+						{:else}
+							<Icon class="text-red-500" src={XMark} />
+						{/if}
 					{/if}
-				{/if}
-			</div>
-		</Fieldset>
+				</div>
+			</Fieldset>
+			<Button disabled={ennisIdIsValid ? undefined:'disabled'} on:click={findEntries} type="button">
+				Search
+			</Button>
+		{:else}
+			<Fieldset legend="Date"
+				>{DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('M/d/yyyy')}</Fieldset
+			>
+			<Fieldset legend="Ennis ID">
+				<div class="flex items-center space-x-2">
+					<div>
+						{ennisId}
+					</div>
+					<div>{userProfile?.firstName} {userProfile?.lastName}</div>
+				</div>
+			</Fieldset>
+			<Button on:click={clearTimeSheet} type="button">Close</Button>
+		{/if}
 	</div>
-	{#if ennisIdIsValid}
+	{#if entries.length > 0}
 		<Table>
 			<Thead>
 				<Th class="flex flex-col items-center py-1">
@@ -112,7 +139,6 @@ $: if (entries) console.log('yup');
 				<Th class="w-full">Operation Sequence</Th>
 				<Th>Start</Th>
 				<Th>End</Th>
-				<!-- <Th>Total</Th> -->
 				<Th class="flex flex-col items-center space-y-[.0rem] py-1 pb-[.4375rem] text-xs">
 					<div>Amount</div>
 					<div>Completed</div>
@@ -126,8 +152,7 @@ $: if (entries) console.log('yup');
 							<Input
 								bind:value={entry.workOrder}
 								class={twMerge("w-[10rem] rounded-none text-right")}
-								name="workOrder[{entryIndex}]"
-								pattern="[0-9]*"
+								on:change={updateTimeSheet}
 								type="number"
 							/>
 						</Td>
@@ -135,7 +160,7 @@ $: if (entries) console.log('yup');
 							<Select
 								bind:value={entry.sequence}
 								class="w-full rounded-none"
-								name="sequence[{entryIndex}]"
+								on:change={updateTimeSheet}
 								options={getSequenceOptions(entry.workOrder)}
 							/>
 						</Td>
@@ -143,8 +168,7 @@ $: if (entries) console.log('yup');
 							<Input
 								bind:value={entry.start}
 								class={twMerge("rounded-none")}
-								name="start[{entryIndex}]"
-								on:change={() => updateEntryTotal(entryIndex)}
+								on:change={updateTimeSheet}
 								type="time"
 							/>
 						</Td>
@@ -152,20 +176,16 @@ $: if (entries) console.log('yup');
 							<Input
 								bind:value={entry.end}
 								class={twMerge("rounded-none")}
-								name="end[{entryIndex}]"
-								on:change={() => updateEntryTotal(entryIndex)}
+								on:change={updateTimeSheet}
 								type="time"
 							/>
 						</Td>
-						<!-- <Td>
-							{entry.total}
-						</Td> -->
 						<Td class="p-0">
 							<Input
 								bind:value={entry.completed}
 								class={twMerge("w-[10rem] rounded-none text-right")}
 								inputmode="numeric"
-								name="completed[{entryIndex}]"
+								on:change={updateTimeSheet}
 								type="number"
 							/>
 						</Td>
@@ -173,7 +193,7 @@ $: if (entries) console.log('yup');
 							<Select
 								bind:value={entry.status}
 								class={twMerge("rounded-none")}
-								name="status[{entryIndex}]"
+								on:change={updateTimeSheet}
 								options={statusOptions}
 							/>
 						</Td>
@@ -181,6 +201,5 @@ $: if (entries) console.log('yup');
 				{/each}
 			</Tbody>
 		</Table>
-		<Button class="self-end" style="align-self: flex-end;" type="submit">Submit</Button>
 	{/if}
 </Form>
