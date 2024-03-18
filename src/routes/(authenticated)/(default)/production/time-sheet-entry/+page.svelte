@@ -74,9 +74,10 @@ $: indirectCodeOptions = [
 		{ code: '900', description: 'Miscellaneous' }
 	].map(({ code, description }) => ({ label: `${code} - ${description}`, value: code }))
 ];
+$: if (entries) console.log('yup');
 </script>
 
-<Form class="" use={[enhance]}>
+<Form use={[enhance]}>
 	<div class="flex space-x-4">
 		<Fieldset legend="Date">
 			<Input bind:value={date} name="date" required="required" type="date" />
@@ -125,7 +126,7 @@ $: indirectCodeOptions = [
 							<Input
 								bind:value={entry.workOrder}
 								class={twMerge("w-[10rem] rounded-none text-right")}
-								name="workOrder"
+								name="workOrder[{entryIndex}]"
 								pattern="[0-9]*"
 								type="number"
 							/>
@@ -134,7 +135,7 @@ $: indirectCodeOptions = [
 							<Select
 								bind:value={entry.sequence}
 								class="w-full rounded-none"
-								name="sequence"
+								name="sequence[{entryIndex}]"
 								options={getSequenceOptions(entry.workOrder)}
 							/>
 						</Td>
@@ -142,7 +143,7 @@ $: indirectCodeOptions = [
 							<Input
 								bind:value={entry.start}
 								class={twMerge("rounded-none")}
-								name="start"
+								name="start[{entryIndex}]"
 								on:change={() => updateEntryTotal(entryIndex)}
 								type="time"
 							/>
@@ -151,7 +152,7 @@ $: indirectCodeOptions = [
 							<Input
 								bind:value={entry.end}
 								class={twMerge("rounded-none")}
-								name="end"
+								name="end[{entryIndex}]"
 								on:change={() => updateEntryTotal(entryIndex)}
 								type="time"
 							/>
@@ -163,7 +164,8 @@ $: indirectCodeOptions = [
 							<Input
 								bind:value={entry.completed}
 								class={twMerge("w-[10rem] rounded-none text-right")}
-								name="completed"
+								inputmode="numeric"
+								name="completed[{entryIndex}]"
 								type="number"
 							/>
 						</Td>
@@ -171,7 +173,7 @@ $: indirectCodeOptions = [
 							<Select
 								bind:value={entry.status}
 								class={twMerge("rounded-none")}
-								name="status"
+								name="status[{entryIndex}]"
 								options={statusOptions}
 							/>
 						</Td>
