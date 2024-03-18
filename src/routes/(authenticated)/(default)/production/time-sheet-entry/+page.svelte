@@ -23,7 +23,8 @@ const clearTimeSheet = () => {
 	ennisId = '';
 	entries = [];
 };
-const findEntries = async () => {
+const findEntries = async (e: CustomEvent) => {
+	e.preventDefault();
 	const formData = new FormData();
 	formData.append('date', date);
 	formData.append('ennisId', ennisId);
@@ -31,7 +32,7 @@ const findEntries = async () => {
 		method: 'POST',
 		body: formData
 	});
-	const result = deserialize(await response.text());
+	const result: any = deserialize(await response.text());
 	entries = result.data;
 };
 const getSequenceOptions = (workOrder: string) =>
@@ -46,7 +47,8 @@ const getSequenceOptions = (workOrder: string) =>
 						value: workOrderRouting.sequence
 					}))
 			].sort((a: any, b: any) => a.label.localeCompare(b.label));
-const updateTimeSheet = async () => {
+const updateTimeSheet = async (e: CustomEvent) => {
+	e.preventDefault();
 	const formData = new FormData();
 	formData.append('date', date);
 	formData.append('ennisId', ennisId);
@@ -63,7 +65,7 @@ export let data;
 // props (internal)
 let date = DateTime.now().toFormat('yyyy-MM-dd');
 let ennisId = '';
-let entries = [];
+let entries: any[] = [];
 const statusOptions = [
 	{ label: '20 - Partial', value: 20 },
 	{ label: '95 - Complete', value: 95 }
@@ -86,8 +88,11 @@ $: indirectCodeOptions = [
 ];
 </script>
 
-<Form on:submit={e=>e.preventDefault()}>
-	<div class="flex items-end space-x-4">
+<div class="flex flex-grow flex-col space-y-4">
+	<Form
+		class="flex flex-row items-end space-x-4"
+		on:submit={entries.length === 0 ? findEntries : clearTimeSheet}
+	>
 		{#if entries.length == 0}
 			<Fieldset legend="Date">
 				<Input bind:value={date} name="date" required="required" type="date" />
@@ -115,20 +120,25 @@ $: indirectCodeOptions = [
 				Search
 			</Button>
 		{:else}
-			<Fieldset legend="Date"
-				>{DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('M/d/yyyy')}</Fieldset
-			>
+			<Fieldset legend="Date">
+				<div class="flex min-h-[3rem] w-[11.5625rem] items-center">
+					{DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('M/d/yyyy')}
+				</div>
+			</Fieldset>
 			<Fieldset legend="Ennis ID">
 				<div class="flex items-center space-x-2">
-					<div>
+					<div class="flex min-h-[3rem] w-[8rem] items-center text-right">
 						{ennisId}
 					</div>
-					<div>{userProfile?.firstName} {userProfile?.lastName}</div>
+					<div class="flex min-h-[3rem] items-center">
+						{userProfile?.firstName}
+						{userProfile?.lastName}
+					</div>
 				</div>
 			</Fieldset>
 			<Button on:click={clearTimeSheet} type="button">Close</Button>
 		{/if}
-	</div>
+	</Form>
 	{#if entries.length > 0}
 		<Table>
 			<Thead>
@@ -146,14 +156,16 @@ $: indirectCodeOptions = [
 				<Th>Status</Th>
 			</Thead>
 			<Tbody>
-				{#each entries as entry, entryIndex}
+				{#each entries as entry}
 					<Tr>
 						<Td class="p-0">
 							<Input
 								bind:value={entry.workOrder}
 								class={twMerge("w-[10rem] rounded-none text-right")}
+								inputmode="numeric"
 								on:change={updateTimeSheet}
-								type="number"
+								pattern="[0-9]*"
+								type="text"
 							/>
 						</Td>
 						<Td class="p-0">
@@ -202,4 +214,4 @@ $: indirectCodeOptions = [
 			</Tbody>
 		</Table>
 	{/if}
-</Form>
+</div>
