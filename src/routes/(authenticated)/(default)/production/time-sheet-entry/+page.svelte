@@ -23,12 +23,13 @@ import { format } from '$lib';
 export let data;
 
 // props (internal)
+let date = DateTime.now().toFormat('yyyy-MM-dd');
 let ennisId = '156070';
 let entry = {
 	workOrder: '',
 	sequence: 0,
-	start: DateTime.now().toFormat("yyyy-MM-dd'T'hh:mm"),
-	end: DateTime.now().toFormat("yyyy-MM-dd'T'hh:mm"),
+	start: DateTime.now().toFormat('hh:mm'),
+	end: DateTime.now().toFormat('hh:mm'),
 	total: '',
 	completed: '',
 	status: 20
@@ -66,32 +67,37 @@ $: sequenceOptions =
 					}))
 			].sort((a: any, b: any) => a.label.localeCompare(b.label));
 $: entry.total = format.hours(
-	DateTime.fromFormat(entry.end, "yyyy-MM-dd'T'hh:mm")
-		.diff(DateTime.fromFormat(entry.start, "yyyy-MM-dd'T'hh:mm"), 'hours')
+	DateTime.fromFormat(entry.end, 'hh:mm')
+		.diff(DateTime.fromFormat(entry.start, 'hh:mm'), 'hours')
 		.toObject().hours
 );
 </script>
 
 <Form class="items-start self-start" use={[enhance]}>
-	<Fieldset class="items-start" legend="Ennis ID">
-		<div class="flex items-center space-x-2">
-			<Input
-				bind:value={ennisId}
-				class="w-[8rem] text-right"
-				name="ennisId"
-				required="required"
-				type="number"
-			/>
-			{#if ennisId !== ''}
-				{#if ennisIdIsValid}
-					<Icon class="text-green-500" src={Check} />
-					<div>{userProfile?.firstName} {userProfile?.lastName}</div>
-				{:else}
-					<Icon class="text-red-500" src={XMark} />
+	<div class="flex space-x-2">
+		<Fieldset class="items-start" legend="Ennis ID">
+			<div class="flex items-center space-x-2">
+				<Input
+					bind:value={ennisId}
+					class="w-[8rem] text-right"
+					name="ennisId"
+					required="required"
+					type="number"
+				/>
+				{#if ennisId !== ''}
+					{#if ennisIdIsValid}
+						<Icon class="text-green-500" src={Check} />
+						<div>{userProfile?.firstName} {userProfile?.lastName}</div>
+					{:else}
+						<Icon class="text-red-500" src={XMark} />
+					{/if}
 				{/if}
-			{/if}
-		</div>
-	</Fieldset>
+			</div>
+		</Fieldset>
+		<Fieldset legend="Date">
+			<Input bind:value={date} name="date" required="required" type="date" />
+		</Fieldset>
+	</div>
 	{#if ennisIdIsValid}
 		<Table>
 			<Thead>
@@ -113,6 +119,7 @@ $: entry.total = format.hours(
 							bind:value={entry.workOrder}
 							class={twMerge("w-[10rem] rounded-none text-right")}
 							name="workOrder"
+							pattern="[0-9]*"
 							type="number"
 						/>
 					</Td>
@@ -129,16 +136,11 @@ $: entry.total = format.hours(
 							bind:value={entry.start}
 							class={twMerge("rounded-none")}
 							name="start"
-							type="dateTime-local"
+							type="time"
 						/>
 					</Td>
 					<Td class="p-0">
-						<Input
-							bind:value={entry.end}
-							class={twMerge("rounded-none")}
-							name="end"
-							type="dateTime-local"
-						/>
+						<Input bind:value={entry.end} class={twMerge("rounded-none")} name="end" type="time" />
 					</Td>
 					<Td>
 						{entry.total}
