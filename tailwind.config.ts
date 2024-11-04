@@ -4,6 +4,11 @@ import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
 import type { Config } from 'tailwindcss';
 import * as colors from 'tailwindcss/colors';
+import * as plugin from 'tailwindcss/plugin';
+
+const pwa = plugin(({ addVariant }) => {
+	addVariant('pwa', '@media all and (display-mode: standalone)');
+});
 
 export default {
 	content: ['./src/**/*.{html,js,svelte,ts}', './node_modules/sveltewind/**/*.{html,js,svelte,ts}'],
@@ -29,5 +34,5 @@ export default {
 		}
 	},
 
-	plugins: [typography, forms, containerQueries, aspectRatio]
+	plugins: [typography, forms, containerQueries, aspectRatio, pwa]
 } satisfies Config;
