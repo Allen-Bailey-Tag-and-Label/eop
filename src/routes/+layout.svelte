@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { theme } from 'sveltewind';
 	import { sveltewind } from 'sveltewind/themes';
-	import { Div } from '$lib/components';
+	import { Div, Title } from '$lib/components';
 	import '../app.css';
 
 	let { children } = $props();
@@ -16,6 +16,7 @@
 	);
 </script>
 
+<Title base="EOP" />
 <Div class="flex max-h-[100dvh] min-h-[100dvh] flex-col overflow-auto">
 	{@render children()}
 </Div>
