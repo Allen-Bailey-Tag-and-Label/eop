@@ -4,7 +4,7 @@ import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
 import type { Config } from 'tailwindcss';
 import * as colors from 'tailwindcss/colors';
-import * as plugin from 'tailwindcss/plugin';
+import { default as plugin } from 'tailwindcss/plugin';
 
 const pwa = plugin(({ addVariant }) => {
 	addVariant('pwa', '@media all and (display-mode: standalone)');
