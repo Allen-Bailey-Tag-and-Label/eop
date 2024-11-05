@@ -7,7 +7,11 @@
 	let { children } = $props();
 
 	theme.set(sveltewind);
-	theme.updateComponentVariant('a', 'default', 'text-primary-500 hover:text-primary-500');
+	theme.updateComponentVariant(
+		'a',
+		'default',
+		'text-primary-500 hover:text-primary-500 focus:shadow-[0_2px_0px_0px_var(--tw-shadow-color)]'
+	);
 	theme.updateComponentVariant('card', 'default', 'rounded-[1rem] dark:bg-slate-50/[.025]');
 	theme.updateComponentVariant(
 		'input',
