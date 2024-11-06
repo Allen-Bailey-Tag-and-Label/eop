@@ -15,6 +15,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 			return new Response(null, { status: 303, headers: { location: '/dashboard' } });
 	}
 
+	if (event.route.id?.startsWith('/(authenticated')) {
+		if (!userId || !(user?.active || false))
+			return new Response(null, { status: 303, headers: { location: '/sign-in' } });
+	}
+
 	const response = await resolve(event);
 	return response;
 };

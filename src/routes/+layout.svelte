@@ -12,7 +12,13 @@
 		'default',
 		'text-primary-500 hover:text-primary-500 focus:shadow-[0_2px_0px_0px_var(--tw-shadow-color)]'
 	);
-	theme.updateComponentVariant('card', 'default', 'rounded-[1rem] dark:bg-slate-50/[.025]');
+	theme.setComponentVariant('button', 'icon', 'py-6');
+	theme.setComponentVariant(
+		'button',
+		'ghost',
+		'bg-transparent hover:bg-slate-950/10 focus:bg-slate-950/10 dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5'
+	);
+	theme.updateComponentVariant('card', 'default', 'rounded-[1rem] dark:bg-slate-800');
 	theme.updateComponentVariant(
 		'input',
 		'default',
