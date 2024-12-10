@@ -12,18 +12,38 @@
 		'default',
 		'text-primary-500 hover:text-primary-500 focus:shadow-[0_2px_0px_0px_var(--tw-shadow-color)]'
 	);
-	theme.setComponentVariant('button', 'icon', 'py-6');
+	theme.setComponentVariant(
+		'button',
+		'contrast',
+		'bg-slate-900 hover:bg-slate-950 focus:bg-slate-950 focus:ring-slate-900/30 text-slate-50 dark:bg-slate-50 dark:hover:bg-slate-100 dark:focus:bg-slate-100 dark:focus:ring-slate-50/30 dark:text-slate-950'
+	);
+	theme.updateComponentVariant('button', 'default', 'disabled:opacity-50 disabled:bg-primary-500');
+	theme.setComponentVariant(
+		'button',
+		'error',
+		'bg-red-500 focus:bg-red-600 hover:bg-red-600 focus:ring-red-500/30 disabled:bg-red-500'
+	);
+	theme.setComponentVariant('button', 'icon', 'p-3 aspect-[1_/_1]');
 	theme.setComponentVariant(
 		'button',
 		'ghost',
-		'bg-transparent hover:bg-slate-950/10 focus:bg-slate-950/10 dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5'
+		'bg-transparent hover:bg-slate-950/10 focus:bg-slate-950/10 dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5 text-current'
 	);
 	theme.updateComponentVariant('card', 'default', 'rounded-[1rem] dark:bg-slate-800');
+	theme.updateComponentVariant('checkbox', 'default', 'text-white');
+	theme.updateComponentVariant('checkbox', 'checked', 'text-white');
 	theme.updateComponentVariant(
 		'input',
 		'default',
-		'border-none bg-slate-950/10 ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/5'
+		'border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
 	);
+	theme.updateComponentVariant(
+		'select',
+		'default',
+		'pr-8 border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
+	);
+	theme.updateComponentVariant('table', 'default', 'bg-transparent dark:bg-transparent');
+	theme.updateComponentVariant('tr', 'default', 'even:bg-slate-50 dark:even:bg-slate-900');
 </script>
 
 <Title base="EOP" />

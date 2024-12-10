@@ -11,7 +11,7 @@
 
 <Div class="flex flex-grow flex-col overflow-auto lg:flex-row">
 	<Header class="items-start p-4 pwa:order-2 lg:pwa:order-1">
-		<Button class="relative z-[100]" onclick={toggle} variants={['default', 'icon']}>
+		<Button class="relative z-[100] w-12" onclick={toggle} variants={['default', 'icon']}>
 			<Div
 				class={twMerge(
 					'absolute left-1/2 top-1/2 h-[1px] w-[50%] -translate-x-1/2 bg-current transition duration-200',
@@ -27,7 +27,7 @@
 		</Button>
 		<Drawer
 			bind:isVisible
-			class="w-full min-w-[20rem] max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:max-w-full"
+			class="w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[20rem] lg:max-w-full"
 			position="left"
 		>
 			<Card

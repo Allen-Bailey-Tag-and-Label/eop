@@ -14,10 +14,6 @@
 	};
 	let disabled: 'disabled' | undefined = $state();
 	let { form }: { form: ActionData } = $props();
-
-	$effect(() => {
-		console.log(form);
-	});
 </script>
 
 <Form class="space-y-8" {disabled} use={[[enhance, enhanceHandler]]}>
