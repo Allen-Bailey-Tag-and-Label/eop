@@ -20,15 +20,6 @@ model Route {
   label String
 }
 
-model Prismatabletest {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  // boolean  Boolean
-  // dateTime DateTime
-  // float    Float
-  // int      Int
-  string String
-}
-
 model User {
   id           String       @id @default(auto()) @map("_id") @db.ObjectId
   active       Boolean      @default(false)
