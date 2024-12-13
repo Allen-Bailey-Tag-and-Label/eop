@@ -29,6 +29,11 @@
 		'ghost',
 		'bg-transparent hover:bg-slate-950/10 focus:bg-slate-950/10 dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5 text-current'
 	);
+	theme.setComponentVariant(
+		'button',
+		'success',
+		'bg-green-500 focus:bg-green-600 hover:bg-green-600 focus:ring-green-500/30 disabled:bg-green-500'
+	);
 	theme.updateComponentVariant('card', 'default', 'rounded-[1rem] dark:bg-slate-800');
 	theme.updateComponentVariant('checkbox', 'default', 'text-white');
 	theme.updateComponentVariant('checkbox', 'checked', 'text-white');
