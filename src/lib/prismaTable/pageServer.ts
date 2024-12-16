@@ -1,7 +1,13 @@
 import { getActions, getLoad } from '$lib/prismaTable';
 import { getFields } from './index';
+import type { RelationLabelFns } from './types';
 
-export const pageServer = async (modelName: string) => {
+type Params = {
+	modelName: string;
+	relationLabelFns?: RelationLabelFns;
+};
+
+export const pageServer = async ({ modelName, relationLabelFns }: Params) => {
 	const fields = getFields(modelName);
 	const fieldsRequiringRelation = fields
 		.filter(({ relationFromFields }) => relationFromFields !== undefined)
@@ -11,7 +17,13 @@ export const pageServer = async (modelName: string) => {
 		}, new Map<string, { key: string; model: string }>());
 
 	return {
-		actions: getActions(modelName),
-		load: () => getLoad({ modelName, fields, fieldsRequiringRelation })
+		actions: getActions({ fields, fieldsRequiringRelation, modelName }),
+		load: () =>
+			getLoad({
+				fields,
+				fieldsRequiringRelation,
+				modelName,
+				relationLabelFns
+			})
 	};
 };

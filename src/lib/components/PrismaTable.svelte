@@ -80,9 +80,15 @@
 			.map((sanitizedRow, i) => {
 				return { originalRow: originalRows[i], sanitizedRow };
 			})
-			.sort(
-				(a, b) => a.sanitizedRow[sortKey].localeCompare(b.sanitizedRow[sortKey]) * sortDirection
-			)
+			.sort((a, b) => {
+				const aValue: any = a.sanitizedRow[sortKey];
+				const bValue: any = b.sanitizedRow[sortKey];
+				let comparison: number = 0;
+				if (typeof aValue === 'boolean')
+					comparison = aValue === bValue ? 0 : aValue === true ? -1 : 1;
+				if (typeof aValue === 'string') comparison = aValue.localeCompare(bValue);
+				return comparison * sortDirection;
+			})
 			.reduce(
 				(obj: { originalRows: Row[]; sanitizedRows: Row[] }, { originalRow, sanitizedRow }) => {
 					obj.originalRows.push(originalRow);
@@ -114,6 +120,10 @@
 				if (!sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsNotList;
 				if (sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsList;
 			}
+			if (sanitizedColumn.type === 'Boolean') {
+				sanitizedColumn.snippet = Boolean;
+				sanitizedColumn.width = 48;
+			}
 			return sanitizedColumn;
 		});
 		if (sortKey === '') sortKey = sanitizedColumns[0].key;
@@ -137,10 +147,6 @@
 			)
 			.map(getUpdateData)
 	);
-	// $inspect(
-	// 	JSON.stringify(sanitizedRows.map((row) => row.routeIds)),
-	// 	JSON.stringify(originalRows.map((row) => row.routeIds))
-	// );
 	const saveIsNeeded = $derived(rowsNeedingUpdates.length > 0);
 	const selectedRows = $derived(sanitizedRows.filter((row) => row._isSelected));
 	const rowsAreSelected = $derived(selectedRows.length > 0);
@@ -273,7 +279,7 @@
 								<Button
 									class={twMerge(
 										theme.getComponentVariant('th', 'default'),
-										'flex h-[3rem] w-full items-center justify-between space-x-2'
+										'flex h-[3rem] w-full items-center justify-between space-x-2 rounded-none'
 									)}
 									onclick={() => {
 										if (key === sortKey) {
@@ -283,7 +289,7 @@
 										sortKey = key;
 										sortRows();
 									}}
-									variants={['ghost']}
+									variants={['default', 'ghost']}
 								>
 									<Div>{label}</Div>
 									<Icon
@@ -337,6 +343,11 @@
 	</Card>
 </Card>
 
+{#snippet Boolean({ key, rowIndex }: { key: string; rowIndex: number })}
+	<Td>
+		<Checkbox bind:checked={sanitizedRows[rowIndex][key]} />
+	</Td>
+{/snippet}
 {#snippet RelationIsList({
 	key,
 	relationOptions,
@@ -348,12 +359,6 @@
 })}
 	<Td class="p-0">
 		<MultiSelect bind:value={sanitizedRows[rowIndex][key]} options={relationOptions} />
-		<!-- <Select
-			bind:value={sanitizedRows[rowIndex][key]}
-			class="w-full rounded-none bg-transparent dark:bg-transparent"
-			multiple
-			options={relationOptions}
-		/> -->
 	</Td>
 {/snippet}
 {#snippet RelationIsNotList()}

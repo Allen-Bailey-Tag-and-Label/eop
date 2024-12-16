@@ -1,15 +1,19 @@
 import { prisma } from '$lib/prisma';
-import type { Column } from './types';
+import type { Column, RelationLabelFns } from './types';
 
-export const getLoad = async ({
-	modelName,
-	fields,
-	fieldsRequiringRelation
-}: {
-	modelName: string;
+type Paramaters = {
 	fields: any;
 	fieldsRequiringRelation: any;
-}) => {
+	modelName: string;
+	relationLabelFns?: RelationLabelFns;
+};
+
+export const getLoad = async ({
+	fields,
+	fieldsRequiringRelation,
+	modelName,
+	relationLabelFns
+}: Paramaters) => {
 	const getColumns = new Promise(async (resolve) => {
 		const columns = await Promise.all(
 			fields
@@ -31,15 +35,20 @@ export const getLoad = async ({
 						const { key: relationKey, model: relationModel } = fieldsRequiringRelation.get(
 							name
 						) || { key: '', model: '' };
+						const relationLabelFn =
+							relationLabelFns?.get(relationKey) || ((record) => record.label);
 						column.isList = isList;
 						column.isRelational = true;
 						column.relationKey = relationKey;
 						column.relationOptions = [
 							{ label: '', value: '' },
 							// @ts-ignore
-							...(await prisma[relationModel].findMany()).map(
-								({ id, label }: { id: string; label: string }) => ({ label, value: id })
-							)
+							...(await prisma[relationModel].findMany())
+								.map(({ id, ...record }: { id: string; record: Record<string, any> }) => ({
+									label: relationLabelFn(record),
+									value: id
+								}))
+								.sort((a: any, b: any) => a.label.localeCompare(b.label))
 						];
 					}
 					return column;

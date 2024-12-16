@@ -1,14 +1,40 @@
 import { prisma } from '$lib/prisma';
 import type { Actions } from '@sveltejs/kit';
 
-export const getActions = (modelName: string): Actions => {
+type Params = {
+	fields: Field[];
+	fieldsRequiringRelation: Map<
+		string,
+		{
+			key: string;
+			model: string;
+		}
+	>;
+	modelName: string;
+};
+type Field = {
+	isId: boolean;
+	isRequired: boolean;
+	name: string;
+	type: string;
+};
+
+export const getActions = ({ fields, fieldsRequiringRelation, modelName }: Params): Actions => {
 	return {
 		create: async () => {
+			const data = fields.reduce(
+				(data: Record<string, any>, { isId, isRequired, name, type }: Field) => {
+					console.log({ isId, isRequired, name, type });
+					if (!isId && isRequired && fieldsRequiringRelation.get(name) === undefined) {
+						if (type === 'String') data[name] = '';
+					}
+					return data;
+				},
+				{}
+			);
 			// @ts-ignore
 			await prisma[modelName].create({
-				data: {
-					label: ''
-				}
+				data
 			});
 			return { success: true };
 		},
@@ -28,14 +54,6 @@ export const getActions = (modelName: string): Actions => {
 			const { updates } = <{ updates: string }>Object.fromEntries(await request.formData());
 			await prisma.$transaction(
 				JSON.parse(updates).map(({ id, ...data }: { id: string; data: Record<any, any> }) => {
-					// if (data?.roleIds?.length > 0) {
-					// 	data.roles = {
-					// 		connect: data.roleIds.map((id) => {
-					// 			return { id };
-					// 		})
-					// 	};
-					// 	delete data.roleIds;
-					// }
 					// @ts-ignore
 					return prisma[modelName].update({ where: { id }, data });
 				})
