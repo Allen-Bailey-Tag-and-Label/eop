@@ -26,17 +26,21 @@
 			"</${1:div}>"
 		]
 	},
-	"DB Table": {
-		"prefix": "@dbTable",
+	"PrismaTable - +page.svelte": {
+		"prefix": "@ptpage.svelte",
 		"body": [
 			"<script lang=\"ts\">",
-			"import { DBTable } from '\\$components';",
+			"\timport { PrismaTable } from '\\$lib/components';",
+			"\timport type { PageData } from './\\$types';",
 			"",
-			"// props (external)",
-			"export let data;",
+			"\ttype \\$Props = {",
+			"\t\tdata: PageData;",
+			"\t};",
+			"",
+			"\tlet { data }: \\$Props = \\$props();",
 			"</script>",
 			"",
-			"<DBTable {...data.dbTable} />"
+			"<PrismaTable {...data} />"
 		]
 	}
 }

@@ -3,22 +3,12 @@
 		"prefix": "@sk-load",
 		"body": ["export const load = async () => {", "\t$1", "}"]
 	},
-	"Sveltekit - DBTable Load Function": {
-		"prefix": "@dbtable",
+	"Sveltekit - PrismaTable +page.server.ts": {
+		"prefix": "@ptpageserver",
 		"body": [
-			"import { getServerFunctions } from '\\$lib/dbTable';",
+			"import { pageServer } from '\\$lib/prismaTable';",
 			"",
-			"const { actions, load } = await getServerFunctions('$1', {",
-			"\tcolumns: new Map([",
-			"\t\t// ['$2', {",
-			"\t\t\t// $3",
-			"\t\t// }]",
-			"\t]),",
-			"\tgetRelationLabelFunctions: new Map([",
-			"\t\t// ['$4', (row) => $5]",
-			"\t]),",
-			"\torderBy: [$6]",
-			"});",
+			"const { actions, load } = await pageServer('$1');",
 			"",
 			"export { actions, load };"
 		]
