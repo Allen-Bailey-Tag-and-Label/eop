@@ -11,12 +11,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	if (event.url.pathname === '/') {
 		if (!userId) return new Response(null, { status: 303, headers: { location: '/sign-in' } });
-		if (user?.active)
+		if (user?.isActive)
 			return new Response(null, { status: 303, headers: { location: '/dashboard' } });
 	}
 
-	if (event.route.id?.startsWith('/(authenticated')) {
-		if (!userId || !(user?.active || false))
+	if (event.route.id?.startsWith('/(authenticated)')) {
+		if (!userId || !(user?.isActive || false))
 			return new Response(null, { status: 303, headers: { location: '/sign-in' } });
 	}
 

@@ -23,7 +23,7 @@ export const actions: Actions = {
 			});
 
 		// check if user is not active
-		if (!user.active)
+		if (!user.isActive)
 			return fail(403, {
 				error: {
 					inputClasses: { username: 'ring-offset-red-500 dark:ring-offset-red-500' },
