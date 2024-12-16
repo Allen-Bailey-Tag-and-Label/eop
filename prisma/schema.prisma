@@ -13,11 +13,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Role {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  label    String
+  routes   Route[]  @relation(fields: [routeIds], references: [id])
+  routeIds String[] @db.ObjectId
+}
+
 model Route {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  href  String
-  group String
-  label String
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  href    String
+  group   String
+  label   String
+  roles   Role[]   @relation(fields: [roleIds], references: [id])
+  roleIds String[] @db.ObjectId
 }
 
 model User {
