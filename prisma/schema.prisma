@@ -18,6 +18,8 @@ model Role {
   label    String
   routes   Route[]  @relation(fields: [routeIds], references: [id])
   routeIds String[] @db.ObjectId
+  users    User[]   @relation(fields: [userIds], references: [id])
+  userIds  String[] @db.ObjectId
 }
 
 model Route {
@@ -34,6 +36,8 @@ model User {
   isActive     Boolean      @default(false)
   passwordHash String
   profile      UserProfile?
+  roles        Role[]       @relation(fields: [roleIds], references: [id])
+  roleIds      String[]     @db.ObjectId
   username     String       @unique
 }
 
