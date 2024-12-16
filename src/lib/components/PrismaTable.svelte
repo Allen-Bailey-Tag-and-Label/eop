@@ -8,7 +8,9 @@
 		Icon,
 		Input,
 		Modal,
+		MultiSelect,
 		P,
+		Select,
 		Table,
 		Tbody,
 		Td,
@@ -27,31 +29,36 @@
 	import { enhance } from '$app/forms';
 	import { theme } from 'sveltewind';
 	import { twMerge } from 'tailwind-merge';
+	import type { Column, Row, SanitizedColumn } from '$lib/prismaTable/types';
 
-	type Column =
-		| string
-		| {
-				key: string;
-				label?: string;
-				width?: number;
-		  };
 	type Props = {
 		columns: Column[];
 		rows: Row[];
-	};
-	type Row = Record<string, any>;
-	type SanitizedColumn = {
-		key: keyof Row;
-		label: string;
-		width: number;
 	};
 
 	let { columns = [], rows = [] }: Props = $props();
 	let allRowsAreSelected = $state(false);
 	const defaultColumnWidth = 229;
-	const modal: Record<string, { toggle?: any }> = $state({
-		delete: {}
-	});
+	const getUpdateData = (row: Row, rowIndex: number) =>
+		Object.keys(row)
+			.filter((key) => !key.startsWith('_'))
+			.reduce((obj: Row, key) => {
+				const { isList, isRelational, relationKey } = sanitizedColumns.find(
+					(sanitizedColumn) => sanitizedColumn.key === key
+				) || { isList: false, isRelational: false, relationKey: '' };
+				if (!isRelational) obj[key] = row[key];
+				if (isRelational) {
+					if (isList) {
+						obj[relationKey || ''] = {
+							connect: row[key].map((id: string) => ({ id })),
+							disconnect: (originalRows?.[rowIndex]?.[key] || [])
+								.filter((id: string) => !row[key].includes(id))
+								.map((id: string) => ({ id }))
+						};
+					}
+				}
+				return obj;
+			}, {});
 	let originalRows: Row[] = $state([]);
 	const removeNonSchemaKeys = (row: Row) =>
 		Object.keys(row)
@@ -67,7 +74,7 @@
 	let sanitizedColumns: SanitizedColumn[] = $state([]);
 	let sanitizedRows: Row[] = $state([]);
 	let sortDirection: 1 | -1 = $state(1);
-	let sortKey: keyof Row = $state('href');
+	let sortKey: keyof Row = $state('');
 	const sortRows = () => {
 		({ originalRows, sanitizedRows } = sanitizedRows
 			.map((sanitizedRow, i) => {
@@ -85,29 +92,42 @@
 				{ originalRows: [], sanitizedRows: [] }
 			));
 	};
-
-	const updateColumns = (columns: Column[]) => {
-		sanitizedColumns = columns.map((column: Column) => {
-			let sanitizedColumn: SanitizedColumn = { key: 'id', label: '', width: defaultColumnWidth };
-			if (typeof column === 'string')
-				return { key: column, label: column, width: defaultColumnWidth };
-			if (typeof column === 'object') {
-				sanitizedColumn = Object.assign(sanitizedColumn, column);
-				if (!sanitizedColumn?.label) sanitizedColumn.label = sanitizedColumn.key;
-				if (!sanitizedColumn?.width) sanitizedColumn.width = defaultColumnWidth;
+	const toolbar: Record<string, any> = $state({
+		delete: {
+			modal: {}
+		}
+	});
+	const updateColumns = async (columns: Column[]) => {
+		sanitizedColumns = (await columns).map((column: Column) => {
+			let sanitizedColumn: SanitizedColumn = {
+				isList: false,
+				isRelational: false,
+				key: '',
+				label: '',
+				relationOptions: [],
+				snippet: String,
+				type: 'String',
+				width: defaultColumnWidth
+			};
+			sanitizedColumn = Object.assign(sanitizedColumn, column);
+			if (sanitizedColumn.isRelational) {
+				if (!sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsNotList;
+				if (sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsList;
 			}
 			return sanitizedColumn;
 		});
+		if (sortKey === '') sortKey = sanitizedColumns[0].key;
 	};
 	const updateRows = async (rows: Row[]) => {
-		sanitizedRows = JSON.parse(JSON.stringify(await rows))
-			.map((row: Row) => {
-				row._isSelected = false;
-				return row;
-			})
-			.sort((a: Row, b: Row) => a[sortKey].localeCompare(b[sortKey]) * sortDirection);
+		sanitizedRows = JSON.parse(JSON.stringify(await rows)).map((row: Row) => {
+			row._isSelected = false;
+			return row;
+		});
+		sortRows();
 		originalRows = JSON.parse(JSON.stringify(sanitizedRows));
 	};
+
+	// $derives
 	const rowsNeedingUpdates = $derived(
 		sanitizedRows
 			.filter(
@@ -115,12 +135,17 @@
 					JSON.stringify(removeNonSchemaKeys(row)) !==
 					JSON.stringify(removeNonSchemaKeys(originalRows?.[i] || {}))
 			)
-			.map(removeNonSchemaKeys)
+			.map(getUpdateData)
 	);
+	// $inspect(
+	// 	JSON.stringify(sanitizedRows.map((row) => row.routeIds)),
+	// 	JSON.stringify(originalRows.map((row) => row.routeIds))
+	// );
 	const saveIsNeeded = $derived(rowsNeedingUpdates.length > 0);
 	const selectedRows = $derived(sanitizedRows.filter((row) => row._isSelected));
 	const rowsAreSelected = $derived(selectedRows.length > 0);
 
+	// $effects
 	$effect(() => {
 		updateColumns(columns);
 	});
@@ -145,12 +170,12 @@
 		<Div>
 			<Button
 				disabled={!rowsAreSelected}
-				onclick={modal.delete.toggle}
+				onclick={toolbar.delete.modal.toggle}
 				variants={['default', 'icon', 'error']}
 			>
 				<Icon src={Trash} />
 			</Button>
-			<Modal bind:toggle={modal.delete.toggle}>
+			<Modal bind:toggle={toolbar.delete.modal.toggle}>
 				<Form
 					action="?/delete"
 					use={[
@@ -158,7 +183,7 @@
 							enhance,
 							() => {
 								return ({ update }: { update: any }) => {
-									modal.delete.toggle();
+									toolbar.delete.modal.toggle();
 									update();
 								};
 							}
@@ -178,14 +203,21 @@
 						)}
 					/>
 					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-						<Button onclick={modal.delete.toggle} variants={['default', 'contrast']}>Cancel</Button>
+						<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
+							>Cancel</Button
+						>
 						<Button type="submit" variants={['default', 'error']}>Delete</Button>
 					</Div>
 				</Form>
 			</Modal>
 		</Div>
 		<Form action="?/save" use={[[enhance]]}>
-			<Button disabled={!saveIsNeeded} type="submit" variants={['default', 'icon', 'success']}>
+			<Button
+				class="grid grid-cols-1 grid-rows-1"
+				disabled={!saveIsNeeded}
+				type="submit"
+				variants={['default', 'icon', 'success']}
+			>
 				<Icon src={Check} />
 			</Button>
 			<Input
@@ -228,7 +260,7 @@
 							onclick={(e) => {
 								sanitizedRows = sanitizedRows.map(({ _isSelected, ...row }) => {
 									return {
-										_isSelected: e?.target?.checked,
+										_isSelected: e.currentTarget.checked,
 										...row
 									};
 								});
@@ -289,19 +321,14 @@
 							<Checkbox
 								bind:checked={sanitizedRows[rowIndex]._isSelected}
 								class="mr-0"
-								onchange={(e) => {
+								onchange={() => {
 									if (selectedRows.length === 0) allRowsAreSelected = false;
 									if (selectedRows.length === sanitizedRows.length) allRowsAreSelected = true;
 								}}
 							/>
 						</Td>
-						{#each sanitizedColumns as { key }}
-							<Td class="p-0">
-								<Input
-									bind:value={sanitizedRows[rowIndex][key]}
-									class="w-full rounded-none bg-transparent dark:bg-transparent"
-								/>
-							</Td>
+						{#each sanitizedColumns as { key, relationOptions, snippet }}
+							{@render snippet({ key, relationOptions, rowIndex })}
 						{/each}
 					</Tr>
 				{/each}
@@ -309,3 +336,41 @@
 		</Table>
 	</Card>
 </Card>
+
+{#snippet RelationIsList({
+	key,
+	relationOptions,
+	rowIndex
+}: {
+	key: string;
+	relationOptions: { label: any; value: string }[];
+	rowIndex: number;
+})}
+	<Td class="p-0">
+		<MultiSelect bind:value={sanitizedRows[rowIndex][key]} options={relationOptions} />
+		<!-- <Select
+			bind:value={sanitizedRows[rowIndex][key]}
+			class="w-full rounded-none bg-transparent dark:bg-transparent"
+			multiple
+			options={relationOptions}
+		/> -->
+	</Td>
+{/snippet}
+{#snippet RelationIsNotList()}
+	<Td>RelationIsNotList</Td>
+{/snippet}
+{#snippet String({
+	key,
+	rowIndex
+}: {
+	key: string;
+	relationOptions: { label: any; value: string }[];
+	rowIndex: number;
+})}
+	<Td class="p-0">
+		<Input
+			bind:value={sanitizedRows[rowIndex][key]}
+			class="w-full rounded-none bg-transparent dark:bg-transparent"
+		/>
+	</Td>
+{/snippet}

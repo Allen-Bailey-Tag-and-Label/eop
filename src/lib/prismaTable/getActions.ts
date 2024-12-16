@@ -7,8 +7,6 @@ export const getActions = (modelName: string): Actions => {
 			// @ts-ignore
 			await prisma[modelName].create({
 				data: {
-					href: '',
-					group: '',
 					label: ''
 				}
 			});
@@ -29,18 +27,22 @@ export const getActions = (modelName: string): Actions => {
 		save: async ({ request }) => {
 			const { updates } = <{ updates: string }>Object.fromEntries(await request.formData());
 			await prisma.$transaction(
-				JSON.parse(updates).map(({ id, ...data }: { id: string; data: Record<any, any> }) =>
+				JSON.parse(updates).map(({ id, ...data }: { id: string; data: Record<any, any> }) => {
+					// if (data?.roleIds?.length > 0) {
+					// 	data.roles = {
+					// 		connect: data.roleIds.map((id) => {
+					// 			return { id };
+					// 		})
+					// 	};
+					// 	delete data.roleIds;
+					// }
 					// @ts-ignore
-					prisma[modelName].update({ where: { id }, data })
-				)
+					return prisma[modelName].update({ where: { id }, data });
+				})
 			);
 			return { success: true };
 		},
-		update: async ({ request }) => {
-			// // @ts-ignore
-			// const getRows = <Record<string, any>[]>prisma[modelName].findMany();
-			// const rows = await getRows;
-
+		update: async () => {
 			return { success: true };
 		}
 	};
