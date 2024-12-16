@@ -76,7 +76,7 @@
 	<Portal>
 		<Card
 			class={twMerge(
-				'fixed flex flex-col px-0 py-5 transition duration-200',
+				'fixed flex max-h-[10rem] flex-col overflow-auto px-0 py-5 transition duration-200',
 				isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
 			)}
 			style="left:{bounds?.x || 0}px; top:{(bounds?.y || 0) +
