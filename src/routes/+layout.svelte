@@ -3,8 +3,15 @@
 	import { sveltewind } from 'sveltewind/themes';
 	import { Div, Title } from '$lib/components';
 	import '../app.css';
+	import type { Snippet } from 'svelte';
+	import type { LayoutServerData } from './$types.js';
 
-	let { children } = $props();
+	type Props = {
+		children: Snippet;
+		data: LayoutServerData;
+	};
+
+	let { children, data }: Props = $props();
 
 	theme.set(sveltewind);
 	theme.updateComponentVariant(
@@ -48,11 +55,11 @@
 		'pr-8 border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
 	);
 	theme.updateComponentVariant('table', 'default', 'bg-transparent dark:bg-transparent');
-	theme.updateComponentVariant('th', 'default', 'z-[1]');
+	// theme.updateComponentVariant('th', 'default', 'z-[1]');
 	theme.updateComponentVariant('tr', 'default', 'even:bg-slate-50 dark:even:bg-slate-900');
 </script>
 
 <Title base="EOP" />
 <Div class="flex max-h-[100dvh] min-h-[100dvh] flex-col overflow-auto">
-	{@render children()}
+	{@render children(data)}
 </Div>
