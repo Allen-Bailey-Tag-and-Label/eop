@@ -67,9 +67,9 @@
 			position="left"
 		>
 			<Card class="flex flex-grow flex-col overflow-auto rounded-none p-0">
-				<Div class="flex flex-grow flex-col space-y-3 overflow-auto">
+				<Div class="flex flex-grow flex-col space-y-0 overflow-auto py-2">
 					{#each navigationGroups as navigationGroup, navigationGroupIndex}
-						<Div class="flex flex-col py-3">
+						<Div class="flex flex-col py-2">
 							{#if navigationGroup.group !== ''}
 								<Button
 									class="items-center justify-between rounded-none pl-20 text-base dark:shadow-none"
@@ -90,7 +90,7 @@
 									/>
 								</Button>
 							{/if}
-							<Div class="flex flex-col" isVisible={navigationGroup.isVisible}>
+							<Div class="flex flex-col pb-4" isVisible={navigationGroup.isVisible}>
 								{#each navigationGroup.groupItems as { href, label }}
 									{@render navItem({ href, label })}
 								{/each}
