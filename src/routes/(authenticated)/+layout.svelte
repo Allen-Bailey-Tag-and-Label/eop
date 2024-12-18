@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { twMerge } from 'tailwind-merge';
-	import { A, Button, Card, Div, Drawer, Header, Icon } from '$lib/components';
 	import type { Snippet } from 'svelte';
-	import type { LayoutServerData } from '../$types.js';
-	import { ChevronDown } from 'sveltewind/icons';
 	import { theme } from 'sveltewind';
+	import { ChevronDown } from 'sveltewind/icons';
+	import { twMerge } from 'tailwind-merge';
+	import { page } from '$app/stores';
+	import { A, Button, Card, Div, Drawer, Header, Icon } from '$lib/components';
+	import type { LayoutServerData } from '../$types.js';
 
 	type Props = {
 		children: Snippet;
@@ -65,50 +66,43 @@
 			class="w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[20rem] lg:max-w-full"
 			position="left"
 		>
-			<Card
-				class="flex flex-grow flex-col divide-slate-200 overflow-auto rounded-none px-0 py-4 pt-20 pwa:pb-20 pwa:pt-4 dark:divide-slate-700"
-			>
-				{#each navigationGroups as navigationGroup, navigationGroupIndex}
-					<Div class="flex flex-col py-3">
-						{#if navigationGroup.group !== ''}
-							<Button
-								class="items-center justify-between rounded-none text-base dark:shadow-none"
-								onclick={() =>
-									(navigationGroups[navigationGroupIndex].isVisible =
-										!navigationGroups[navigationGroupIndex].isVisible)}
-								variants={['default', 'ghost']}
-							>
-								<Div>
-									{navigationGroup.group}
-								</Div>
-								<Icon
-									class={twMerge(
-										'h-4 w-4 transition duration-200',
-										navigationGroup.isVisible ? 'rotate-180' : 'rotate-0'
-									)}
-									src={ChevronDown}
-								/>
-							</Button>
-						{/if}
-						<Div class="flex flex-col pl-6" isVisible={navigationGroup.isVisible}>
-							{#each navigationGroup.groupItems as { href, label }}
-								<A
-									class={twMerge(
-										theme.getComponentVariant('button', 'default'),
-										theme.getComponentVariant('button', 'ghost'),
-										'justify-start rounded-none border-l border-slate-200 text-base font-normal opacity-70 hover:text-current hover:opacity-100 hover:shadow-none focus:text-current focus:opacity-100 focus:shadow-none dark:border-slate-700 dark:shadow-none'
-									)}
-									{href}
-									onclick={() => {
-										isVisible = false;
-									}}
+			<Card class="flex flex-grow flex-col overflow-auto rounded-none p-0">
+				<Div class="flex flex-grow flex-col space-y-3 overflow-auto">
+					{#each navigationGroups as navigationGroup, navigationGroupIndex}
+						<Div class="flex flex-col py-3">
+							{#if navigationGroup.group !== ''}
+								<Button
+									class="items-center justify-between rounded-none pl-20 text-base dark:shadow-none"
+									onclick={() =>
+										(navigationGroups[navigationGroupIndex].isVisible =
+											!navigationGroups[navigationGroupIndex].isVisible)}
+									variants={['default', 'ghost']}
 								>
-									{label}
-								</A>
-							{/each}
+									<Div>
+										{navigationGroup.group}
+									</Div>
+									<Icon
+										class={twMerge(
+											'h-4 w-4 transition duration-200',
+											navigationGroup.isVisible ? 'rotate-180' : 'rotate-0'
+										)}
+										src={ChevronDown}
+									/>
+								</Button>
+							{/if}
+							<Div class="flex flex-col" isVisible={navigationGroup.isVisible}>
+								{#each navigationGroup.groupItems as { href, label }}
+									{@render navItem({ href, label })}
+								{/each}
+							</Div>
 						</Div>
-					</Div>
-				{/each}
+					{/each}
+				</Div>
+				{@render navItem({
+					href: '/sign-out',
+					label: 'Sign Out',
+					'data-sveltekit-reload': true
+				})}
 			</Card>
 		</Drawer>
 	</Header>
@@ -116,3 +110,35 @@
 		{@render children()}
 	</Div>
 </Div>
+
+{#snippet navItem({
+	class: className,
+	href,
+	label,
+	...restProps
+}: {
+	class?: string;
+	href: string;
+	label: string;
+} & Record<string, any>)}
+	<A
+		{...restProps}
+		class={twMerge(
+			theme.getComponentVariant('button', 'default'),
+			theme.getComponentVariant('button', 'ghost'),
+			'rounded-none py-0 pl-[5rem] pr-0 text-base font-normal opacity-70 ring-0 hover:bg-slate-950/10 hover:text-current hover:opacity-100 hover:shadow-none focus:bg-slate-950/10 focus:text-current focus:opacity-100 focus:shadow-none dark:shadow-none dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5',
+			$page.url.pathname === href
+				? 'bg-primary-500 text-white opacity-100 hover:bg-primary-500 focus:bg-primary-500 dark:text-white dark:hover:bg-primary-500 dark:focus:bg-primary-500'
+				: undefined,
+			className
+		)}
+		{href}
+		onclick={() => {
+			isVisible = false;
+		}}
+	>
+		<Div class="h-full w-full py-3 pl-0">
+			{label}
+		</Div>
+	</A>
+{/snippet}
