@@ -4,6 +4,7 @@
 		Card,
 		Checkbox,
 		Div,
+		Fieldset,
 		Form,
 		Icon,
 		Input,
@@ -21,7 +22,12 @@
 	import {
 		ArrowPath,
 		Check,
+		ChevronDoubleLeft,
+		ChevronDoubleRight,
 		ChevronDown,
+		ChevronLeft,
+		ChevronRight,
+		Cog6Tooth,
 		ExclamationTriangle,
 		Plus,
 		Trash
@@ -60,6 +66,27 @@
 				return obj;
 			}, {});
 	let originalRows: Row[] = $state([]);
+	const paginate: {
+		currentPage: number;
+		index: {
+			start: number;
+			end: number;
+		};
+		modal: Record<string, any>;
+		numberOfRowsPerPage: number;
+		options: { label: string; value: number }[];
+		totalPages: number;
+	} = $state({
+		currentPage: 0,
+		index: {
+			start: 0,
+			end: 0
+		},
+		modal: {},
+		numberOfRowsPerPage: 10,
+		options: [],
+		totalPages: 0
+	});
 	const removeNonSchemaKeys = (row: Row) =>
 		Object.keys(row)
 			.filter((key) => !key.startsWith('_'))
@@ -100,7 +127,9 @@
 	};
 	const toolbar: Record<string, any> = $state({
 		delete: {
-			modal: {}
+			modal: {
+				numberOfRowsPerPage: 10
+			}
 		}
 	});
 	const updateColumns = async (columns: Column[]) => {
@@ -128,6 +157,25 @@
 		});
 		if (sortKey === '') sortKey = sanitizedColumns[0].key;
 	};
+	const updatePaginate = (_: number, numberOfRowsPerPage: number, sanitizedRows: Row[]) => {
+		paginate.totalPages = Math.ceil(sanitizedRows.length / numberOfRowsPerPage);
+		if (paginate.currentPage > paginate.totalPages - 1 && paginate.totalPages > 0) {
+			paginate.currentPage = paginate.totalPages - 1;
+		}
+		if (paginate.currentPage < 0) {
+			paginate.currentPage = 0;
+		}
+		paginate.index.start = paginate.currentPage * numberOfRowsPerPage;
+		paginate.index.end = Math.min(
+			(paginate.currentPage + 1) * numberOfRowsPerPage,
+			sanitizedRows.length
+		);
+		paginate.options = [...Array(paginate.totalPages)].map((_, i) => {
+			const label = `${i * numberOfRowsPerPage + 1}-${Math.min((i + 1) * numberOfRowsPerPage, sanitizedRows.length)}`;
+			const value = i;
+			return { label, value };
+		});
+	};
 	const updateRows = async (rows: Row[]) => {
 		sanitizedRows = JSON.parse(JSON.stringify(await rows)).map((row: Row) => {
 			row._isSelected = false;
@@ -138,12 +186,22 @@
 	};
 
 	// $derives
+	const paginatedRows = $derived(
+		sanitizedRows.filter(
+			(_, rowIndex) => rowIndex >= paginate.index.start && rowIndex < paginate.index.end
+		)
+	);
+	const originalPaginatedRows = $derived(
+		originalRows.filter(
+			(_, rowIndex) => rowIndex >= paginate.index.start && rowIndex < paginate.index.end
+		)
+	);
 	const rowsNeedingUpdates = $derived(
-		sanitizedRows
+		paginatedRows
 			.filter(
 				(row, i) =>
 					JSON.stringify(removeNonSchemaKeys(row)) !==
-					JSON.stringify(removeNonSchemaKeys(originalRows?.[i] || {}))
+					JSON.stringify(removeNonSchemaKeys(originalPaginatedRows?.[i] || {}))
 			)
 			.map(getUpdateData)
 	);
@@ -154,6 +212,9 @@
 	// $effects
 	$effect(() => {
 		updateColumns(columns);
+	});
+	$effect(() => {
+		updatePaginate(paginate.currentPage, paginate.numberOfRowsPerPage, sanitizedRows);
 	});
 	$effect(() => {
 		updateRows(rows);
@@ -232,6 +293,44 @@
 				value={JSON.stringify(rowsNeedingUpdates)}
 			/>
 		</Form>
+		<Div>
+			<Button
+				onclick={() => {
+					paginate.modal.numberOfRowsPerPage = paginate.numberOfRowsPerPage;
+					paginate.modal.toggle();
+				}}
+				variants={['default', 'icon']}
+			>
+				<Icon src={Cog6Tooth} />
+			</Button>
+			<Modal bind:toggle={paginate.modal.toggle}>
+				<form
+					action="/"
+					class="flex flex-col space-y-4"
+					method="POST"
+					onsubmit={(e) => {
+						e.preventDefault();
+						paginate.numberOfRowsPerPage = paginate.modal.numberOfRowsPerPage;
+						paginate.modal.toggle();
+					}}
+				>
+					<Fieldset legend="Number Of Rows / Page">
+						<Input
+							bind:value={paginate.modal.numberOfRowsPerPage}
+							class="text-right"
+							min={1}
+							type="number"
+						/>
+					</Fieldset>
+					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+						<Button onclick={paginate.modal.toggle} variants={['default', 'contrast']}>
+							Cancel
+						</Button>
+						<Button type="submit">Update</Button>
+					</Div>
+				</form>
+			</Modal>
+		</Div>
 		<Form
 			action="?/update"
 			use={[
@@ -321,15 +420,15 @@
 				</Tr>
 			</Thead>
 			<Tbody>
-				{#each sanitizedRows as _, rowIndex}
+				{#each paginatedRows as _, rowIndex}
 					<Tr>
 						<Td>
 							<Checkbox
-								bind:checked={sanitizedRows[rowIndex]._isSelected}
+								bind:checked={paginatedRows[rowIndex]._isSelected}
 								class="mr-0"
 								onchange={() => {
 									if (selectedRows.length === 0) allRowsAreSelected = false;
-									if (selectedRows.length === sanitizedRows.length) allRowsAreSelected = true;
+									if (selectedRows.length === paginatedRows.length) allRowsAreSelected = true;
 								}}
 							/>
 						</Td>
@@ -341,11 +440,54 @@
 			</Tbody>
 		</Table>
 	</Card>
+	<Div class="flex items-center justify-between space-x-2 px-6 py-3 lg:justify-center">
+		<Div class="flex justify-start space-x-2">
+			<Button
+				disabled={paginate.currentPage === 0}
+				onclick={() => {
+					paginate.currentPage = 0;
+				}}
+				variants={['default', 'icon']}
+			>
+				<Icon src={ChevronDoubleLeft} />
+			</Button>
+			<Button
+				disabled={paginate.currentPage === 0}
+				onclick={() => {
+					paginate.currentPage--;
+				}}
+				variants={['default', 'icon']}
+			>
+				<Icon src={ChevronLeft} />
+			</Button>
+		</Div>
+		<Select bind:value={paginate.currentPage} options={paginate.options} />
+		<Div class="flex justify-end space-x-2">
+			<Button
+				disabled={paginate.currentPage >= paginate.totalPages - 1}
+				onclick={() => {
+					paginate.currentPage++;
+				}}
+				variants={['default', 'icon']}
+			>
+				<Icon src={ChevronRight} />
+			</Button>
+			<Button
+				disabled={paginate.currentPage >= paginate.totalPages - 1}
+				onclick={() => {
+					paginate.currentPage = paginate.totalPages - 1;
+				}}
+				variants={['default', 'icon']}
+			>
+				<Icon src={ChevronDoubleRight} />
+			</Button>
+		</Div>
+	</Div>
 </Card>
 
 {#snippet Boolean({ key, rowIndex }: { key: string; rowIndex: number })}
 	<Td>
-		<Checkbox bind:checked={sanitizedRows[rowIndex][key]} />
+		<Checkbox bind:checked={paginatedRows[rowIndex][key]} />
 	</Td>
 {/snippet}
 {#snippet RelationIsList({
@@ -358,7 +500,7 @@
 	rowIndex: number;
 })}
 	<Td class="p-0">
-		<MultiSelect bind:value={sanitizedRows[rowIndex][key]} options={relationOptions} />
+		<MultiSelect bind:value={paginatedRows[rowIndex][key]} options={relationOptions} />
 	</Td>
 {/snippet}
 {#snippet RelationIsNotList()}
@@ -374,7 +516,7 @@
 })}
 	<Td class="p-0">
 		<Input
-			bind:value={sanitizedRows[rowIndex][key]}
+			bind:value={paginatedRows[rowIndex][key]}
 			class="w-full rounded-none bg-transparent dark:bg-transparent"
 		/>
 	</Td>
