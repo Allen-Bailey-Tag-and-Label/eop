@@ -39,6 +39,7 @@ export const getLoad = async ({
 							relationLabelFns?.get(relationKey) || ((record) => record.label);
 						column.isList = isList;
 						column.isRelational = true;
+						column.label = relationKey;
 						column.relationKey = relationKey;
 						column.relationOptions = [
 							{ label: '', value: '' },
