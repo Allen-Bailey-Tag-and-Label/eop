@@ -24,7 +24,6 @@ export const getActions = ({ fields, fieldsRequiringRelation, modelName }: Param
 		create: async () => {
 			const data = fields.reduce(
 				(data: Record<string, any>, { isId, isRequired, name, type }: Field) => {
-					console.log({ isId, isRequired, name, type });
 					if (!isId && isRequired && fieldsRequiringRelation.get(name) === undefined) {
 						if (type === 'String') data[name] = '';
 					}

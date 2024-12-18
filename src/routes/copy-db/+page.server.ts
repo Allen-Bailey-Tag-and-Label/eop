@@ -43,6 +43,4 @@ export const load = async () => {
 		prisma.user.createMany({ data: userData }),
 		prisma.userProfile.createMany({ data: profileData })
 	]);
-
-	console.log('success');
 };
