@@ -6,13 +6,13 @@
 	import type { ActionData } from './$types';
 
 	const enhanceHandler = async () => {
-		disabled = 'disabled';
+		disabled = true;
 		return async ({ update }: { update: any }) => {
-			disabled = undefined;
+			disabled = false;
 			update();
 		};
 	};
-	let disabled: 'disabled' | undefined = $state();
+	let disabled: boolean = $state(false);
 	let { form }: { form: ActionData } = $props();
 </script>
 
@@ -23,13 +23,13 @@
 	</Div>
 	<Div class="flex flex-col space-y-4">
 		<Fieldset legend="Username">
-			<Input class={form?.error?.inputClasses?.username} name="username" required="required" />
+			<Input class={form?.error?.inputClasses?.username} name="username" required={true} />
 		</Fieldset>
 		<Fieldset legend="Password">
 			<Input
 				class={form?.error?.inputClasses?.password}
 				name="password"
-				required="required"
+				required={true}
 				type="password"
 			/>
 		</Fieldset>
