@@ -34,7 +34,7 @@
 	theme.setComponentVariant(
 		'button',
 		'ghost',
-		'bg-transparent hover:bg-slate-950/10 focus:bg-slate-950/10 dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5 text-current'
+		'bg-transparent hover:bg-slate-950/10 focus:bg-slate-950/10 dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5 text-current dark:shadow-none'
 	);
 	theme.setComponentVariant(
 		'button',
