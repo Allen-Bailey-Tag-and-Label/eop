@@ -84,11 +84,11 @@
 	$effect(() => {
 		if (isVisible === undefined) isVisible = false;
 	});
-	$effect(() => {
-		if (value) {
-			value = value.sort((a, b) => a.localeCompare(b));
-		}
-	});
+	// $effect(() => {
+	// 	if (value) {
+	// 		value = value.sort((a, b) => a.localeCompare(b));
+	// 	}
+	// });
 </script>
 
 <svelte:window bind:innerHeight bind:innerWidth />
