@@ -8,7 +8,7 @@
 		"body": [
 			"import { pageServer } from '\\$lib/prismaTable';",
 			"",
-			"const { actions, load } = await pageServer('$1');",
+			"const { actions, load } = await pageServer({modelName:'$1'});",
 			"",
 			"export { actions, load };"
 		]
