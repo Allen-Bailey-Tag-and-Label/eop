@@ -10,6 +10,17 @@ export type Column = {
 	type: string;
 	width: number;
 };
+export type Paginate = {
+	currentPage: number;
+	index: {
+		start: number;
+		end: number;
+	};
+	modal: Record<string, any>;
+	numberOfRowsPerPage: number;
+	options: { label: string; value: number }[];
+	totalPages: number;
+};
 export type RelationOption = { label: string | number; value: string };
 export type RelationLabelFns = Map<string, (relationModel: Record<string, any>) => any>;
 export type Row = Record<string, any>;

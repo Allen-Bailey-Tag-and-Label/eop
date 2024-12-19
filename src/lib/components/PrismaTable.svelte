@@ -1,4 +1,21 @@
 <script lang="ts">
+	import { DateTime as Luxon } from 'luxon';
+	import { theme } from 'sveltewind';
+	import {
+		ArrowPath,
+		Check,
+		ChevronDoubleLeft,
+		ChevronDoubleRight,
+		ChevronDown,
+		ChevronLeft,
+		ChevronRight,
+		Cog6Tooth,
+		ExclamationTriangle,
+		Plus,
+		Trash
+	} from 'sveltewind/icons';
+	import { twMerge } from 'tailwind-merge';
+	import { enhance } from '$app/forms';
 	import {
 		Button,
 		Card,
@@ -19,30 +36,25 @@
 		Thead,
 		Tr
 	} from '$lib/components';
-	import {
-		ArrowPath,
-		Check,
-		ChevronDoubleLeft,
-		ChevronDoubleRight,
-		ChevronDown,
-		ChevronLeft,
-		ChevronRight,
-		Cog6Tooth,
-		ExclamationTriangle,
-		Plus,
-		Trash
-	} from 'sveltewind/icons';
-	import { enhance } from '$app/forms';
-	import { theme } from 'sveltewind';
-	import { twMerge } from 'tailwind-merge';
-	import type { Column, Row, SanitizedColumn } from '$lib/prismaTable/types';
+	import type { Column, Paginate, Row, SanitizedColumn } from '$lib/prismaTable/types';
 
 	type Props = {
+		columnOrder: string[];
 		columns: Column[];
+		paginate: boolean | Omit<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
 		rows: Row[];
+		sortDirection: -1 | 1;
+		sortKey: string;
 	};
 
-	let { columns = [], rows = [] }: Props = $props();
+	let {
+		columnOrder = $bindable([]),
+		columns = [],
+		paginate = $bindable(true),
+		rows = [],
+		sortDirection = $bindable(1),
+		sortKey = $bindable('')
+	}: Props = $props();
 	let allRowsAreSelected = $state(false);
 	const defaultColumnWidth = 229;
 	const getUpdateData = (row: Row, rowIndex: number) =>
@@ -62,31 +74,13 @@
 								.map((id: string) => ({ id }))
 						};
 					}
+					if (!isList) {
+						obj[key || ''] = row[key];
+					}
 				}
 				return obj;
 			}, {});
 	let originalRows: Row[] = $state([]);
-	const paginate: {
-		currentPage: number;
-		index: {
-			start: number;
-			end: number;
-		};
-		modal: Record<string, any>;
-		numberOfRowsPerPage: number;
-		options: { label: string; value: number }[];
-		totalPages: number;
-	} = $state({
-		currentPage: 0,
-		index: {
-			start: 0,
-			end: 0
-		},
-		modal: {},
-		numberOfRowsPerPage: 10,
-		options: [],
-		totalPages: 0
-	});
 	const removeNonSchemaKeys = (row: Row) =>
 		Object.keys(row)
 			.filter((key) => !key.startsWith('_'))
@@ -99,9 +93,18 @@
 		startX: -1
 	});
 	let sanitizedColumns: SanitizedColumn[] = $state([]);
+	let sanitizedPaginate: Paginate = $state({
+		currentPage: 0,
+		index: {
+			start: 0,
+			end: 0
+		},
+		modal: {},
+		numberOfRowsPerPage: 10,
+		options: [],
+		totalPages: 0
+	});
 	let sanitizedRows: Row[] = $state([]);
-	let sortDirection: 1 | -1 = $state(1);
-	let sortKey: keyof Row = $state('');
 	const sortRows = () => {
 		({ originalRows, sanitizedRows } = sanitizedRows
 			.map((sanitizedRow, i) => {
@@ -113,6 +116,7 @@
 				let comparison: number = 0;
 				if (typeof aValue === 'boolean')
 					comparison = aValue === bValue ? 0 : aValue === true ? -1 : 1;
+				if (typeof aValue === 'number') comparison = aValue - bValue;
 				if (typeof aValue === 'string') comparison = aValue.localeCompare(bValue);
 				return comparison * sortDirection;
 			})
@@ -133,67 +137,107 @@
 		}
 	});
 	const updateColumns = async (columns: Column[]) => {
-		sanitizedColumns = (await columns).map((column: Column) => {
-			let sanitizedColumn: SanitizedColumn = {
-				isList: false,
-				isRelational: false,
-				key: '',
-				label: '',
-				relationOptions: [],
-				snippet: String,
-				type: 'String',
-				width: defaultColumnWidth
-			};
-			sanitizedColumn = Object.assign(sanitizedColumn, column);
-			if (sanitizedColumn.isRelational) {
-				if (!sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsNotList;
-				if (sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsList;
-			}
-			if (sanitizedColumn.type === 'Boolean') {
-				sanitizedColumn.snippet = Boolean;
-				sanitizedColumn.width = 48;
-			}
-			return sanitizedColumn;
-		});
+		sanitizedColumns = (await columns)
+			.map((column: Column) => {
+				let sanitizedColumn: SanitizedColumn = {
+					isList: false,
+					isRelational: false,
+					key: '',
+					label: '',
+					relationOptions: [],
+					snippet: String,
+					type: 'String',
+					width: defaultColumnWidth
+				};
+				sanitizedColumn = Object.assign(sanitizedColumn, column);
+				if (sanitizedColumn.isRelational) {
+					if (!sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsNotList;
+					if (sanitizedColumn.isList) sanitizedColumn.snippet = RelationIsList;
+				}
+				if (sanitizedColumn.type === 'Boolean') {
+					sanitizedColumn.snippet = Boolean;
+					sanitizedColumn.width = 48;
+				}
+				if (sanitizedColumn.type === 'DateTime') {
+					sanitizedColumn.snippet = DateTime;
+				}
+				if (sanitizedColumn.type === 'Int') {
+					sanitizedColumn.snippet = Int;
+				}
+				return sanitizedColumn;
+			})
+			.sort((a, b) => {
+				if (columnOrder.includes(a.key) && columnOrder.includes(b.key))
+					return columnOrder.indexOf(a.key) - columnOrder.indexOf(b.key);
+				if (columnOrder.includes(a.key) && !columnOrder.includes(b.key)) return -1;
+				if (!columnOrder.includes(a.key) && columnOrder.includes(b.key)) return 1;
+				return a.key.localeCompare(b.key);
+			});
 		if (sortKey === '') sortKey = sanitizedColumns[0].key;
 	};
-	const updatePaginate = (_: number, numberOfRowsPerPage: number, sanitizedRows: Row[]) => {
-		paginate.totalPages = Math.ceil(sanitizedRows.length / numberOfRowsPerPage);
-		if (paginate.currentPage > paginate.totalPages - 1 && paginate.totalPages > 0) {
-			paginate.currentPage = paginate.totalPages - 1;
-		}
-		if (paginate.currentPage < 0) {
-			paginate.currentPage = 0;
-		}
-		paginate.index.start = paginate.currentPage * numberOfRowsPerPage;
-		paginate.index.end = Math.min(
-			(paginate.currentPage + 1) * numberOfRowsPerPage,
-			sanitizedRows.length
-		);
-		paginate.options = [...Array(paginate.totalPages)].map((_, i) => {
-			const label = `${i * numberOfRowsPerPage + 1}-${Math.min((i + 1) * numberOfRowsPerPage, sanitizedRows.length)}`;
-			const value = i;
-			return { label, value };
-		});
+	const updatePaginate = () => {
+		if (typeof paginate === 'boolean')
+			sanitizedPaginate = {
+				currentPage: 0,
+				index: {
+					start: 0,
+					end: 0
+				},
+				modal: {},
+				numberOfRowsPerPage: 10,
+				options: [],
+				totalPages: 0
+			};
+		if (typeof paginate === 'object')
+			sanitizedPaginate = Object.assign(sanitizedPaginate, paginate);
 	};
 	const updateRows = async (rows: Row[]) => {
 		sanitizedRows = JSON.parse(JSON.stringify(await rows)).map((row: Row) => {
 			row._isSelected = false;
 			return row;
 		});
-		sortRows();
 		originalRows = JSON.parse(JSON.stringify(sanitizedRows));
+		sortRows();
+	};
+	const updateSanitizePaginate = () => {
+		sanitizedPaginate.totalPages = Math.ceil(
+			sanitizedRows.length / sanitizedPaginate.numberOfRowsPerPage
+		);
+		if (
+			sanitizedPaginate.currentPage > sanitizedPaginate.totalPages - 1 &&
+			sanitizedPaginate.totalPages > 0
+		) {
+			sanitizedPaginate.currentPage = sanitizedPaginate.totalPages - 1;
+		}
+		if (sanitizedPaginate.currentPage < 0) {
+			sanitizedPaginate.currentPage = 0;
+		}
+		sanitizedPaginate.index.start =
+			sanitizedPaginate.currentPage * sanitizedPaginate.numberOfRowsPerPage;
+		sanitizedPaginate.index.end = Math.min(
+			(sanitizedPaginate.currentPage + 1) * sanitizedPaginate.numberOfRowsPerPage,
+			sanitizedRows.length
+		);
+		sanitizedPaginate.options = [...Array(sanitizedPaginate.totalPages)].map((_, i) => {
+			const label = `${i * sanitizedPaginate.numberOfRowsPerPage + 1}-${Math.min((i + 1) * sanitizedPaginate.numberOfRowsPerPage, sanitizedRows.length)}`;
+			const value = i;
+			return { label, value };
+		});
 	};
 
 	// $derives
 	const paginatedRows = $derived(
-		sanitizedRows.filter(
-			(_, rowIndex) => rowIndex >= paginate.index.start && rowIndex < paginate.index.end
+		sanitizedRows.filter((_, rowIndex) =>
+			paginate === false
+				? true
+				: rowIndex >= sanitizedPaginate.index.start && rowIndex < sanitizedPaginate.index.end
 		)
 	);
 	const originalPaginatedRows = $derived(
-		originalRows.filter(
-			(_, rowIndex) => rowIndex >= paginate.index.start && rowIndex < paginate.index.end
+		originalRows.filter((_, rowIndex) =>
+			paginate === false
+				? true
+				: rowIndex >= sanitizedPaginate.index.start && rowIndex < sanitizedPaginate.index.end
 		)
 	);
 	const rowsNeedingUpdates = $derived(
@@ -214,10 +258,18 @@
 		updateColumns(columns);
 	});
 	$effect(() => {
-		updatePaginate(paginate.currentPage, paginate.numberOfRowsPerPage, sanitizedRows);
+		if (paginate !== undefined) updatePaginate();
 	});
 	$effect(() => {
 		updateRows(rows);
+	});
+	$effect(() => {
+		if (
+			sanitizedPaginate.currentPage !== undefined ||
+			sanitizedPaginate.numberOfRowsPerPage ||
+			sanitizedRows.length > 0
+		)
+			updateSanitizePaginate();
 	});
 </script>
 
@@ -296,34 +348,34 @@
 		<Div>
 			<Button
 				onclick={() => {
-					paginate.modal.numberOfRowsPerPage = paginate.numberOfRowsPerPage;
-					paginate.modal.toggle();
+					sanitizedPaginate.modal.numberOfRowsPerPage = sanitizedPaginate.numberOfRowsPerPage;
+					sanitizedPaginate.modal.toggle();
 				}}
 				variants={['default', 'icon']}
 			>
 				<Icon src={Cog6Tooth} />
 			</Button>
-			<Modal bind:toggle={paginate.modal.toggle}>
+			<Modal bind:toggle={sanitizedPaginate.modal.toggle}>
 				<form
 					action="/"
 					class="flex flex-col space-y-4"
 					method="POST"
 					onsubmit={(e) => {
 						e.preventDefault();
-						paginate.numberOfRowsPerPage = paginate.modal.numberOfRowsPerPage;
-						paginate.modal.toggle();
+						sanitizedPaginate.numberOfRowsPerPage = sanitizedPaginate.modal.numberOfRowsPerPage;
+						sanitizedPaginate.modal.toggle();
 					}}
 				>
 					<Fieldset legend="Number Of Rows / Page">
 						<Input
-							bind:value={paginate.modal.numberOfRowsPerPage}
+							bind:value={sanitizedPaginate.modal.numberOfRowsPerPage}
 							class="text-right"
 							min={1}
 							type="number"
 						/>
 					</Fieldset>
 					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-						<Button onclick={paginate.modal.toggle} variants={['default', 'contrast']}>
+						<Button onclick={sanitizedPaginate.modal.toggle} variants={['default', 'contrast']}>
 							Cancel
 						</Button>
 						<Button type="submit">Update</Button>
@@ -354,7 +406,7 @@
 			</Button>
 		</Form>
 	</Div>
-	<Card class="relative overflow-auto rounded-none p-0">
+	<Card class="relative overflow-auto rounded-none p-0 shadow-none dark:shadow-none">
 		<Table>
 			<Thead>
 				<Tr>
@@ -443,39 +495,39 @@
 	<Div class="flex items-center justify-between space-x-2 px-6 py-3 lg:justify-center">
 		<Div class="flex justify-start space-x-2">
 			<Button
-				disabled={paginate.currentPage === 0}
+				disabled={sanitizedPaginate.currentPage === 0}
 				onclick={() => {
-					paginate.currentPage = 0;
+					sanitizedPaginate.currentPage = 0;
 				}}
 				variants={['default', 'icon']}
 			>
 				<Icon src={ChevronDoubleLeft} />
 			</Button>
 			<Button
-				disabled={paginate.currentPage === 0}
+				disabled={sanitizedPaginate.currentPage === 0}
 				onclick={() => {
-					paginate.currentPage--;
+					sanitizedPaginate.currentPage--;
 				}}
 				variants={['default', 'icon']}
 			>
 				<Icon src={ChevronLeft} />
 			</Button>
 		</Div>
-		<Select bind:value={paginate.currentPage} options={paginate.options} />
+		<Select bind:value={sanitizedPaginate.currentPage} options={sanitizedPaginate.options} />
 		<Div class="flex justify-end space-x-2">
 			<Button
-				disabled={paginate.currentPage >= paginate.totalPages - 1}
+				disabled={sanitizedPaginate.currentPage >= sanitizedPaginate.totalPages - 1}
 				onclick={() => {
-					paginate.currentPage++;
+					sanitizedPaginate.currentPage++;
 				}}
 				variants={['default', 'icon']}
 			>
 				<Icon src={ChevronRight} />
 			</Button>
 			<Button
-				disabled={paginate.currentPage >= paginate.totalPages - 1}
+				disabled={sanitizedPaginate.currentPage >= sanitizedPaginate.totalPages - 1}
 				onclick={() => {
-					paginate.currentPage = paginate.totalPages - 1;
+					sanitizedPaginate.currentPage = sanitizedPaginate.totalPages - 1;
 				}}
 				variants={['default', 'icon']}
 			>
@@ -488,6 +540,39 @@
 {#snippet Boolean({ key, rowIndex }: { key: string; rowIndex: number })}
 	<Td>
 		<Checkbox bind:checked={paginatedRows[rowIndex][key]} />
+	</Td>
+{/snippet}
+{#snippet DateTime({ key, rowIndex }: { key: string; rowIndex: number })}
+	<Td class="p-0">
+		<Input
+			bind:value={() => {
+				const string = Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat("yyyy-MM-dd'T'HH:mm")
+				return string
+			},
+			(string) => {
+				const date = new Date(string)
+				paginatedRows[rowIndex][key] = date
+				return date
+			}}
+			class="w-full rounded-none bg-transparent dark:bg-transparent"
+			type="datetime-local"
+		/>
+	</Td>
+{/snippet}
+{#snippet Int({
+	key,
+	rowIndex
+}: {
+	key: string;
+	relationOptions: { label: any; value: string }[];
+	rowIndex: number;
+})}
+	<Td class="p-0">
+		<Input
+			bind:value={paginatedRows[rowIndex][key]}
+			class="w-full rounded-none bg-transparent text-right dark:bg-transparent"
+			type="number"
+		/>
 	</Td>
 {/snippet}
 {#snippet RelationIsList({
@@ -503,8 +588,22 @@
 		<MultiSelect bind:value={paginatedRows[rowIndex][key]} options={relationOptions} />
 	</Td>
 {/snippet}
-{#snippet RelationIsNotList()}
-	<Td>RelationIsNotList</Td>
+{#snippet RelationIsNotList({
+	key,
+	relationOptions,
+	rowIndex
+}: {
+	key: string;
+	relationOptions: { label: any; value: string }[];
+	rowIndex: number;
+})}
+	<Td class="p-0">
+		<Select
+			bind:value={paginatedRows[rowIndex][key]}
+			class="w-full rounded-none bg-transparent dark:bg-transparent"
+			options={relationOptions}
+		/>
+	</Td>
 {/snippet}
 {#snippet String({
 	key,

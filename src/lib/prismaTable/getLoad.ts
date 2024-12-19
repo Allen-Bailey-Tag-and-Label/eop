@@ -1,18 +1,26 @@
 import { prisma } from '$lib/prisma';
-import type { Column, RelationLabelFns } from './types';
+import type { Column, Paginate, RelationLabelFns } from './types';
 
 type Paramaters = {
+	columnOrder?: string[];
 	fields: any;
 	fieldsRequiringRelation: any;
 	modelName: string;
+	paginate?: boolean | Pick<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
 	relationLabelFns?: RelationLabelFns;
+	sortDirection?: -1 | 1;
+	sortKey?: string;
 };
 
 export const getLoad = async ({
+	columnOrder,
 	fields,
 	fieldsRequiringRelation,
 	modelName,
-	relationLabelFns
+	paginate,
+	relationLabelFns,
+	sortDirection,
+	sortKey
 }: Paramaters) => {
 	const getColumns = new Promise(async (resolve) => {
 		const columns = await Promise.all(
@@ -49,7 +57,7 @@ export const getLoad = async ({
 									label: relationLabelFn(record),
 									value: id
 								}))
-								.sort((a: any, b: any) => a.label.localeCompare(b.label))
+								.sort((a: any, b: any) => a?.label?.localeCompare?.(b?.label) || 0)
 						];
 					}
 					return column;
@@ -61,7 +69,11 @@ export const getLoad = async ({
 	const getRows = <Record<string, any>[]>prisma[modelName].findMany();
 
 	return {
+		columnOrder,
 		columns: getColumns,
-		rows: getRows
+		paginate: paginate === undefined ? true : paginate,
+		rows: getRows,
+		sortDirection: sortDirection || 1,
+		sortKey: sortKey || fields.filter(({ name }: { name: string }) => name !== 'id')[0].name
 	};
 };

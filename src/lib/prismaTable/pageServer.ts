@@ -1,18 +1,32 @@
 import { getActions, getLoad } from '$lib/prismaTable';
 import { getFields } from './index';
-import type { RelationLabelFns } from './types';
+import type { Paginate, RelationLabelFns } from './types';
 
 type Params = {
+	columnOrder?: string[];
 	modelName: string;
+	paginate?: boolean | Pick<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
 	relationLabelFns?: RelationLabelFns;
+	sortDirection?: -1 | 1;
+	sortKey?: string;
 };
 
-export const pageServer = async ({ modelName, relationLabelFns }: Params) => {
+export const pageServer = async ({
+	columnOrder,
+	modelName,
+	paginate,
+	relationLabelFns,
+	sortDirection,
+	sortKey
+}: Params) => {
 	const fields = getFields(modelName);
 	const fieldsRequiringRelation = fields
-		.filter(({ relationFromFields }) => relationFromFields !== undefined)
-		.reduce((map, { name, relationFromFields, type }) => {
-			map.set(relationFromFields?.[0] || '', { key: name, model: type });
+		.filter(({ relationName }) => relationName !== undefined)
+		.reduce((map, { isList, name, type }) => {
+			map.set(`${isList ? name.slice(0, -1) : name}Id${isList ? 's' : ''}`, {
+				key: name,
+				model: type
+			});
 			return map;
 		}, new Map<string, { key: string; model: string }>());
 
@@ -20,10 +34,14 @@ export const pageServer = async ({ modelName, relationLabelFns }: Params) => {
 		actions: getActions({ fields, fieldsRequiringRelation, modelName }),
 		load: () =>
 			getLoad({
+				columnOrder,
 				fields,
 				fieldsRequiringRelation,
 				modelName,
-				relationLabelFns
+				paginate,
+				relationLabelFns,
+				sortDirection,
+				sortKey
 			})
 	};
 };
