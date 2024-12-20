@@ -3,6 +3,7 @@ import type { Column, Paginate, RelationLabelFns } from './types';
 
 type Paramaters = {
 	columnOrder?: string[];
+	columnOverrides?: Map<string, Partial<Column>>;
 	fields: any;
 	fieldsRequiringRelation: any;
 	modelName: string;
@@ -14,6 +15,7 @@ type Paramaters = {
 
 export const getLoad = async ({
 	columnOrder,
+	columnOverrides,
 	fields,
 	fieldsRequiringRelation,
 	modelName,
@@ -30,15 +32,20 @@ export const getLoad = async ({
 						name !== 'id' && relationName === undefined
 				)
 				.map(async ({ isList, name, type }: { isList: boolean; name: string; type: string }) => {
-					const column: Column = {
-						isList: false,
-						isRelational: false,
-						key: name,
-						label: name,
-						relationOptions: [],
-						type,
-						width: 229
-					};
+					const column: Column = Object.assign(
+						{
+							isList: false,
+							isRelational: false,
+							key: name,
+							label: name,
+							relationOptions: [],
+							type,
+							width: 229
+						},
+						columnOverrides !== undefined && columnOverrides.has(name)
+							? columnOverrides.get(name)
+							: {}
+					);
 					if (fieldsRequiringRelation.has(name)) {
 						const { key: relationKey, model: relationModel } = fieldsRequiringRelation.get(
 							name

@@ -36,10 +36,11 @@
 		Thead,
 		Tr
 	} from '$lib/components';
-	import type { Column, Paginate, Row, SanitizedColumn } from '$lib/prismaTable/types';
+	import type { Column, Paginate, Row, SanitizedColumn, SnippetProps } from '$lib/prismaTable/types';
 
 	type Props = {
 		columnOrder: string[];
+		columnOverrides?: Map<string, Partial<Column>>;
 		columns: Column[];
 		paginate: boolean | Omit<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
 		rows: Row[];
@@ -49,6 +50,7 @@
 
 	let {
 		columnOrder = $bindable([]),
+		columnOverrides,
 		columns = [],
 		paginate = $bindable(true),
 		rows = [],
@@ -164,6 +166,7 @@
 				if (sanitizedColumn.type === 'Int') {
 					sanitizedColumn.snippet = Int;
 				}
+				sanitizedColumn = Object.assign(sanitizedColumn, columnOverrides !== undefined && columnOverrides.has(sanitizedColumn.key) ? columnOverrides.get(sanitizedColumn.key) : {})
 				return sanitizedColumn;
 			})
 			.sort((a, b) => {
@@ -472,7 +475,7 @@
 				</Tr>
 			</Thead>
 			<Tbody>
-				{#each paginatedRows as _, rowIndex}
+				{#each paginatedRows as row, rowIndex}
 					<Tr>
 						<Td>
 							<Checkbox
@@ -485,7 +488,7 @@
 							/>
 						</Td>
 						{#each sanitizedColumns as { key, relationOptions, snippet }}
-							{@render snippet({ key, relationOptions, rowIndex })}
+							{@render snippet({ key, relationOptions, row, rowIndex })}
 						{/each}
 					</Tr>
 				{/each}
@@ -537,36 +540,29 @@
 	</Div>
 </Card>
 
-{#snippet Boolean({ key, rowIndex }: { key: string; rowIndex: number })}
+{#snippet Boolean({ key, rowIndex }: SnippetProps)}
 	<Td>
 		<Checkbox bind:checked={paginatedRows[rowIndex][key]} />
 	</Td>
 {/snippet}
-{#snippet DateTime({ key, rowIndex }: { key: string; rowIndex: number })}
-	<Td class="p-0">
-		<Input
-			bind:value={() => {
-				const string = Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat("yyyy-MM-dd'T'HH:mm")
-				return string
-			},
-			(string) => {
-				const date = new Date(string)
-				paginatedRows[rowIndex][key] = date
-				return date
-			}}
-			class="w-full rounded-none bg-transparent dark:bg-transparent"
-			type="datetime-local"
-		/>
-	</Td>
+{#snippet DateTime({ key, rowIndex }: SnippetProps)}
+<Td class="p-0">
+	<Input
+		bind:value={() => {
+			const string = Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat("yyyy-MM-dd'T'HH:mm")
+			return string
+		},
+		(string) => {
+			const date = new Date(string)
+			paginatedRows[rowIndex][key] = date
+			return date
+		}}
+		class="w-full rounded-none bg-transparent dark:bg-transparent"
+		type="datetime-local"
+	/>
+</Td>
 {/snippet}
-{#snippet Int({
-	key,
-	rowIndex
-}: {
-	key: string;
-	relationOptions: { label: any; value: string }[];
-	rowIndex: number;
-})}
+{#snippet Int({ key, rowIndex }: SnippetProps)}
 	<Td class="p-0">
 		<Input
 			bind:value={paginatedRows[rowIndex][key]}
@@ -575,28 +571,12 @@
 		/>
 	</Td>
 {/snippet}
-{#snippet RelationIsList({
-	key,
-	relationOptions,
-	rowIndex
-}: {
-	key: string;
-	relationOptions: { label: any; value: string }[];
-	rowIndex: number;
-})}
+{#snippet RelationIsList({ key, relationOptions, rowIndex }: SnippetProps)}
 	<Td class="p-0">
 		<MultiSelect bind:value={paginatedRows[rowIndex][key]} options={relationOptions} />
 	</Td>
 {/snippet}
-{#snippet RelationIsNotList({
-	key,
-	relationOptions,
-	rowIndex
-}: {
-	key: string;
-	relationOptions: { label: any; value: string }[];
-	rowIndex: number;
-})}
+{#snippet RelationIsNotList({ key, relationOptions, rowIndex }: SnippetProps)}
 	<Td class="p-0">
 		<Select
 			bind:value={paginatedRows[rowIndex][key]}
@@ -605,14 +585,7 @@
 		/>
 	</Td>
 {/snippet}
-{#snippet String({
-	key,
-	rowIndex
-}: {
-	key: string;
-	relationOptions: { label: any; value: string }[];
-	rowIndex: number;
-})}
+{#snippet String({ key, rowIndex }: SnippetProps)}
 	<Td class="p-0">
 		<Input
 			bind:value={paginatedRows[rowIndex][key]}

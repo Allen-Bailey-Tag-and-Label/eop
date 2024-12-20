@@ -1,6 +1,41 @@
-import { pageServer } from '$lib/prismaTable';
+import { default as bcrypt } from 'bcryptjs';
+import { generateSlug } from 'random-word-slugs';
+import { getFields, getFieldsRequiringRelation, pageServer } from '$lib/prismaTable';
+import type { ActionParams, Field } from '$lib/prismaTable/types';
+import { prisma } from '$lib/prisma';
+
+const generatePassword = () =>
+	[
+		...generateSlug(2, {
+			format: 'lower',
+			categories: { adjective: ['color'], noun: ['food'] }
+		}).split(' '),
+		Math.floor(Math.random() * 9999)
+			.toString()
+			.padStart(4, '0')
+	].join('');
 
 const { actions, load } = await pageServer({
+	actions: new Map([
+		[
+			'reset-password',
+			async ({ request }: ActionParams) => {
+				const { id } = <Record<string, string>>Object.fromEntries(await request.formData());
+				const password = generatePassword();
+				const passwordHash = bcrypt.hashSync(password);
+				await prisma.user.update({
+					where: {
+						id
+					},
+					data: {
+						passwordHash
+					}
+				});
+				return { password, success: true };
+			}
+		]
+	]),
+	columnOverrides: new Map([['passwordHash', { label: 'password', type: 'Password' }]]),
 	modelName: 'User',
 	sortKey: 'username'
 });
