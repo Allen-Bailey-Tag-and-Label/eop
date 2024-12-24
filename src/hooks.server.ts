@@ -32,7 +32,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	if (event.route.id?.startsWith('/(authenticated)')) {
-		if (!userId || !(user?.isActive || false) || !allowedPathnames.has(event.url.pathname))
+		if (
+			!userId ||
+			!(user?.isActive || false) ||
+			Array.from(allowedPathnames).filter((href: any) => {
+				const regex = new RegExp(href, 'gi');
+				const test = regex.test(event.url.pathname);
+				return test;
+			}).length === 0
+		)
 			return new Response(null, { status: 303, headers: { location: '/sign-in' } });
 	}
 
