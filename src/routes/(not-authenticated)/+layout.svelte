@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Div, Logo } from '$lib/components';
+	import { Card, Div, InkHero, Logo } from '$lib/components';
 
 	let { children } = $props();
 </script>
@@ -11,12 +11,13 @@
 		</Div>
 	</Div>
 	<Card
-		class="hidden items-center justify-center bg-slate-50 shadow-none ring-0 lg:flex dark:bg-slate-950 dark:shadow-none dark:ring-0"
+		class="relative hidden overflow-hidden bg-primary-500 p-0 shadow-none ring-0 lg:flex dark:bg-primary-500 dark:shadow-none dark:ring-0"
 	>
+		<InkHero />
 		<Logo
-			class="w-[10rem]"
-			color1class="fill-[#282D5B] dark:fill-white"
-			color2class="fill-[#8A181D] dark:fill-white"
+			class="absolute left-1/2 top-1/2 w-[10rem] -translate-x-1/2 -translate-y-1/2"
+			color1class="fill-white dark:fill-white"
+			color2class="fill-white dark:fill-white"
 		/>
 	</Card>
 </Div>
