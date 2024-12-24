@@ -4,6 +4,7 @@
 	import { cubicInOut } from 'svelte/easing';
 	import { scale, slide } from 'svelte/transition';
 	import type { ActionData } from './$types';
+	import PasswordInput from '$lib/components/PasswordInput.svelte';
 
 	const enhanceHandler = async () => {
 		disabled = true;
@@ -26,12 +27,7 @@
 			<Input class={form?.error?.inputClasses?.username} name="username" required={true} />
 		</Fieldset>
 		<Fieldset legend="Password">
-			<Input
-				class={form?.error?.inputClasses?.password}
-				name="password"
-				required={true}
-				type="password"
-			/>
+			<PasswordInput class={form?.error?.inputClasses?.password} name="password" required={true} />
 		</Fieldset>
 		{#if form?.error?.message}
 			<Div class="text-red-500" transition={[slide, { axis: 'y', duration: 200 }]}
