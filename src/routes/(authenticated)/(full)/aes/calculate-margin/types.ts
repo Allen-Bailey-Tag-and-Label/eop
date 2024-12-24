@@ -1,0 +1,20 @@
+export type Quote = {
+	id: string;
+	customerType: string;
+	laborAmount: number;
+	previousLaborAmount: number;
+	previousMarginAmount: number;
+	previousMaterialAmount: number;
+	previousQuoteDate: Date;
+	previousQuoteNumber: number;
+	previousSellPrice: number;
+	previousTotalCostAmount: number;
+	marginAmount: number;
+	materialAmount: number;
+	productType: string;
+	quoteDate: Date;
+	quoteNumber: number;
+	totalCostAmount: number;
+	type: string;
+	sellPrice: number;
+};

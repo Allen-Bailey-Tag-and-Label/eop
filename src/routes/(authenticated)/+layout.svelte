@@ -63,7 +63,7 @@
 		</Button>
 		<Drawer
 			bind:isVisible
-			class="w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[20rem] lg:max-w-full"
+			class="w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[25rem] lg:max-w-full"
 			position="left"
 		>
 			<Card class="flex flex-grow flex-col overflow-auto rounded-none p-0">
@@ -126,7 +126,7 @@
 		class={twMerge(
 			theme.getComponentVariant('button', 'default'),
 			theme.getComponentVariant('button', 'ghost'),
-			'rounded-none py-0 pl-[5rem] pr-0 text-base font-normal opacity-70 ring-0 hover:bg-slate-950/10 hover:text-current hover:opacity-100 hover:shadow-none focus:bg-slate-950/10 focus:text-current focus:opacity-100 focus:shadow-none dark:shadow-none dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5',
+			'rounded-none py-0 pl-[5rem] pr-6 text-base font-normal opacity-70 shadow-none ring-0 hover:bg-slate-950/10 hover:text-current hover:opacity-100 hover:shadow-none focus:bg-slate-950/10 focus:text-current focus:opacity-100 focus:shadow-none dark:shadow-none dark:hover:bg-slate-50/5 dark:focus:bg-slate-50/5',
 			$page.url.pathname === href
 				? 'bg-primary-500 text-white opacity-100 hover:bg-primary-500 focus:bg-primary-500 dark:text-white dark:hover:bg-primary-500 dark:focus:bg-primary-500'
 				: undefined,

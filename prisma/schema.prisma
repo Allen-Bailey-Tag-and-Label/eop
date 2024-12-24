@@ -13,6 +13,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model QuoteMarginQuote {
+  id                      String   @id @default(auto()) @map("_id") @db.ObjectId
+  customerType            String   @default("direct")
+  laborAmount             Float?
+  previousLaborAmount     Float?
+  previousMarginAmount    Float?
+  previousMaterialAmount  Float?
+  previousQuoteDate       DateTime
+  previousQuoteNumber     Int
+  previousSellPrice       Float
+  previousTotalCostAmount Float?
+  marginAmount            Float?
+  materialAmount          Float?
+  productType             String   @default("TG")
+  quoteDate               DateTime
+  quoteNumber             Int      @unique
+  totalCostAmount         Float?
+  type                    String
+  sellPrice               Float
+}
+
 model Role {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
   label    String
