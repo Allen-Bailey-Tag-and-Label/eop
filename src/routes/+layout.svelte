@@ -50,6 +50,11 @@
 		'border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
 	);
 	theme.updateComponentVariant(
+		'input',
+		'error',
+		'ring-offset-red-500 dark:ring-offset-red-500 hover:ring-offset-red-500 focus:ring-offset-red-500 dark:hover:ring-offset-red-500 dark:focus:ring-offset-red-500 focus:ring-red-500/30 dark:focus:ring-red-500/30'
+	);
+	theme.updateComponentVariant(
 		'select',
 		'default',
 		'pr-8 border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
