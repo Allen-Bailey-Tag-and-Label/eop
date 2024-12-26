@@ -102,7 +102,7 @@
 		use={[[enhance, enhanceHandler]]}
 	>
 		<Div
-			class="flex flex-col space-y-4 overflow-auto p-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0 lg:overflow-visible lg:p-0"
+			class="flex flex-col space-y-4 overflow-auto p-4 lg:flex-row lg:space-x-4 lg:space-y-0 lg:overflow-visible lg:p-0"
 		>
 			<Div class="flex flex-col justify-between space-y-4">
 				<Card class="space-y-8">
@@ -118,7 +118,7 @@
 						{@render Label('Product Type')}
 						<Select
 							bind:value={quote.productType}
-							name="type"
+							name="productType"
 							options={productTypeOptions}
 							required
 						/>
@@ -132,7 +132,7 @@
 					{@render Label('Quote #')}
 					<Input
 						bind:value={quote.previousQuoteNumber}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="previousQuoteNumber"
 						required
 						type="number"
@@ -150,7 +150,7 @@
 							quote.previousQuoteDate = newDate;
 							return newDate;
 						}}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full appearance-none"
 						name="previousQuoteDate"
 						required
 						type="date"
@@ -159,7 +159,7 @@
 					{@render Label('Material Cost')}
 					<Input
 						bind:value={quote.previousMaterialAmount}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="previousMaterialAmount"
 						required
 						min="0"
@@ -170,7 +170,7 @@
 					{@render Label('Labor Cost')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
+							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="previousLaborAmount"
@@ -186,7 +186,7 @@
 					{@render Label('Total Cost')}
 					<Input
 						bind:value={quote.previousTotalCostAmount}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="previousTotalCostAmount"
 						required
 						min="0"
@@ -197,7 +197,7 @@
 					{@render Label('Margin')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
+							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="previousMarginAmount"
@@ -213,7 +213,7 @@
 					{@render Label('Total Price')}
 					<Input
 						bind:value={quote.previousSellPrice}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="previousSellPrice"
 						required
 						min="0"
@@ -224,15 +224,16 @@
 			</Card>
 			<Card class="space-y-8">
 				<H3>New</H3>
-				<Div class="grid grid-cols-[fit-content(0px)_1fr] items-center gap-x-2 gap-y-1">
+				<Div class="grid grid-cols-[fit-content(0px)_1fr_fit-content(0px)] items-center gap-x-2 gap-y-1">
 					{@render Label('Quote #')}
 					<Input
 						bind:value={quote.quoteNumber}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="quoteNumber"
 						required
 						type="number"
 					/>
+					<Div />
 					{@render Label('Date')}
 					<Input
 						bind:value={() => {
@@ -243,16 +244,17 @@
 							quote.quoteDate = newDate;
 							return newDate;
 						}}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full appearance-none"
 						name="quoteDate"
 						required
 						type="date"
 						variants={newDateTooEarly ? ['default', 'error'] : ['default']}
 					/>
+					<Div />
 					{@render Label('Material Cost')}
 					<Input
 						bind:value={quote.materialAmount}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="materialAmount"
 						required
 						min="0"
@@ -260,10 +262,15 @@
 						type="number"
 						variants={newTotalCostTooLow ? ['default', 'error'] : ['default']}
 					/>
+					<Div class="text-right">
+						{#if state === 'Update'}
+							{format.percent((quote.materialAmount / quote.previousMaterialAmount) - 1)}
+						{/if}
+					</Div>
 					{@render Label('Labor Cost')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
+							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="laborAmount"
@@ -274,10 +281,15 @@
 						type="number"
 						value={format.float(quote.totalCostAmount - +quote.materialAmount).toString()}
 					/>
+					<Div class="text-right">
+						{#if state === 'Update'}
+							{format.percent((quote.laborAmount / quote.previousLaborAmount) - 1)}
+						{/if}
+					</Div>
 					{@render Label('Total Cost')}
 					<Input
 						bind:value={quote.totalCostAmount}
-						class="text-right"
+						class="text-right min-w-[10rem] w-full"
 						name="totalCostAmount"
 						required
 						min="0"
@@ -285,10 +297,15 @@
 						type="number"
 						variants={newTotalCostTooLow ? ['default', 'error'] : ['default']}
 					/>
+					<Div class="text-right">
+						{#if state === 'Update'}
+							{format.percent((quote.totalCostAmount / quote.previousTotalCostAmount) - 1)}
+						{/if}
+					</Div>
 					{@render Label('Margin')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
+							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="marginAmount"
@@ -299,10 +316,15 @@
 						type="number"
 						value={format.float(quote.sellPrice - +quote.totalCostAmount).toString()}
 					/>
+					<Div class="text-right">
+						{#if state === 'Update'}
+							{format.percent((quote.marginAmount / quote.previousMarginAmount) - 1)}
+						{/if}
+					</Div>
 					{@render Label('Total Price')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
+							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="marginAmount"
@@ -313,6 +335,11 @@
 						type="number"
 						value={format.float(quote.sellPrice).toString()}
 					/>
+					<Div class="text-right">
+						{#if state === 'Update'}
+							{format.percent((quote.sellPrice / quote.previousSellPrice) - 1)}
+						{/if}
+					</Div>
 				</Div>
 			</Card>
 			{@render Highlight('flex lg:hidden')}

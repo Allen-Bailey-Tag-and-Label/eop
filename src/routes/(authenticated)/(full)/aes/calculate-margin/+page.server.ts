@@ -16,9 +16,13 @@ export const _calculate = (
 	quoteDate: DateTimeType,
 	totalCostAmount: number
 ) => {
+	const yearlyIncreasePercent = {
+		min: 0.05,
+		max: 0.12
+	};
 	const monthlyIncreasePercent = {
-		min: getMonthlyIncreasePercent(0.05),
-		max: getMonthlyIncreasePercent(0.12)
+		min: getMonthlyIncreasePercent(yearlyIncreasePercent.min),
+		max: getMonthlyIncreasePercent(yearlyIncreasePercent.max)
 	};
 
 	const dateDiff = quoteDate.diff(previousQuoteDate, ['months']).toObject();
@@ -28,8 +32,6 @@ export const _calculate = (
 		min: Math.max(1, Math.pow(1 + monthlyIncreasePercent.min / 12, months)) - 1,
 		max: Math.max(1, Math.pow(1 + monthlyIncreasePercent.max / 12, months)) - 1
 	};
-
-	const previousMarginPercent = previousMarginAmount / previousSellPrice;
 
 	const sellPriceBasedOnLabor = {
 		min:
@@ -64,17 +66,20 @@ export const _calculate = (
 		final: 0
 	};
 
-	const increasePercent = {
-		min: sellPrice.min / previousSellPrice - 1,
-		max: sellPrice.max / previousSellPrice - 1
-	};
-
 	if (marginPercent.min >= 0.35) marginPercent.final = marginPercent.min;
 	if (marginPercent.max <= 0) marginPercent.final = marginPercent.max;
 	if (marginPercent.min < 0.35 && marginPercent.max > 0)
 		marginPercent.final = (marginPercent.min + marginPercent.max) / 2;
 
 	sellPrice.final = totalCostAmount / (1 - marginPercent.final);
+
+	// const increasePercent = sellPrice.final / previousSellPrice - 1;
+
+	// if (increasePercent < yearlyIncreasePercent.min)
+	// 	sellPrice.final = previousSellPrice * (1 + yearlyIncreasePercent.min);
+	// if (increasePercent > yearlyIncreasePercent.max)
+	// 	sellPrice.final = previousSellPrice * (1 + yearlyIncreasePercent.max);
+
 	marginAmount.final = sellPrice.final - totalCostAmount;
 
 	return {
