@@ -36,12 +36,16 @@
 		Thead,
 		Tr
 	} from '$lib/components';
+	import format from '$lib/format';
 	import type { Column, Paginate, Row, SanitizedColumn, SnippetProps } from '$lib/prismaTable/types';
 
 	type Props = {
 		columnOrder: string[];
 		columnOverrides?: Map<string, Partial<Column>>;
 		columns: Column[];
+		isDeletable: boolean;
+		isEditable: boolean;
+		isSavable: boolean;
 		paginate: boolean | Omit<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
 		rows: Row[];
 		sortDirection: -1 | 1;
@@ -52,6 +56,9 @@
 		columnOrder = $bindable([]),
 		columnOverrides,
 		columns = [],
+		isDeletable = $bindable(true),
+		isEditable = $bindable(true),
+		isSavable = $bindable(true),
 		paginate = $bindable(true),
 		rows = [],
 		sortDirection = $bindable(1),
@@ -142,8 +149,10 @@
 		sanitizedColumns = (await columns)
 			.map((column: Column) => {
 				let sanitizedColumn: SanitizedColumn = {
+					isEditable,
 					isList: false,
 					isRelational: false,
+					isVisible: true,
 					key: '',
 					label: '',
 					relationOptions: [],
@@ -159,6 +168,9 @@
 				if (sanitizedColumn.type === 'Boolean') {
 					sanitizedColumn.snippet = Boolean;
 					sanitizedColumn.width = 48;
+				}
+				if (sanitizedColumn.type === 'Currency') {
+					sanitizedColumn.snippet = Currency;
 				}
 				if (sanitizedColumn.type === 'DateTime') {
 					sanitizedColumn.snippet = DateTime;
@@ -289,65 +301,69 @@
 
 <Card class="max-w-full self-start overflow-hidden p-0">
 	<Div class="flex justify-end space-x-2 px-6 py-3">
-		<Div>
-			<Button
-				disabled={!rowsAreSelected}
-				onclick={toolbar.delete.modal.toggle}
-				variants={['default', 'icon', 'error']}
-			>
-				<Icon src={Trash} />
-			</Button>
-			<Modal bind:toggle={toolbar.delete.modal.toggle}>
-				<Form
-					action="?/delete"
-					use={[
-						[
-							enhance,
-							() => {
-								return ({ update }: { update: any }) => {
-									toolbar.delete.modal.toggle();
-									update();
-								};
-							}
-						]
-					]}
+		{#if isDeletable}
+			<Div>
+				<Button
+					disabled={!rowsAreSelected}
+					onclick={toolbar.delete.modal.toggle}
+					variants={['default', 'icon', 'error']}
 				>
-					<Icon class="mx-auto h-[5rem] w-[5rem] text-red-500" src={ExclamationTriangle} />
-					<P class="mx-auto">
-						Are you sure you want to delete the selected item{selectedRows.length !== 1 ? 's' : ''}?
-					</P>
-					<Input
-						class="absolute left-0 top-0 h-0 w-0 opacity-0"
-						name="ids"
-						type="hidden"
-						value={JSON.stringify(
-							[...sanitizedRows].filter((row, i) => row._isSelected).map((row) => row.id)
-						)}
-					/>
-					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-						<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
-							>Cancel</Button
-						>
-						<Button type="submit" variants={['default', 'error']}>Delete</Button>
-					</Div>
-				</Form>
-			</Modal>
-		</Div>
-		<Form action="?/save" use={[[enhance]]}>
-			<Button
-				class="grid grid-cols-1 grid-rows-1"
-				disabled={!saveIsNeeded}
-				type="submit"
-				variants={['default', 'icon', 'success']}
-			>
-				<Icon src={Check} />
-			</Button>
-			<Input
-				class="absolute left-0 top-0 h-0 w-0 opacity-0"
-				name="updates"
-				value={JSON.stringify(rowsNeedingUpdates)}
-			/>
-		</Form>
+					<Icon src={Trash} />
+				</Button>
+				<Modal bind:toggle={toolbar.delete.modal.toggle}>
+					<Form
+						action="?/delete"
+						use={[
+							[
+								enhance,
+								() => {
+									return ({ update }: { update: any }) => {
+										toolbar.delete.modal.toggle();
+										update();
+									};
+								}
+							]
+						]}
+					>
+						<Icon class="mx-auto h-[5rem] w-[5rem] text-red-500" src={ExclamationTriangle} />
+						<P class="mx-auto">
+							Are you sure you want to delete the selected item{selectedRows.length !== 1 ? 's' : ''}?
+						</P>
+						<Input
+							class="absolute left-0 top-0 h-0 w-0 opacity-0"
+							name="ids"
+							type="hidden"
+							value={JSON.stringify(
+								[...sanitizedRows].filter((row, i) => row._isSelected).map((row) => row.id)
+							)}
+						/>
+						<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+							<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
+								>Cancel</Button
+							>
+							<Button type="submit" variants={['default', 'error']}>Delete</Button>
+						</Div>
+					</Form>
+				</Modal>
+			</Div>
+		{/if}
+		{#if isSavable}
+			<Form action="?/save" use={[[enhance]]}>
+				<Button
+					class="grid grid-cols-1 grid-rows-1"
+					disabled={!saveIsNeeded}
+					type="submit"
+					variants={['default', 'icon', 'success']}
+				>
+					<Icon src={Check} />
+				</Button>
+				<Input
+					class="absolute left-0 top-0 h-0 w-0 opacity-0"
+					name="updates"
+					value={JSON.stringify(rowsNeedingUpdates)}
+				/>
+			</Form>
+		{/if}
 		<Div>
 			<Button
 				onclick={() => {
@@ -413,22 +429,24 @@
 		<Table>
 			<Thead>
 				<Tr>
-					<Th class="w-[3rem]">
-						<Checkbox
-							bind:checked={allRowsAreSelected}
-							class="mr-0"
-							onclick={(e) => {
-								sanitizedRows = sanitizedRows.map(({ _isSelected, ...row }) => {
-									return {
-										_isSelected: e.currentTarget.checked,
-										...row
-									};
-								});
-							}}
-						/>
-					</Th>
-					{#each sanitizedColumns as { key, label, width }, i}
-						<Th class="p-0" style="width:{width}px;">
+					{#if isDeletable}
+						<Th class="w-[3rem]">
+							<Checkbox
+								bind:checked={allRowsAreSelected}
+								class="mr-0"
+								onclick={(e) => {
+									sanitizedRows = sanitizedRows.map(({ _isSelected, ...row }) => {
+										return {
+											_isSelected: e.currentTarget.checked,
+											...row
+										};
+									});
+								}}
+							/>
+						</Th>
+					{/if}
+					{#each sanitizedColumns as { isVisible, key, label, width }, i}
+						<Th class="p-0" {isVisible} style="width:{width}px;">
 							<Div class="relative">
 								<Button
 									class={twMerge(
@@ -477,18 +495,20 @@
 			<Tbody>
 				{#each paginatedRows as row, rowIndex}
 					<Tr>
-						<Td>
-							<Checkbox
-								bind:checked={paginatedRows[rowIndex]._isSelected}
-								class="mr-0"
-								onchange={() => {
-									if (selectedRows.length === 0) allRowsAreSelected = false;
-									if (selectedRows.length === paginatedRows.length) allRowsAreSelected = true;
-								}}
-							/>
-						</Td>
-						{#each sanitizedColumns as { key, relationOptions, snippet }}
-							{@render snippet({ key, relationOptions, row, rowIndex })}
+						{#if isDeletable}
+							<Td>
+								<Checkbox
+									bind:checked={paginatedRows[rowIndex]._isSelected}
+									class="mr-0"
+									onchange={() => {
+										if (selectedRows.length === 0) allRowsAreSelected = false;
+										if (selectedRows.length === paginatedRows.length) allRowsAreSelected = true;
+									}}
+								/>
+							</Td>
+						{/if}
+						{#each sanitizedColumns as { isEditable, isVisible, key, relationOptions, snippet }}
+							{@render snippet({ isEditable, isVisible, key, relationOptions, row, rowIndex })}
 						{/each}
 					</Tr>
 				{/each}
@@ -540,56 +560,108 @@
 	</Div>
 </Card>
 
-{#snippet Boolean({ key, rowIndex }: SnippetProps)}
-	<Td>
-		<Checkbox bind:checked={paginatedRows[rowIndex][key]} />
-	</Td>
+{#snippet Boolean({ isEditable, isVisible, key, rowIndex }: SnippetProps)}
+	{#if isEditable}
+		<Td {isVisible}>
+			<Checkbox bind:checked={paginatedRows[rowIndex][key]} />
+		</Td>
+	{:else}
+		<Td {isVisible}>
+			{paginatedRows[rowIndex][key]}
+		</Td>
+	{/if}
 {/snippet}
-{#snippet DateTime({ key, rowIndex }: SnippetProps)}
-<Td class="p-0">
-	<Input
-		bind:value={() => {
-			const string = Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat("yyyy-MM-dd'T'HH:mm")
-			return string
-		},
-		(string) => {
-			const date = new Date(string)
-			paginatedRows[rowIndex][key] = date
-			return date
-		}}
-		class="w-full rounded-none bg-transparent dark:bg-transparent"
-		type="datetime-local"
-	/>
-</Td>
+{#snippet Currency({isEditable, isVisible, key, rowIndex}:SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<Input
+				bind:value={paginatedRows[rowIndex][key]}
+				class="w-full rounded-none bg-transparent text-right dark:bg-transparent"
+				step=".01"
+				type="number"
+			/>
+		</Td>
+	{:else}
+		<Td class="text-right" {isVisible}>
+			{format.currency(paginatedRows[rowIndex][key])}
+		</Td>
+	{/if}
 {/snippet}
-{#snippet Int({ key, rowIndex }: SnippetProps)}
-	<Td class="p-0">
-		<Input
-			bind:value={paginatedRows[rowIndex][key]}
-			class="w-full rounded-none bg-transparent text-right dark:bg-transparent"
-			type="number"
-		/>
-	</Td>
+{#snippet DateTime({ isVisible, key, rowIndex }: SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<Input
+				bind:value={() => {
+					const string = Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat("yyyy-MM-dd'T'HH:mm")
+					return string
+				},
+				(string) => {
+					const date = new Date(string)
+					paginatedRows[rowIndex][key] = date
+					return date
+				}}
+				class="w-full rounded-none bg-transparent dark:bg-transparent"
+				type="datetime-local"
+			/>
+		</Td>
+	{:else}
+		<Td class="text-right" {isVisible}>
+			{Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat('M/d/yyyy')}
+		</Td>
+	{/if}
 {/snippet}
-{#snippet RelationIsList({ key, relationOptions, rowIndex }: SnippetProps)}
-	<Td class="p-0">
-		<MultiSelect bind:value={paginatedRows[rowIndex][key]} options={relationOptions} />
-	</Td>
+{#snippet Int({ isVisible, key, rowIndex }: SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<Input
+				bind:value={paginatedRows[rowIndex][key]}
+				class="w-full rounded-none bg-transparent text-right dark:bg-transparent"
+				type="number"
+			/>
+		</Td>
+	{:else}
+		<Td class="text-right" {isVisible}>
+			{paginatedRows[rowIndex][key]}
+		</Td>
+	{/if}
 {/snippet}
-{#snippet RelationIsNotList({ key, relationOptions, rowIndex }: SnippetProps)}
-	<Td class="p-0">
-		<Select
-			bind:value={paginatedRows[rowIndex][key]}
-			class="w-full rounded-none bg-transparent dark:bg-transparent"
-			options={relationOptions}
-		/>
-	</Td>
+{#snippet RelationIsList({ isEditable, isVisible, key, relationOptions, rowIndex }: SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<MultiSelect bind:value={paginatedRows[rowIndex][key]} options={relationOptions} />
+		</Td>
+	{:else}
+		<Td {isVisible}>
+			{paginatedRows[rowIndex][key]}
+		</Td>
+	{/if}
 {/snippet}
-{#snippet String({ key, rowIndex }: SnippetProps)}
-	<Td class="p-0">
-		<Input
-			bind:value={paginatedRows[rowIndex][key]}
-			class="w-full rounded-none bg-transparent dark:bg-transparent"
-		/>
-	</Td>
+{#snippet RelationIsNotList({ isEditable, isVisible, key, relationOptions, rowIndex }: SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<Select
+				bind:value={paginatedRows[rowIndex][key]}
+				class="w-full rounded-none bg-transparent dark:bg-transparent"
+				options={relationOptions}
+			/>
+		</Td>
+	{:else}
+		<Td {isVisible}>
+			{paginatedRows[rowIndex][key]}
+		</Td>
+	{/if}
+{/snippet}
+{#snippet String({ isEditable, isVisible, key, rowIndex }: SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<Input
+				bind:value={paginatedRows[rowIndex][key]}
+				class="w-full rounded-none bg-transparent dark:bg-transparent"
+			/>
+		</Td>
+	{:else}
+		<Td {isVisible}>
+			{paginatedRows[rowIndex][key]}
+		</Td>
+	{/if}
 {/snippet}
