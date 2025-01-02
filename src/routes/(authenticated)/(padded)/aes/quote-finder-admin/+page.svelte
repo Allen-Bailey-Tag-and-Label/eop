@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PrismaTable } from '$lib/components';
+	import Route from '../quote-finder/+page.svelte';
 	import type { PageData } from './$types';
 
 	type Props = {
@@ -9,4 +9,4 @@
 	let { data }: Props = $props();
 </script>
 
-<PrismaTable {...data} />
+<Route {data} />
