@@ -301,129 +301,11 @@
 
 <Card class="max-w-full self-start overflow-hidden p-0">
 	<Div class="flex justify-end space-x-2 px-6 py-3">
-		{#if isDeletable}
-			<Div>
-				<Button
-					disabled={!rowsAreSelected}
-					onclick={toolbar.delete.modal.toggle}
-					variants={['default', 'icon', 'error']}
-				>
-					<Icon src={Trash} />
-				</Button>
-				<Modal bind:toggle={toolbar.delete.modal.toggle}>
-					<Form
-						action="?/delete"
-						use={[
-							[
-								enhance,
-								() => {
-									return ({ update }: { update: any }) => {
-										toolbar.delete.modal.toggle();
-										update();
-									};
-								}
-							]
-						]}
-					>
-						<Icon class="mx-auto h-[5rem] w-[5rem] text-red-500" src={ExclamationTriangle} />
-						<P class="mx-auto">
-							Are you sure you want to delete the selected item{selectedRows.length !== 1 ? 's' : ''}?
-						</P>
-						<Input
-							class="absolute left-0 top-0 h-0 w-0 opacity-0"
-							name="ids"
-							type="hidden"
-							value={JSON.stringify(
-								[...sanitizedRows].filter((row, i) => row._isSelected).map((row) => row.id)
-							)}
-						/>
-						<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-							<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
-								>Cancel</Button
-							>
-							<Button type="submit" variants={['default', 'error']}>Delete</Button>
-						</Div>
-					</Form>
-				</Modal>
-			</Div>
-		{/if}
-		{#if isSavable}
-			<Form action="?/save" use={[[enhance]]}>
-				<Button
-					class="grid grid-cols-1 grid-rows-1"
-					disabled={!saveIsNeeded}
-					type="submit"
-					variants={['default', 'icon', 'success']}
-				>
-					<Icon src={Check} />
-				</Button>
-				<Input
-					class="absolute left-0 top-0 h-0 w-0 opacity-0"
-					name="updates"
-					value={JSON.stringify(rowsNeedingUpdates)}
-				/>
-			</Form>
-		{/if}
-		<Div>
-			<Button
-				onclick={() => {
-					sanitizedPaginate.modal.numberOfRowsPerPage = sanitizedPaginate.numberOfRowsPerPage;
-					sanitizedPaginate.modal.toggle();
-				}}
-				variants={['default', 'icon']}
-			>
-				<Icon src={Cog6Tooth} />
-			</Button>
-			<Modal bind:toggle={sanitizedPaginate.modal.toggle}>
-				<form
-					action="/"
-					class="flex flex-col space-y-4"
-					method="POST"
-					onsubmit={(e) => {
-						e.preventDefault();
-						sanitizedPaginate.numberOfRowsPerPage = sanitizedPaginate.modal.numberOfRowsPerPage;
-						sanitizedPaginate.modal.toggle();
-					}}
-				>
-					<Fieldset legend="Number Of Rows / Page">
-						<Input
-							bind:value={sanitizedPaginate.modal.numberOfRowsPerPage}
-							class="text-right"
-							min={1}
-							type="number"
-						/>
-					</Fieldset>
-					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-						<Button onclick={sanitizedPaginate.modal.toggle} variants={['default', 'contrast']}>
-							Cancel
-						</Button>
-						<Button type="submit">Update</Button>
-					</Div>
-				</form>
-			</Modal>
-		</Div>
-		<Form
-			action="?/update"
-			use={[
-				[
-					enhance,
-					() => {
-						return ({ update }: { update: any }) => {
-							update();
-						};
-					}
-				]
-			]}
-		>
-			<Button type="submit" variants={['default', 'icon']}>
-				<Icon src={ArrowPath} />
-			</Button>
-		</Form>
-		<Form action="?/create" use={[[enhance]]}>
-			<Button type="submit" variants={['default', 'icon']}>
-				<Icon src={Plus} />
-			</Button>
-		</Form>
+		{@render DeleteToolbar()}
+		{@render SaveToolbar()}
+		{@render SettingsToolbar()}
+		{@render UpdateToolbar()}
+		{@render CreateToolbar()}
 	</Div>
 	<Card class="relative overflow-auto rounded-none p-0 shadow-none dark:shadow-none">
 		<Table>
@@ -559,6 +441,140 @@
 		</Div>
 	</Div>
 </Card>
+
+{#snippet CreateToolbar()}
+	<Form action="?/create" use={[[enhance]]}>
+		<Button type="submit" variants={['default', 'icon']}>
+			<Icon src={Plus} />
+		</Button>
+	</Form>
+{/snippet}
+{#snippet DeleteToolbar()}
+	{#if isDeletable}
+		<Div>
+			<Button
+				disabled={!rowsAreSelected}
+				onclick={toolbar.delete.modal.toggle}
+				variants={['default', 'icon', 'error']}
+			>
+				<Icon src={Trash} />
+			</Button>
+			<Modal bind:toggle={toolbar.delete.modal.toggle}>
+				<Form
+					action="?/delete"
+					use={[
+						[
+							enhance,
+							() => {
+								return ({ update }: { update: any }) => {
+									toolbar.delete.modal.toggle();
+									update();
+								};
+							}
+						]
+					]}
+				>
+					<Icon class="mx-auto h-[5rem] w-[5rem] text-red-500" src={ExclamationTriangle} />
+					<P class="mx-auto">
+						Are you sure you want to delete the selected item{selectedRows.length !== 1 ? 's' : ''}?
+					</P>
+					<Input
+						class="absolute left-0 top-0 h-0 w-0 opacity-0"
+						name="ids"
+						type="hidden"
+						value={JSON.stringify(
+							[...sanitizedRows].filter((row, i) => row._isSelected).map((row) => row.id)
+						)}
+					/>
+					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+						<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
+							>Cancel</Button
+						>
+						<Button type="submit" variants={['default', 'error']}>Delete</Button>
+					</Div>
+				</Form>
+			</Modal>
+		</Div>
+	{/if}
+{/snippet}
+{#snippet SaveToolbar()}
+	{#if isSavable}
+		<Form action="?/save" use={[[enhance]]}>
+			<Button
+				class="grid grid-cols-1 grid-rows-1"
+				disabled={!saveIsNeeded}
+				type="submit"
+				variants={['default', 'icon', 'success']}
+			>
+				<Icon src={Check} />
+			</Button>
+			<Input
+				class="absolute left-0 top-0 h-0 w-0 opacity-0"
+				name="updates"
+				value={JSON.stringify(rowsNeedingUpdates)}
+			/>
+		</Form>
+	{/if}
+{/snippet}
+{#snippet SettingsToolbar()}
+	<Div>
+		<Button
+			onclick={() => {
+				sanitizedPaginate.modal.numberOfRowsPerPage = sanitizedPaginate.numberOfRowsPerPage;
+				sanitizedPaginate.modal.toggle();
+			}}
+			variants={['default', 'icon']}
+		>
+			<Icon src={Cog6Tooth} />
+		</Button>
+		<Modal bind:toggle={sanitizedPaginate.modal.toggle}>
+			<form
+				action="/"
+				class="flex flex-col space-y-4"
+				method="POST"
+				onsubmit={(e) => {
+					e.preventDefault();
+					sanitizedPaginate.numberOfRowsPerPage = sanitizedPaginate.modal.numberOfRowsPerPage;
+					sanitizedPaginate.modal.toggle();
+				}}
+			>
+				<Fieldset legend="Number Of Rows / Page">
+					<Input
+						bind:value={sanitizedPaginate.modal.numberOfRowsPerPage}
+						class="text-right"
+						min={1}
+						type="number"
+					/>
+				</Fieldset>
+				<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+					<Button onclick={sanitizedPaginate.modal.toggle} variants={['default', 'contrast']}>
+						Cancel
+					</Button>
+					<Button type="submit">Update</Button>
+				</Div>
+			</form>
+		</Modal>
+	</Div>
+{/snippet}
+{#snippet UpdateToolbar()}
+	<Form
+		action="?/update"
+		use={[
+			[
+				enhance,
+				() => {
+					return ({ update }: { update: any }) => {
+						update();
+					};
+				}
+			]
+		]}
+	>
+		<Button type="submit" variants={['default', 'icon']}>
+			<Icon src={ArrowPath} />
+		</Button>
+	</Form>
+{/snippet}
 
 {#snippet Boolean({ isEditable, isVisible, key, rowIndex }: SnippetProps)}
 	{#if isEditable}
