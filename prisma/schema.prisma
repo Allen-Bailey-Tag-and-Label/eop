@@ -13,6 +13,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Customer {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  crmInteractions CRMInteraction[]
+  ennisNumber     Int
+  label           String
+}
+
+model CRMInteraction {
+  id            String             @id @default(auto()) @map("_id") @db.ObjectId
+  customer      Customer           @relation(fields: [customerId], references: [id])
+  customerId    String             @db.ObjectId
+  createdAt     DateTime           @default(now())
+  result        String
+  type          CRMInteractionType @relation(fields: [typeId], references: [id])
+  typeId        String             @db.ObjectId
+  updatedAt     DateTime           @updatedAt
+  userProfile   UserProfile        @relation(fields: [userProfileId], references: [id])
+  userProfileId String             @db.ObjectId
+}
+
+model CRMInteractionType {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  label        String
+  interactions CRMInteraction[]
+}
+
 model QuoteMarginQuote {
   id                      String   @id @default(auto()) @map("_id") @db.ObjectId
   customerType            String   @default("direct")
@@ -63,17 +89,18 @@ model User {
 }
 
 model UserProfile {
-  id                  String        @id @default(auto()) @map("_id") @db.ObjectId
-  dateOfHire          DateTime
-  employeeNumber      Int
-  emailSignatureTitle String        @default("")
-  extension           Int           @default(0)
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  crmInteractions     CRMInteraction[]
+  dateOfHire          DateTime         @default(now())
+  employeeNumber      Int              @default(0)
+  emailSignatureTitle String           @default("")
+  extension           Int              @default(0)
   firstName           String
   lastName            String
-  subordinates        UserProfile[] @relation(name: "UserProfileToUserProfile")
-  subordinateIds      String[]      @db.ObjectId
-  supervisor          UserProfile?  @relation(fields: [supervisorId], name: "UserProfileToUserProfile", references: [id], onDelete: NoAction, onUpdate: NoAction)
-  supervisorId        String?       @db.ObjectId
-  user                User          @relation(fields: [userId], references: [id])
-  userId              String        @unique @db.ObjectId
+  subordinates        UserProfile[]    @relation(name: "UserProfileToUserProfile")
+  subordinateIds      String[]         @db.ObjectId
+  supervisor          UserProfile?     @relation(fields: [supervisorId], name: "UserProfileToUserProfile", references: [id], onDelete: NoAction, onUpdate: NoAction)
+  supervisorId        String?          @db.ObjectId
+  user                User             @relation(fields: [userId], references: [id])
+  userId              String           @unique @db.ObjectId
 }
