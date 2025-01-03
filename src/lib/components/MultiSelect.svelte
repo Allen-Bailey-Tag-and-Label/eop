@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Badge, Button, Card, Checkbox, Div, Icon, Overlay, Portal } from '$lib/components';
+	import { Card, Checkbox, Div, Icon, Input, Overlay, Portal } from '$lib/components';
 	import { fade } from 'svelte/transition';
 	import { theme } from 'sveltewind';
 	import { clickOutside } from 'sveltewind/actions';
-	import { ChevronDown, XMark } from 'sveltewind/icons';
+	import { ChevronDown } from 'sveltewind/icons';
 	import { twMerge } from 'tailwind-merge';
 
 	type Bounds = {
@@ -18,12 +18,13 @@
 	};
 	type Props = {
 		isVisible?: boolean;
+		name?: string;
 		options: Option[];
 		value: any[];
 	};
 	type Option = { label: string; value: any };
 
-	let { isVisible = $bindable(), options, value = $bindable([]) }: Props = $props();
+	let { isVisible = $bindable(), name, options, value = $bindable([]) }: Props = $props();
 	let bounds: Bounds = $state({
 		bottom: 0,
 		height: 0,
@@ -84,11 +85,6 @@
 	$effect(() => {
 		if (isVisible === undefined) isVisible = false;
 	});
-	// $effect(() => {
-	// 	if (value) {
-	// 		value = value.sort((a, b) => a.localeCompare(b));
-	// 	}
-	// });
 </script>
 
 <svelte:window bind:innerHeight bind:innerWidth />
@@ -136,6 +132,7 @@
 				]
 			]}
 		>
+			<Input class="absolute left-0 top-0 h-0 w-0 opacity-0" {name} {value} />
 			{#each options as option}
 				{@const checked = value.includes(option.value)}
 				{#if option.value !== ''}
