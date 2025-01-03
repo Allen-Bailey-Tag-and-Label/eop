@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { theme } from 'sveltewind';
 	import { sveltewind } from 'sveltewind/themes';
-	import { Div, Title } from '$lib/components';
-	import '../app.css';
+	import { Div, Pwa, Title } from '$lib/components';
 	import type { Snippet } from 'svelte';
 	import type { LayoutServerData } from './$types.js';
+	import '../app.css';
 
 	type Props = {
 		children: Snippet;
@@ -60,10 +60,21 @@
 		'pr-8 border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
 	);
 	theme.updateComponentVariant('table', 'default', 'bg-transparent dark:bg-transparent');
-	// theme.updateComponentVariant('th', 'default', 'z-[1]');
 	theme.updateComponentVariant('tr', 'default', 'even:bg-slate-50 dark:even:bg-slate-900');
 </script>
 
+<Pwa>
+	<link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+	<link rel="alternate icon" href="/icons/icon-16x16.png" />
+	<link rel="apple-touch-icon" href="/icons/icon-apple-touch.png" />
+	<link rel="manifest" href="/manifest.json" />
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover"
+	/>
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+</Pwa>
 <Title base="EOP" />
 <Div class="flex max-h-[100dvh] min-h-[100dvh] flex-col overflow-auto">
 	{@render children(data)}
