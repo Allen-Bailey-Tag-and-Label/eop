@@ -8,6 +8,7 @@ type Paramaters = {
 	fields: any;
 	fieldsRequiringRelation: any;
 	formulaColumns?: Map<string, Partial<Column> & { formula: (row: any) => any }>;
+	isCreatable?: boolean;
 	isDeletable?: boolean;
 	isEditable?: boolean;
 	isSavable?: boolean;
@@ -25,6 +26,7 @@ export const getLoad = async ({
 	fields,
 	fieldsRequiringRelation,
 	formulaColumns,
+	isCreatable,
 	isDeletable,
 	isEditable,
 	isSavable,
@@ -92,6 +94,7 @@ export const getLoad = async ({
 	return {
 		columnOrder,
 		columns: getColumns,
+		isCreatable: isCreatable === undefined ? true : isCreatable,
 		isDeletable: isDeletable === undefined ? true : isDeletable,
 		isEditable: isEditable === undefined ? true : isEditable,
 		isSavable: isSavable === undefined ? true : isSavable,

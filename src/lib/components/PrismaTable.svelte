@@ -46,6 +46,7 @@
 		columns: Column[];
 		CreateToolbar?: Snippet;
 		DeleteToolbar?: Snippet;
+		isCreatable: boolean;
 		isDeletable: boolean;
 		isEditable: boolean;
 		isSavable: boolean;
@@ -64,6 +65,7 @@
 		columns = [],
 		CreateToolbar,
 		DeleteToolbar,
+		isCreatable = $bindable(true),
 		isDeletable = $bindable(true),
 		isEditable = $bindable(true),
 		isSavable = $bindable(true),
@@ -150,6 +152,11 @@
 			));
 	};
 	const toolbar: Record<string, any> = $state({
+		create: {
+			modal: {
+				data:{}
+			}
+		},
 		delete: {
 			modal: {
 				numberOfRowsPerPage: 10
@@ -353,7 +360,9 @@
 							/>
 							<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
 								<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
-									>Cancel</Button
+									>
+									Cancel
+									</Button
 								>
 								<Button type="submit" variants={['default', 'error']}>Delete</Button>
 							</Div>
@@ -449,11 +458,54 @@
 		{#if CreateToolbar}
 			{@render CreateToolbar()}
 		{:else}
-			<Form action="?/create" use={[[enhance]]}>
-				<Button type="submit" variants={['default', 'icon']}>
+			{#if isCreatable}
+				<Button onclick={() => {
+					toolbar.create.modal.data = sanitizedColumns.reduce((obj:Row, {key, type}) => {
+						if (['createdAt', 'updatedAt'].includes(key)) return obj;
+						if (type === 'Boolean') obj[key] = false;
+						if (type === 'Currency') obj[key] = 0;
+						if (type === 'DateTime') obj[key] = Luxon.now();
+						if (type === 'Int') obj[key] = 0;
+						if (type === 'String') obj[key] = '';
+						return obj;
+					},{})
+					toolbar.create.modal.open();
+				}} variants={['default', 'icon']}>
 					<Icon src={Plus} />
 				</Button>
-			</Form>
+				<Modal
+					bind:close={toolbar.create.modal.close}
+					bind:open={toolbar.create.modal.open}
+					bind:toggle={toolbar.create.modal.toggle}
+				>
+					<Form action="?/create" use={[[enhance, () => {
+						return async({update}:{update:any}) => {
+							toolbar.create.modal.close();
+							update();
+						}
+					}]]}>
+						<Table>
+							<Tbody>
+
+							{#each sanitizedColumns as { isEditable, isVisible, key, relationOptions, snippet }}
+								{#if !['createdAt', 'updatedAt'].includes(key)}
+									<Tr>
+										<Td>{key}</Td>
+										{@render snippet({ isEditable, isVisible, name:key, object:toolbar.create.modal.data, key, relationOptions })}
+									</Tr>
+								{/if}
+							{/each}
+							</Tbody>
+						</Table>
+						<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+							<Button onclick={toolbar.create.modal.close} variants={['default', 'contrast']}>
+								Cancel
+							</Button>
+							<Button type="submit">Create</Button>
+						</Div>
+					</Form>
+				</Modal>
+			{/if}
 		{/if}
 	</Div>
 	<Card class="relative overflow-auto rounded-none p-0 shadow-none dark:shadow-none">
@@ -539,7 +591,7 @@
 							</Td>
 						{/if}
 						{#each sanitizedColumns as { isEditable, isVisible, key, relationOptions, snippet }}
-							{@render snippet({ isEditable, isVisible, key, relationOptions, row, rowIndex })}
+							{@render snippet({ isEditable, isVisible, object:paginatedRows[rowIndex], key, relationOptions, row, rowIndex })}
 						{/each}
 					</Tr>
 				{/each}
@@ -591,108 +643,113 @@
 	</Div>
 </Card>
 
-{#snippet Boolean({ isEditable, isVisible, key, rowIndex }: SnippetProps)}
+{#snippet Boolean({ isEditable, isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td {isVisible}>
-			<Checkbox bind:checked={paginatedRows[rowIndex][key]} />
+			<Checkbox bind:checked={object[key]} {name} />
 		</Td>
 	{:else}
 		<Td {isVisible}>
-			{paginatedRows[rowIndex][key]}
+			{object[key]}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet Currency({isEditable, isVisible, key, rowIndex}:SnippetProps)}
+{#snippet Currency({isEditable, isVisible, name, object, key}:SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
-				bind:value={paginatedRows[rowIndex][key]}
+				bind:value={object[key]}
 				class="w-full rounded-none bg-transparent text-right dark:bg-transparent"
+				{name}
 				step=".01"
 				type="number"
 			/>
 		</Td>
 	{:else}
 		<Td class="text-right" {isVisible}>
-			{format.currency(paginatedRows[rowIndex][key])}
+			{format.currency(object[key])}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet DateTime({ isVisible, key, rowIndex }: SnippetProps)}
+{#snippet DateTime({ isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
 				bind:value={() => {
-					const string = Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat("yyyy-MM-dd'T'HH:mm")
+					const string = Luxon.fromJSDate(new Date(object[key])).toFormat("yyyy-MM-dd")
 					return string
 				},
 				(string) => {
 					const date = new Date(string)
-					paginatedRows[rowIndex][key] = date
+					object[key] = date
 					return date
 				}}
 				class="w-full rounded-none bg-transparent dark:bg-transparent"
-				type="datetime-local"
+				{name}
+				type="date"
 			/>
 		</Td>
 	{:else}
 		<Td class="text-right" {isVisible}>
-			{Luxon.fromJSDate(new Date(paginatedRows[rowIndex][key])).toFormat('M/d/yyyy')}
+			{Luxon.fromJSDate(new Date(object[key])).toFormat('M/d/yyyy')}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet Int({ isVisible, key, rowIndex }: SnippetProps)}
+{#snippet Int({ isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
-				bind:value={paginatedRows[rowIndex][key]}
+				bind:value={object[key]}
 				class="w-full rounded-none bg-transparent text-right dark:bg-transparent"
+				{name}
 				type="number"
 			/>
 		</Td>
 	{:else}
 		<Td class="text-right" {isVisible}>
-			{paginatedRows[rowIndex][key]}
+			{object[key]}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet RelationIsList({ isEditable, isVisible, key, relationOptions, rowIndex }: SnippetProps)}
+{#snippet RelationIsList({ isEditable, isVisible, name, object, key, relationOptions }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
-			<MultiSelect bind:value={paginatedRows[rowIndex][key]} options={relationOptions} />
+			<MultiSelect bind:value={object[key]} {name} options={relationOptions} />
 		</Td>
 	{:else}
 		<Td {isVisible}>
-			{paginatedRows[rowIndex][key]}
+			{object[key].map(string => relationOptions.find(({value}) => value === string)?.label || '').join(', ')}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet RelationIsNotList({ isEditable, isVisible, key, relationOptions, rowIndex }: SnippetProps)}
+{#snippet RelationIsNotList({ isEditable, isVisible, name, object, key, relationOptions }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Select
-				bind:value={paginatedRows[rowIndex][key]}
+				bind:value={object[key]}
 				class="w-full rounded-none bg-transparent dark:bg-transparent"
+				{name}
 				options={relationOptions}
 			/>
 		</Td>
 	{:else}
 		<Td {isVisible}>
-			{paginatedRows[rowIndex][key]}
+			{relationOptions.find(({value}) => value === object[key])?.label || ''}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet String({ isEditable, isVisible, key, rowIndex }: SnippetProps)}
+{#snippet String({ isEditable, isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
-				bind:value={paginatedRows[rowIndex][key]}
+				bind:value={object[key]}
 				class="w-full rounded-none bg-transparent dark:bg-transparent"
+				{name}
 			/>
 		</Td>
 	{:else}
 		<Td {isVisible}>
-			{paginatedRows[rowIndex][key]}
+			{object[key]}
 		</Td>
 	{/if}
 {/snippet}

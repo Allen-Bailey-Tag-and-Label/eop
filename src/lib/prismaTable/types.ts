@@ -15,7 +15,9 @@ export type Column = {
 	width: number;
 };
 export type Field = {
+	hasDefaultValue: boolean;
 	isId: boolean;
+	isList: boolean;
 	isRequired: boolean;
 	name: string;
 	type: string;
@@ -41,6 +43,7 @@ export type PageServer = {
 	columnOmits?: string[];
 	columnOrder?: string[];
 	columnOverrides?: Map<string, Partial<Column>>;
+	isCreatable?: boolean;
 	isDeletable?: boolean;
 	isEditable?: boolean;
 	isSavable?: boolean;
@@ -58,6 +61,8 @@ export type SnippetProps = {
 	isEditable: boolean;
 	isVisible: boolean;
 	key: string;
+	name?: string;
+	object: Record<string, any>;
 	relationOptions: { label: any; value: string }[];
 	row: Row;
 	rowIndex: number;

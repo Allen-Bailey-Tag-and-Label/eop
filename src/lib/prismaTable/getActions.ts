@@ -1,6 +1,7 @@
 import { prisma } from '$lib/prisma';
-import type { Actions } from '@sveltejs/kit';
+import { type Actions } from '@sveltejs/kit';
 import type { ActionParams, Field } from './types';
+import { DateTime } from 'luxon';
 
 type Params = {
 	actions?: Map<
@@ -20,6 +21,30 @@ type Params = {
 	modelName: string;
 };
 
+const createLog = async ({
+	data,
+	model,
+	route,
+	userId,
+	type
+}: {
+	data: string;
+	model: string;
+	route: string;
+	userId: string;
+	type: string;
+}) => {
+	await prisma.log.create({
+		data: {
+			data,
+			model,
+			route,
+			userId,
+			type
+		}
+	});
+};
+
 export const getActions = ({
 	actions,
 	fields,
@@ -29,48 +54,129 @@ export const getActions = ({
 	const defaultActions = new Map([
 		[
 			'create',
-			async () => {
+			async ({
+				locals: {
+					user: { id: userId }
+				},
+				request,
+				route: { id: route }
+			}: ActionParams) => {
+				const formData = <Record<string, any>>Object.fromEntries(await request.formData());
 				const data = fields.reduce(
-					(data: Record<string, any>, { isId, isRequired, name, type }: Field) => {
-						if (!isId && isRequired && fieldsRequiringRelation.get(name) === undefined) {
-							if (type === 'String') data[name] = '';
+					(
+						data: Record<string, any>,
+						{ hasDefaultValue, isId, isList, isRequired, name, type }: Field
+					) => {
+						if (['createdAt', 'updatedAt'].includes(name)) return data;
+						if (!isId) {
+							if (type === 'Boolean') data[name] = formData[name] === 'true' || false;
+							if (type === 'DateTime')
+								data[name] = DateTime.fromFormat(
+									formData[name] || DateTime.fromJSDate(new Date(0)).toFormat('yyyy-MM-dd'),
+									'yyyy-MM-dd'
+								).toJSDate();
+							if (type === 'Int') data[name] = +formData[name] || 0;
+							if (type === 'String') {
+								data[name] = formData[name] || '';
+							}
+							if (isList && data[name] !== undefined)
+								data[name] = data[name] === '' ? [] : [data[name]];
 						}
+						if (data[name] === '' && !isRequired) delete data[name];
 						return data;
 					},
 					{}
 				);
-				// @ts-ignore
-				await prisma[modelName].create({
-					data
-				});
+				await Promise.all([
+					// @ts-ignore
+					prisma[modelName].create({
+						data
+					}),
+					createLog({
+						data: JSON.stringify(data),
+						model: modelName,
+						route: route || '',
+						userId,
+						type: 'create'
+					})
+				]);
 				return { success: true };
 			}
 		],
 		[
 			'delete',
-			async ({ request }: ActionParams) => {
+			async ({
+				locals: {
+					user: { id: userId }
+				},
+				request,
+				route: { id: route }
+			}: ActionParams) => {
 				const { ids } = <{ ids: string }>Object.fromEntries(await request.formData());
-				// @ts-ignore
-				await prisma[modelName].deleteMany({
-					where: {
-						id: {
-							in: JSON.parse(ids)
-						}
+				const where = {
+					id: {
+						in: JSON.parse(ids)
 					}
-				});
+				};
+				await Promise.all([
+					// @ts-ignore
+					prisma[modelName].deleteMany({
+						where
+					}),
+					createLog({
+						data: JSON.stringify(where),
+						model: modelName,
+						route: route || '',
+						userId,
+						type: 'delete'
+					})
+				]);
 				return { success: true };
 			}
 		],
 		[
 			'save',
-			async ({ request }: ActionParams) => {
+			async ({
+				locals: {
+					user: { id: userId }
+				},
+				request,
+				route: { id: route }
+			}: ActionParams) => {
 				const { updates } = <{ updates: string }>Object.fromEntries(await request.formData());
-				await prisma.$transaction(
-					JSON.parse(updates).map(({ id, ...data }: { id: string; data: Record<any, any> }) => {
-						// @ts-ignore
-						return prisma[modelName].update({ where: { id }, data });
-					})
-				);
+				await Promise.all([
+					prisma.$transaction(
+						JSON.parse(updates).map(
+							({
+								createdAt,
+								id,
+								updatedAt,
+								...data
+							}: {
+								createdAt: Date;
+								id: string;
+								updatedAt: Date;
+								data: Record<any, any>;
+							}) => {
+								// @ts-ignore
+								return prisma[modelName].update({ where: { id }, data });
+							}
+						)
+					),
+					prisma.$transaction(
+						JSON.parse(updates).map(({ id, ...data }: { id: string; data: Record<any, any> }) => {
+							return prisma.log.create({
+								data: {
+									data: JSON.stringify(data),
+									model: modelName,
+									route: route || '',
+									userId,
+									type: 'update'
+								}
+							});
+						})
+					)
+				]);
 				return { success: true };
 			}
 		],
