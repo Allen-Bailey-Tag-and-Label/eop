@@ -46,7 +46,9 @@
 </script>
 
 <Div class="flex flex-grow flex-col overflow-auto lg:flex-row">
-	<Header class="items-start p-4 pwa:order-2 lg:pwa:order-1">
+	<Header
+		class="items-start p-4 pwa:order-2 pwa:pb-[env(safe-area-inset-bottom)] lg:pwa:order-1 lg:pwa:pb-[0]"
+	>
 		<Button class="relative z-[100] w-12" onclick={toggle} variants={['default', 'icon']}>
 			<Div
 				class={twMerge(
@@ -66,7 +68,9 @@
 			class="w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[25rem] lg:max-w-full"
 			position="left"
 		>
-			<Card class="flex flex-grow flex-col overflow-auto rounded-none p-0">
+			<Card
+				class="flex flex-grow flex-col overflow-auto rounded-none p-0 pwa:pb-[env(safe-area-inset-bottom)] pwa:pt-[env(safe-area-inset-top)] lg:pwa:pb-[0] lg:pwa:pt-[0]"
+			>
 				<Div class="flex flex-grow flex-col space-y-0 overflow-auto py-2">
 					{#each navigationGroups as navigationGroup, navigationGroupIndex}
 						<Div class="flex flex-col py-2">
@@ -106,7 +110,7 @@
 			</Card>
 		</Drawer>
 	</Header>
-	<Div class="flex flex-grow flex-col overflow-auto">
+	<Div class="flex flex-grow flex-col overflow-auto pwa:order-1 lg:pwa:order-2">
 		{@render children()}
 	</Div>
 </Div>
