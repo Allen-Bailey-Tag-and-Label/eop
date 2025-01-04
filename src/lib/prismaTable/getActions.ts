@@ -84,7 +84,6 @@ export const getActions = ({
 					},
 					{ createdById: userId }
 				);
-				console.log(data);
 				await Promise.all([
 					// @ts-ignore
 					prisma[modelName].create({
@@ -142,6 +141,7 @@ export const getActions = ({
 				route: { id: route }
 			}: ActionParams) => {
 				const { updates } = <{ updates: string }>Object.fromEntries(await request.formData());
+				console.log(JSON.parse(updates)[0].roles);
 				await Promise.all([
 					prisma.$transaction(
 						JSON.parse(updates).map(
