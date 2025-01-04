@@ -16,16 +16,16 @@ datasource db {
 model Customer {
   id              String            @id @default(auto()) @map("_id") @db.ObjectId
   city            String
-  contact         CustomerContact   @relation(fields: [contactId], references: [id])
+  contact         CustomerContact   @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   contactId       String            @db.ObjectId
   createdAt       DateTime?         @default(now())
-  createdBy       User              @relation(fields: [createdById], references: [id])
+  createdBy       User              @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById     String            @default("65cf714143abe8bc908d8096") @db.ObjectId
   crmInteractions CRMInteraction[]
   ennisNumber     Int               @unique
   label           String
   state           String
-  territory       CustomerTerritory @relation(fields: [territoryId], references: [id])
+  territory       CustomerTerritory @relation(fields: [territoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   territoryId     String            @db.ObjectId
   updatedAt       DateTime?         @updatedAt
   zip             String
@@ -34,7 +34,7 @@ model Customer {
 model CustomerContact {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime?  @default(now())
-  createdBy   User       @relation(fields: [createdById], references: [id])
+  createdBy   User       @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById String     @default("65cf714143abe8bc908d8096") @db.ObjectId
   customers   Customer[]
   name        String
@@ -45,7 +45,7 @@ model CustomerContact {
 model CustomerTerritory {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime?  @default(now())
-  createdBy   User       @relation(fields: [createdById], references: [id])
+  createdBy   User       @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById String     @default("65cf714143abe8bc908d8096") @db.ObjectId
   customers   Customer[]
   label       String     @unique
@@ -55,13 +55,13 @@ model CustomerTerritory {
 model CRMInteraction {
   id          String             @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime?          @default(now())
-  createdBy   User               @relation(fields: [createdById], references: [id])
+  createdBy   User               @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById String             @default("65cf714143abe8bc908d8096") @db.ObjectId
-  customer    Customer           @relation(fields: [customerId], references: [id])
+  customer    Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   customerId  String             @db.ObjectId
   date        DateTime           @default(now())
   result      String
-  type        CRMInteractionType @relation(fields: [typeId], references: [id])
+  type        CRMInteractionType @relation(fields: [typeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   typeId      String             @db.ObjectId
   updatedAt   DateTime?          @updatedAt
 }
@@ -69,7 +69,7 @@ model CRMInteraction {
 model CRMInteractionType {
   id           String           @id @default(auto()) @map("_id") @db.ObjectId
   createdAt    DateTime?        @default(now())
-  createdBy    User             @relation(fields: [createdById], references: [id])
+  createdBy    User             @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById  String           @default("65cf714143abe8bc908d8096") @db.ObjectId
   label        String           @unique
   interactions CRMInteraction[]
@@ -79,13 +79,13 @@ model CRMInteractionType {
 model Log {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime? @default(now())
-  createdBy   User      @relation(name: "createdByLog", fields: [createdById], references: [id])
+  createdBy   User      @relation(name: "createdByLog", fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById String    @default("65cf714143abe8bc908d8096") @db.ObjectId
   data        String
   model       String
   route       String
   updatedAt   DateTime? @updatedAt
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId      String    @db.ObjectId
   type        String
 }
@@ -93,7 +93,7 @@ model Log {
 model QuoteMarginQuote {
   id                      String    @id @default(auto()) @map("_id") @db.ObjectId
   createdAt               DateTime? @default(now())
-  createdBy               User      @relation(fields: [createdById], references: [id])
+  createdBy               User      @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById             String    @default("65cf714143abe8bc908d8096") @db.ObjectId
   customerType            String    @default("direct")
   laborAmount             Float?
@@ -118,7 +118,7 @@ model QuoteMarginQuote {
 model Role {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime? @default(now())
-  createdBy   User      @relation(name: "createdByRole", fields: [createdById], references: [id])
+  createdBy   User      @relation(name: "createdByRole", fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById String    @default("65cf714143abe8bc908d8096") @db.ObjectId
   label       String    @unique
   routes      Route[]   @relation(fields: [routeIds], references: [id])
@@ -131,7 +131,7 @@ model Role {
 model Route {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime? @default(now())
-  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById String    @default("65cf714143abe8bc908d8096") @db.ObjectId
   href        String    @unique
   group       String
@@ -170,7 +170,7 @@ model User {
 model UserProfile {
   id                  String        @id @default(auto()) @map("_id") @db.ObjectId
   createdAt           DateTime?     @default(now())
-  createdBy           User          @relation(name: "createdByUserProfile", fields: [createdById], references: [id])
+  createdBy           User          @relation(name: "createdByUserProfile", fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById         String        @default("65cf714143abe8bc908d8096") @db.ObjectId
   dateOfHire          DateTime      @default(now())
   employeeNumber      Int           @unique @default(0)
