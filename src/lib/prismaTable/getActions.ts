@@ -63,11 +63,8 @@ export const getActions = ({
 			}: ActionParams) => {
 				const formData = <Record<string, any>>Object.fromEntries(await request.formData());
 				const data = fields.reduce(
-					(
-						data: Record<string, any>,
-						{ hasDefaultValue, isId, isList, isRequired, name, type }: Field
-					) => {
-						if (['createdAt', 'updatedAt'].includes(name)) return data;
+					(data: Record<string, any>, { isId, isList, isRequired, name, type }: Field) => {
+						if (['createdAt', 'createdById', 'updatedAt'].includes(name)) return data;
 						if (!isId) {
 							if (type === 'Boolean') data[name] = formData[name] === 'true' || false;
 							if (type === 'DateTime')
@@ -85,8 +82,9 @@ export const getActions = ({
 						if (data[name] === '' && !isRequired) delete data[name];
 						return data;
 					},
-					{}
+					{ createdById: userId }
 				);
+				console.log(data);
 				await Promise.all([
 					// @ts-ignore
 					prisma[modelName].create({

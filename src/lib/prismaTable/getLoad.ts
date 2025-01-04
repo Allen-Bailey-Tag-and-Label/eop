@@ -57,6 +57,8 @@ export const getLoad = async ({
 								type,
 								width: 229
 							},
+							['createdAt', 'createdById', 'updatedAt'].includes(name) ? { isEditable: false } : {},
+							['createdAt', 'updatedAt'].includes(name) ? { type: 'DateTimeLocal' } : {},
 							columnOverrides !== undefined && columnOverrides.has(name)
 								? columnOverrides.get(name)
 								: {}
@@ -66,7 +68,13 @@ export const getLoad = async ({
 								name
 							) || { key: '', model: '' };
 							const relationLabelFn =
-								relationLabelFns?.get(relationKey) || ((record) => record.label);
+								relationLabelFns?.get(relationKey) ||
+								((record) => {
+									if (record?.label !== undefined) return record.label;
+									if (record?.username !== undefined) return record.username;
+									const [key] = Object.keys(record).filter((key) => key !== 'id');
+									return record[key];
+								});
 							column.isList = isList;
 							column.isRelational = true;
 							column.label = relationKey;
