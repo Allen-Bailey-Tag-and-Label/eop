@@ -141,7 +141,6 @@ export const getActions = ({
 				route: { id: route }
 			}: ActionParams) => {
 				const { updates } = <{ updates: string }>Object.fromEntries(await request.formData());
-				console.log(JSON.parse(updates)[0].roles);
 				await Promise.all([
 					prisma.$transaction(
 						JSON.parse(updates).map(

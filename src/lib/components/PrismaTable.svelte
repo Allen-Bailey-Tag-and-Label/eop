@@ -87,30 +87,33 @@
 	const defaultColumnWidth = 229;
 	const getUpdateData = (row: Row, rowIndex: number) =>
 		Object.keys(row)
-			.filter((key) => !key.startsWith('_'))
-			.reduce((obj: Row, key) => {
-				const { isList, isRelational, relationKey, relationOptions } = sanitizedColumns.find(
-					(sanitizedColumn) => sanitizedColumn.key === key
-				) || { isList: false, isRelational: false, relationKey: '' };
-				if (!isRelational) obj[key] = row[key];
-				if (isRelational) {
-					if (isList) {
-						const connect = row[key].map((id: string) => ({ id }));
-						const ids = connect.map(({ id }: { id: string }) => id);
-						const disconnect = relationOptions
-							.filter(({ value }) => value !== '' && !ids.includes(value))
-							.map(({ value }) => ({ id: value }));
-						obj[relationKey || ''] = {
-							connect,
-							disconnect
-						};
+			.filter((key) => !key.startsWith('_') && row[key] !== originalPaginatedRows[rowIndex][key])
+			.reduce(
+				(obj: Row, key) => {
+					const { isList, isRelational, relationKey, relationOptions } = sanitizedColumns.find(
+						(sanitizedColumn) => sanitizedColumn.key === key
+					) || { isList: false, isRelational: false, relationKey: '' };
+					if (!isRelational) obj[key] = row[key];
+					if (isRelational) {
+						if (isList) {
+							const connect = row[key].map((id: string) => ({ id }));
+							const ids = connect.map(({ id }: { id: string }) => id);
+							const disconnect = relationOptions
+								.filter(({ value }) => value !== '' && !ids.includes(value))
+								.map(({ value }) => ({ id: value }));
+							obj[relationKey || ''] = {
+								connect,
+								disconnect
+							};
+						}
+						if (!isList) {
+							obj[key || ''] = row[key];
+						}
 					}
-					if (!isList) {
-						obj[key || ''] = row[key];
-					}
-				}
-				return obj;
-			}, {});
+					return obj;
+				},
+				{ id: row.id }
+			);
 	let originalRows: Row[] = $state([]);
 	const removeNonSchemaKeys = (row: Row) =>
 		Object.keys(row)
