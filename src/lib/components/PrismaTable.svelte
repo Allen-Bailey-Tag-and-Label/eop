@@ -37,7 +37,13 @@
 		Tr
 	} from '$lib/components';
 	import format from '$lib/format';
-	import type { Column, Paginate, Row, SanitizedColumn, SnippetProps } from '$lib/prismaTable/types';
+	import type {
+		Column,
+		Paginate,
+		Row,
+		SanitizedColumn,
+		SnippetProps
+	} from '$lib/prismaTable/types';
 	import type { Snippet } from 'svelte';
 
 	type Props = {
@@ -154,7 +160,7 @@
 	const toolbar: Record<string, any> = $state({
 		create: {
 			modal: {
-				data:{}
+				data: {}
 			}
 		},
 		delete: {
@@ -193,10 +199,18 @@
 				if (sanitizedColumn.type === 'DateTime') {
 					sanitizedColumn.snippet = DateTime;
 				}
+				if (sanitizedColumn.type === 'DateTimeLocal') {
+					sanitizedColumn.snippet = DateTimeLocal;
+				}
 				if (sanitizedColumn.type === 'Int') {
 					sanitizedColumn.snippet = Int;
 				}
-				sanitizedColumn = Object.assign(sanitizedColumn, columnOverrides !== undefined && columnOverrides.has(sanitizedColumn.key) ? columnOverrides.get(sanitizedColumn.key) : {})
+				sanitizedColumn = Object.assign(
+					sanitizedColumn,
+					columnOverrides !== undefined && columnOverrides.has(sanitizedColumn.key)
+						? columnOverrides.get(sanitizedColumn.key)
+						: {}
+				);
 				return sanitizedColumn;
 			})
 			.sort((a, b) => {
@@ -321,76 +335,72 @@
 	<Div class="flex justify-end space-x-2 px-6 py-3">
 		{#if DeleteToolbar}
 			{@render DeleteToolbar()}
-		{:else}
-			{#if isDeletable}
-				<Div>
-					<Button
-						disabled={!rowsAreSelected}
-						onclick={toolbar.delete.modal.toggle}
-						variants={['default', 'icon', 'error']}
+		{:else if isDeletable}
+			<Div>
+				<Button
+					disabled={!rowsAreSelected}
+					onclick={toolbar.delete.modal.toggle}
+					variants={['default', 'icon', 'error']}
+				>
+					<Icon src={Trash} />
+				</Button>
+				<Modal bind:toggle={toolbar.delete.modal.toggle}>
+					<Form
+						action="?/delete"
+						use={[
+							[
+								enhance,
+								() => {
+									return ({ update }: { update: any }) => {
+										toolbar.delete.modal.toggle();
+										update();
+									};
+								}
+							]
+						]}
 					>
-						<Icon src={Trash} />
-					</Button>
-					<Modal bind:toggle={toolbar.delete.modal.toggle}>
-						<Form
-							action="?/delete"
-							use={[
-								[
-									enhance,
-									() => {
-										return ({ update }: { update: any }) => {
-											toolbar.delete.modal.toggle();
-											update();
-										};
-									}
-								]
-							]}
-						>
-							<Icon class="mx-auto h-[5rem] w-[5rem] text-red-500" src={ExclamationTriangle} />
-							<P class="mx-auto">
-								Are you sure you want to delete the selected item{selectedRows.length !== 1 ? 's' : ''}?
-							</P>
-							<Input
-								class="absolute left-0 top-0 h-0 w-0 opacity-0"
-								name="ids"
-								type="hidden"
-								value={JSON.stringify(
-									[...sanitizedRows].filter((row, i) => row._isSelected).map((row) => row.id)
-								)}
-							/>
-							<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-								<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}
-									>
-									Cancel
-									</Button
-								>
-								<Button type="submit" variants={['default', 'error']}>Delete</Button>
-							</Div>
-						</Form>
-					</Modal>
-				</Div>
-			{/if}
+						<Icon class="mx-auto h-[5rem] w-[5rem] text-red-500" src={ExclamationTriangle} />
+						<P class="mx-auto">
+							Are you sure you want to delete the selected item{selectedRows.length !== 1
+								? 's'
+								: ''}?
+						</P>
+						<Input
+							class="absolute left-0 top-0 h-0 w-0 opacity-0"
+							name="ids"
+							type="hidden"
+							value={JSON.stringify(
+								[...sanitizedRows].filter((row, i) => row._isSelected).map((row) => row.id)
+							)}
+						/>
+						<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+							<Button onclick={toolbar.delete.modal.toggle} variants={['default', 'contrast']}>
+								Cancel
+							</Button>
+							<Button type="submit" variants={['default', 'error']}>Delete</Button>
+						</Div>
+					</Form>
+				</Modal>
+			</Div>
 		{/if}
 		{#if SaveToolbar}
 			{@render SaveToolbar()}
-		{:else}
-			{#if isSavable}
-				<Form action="?/save" use={[[enhance]]}>
-					<Button
-						class="grid grid-cols-1 grid-rows-1"
-						disabled={!saveIsNeeded}
-						type="submit"
-						variants={['default', 'icon', 'success']}
-					>
-						<Icon src={Check} />
-					</Button>
-					<Input
-						class="absolute left-0 top-0 h-0 w-0 opacity-0"
-						name="updates"
-						value={JSON.stringify(rowsNeedingUpdates)}
-					/>
-				</Form>
-			{/if}
+		{:else if isSavable}
+			<Form action="?/save" use={[[enhance]]}>
+				<Button
+					class="grid grid-cols-1 grid-rows-1"
+					disabled={!saveIsNeeded}
+					type="submit"
+					variants={['default', 'icon', 'success']}
+				>
+					<Icon src={Check} />
+				</Button>
+				<Input
+					class="absolute left-0 top-0 h-0 w-0 opacity-0"
+					name="updates"
+					value={JSON.stringify(rowsNeedingUpdates)}
+				/>
+			</Form>
 		{/if}
 		{#if SettingsToolbar}
 			{@render SettingsToolbar()}
@@ -457,55 +467,70 @@
 		{/if}
 		{#if CreateToolbar}
 			{@render CreateToolbar()}
-		{:else}
-			{#if isCreatable}
-				<Button onclick={() => {
-					toolbar.create.modal.data = sanitizedColumns.reduce((obj:Row, {key, type}) => {
-						if (['createdAt', 'updatedAt'].includes(key)) return obj;
+		{:else if isCreatable}
+			<Button
+				onclick={() => {
+					toolbar.create.modal.data = sanitizedColumns.reduce((obj: Row, { key, type }) => {
+						if (['createdAt', 'createdById', 'updatedAt'].includes(key)) return obj;
 						if (type === 'Boolean') obj[key] = false;
 						if (type === 'Currency') obj[key] = 0;
 						if (type === 'DateTime') obj[key] = Luxon.now();
 						if (type === 'Int') obj[key] = 0;
 						if (type === 'String') obj[key] = '';
 						return obj;
-					},{})
+					}, {});
 					toolbar.create.modal.open();
-				}} variants={['default', 'icon']}>
-					<Icon src={Plus} />
-				</Button>
-				<Modal
-					bind:close={toolbar.create.modal.close}
-					bind:open={toolbar.create.modal.open}
-					bind:toggle={toolbar.create.modal.toggle}
+				}}
+				variants={['default', 'icon']}
+			>
+				<Icon src={Plus} />
+			</Button>
+			<Modal
+				bind:close={toolbar.create.modal.close}
+				bind:open={toolbar.create.modal.open}
+				bind:toggle={toolbar.create.modal.toggle}
+			>
+				<Form
+					action="?/create"
+					use={[
+						[
+							enhance,
+							() => {
+								return async ({ update }: { update: any }) => {
+									toolbar.create.modal.close();
+									update();
+								};
+							}
+						]
+					]}
 				>
-					<Form action="?/create" use={[[enhance, () => {
-						return async({update}:{update:any}) => {
-							toolbar.create.modal.close();
-							update();
-						}
-					}]]}>
-						<Table>
-							<Tbody>
-
+					<Table>
+						<Tbody>
 							{#each sanitizedColumns as { isEditable, isVisible, key, relationOptions, snippet }}
-								{#if !['createdAt', 'updatedAt'].includes(key)}
+								{#if !['createdAt', 'createdById', 'updatedAt'].includes(key)}
 									<Tr>
 										<Td>{key}</Td>
-										{@render snippet({ isEditable, isVisible, name:key, object:toolbar.create.modal.data, key, relationOptions })}
+										{@render snippet({
+											isEditable,
+											isVisible,
+											name: key,
+											object: toolbar.create.modal.data,
+											key,
+											relationOptions
+										})}
 									</Tr>
 								{/if}
 							{/each}
-							</Tbody>
-						</Table>
-						<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
-							<Button onclick={toolbar.create.modal.close} variants={['default', 'contrast']}>
-								Cancel
-							</Button>
-							<Button type="submit">Create</Button>
-						</Div>
-					</Form>
-				</Modal>
-			{/if}
+						</Tbody>
+					</Table>
+					<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+						<Button onclick={toolbar.create.modal.close} variants={['default', 'contrast']}>
+							Cancel
+						</Button>
+						<Button type="submit">Create</Button>
+					</Div>
+				</Form>
+			</Modal>
 		{/if}
 	</Div>
 	<Card class="relative overflow-auto rounded-none p-0 shadow-none dark:shadow-none">
@@ -591,7 +616,15 @@
 							</Td>
 						{/if}
 						{#each sanitizedColumns as { isEditable, isVisible, key, relationOptions, snippet }}
-							{@render snippet({ isEditable, isVisible, object:paginatedRows[rowIndex], key, relationOptions, row, rowIndex })}
+							{@render snippet({
+								isEditable,
+								isVisible,
+								object: paginatedRows[rowIndex],
+								key,
+								relationOptions,
+								row,
+								rowIndex
+							})}
 						{/each}
 					</Tr>
 				{/each}
@@ -654,7 +687,7 @@
 		</Td>
 	{/if}
 {/snippet}
-{#snippet Currency({isEditable, isVisible, name, object, key}:SnippetProps)}
+{#snippet Currency({ isEditable, isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
@@ -671,18 +704,18 @@
 		</Td>
 	{/if}
 {/snippet}
-{#snippet DateTime({ isVisible, name, object, key }: SnippetProps)}
+{#snippet DateTime({ isEditable, isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
 				bind:value={() => {
-					const string = Luxon.fromJSDate(new Date(object[key])).toFormat("yyyy-MM-dd")
-					return string
+					const string = Luxon.fromJSDate(new Date(object[key])).toFormat('yyyy-MM-dd');
+					return string;
 				},
 				(string) => {
-					const date = new Date(string)
-					object[key] = date
-					return date
+					const date = new Date(string);
+					object[key] = date;
+					return date;
 				}}
 				class="w-full rounded-none bg-transparent dark:bg-transparent"
 				{name}
@@ -695,7 +728,31 @@
 		</Td>
 	{/if}
 {/snippet}
-{#snippet Int({ isVisible, name, object, key }: SnippetProps)}
+{#snippet DateTimeLocal({ isEditable, isVisible, name, object, key }: SnippetProps)}
+	{#if isEditable}
+		<Td class="p-0" {isVisible}>
+			<Input
+				bind:value={() => {
+					const string = Luxon.fromJSDate(new Date(object[key])).toFormat("yyyy-MM-dd'T'HH:mm");
+					return string;
+				},
+				(string) => {
+					const date = new Date(string);
+					object[key] = date;
+					return date;
+				}}
+				class="w-full rounded-none bg-transparent dark:bg-transparent"
+				{name}
+				type="datetime-local"
+			/>
+		</Td>
+	{:else}
+		<Td class="text-right" {isVisible}>
+			{Luxon.fromJSDate(new Date(object[key])).toFormat('M/d/yyyy hh:mm a')}
+		</Td>
+	{/if}
+{/snippet}
+{#snippet Int({ isEditable, isVisible, name, object, key }: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Input
@@ -711,18 +768,34 @@
 		</Td>
 	{/if}
 {/snippet}
-{#snippet RelationIsList({ isEditable, isVisible, name, object, key, relationOptions }: SnippetProps)}
+{#snippet RelationIsList({
+	isEditable,
+	isVisible,
+	name,
+	object,
+	key,
+	relationOptions
+}: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<MultiSelect bind:value={object[key]} {name} options={relationOptions} />
 		</Td>
 	{:else}
 		<Td {isVisible}>
-			{object[key].map(string => relationOptions.find(({value}) => value === string)?.label || '').join(', ')}
+			{object[key]
+				.map((string) => relationOptions.find(({ value }) => value === string)?.label || '')
+				.join(', ')}
 		</Td>
 	{/if}
 {/snippet}
-{#snippet RelationIsNotList({ isEditable, isVisible, name, object, key, relationOptions }: SnippetProps)}
+{#snippet RelationIsNotList({
+	isEditable,
+	isVisible,
+	name,
+	object,
+	key,
+	relationOptions
+}: SnippetProps)}
 	{#if isEditable}
 		<Td class="p-0" {isVisible}>
 			<Select
@@ -734,7 +807,7 @@
 		</Td>
 	{:else}
 		<Td {isVisible}>
-			{relationOptions.find(({value}) => value === object[key])?.label || ''}
+			{relationOptions.find(({ value }) => value === object[key])?.label || ''}
 		</Td>
 	{/if}
 {/snippet}
