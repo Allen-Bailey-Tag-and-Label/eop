@@ -54,6 +54,8 @@
 		'error',
 		'ring-offset-red-500 dark:ring-offset-red-500 hover:ring-offset-red-500 focus:ring-offset-red-500 dark:hover:ring-offset-red-500 dark:focus:ring-offset-red-500 focus:ring-red-500/30 dark:focus:ring-red-500/30'
 	);
+	theme.updateComponentVariant('modal', 'default', 'z-[200]');
+	theme.updateComponentVariant('overlay', 'default', 'z-[200]');
 	theme.updateComponentVariant(
 		'select',
 		'default',

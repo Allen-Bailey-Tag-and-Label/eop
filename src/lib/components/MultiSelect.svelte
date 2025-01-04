@@ -119,7 +119,7 @@
 		<Overlay class="lg:opacity-0" {isVisible} />
 		<Card
 			class={twMerge(
-				'fixed flex flex-col overflow-auto px-0 py-5 transition duration-200',
+				'fixed z-[200] flex flex-col overflow-auto rounded-none px-0 py-5 transition duration-200',
 				isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
 			)}
 			{style}

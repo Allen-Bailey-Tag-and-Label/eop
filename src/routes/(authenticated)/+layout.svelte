@@ -4,7 +4,7 @@
 	import { ChevronDown } from 'sveltewind/icons';
 	import { twMerge } from 'tailwind-merge';
 	import { page } from '$app/stores';
-	import { A, Button, Card, Div, Drawer, Header, Icon } from '$lib/components';
+	import { A, Button, Card, Div, Drawer, Header, Icon, Overlay } from '$lib/components';
 	import type { LayoutServerData } from '../$types.js';
 
 	type Props = {
@@ -65,9 +65,12 @@
 		</Button>
 		<Drawer
 			bind:isVisible
-			class="w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[25rem] lg:max-w-full"
+			class="z-[1] w-full max-w-[calc(100dvw_-_2rem)] lg:w-auto lg:min-w-[25rem] lg:max-w-full"
 			position="left"
 		>
+			{#snippet OverlaySnippet()}
+				<Overlay bind:isVisible class="z-[1]" onclick={() => (isVisible = false)} />
+			{/snippet}
 			<Card
 				class="flex flex-grow flex-col overflow-auto rounded-none p-0 pwa:pb-[env(safe-area-inset-bottom)] pwa:pt-[env(safe-area-inset-top)] lg:pwa:pb-[0] lg:pwa:pt-[0]"
 			>
