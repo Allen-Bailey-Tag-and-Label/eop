@@ -60,6 +60,11 @@
 		'pr-8 border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
 	);
 	theme.updateComponentVariant('table', 'default', 'bg-transparent dark:bg-transparent');
+	theme.updateComponentVariant(
+		'textarea',
+		'default',
+		'border-none bg-slate-950/5 ring-offset-transparent dark:ring-offset-transparent hover:ring-offset-primary-500 focus:ring-offset-1 focus:ring-offset-primary-500 focus:ring-primary-500/30 dark:bg-slate-50/[.025] focus:ring'
+	);
 	theme.updateComponentVariant('tr', 'default', 'even:bg-slate-50 dark:even:bg-slate-900');
 </script>
 
