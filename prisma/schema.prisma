@@ -22,7 +22,7 @@ model Customer {
   createdBy       User              @relation(fields: [createdById], references: [id])
   createdById     String            @default("65cf714143abe8bc908d8096") @db.ObjectId
   crmInteractions CRMInteraction[]
-  ennisNumber     Int
+  ennisNumber     Int               @unique
   label           String
   state           String
   territory       CustomerTerritory @relation(fields: [territoryId], references: [id])
@@ -48,7 +48,7 @@ model CustomerTerritory {
   createdBy   User       @relation(fields: [createdById], references: [id])
   createdById String     @default("65cf714143abe8bc908d8096") @db.ObjectId
   customers   Customer[]
-  label       String
+  label       String     @unique
   updatedAt   DateTime?  @updatedAt
 }
 
@@ -71,7 +71,7 @@ model CRMInteractionType {
   createdAt    DateTime?        @default(now())
   createdBy    User             @relation(fields: [createdById], references: [id])
   createdById  String           @default("65cf714143abe8bc908d8096") @db.ObjectId
-  label        String
+  label        String           @unique
   interactions CRMInteraction[]
   updatedAt    DateTime?        @updatedAt
 }
@@ -120,7 +120,7 @@ model Role {
   createdAt   DateTime? @default(now())
   createdBy   User      @relation(name: "createdByRole", fields: [createdById], references: [id])
   createdById String    @default("65cf714143abe8bc908d8096") @db.ObjectId
-  label       String
+  label       String    @unique
   routes      Route[]   @relation(fields: [routeIds], references: [id])
   routeIds    String[]  @db.ObjectId
   updatedAt   DateTime? @updatedAt
@@ -133,7 +133,7 @@ model Route {
   createdAt   DateTime? @default(now())
   createdBy   User      @relation(fields: [createdById], references: [id])
   createdById String    @default("65cf714143abe8bc908d8096") @db.ObjectId
-  href        String
+  href        String    @unique
   group       String
   label       String
   roles       Role[]    @relation(fields: [roleIds], references: [id])
@@ -173,7 +173,7 @@ model UserProfile {
   createdBy           User          @relation(name: "createdByUserProfile", fields: [createdById], references: [id])
   createdById         String        @default("65cf714143abe8bc908d8096") @db.ObjectId
   dateOfHire          DateTime      @default(now())
-  employeeNumber      Int           @default(0)
+  employeeNumber      Int           @unique @default(0)
   emailSignatureTitle String        @default("")
   extension           Int           @default(0)
   firstName           String
