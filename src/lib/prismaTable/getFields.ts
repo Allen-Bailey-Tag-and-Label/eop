@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { getModels } from './getModels';
 
 export const getFields = (modelName: string) =>
-	Prisma.dmmf.datamodel.models.find((model) => model.name === modelName)?.fields || [];
+	getModels().find((model) => model.name === modelName)?.fields || [];
