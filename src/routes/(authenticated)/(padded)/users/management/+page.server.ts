@@ -35,6 +35,7 @@ const { actions, load } = await pageServer({
 			}
 		]
 	]),
+	columnOrder: ['isActive', 'username', 'passwordHash', 'roleIds'],
 	columnOverrides: new Map([['passwordHash', { label: 'password', type: 'Password' }]]),
 	modelName: 'User',
 	sortKey: 'username'

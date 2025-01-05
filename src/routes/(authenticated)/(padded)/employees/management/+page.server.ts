@@ -1,7 +1,16 @@
 import { pageServer } from '$lib/prismaTable';
 
 const { actions, load } = await pageServer({
-	columnOrder: ['firstName', 'lastName'],
+	columnOrder: [
+		'firstName',
+		'lastName',
+		'dateOfHire',
+		'emailSignatureTitle',
+		'employeeNumber',
+		'extension',
+		'subordinateIds',
+		'supervisorId'
+	],
 	modelName: 'UserProfile',
 	relationLabelFns: new Map([
 		['subordinates', ({ firstName, lastName }) => `${firstName} ${lastName}`],
