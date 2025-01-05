@@ -324,8 +324,6 @@
 		)
 			updateSanitizePaginate();
 	});
-
-	$inspect(toolbar.create.modal.data);
 </script>
 
 <svelte:window
