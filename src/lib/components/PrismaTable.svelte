@@ -324,6 +324,8 @@
 		)
 			updateSanitizePaginate();
 	});
+
+	$inspect(toolbar.create.modal.data);
 </script>
 
 <svelte:window
@@ -476,15 +478,19 @@
 		{:else if isCreatable}
 			<Button
 				onclick={() => {
-					toolbar.create.modal.data = sanitizedColumns.reduce((obj: Row, { key, type }) => {
-						if (['createdAt', 'createdById', 'updatedAt'].includes(key)) return obj;
-						if (type === 'Boolean') obj[key] = false;
-						if (type === 'Currency') obj[key] = 0;
-						if (type === 'DateTime') obj[key] = Luxon.now();
-						if (type === 'Int') obj[key] = 0;
-						if (type === 'String') obj[key] = '';
-						return obj;
-					}, {});
+					toolbar.create.modal.data = sanitizedColumns.reduce(
+						(obj: Row, { isRelational, key, relationKey, type }) => {
+							if (['createdAt', 'createdById', 'updatedAt'].includes(key)) return obj;
+							const objectKey = key;
+							if (type === 'Boolean') obj[objectKey] = false;
+							if (type === 'Currency') obj[objectKey] = 0;
+							if (type === 'DateTime') obj[objectKey] = Luxon.now();
+							if (type === 'Int') obj[objectKey] = 0;
+							if (type === 'String') obj[objectKey] = '';
+							return obj;
+						},
+						{}
+					);
 					toolbar.create.modal.open();
 				}}
 				variants={['default', 'icon']}
@@ -512,7 +518,7 @@
 				>
 					<Table>
 						<Tbody>
-							{#each sanitizedColumns as { isEditable, isVisible, key, relationOptions, snippet }}
+							{#each sanitizedColumns as { isEditable, isRelational, isVisible, key, relationKey, relationOptions, snippet }}
 								{#if !['createdAt', 'createdById', 'updatedAt'].includes(key)}
 									<Tr>
 										<Td>{key}</Td>

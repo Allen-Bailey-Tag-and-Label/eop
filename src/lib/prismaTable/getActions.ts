@@ -21,7 +21,7 @@ type Params = {
 	modelName: string;
 };
 
-const createLog = async ({
+const createLog = ({
 	data,
 	model,
 	route,
@@ -33,17 +33,16 @@ const createLog = async ({
 	route: string;
 	userId: string;
 	type: string;
-}) => {
-	await prisma.log.create({
+}) =>
+	prisma.log.create({
 		data: {
+			createdBy: { connect: { id: userId } },
 			data,
 			model,
 			route,
-			userId,
 			type
 		}
 	});
-};
 
 export const getActions = ({
 	actions,
@@ -62,27 +61,57 @@ export const getActions = ({
 				route: { id: route }
 			}: ActionParams) => {
 				const formData = <Record<string, any>>Object.fromEntries(await request.formData());
-				const data = fields.reduce(
-					(data: Record<string, any>, { isId, isList, isRequired, name, type }: Field) => {
-						if (['createdAt', 'createdById', 'updatedAt'].includes(name)) return data;
-						if (!isId) {
-							if (type === 'Boolean') data[name] = formData[name] === 'true' || false;
-							if (type === 'DateTime')
-								data[name] = DateTime.fromFormat(
-									formData[name] || DateTime.fromJSDate(new Date(0)).toFormat('yyyy-MM-dd'),
-									'yyyy-MM-dd'
-								).toJSDate();
-							if (type === 'Int') data[name] = +formData[name] || 0;
-							if (type === 'String') {
-								data[name] = formData[name] || '';
-							}
-							if (isList && data[name] !== undefined)
-								data[name] = data[name] === '' ? [] : [data[name]];
+				const data = Object.keys(formData).reduce(
+					(data: Record<string, any>, key: string) => {
+						const field = fields.find(({ name }) => name === key);
+						if (field === undefined) return data;
+						const { isList, name, type } = field;
+						if (type === 'Boolean') data[name] = formData[name] === 'on' || false;
+						if (type === 'DateTime')
+							data[name] = DateTime.fromFormat(
+								formData[name] || DateTime.fromJSDate(new Date(0)).toFormat('yyyy-MM-dd'),
+								'yyyy-MM-dd'
+							).toJSDate();
+						if (type === 'Int') data[name] = +formData[name] || 0;
+						if (type === 'String') {
+							data[name] = formData[name] || '';
 						}
-						if (data[name] === '' && !isRequired) delete data[name];
+						if (isList && data[name] !== undefined)
+							data[name] = data[name] === '' ? [] : [data[name]];
 						return data;
 					},
-					{ createdById: userId }
+					Object.assign(
+						fields
+							.filter(
+								({ hasDefaultValue, isId, isRequired, name, relationName }) =>
+									!['createdAt', 'createdById', 'updatedAt'].includes(name) &&
+									!hasDefaultValue &&
+									!isId &&
+									isRequired &&
+									relationName === undefined
+							)
+							.reduce((data: Record<string, any>, { isList, name, type }) => {
+								let isRelational = false;
+								let key = name;
+								if (fieldsRequiringRelation.has(name)) {
+									const { key: relationKey } = fieldsRequiringRelation.get(name) || {};
+									if (relationKey) key = relationKey;
+									isRelational = true;
+								}
+								data[key] = '';
+
+								if (type === 'Boolean') data[key] = false;
+								if (type === 'DateTime') data[key] = new Date(0);
+								if (type === 'Int') data[key] = 0;
+
+								if (isList) data[key] = [];
+
+								if (isRelational) data[key] = {};
+
+								return data;
+							}, {}),
+						{ createdBy: { connect: { id: userId } } }
+					)
 				);
 				await Promise.all([
 					// @ts-ignore
@@ -162,14 +191,12 @@ export const getActions = ({
 					),
 					prisma.$transaction(
 						JSON.parse(updates).map(({ id, ...data }: { id: string; data: Record<any, any> }) => {
-							return prisma.log.create({
-								data: {
-									data: JSON.stringify(data),
-									model: modelName,
-									route: route || '',
-									userId,
-									type: 'update'
-								}
+							return createLog({
+								data: JSON.stringify(data),
+								model: modelName,
+								route: route || '',
+								userId,
+								type: 'update'
 							});
 						})
 					)

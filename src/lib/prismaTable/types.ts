@@ -16,10 +16,18 @@ export type Column = {
 };
 export type Field = {
 	hasDefaultValue: boolean;
+	isGenerated: boolean;
 	isId: boolean;
 	isList: boolean;
+	isReadOnly: boolean;
 	isRequired: boolean;
+	isUnique: boolean;
+	isUpdatedAt: boolean;
+	kind: string;
 	name: string;
+	relationName?: string;
+	relationFromFields?: string[];
+	relationToFields?: string[];
 	type: string;
 };
 export type Paginate = {
