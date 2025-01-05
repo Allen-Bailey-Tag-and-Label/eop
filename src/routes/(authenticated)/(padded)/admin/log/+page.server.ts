@@ -4,6 +4,7 @@ const { actions, load } = await pageServer({
 	columnOrder: ['model', 'type', 'data', 'route'],
 	isCreatable: false,
 	isDeletable: false,
+	isEditable: false,
 	isSavable: false,
 	modelName: 'Log',
 	relationLabelFns: new Map([['user', ({ username }) => username]]),
