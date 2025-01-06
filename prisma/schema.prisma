@@ -142,6 +142,8 @@ model Route {
 model User {
   id                           String               @id @default(auto()) @map("_id") @db.ObjectId
   createdAt                    DateTime             @default(now())
+  createdBy                    User?                @relation(name: "createdByUser", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdById                  String?              @db.ObjectId
   createdByCRMInteractions     CRMInteraction[]
   createdByCustomers           Customer[]
   createdByCustomerContacts    CustomerContact[]
@@ -151,6 +153,7 @@ model User {
   createdByQuoteMarginQuotes   QuoteMarginQuote[]
   createdByRoles               Role[]               @relation(name: "createdByRole")
   createdByRoutes              Route[]
+  createdByUsers               User[]               @relation(name: "createdByUser")
   createdByUserProfiles        UserProfile[]        @relation(name: "createdByUserProfile")
   isActive                     Boolean              @default(false)
   passwordHash                 String

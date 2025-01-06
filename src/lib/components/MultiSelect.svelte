@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Checkbox, Div, Icon, Input, Overlay, Portal } from '$lib/components';
+	import { Card, Checkbox, Div, Icon, Overlay, Portal, Select } from '$lib/components';
 	import { fade } from 'svelte/transition';
 	import { theme } from 'sveltewind';
 	import { clickOutside } from 'sveltewind/actions';
@@ -81,6 +81,15 @@
 		return string;
 	});
 
+	// $derives
+	const sortedValue = $derived(
+		[...value].sort((a: any, b: any) => {
+			const aLabel = options.find((option) => option.value === a)?.label || '';
+			const bLabel = options.find((option) => option.value === b)?.label || '';
+			return aLabel.localeCompare(bLabel);
+		})
+	);
+
 	// $effects
 	$effect(() => {
 		if (isVisible === undefined) isVisible = false;
@@ -101,7 +110,7 @@
 	}}
 >
 	<Div class="-ml-2 flex items-center">
-		{#each value as valueItem}
+		{#each sortedValue as valueItem}
 			{@const label = options.find((option) => option.value === valueItem)?.label || ''}
 			<Div
 				class="ml-2 mt-2 flex select-none flex-row items-center rounded bg-primary-500 px-1 py-0 text-sm font-normal text-white"
@@ -132,7 +141,7 @@
 				]
 			]}
 		>
-			<Input class="absolute left-0 top-0 h-0 w-0 opacity-0" {name} {value} />
+			<Select class="absolute left-0 top-0 h-0 w-0 opacity-0" {name} multiple {value} />
 			{#each options as option}
 				{@const checked = value.includes(option.value)}
 				{#if option.value !== ''}

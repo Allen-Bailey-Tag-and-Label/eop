@@ -1,15 +1,9 @@
 import { prisma } from '$lib/prisma';
 import { type Actions } from '@sveltejs/kit';
-import type { ActionParams, Field } from './types';
+import type { ActionParams, Field, PageServer } from './types';
 import { DateTime } from 'luxon';
 
-type Params = {
-	actions?: Map<
-		string,
-		({ request }: ActionParams) => Promise<{
-			success: boolean;
-		}>
-	>;
+type Params = Pick<PageServer, 'actions' | 'modelName'> & {
 	fields: Field[];
 	fieldsRequiringRelation: Map<
 		string,
@@ -18,7 +12,6 @@ type Params = {
 			model: string;
 		}
 	>;
-	modelName: string;
 };
 
 const createLog = ({
@@ -69,8 +62,14 @@ export const getActions = ({
 						if (type === 'Boolean') data[name] = formData[name] === 'on' || false;
 						if (type === 'DateTime')
 							data[name] = DateTime.fromFormat(
-								formData[name] || DateTime.fromJSDate(new Date(0)).toFormat('yyyy-MM-dd'),
-								'yyyy-MM-dd'
+								formData[name] ||
+									DateTime.fromJSDate(new Date(0), {
+										zone: 'America/New_York'
+									}).toFormat('yyyy-MM-dd'),
+								'yyyy-MM-dd',
+								{
+									zone: 'America/New_York'
+								}
 							).toJSDate();
 						if (type === 'Int') data[name] = +formData[name] || 0;
 						if (type === 'String') {

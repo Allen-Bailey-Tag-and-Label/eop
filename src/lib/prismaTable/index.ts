@@ -1,3 +1,4 @@
+export { filterOperands } from './filterOperands';
 export { getActions } from './getActions';
 export { getFields } from './getFields';
 export { getFieldsRequiringRelation } from './getFieldsRequiringRelation';

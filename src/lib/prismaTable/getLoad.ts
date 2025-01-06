@@ -1,22 +1,16 @@
 import { prisma } from '$lib/prisma';
-import type { Column, Paginate, RelationLabelFns } from './types';
+import type { Column, Field, PageServer } from './types';
 
-type Paramaters = {
-	columnOmits?: string[];
-	columnOrder?: string[];
-	columnOverrides?: Map<string, Partial<Column>>;
-	fields: any;
-	fieldsRequiringRelation: any;
+type Paramaters = PageServer & {
+	fields: Field[];
+	fieldsRequiringRelation: Map<
+		string,
+		{
+			key: string;
+			model: string;
+		}
+	>;
 	formulaColumns?: Map<string, Partial<Column> & { formula: (row: any) => any }>;
-	isCreatable?: boolean;
-	isDeletable?: boolean;
-	isEditable?: boolean;
-	isSavable?: boolean;
-	modelName: string;
-	paginate?: boolean | Pick<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
-	relationLabelFns?: RelationLabelFns;
-	sortDirection?: -1 | 1;
-	sortKey?: string;
 };
 
 export const getLoad = async ({
@@ -25,10 +19,12 @@ export const getLoad = async ({
 	columnOverrides,
 	fields,
 	fieldsRequiringRelation,
+	filters,
 	formulaColumns,
 	isCreatable,
 	isDeletable,
 	isEditable,
+	isFilterable,
 	isSavable,
 	modelName,
 	paginate,
@@ -47,7 +43,9 @@ export const getLoad = async ({
 					.map(async ({ isList, name, type }: { isList: boolean; name: string; type: string }) => {
 						const column: Column = Object.assign(
 							{
+								isCreatable: isCreatable === undefined ? true : isCreatable,
 								isEditable: isEditable === undefined ? true : isEditable,
+								isFilterable: isFilterable === undefined ? true : isFilterable,
 								isList: false,
 								isRelational: false,
 								isVisible: true,
@@ -100,11 +98,13 @@ export const getLoad = async ({
 	const getRows = <Record<string, any>[]>prisma[modelName].findMany();
 
 	return {
-		columnOrder,
+		columnOrder: columnOrder || [],
 		columns: getColumns,
+		filters: filters || [],
 		isCreatable: isCreatable === undefined ? true : isCreatable,
 		isDeletable: isDeletable === undefined ? true : isDeletable,
 		isEditable: isEditable === undefined ? true : isEditable,
+		isFilterable: isFilterable === undefined ? true : isFilterable,
 		isSavable: isSavable === undefined ? true : isSavable,
 		paginate: paginate === undefined ? true : paginate,
 		rows: getRows,

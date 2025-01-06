@@ -36,7 +36,13 @@ const { actions, load } = await pageServer({
 		]
 	]),
 	columnOrder: ['isActive', 'username', 'passwordHash', 'roleIds'],
-	columnOverrides: new Map([['passwordHash', { label: 'password', type: 'Password' }]]),
+	columnOverrides: new Map([
+		[
+			'passwordHash',
+			{ isCreatable: false, isFilterable: false, label: 'password', type: 'Password' }
+		]
+	]),
+	filters: [{ key: 'isActive', operand: 'is', value: true }],
 	modelName: 'User',
 	sortKey: 'username'
 });

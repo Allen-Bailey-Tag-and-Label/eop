@@ -11,6 +11,7 @@
 		ChevronRight,
 		Cog6Tooth,
 		ExclamationTriangle,
+		Funnel,
 		Plus,
 		Trash
 	} from 'sveltewind/icons';
@@ -37,8 +38,11 @@
 		Tr
 	} from '$lib/components';
 	import format from '$lib/format';
+	import { filterOperands } from '$lib/prismaTable';
 	import type {
 		Column,
+		Filter,
+		PageServer,
 		Paginate,
 		Row,
 		SanitizedColumn,
@@ -46,22 +50,14 @@
 	} from '$lib/prismaTable/types';
 	import type { Snippet } from 'svelte';
 
-	type Props = {
-		columnOrder: string[];
-		columnOverrides?: Map<string, Partial<Column>>;
+	type Props = Omit<PageServer, 'actions' | 'columnOmits' | 'modelName' | 'relationLabelFns'> & {
 		columns: Column[];
+		rows: Row[];
 		CreateToolbar?: Snippet;
 		DeleteToolbar?: Snippet;
-		isCreatable: boolean;
-		isDeletable: boolean;
-		isEditable: boolean;
-		isSavable: boolean;
-		paginate: boolean | Omit<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
-		rows: Row[];
+		FilterToolbar?: Snippet;
 		SaveToolbar: Snippet;
 		SettingsToolbar?: Snippet;
-		sortDirection: -1 | 1;
-		sortKey: string;
 		UpdateToolbar?: Snippet;
 	};
 
@@ -71,9 +67,12 @@
 		columns = [],
 		CreateToolbar,
 		DeleteToolbar,
+		filters = $bindable([]),
+		FilterToolbar,
 		isCreatable = $bindable(true),
 		isDeletable = $bindable(true),
 		isEditable = $bindable(true),
+		isFilterable = $bindable(true),
 		isSavable = $bindable(true),
 		paginate = $bindable(true),
 		rows = [],
@@ -85,6 +84,192 @@
 	}: Props = $props();
 	let allRowsAreSelected = $state(false);
 	const defaultColumnWidth = 229;
+	const filterRow = (row: Row, index: number) => {
+		let isValidRow = true;
+		if (rowHasBeenModified({ index, newRows: sanitizedRows, originalRows: originalRows }))
+			return true;
+		for (const { key, operand, value } of filters) {
+			const sanitizedColumn = sanitizedColumns.find(
+				(sanitizedColumn) => sanitizedColumn.key === key
+			);
+			if (sanitizedColumn === undefined) return false;
+			const { isList, isRelational, type } = sanitizedColumn;
+			if (isList && isRelational && Array.isArray(value)) {
+				if (
+					(operand === 'contains' && !value.some((string: string) => row[key].includes(string))) ||
+					(operand === 'does not contain' &&
+						value.some((string: string) => row[key].includes(string))) ||
+					(operand === 'is' && !value.every((string: string) => row[key].includes(string))) ||
+					(operand === 'is not' && value.every((string: string) => row[key].includes(string)))
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+			if (!isList && isRelational && Array.isArray(value)) {
+				if (
+					(operand === 'is' && row[key] !== value) ||
+					(operand === 'is not' && row[key] === value)
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+			if (type === 'Boolean' && typeof value === 'boolean' && !isRelational) {
+				if (
+					(operand === 'is' && row[key] !== value) ||
+					(operand === 'is not' && row[key] === value)
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+			if (
+				type === 'DateTime' &&
+				typeof value === 'object' &&
+				!Array.isArray(value) &&
+				!isRelational
+			) {
+				if (
+					(operand === 'is' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).startOf('day').toMillis() !==
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).startOf('day').toMillis()) ||
+					(operand === 'is after' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).startOf('day').toMillis() <=
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).startOf('day').toMillis()) ||
+					(operand === 'is after or equal to' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).startOf('day').toMillis() <
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).startOf('day').toMillis()) ||
+					(operand === 'is before' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).startOf('day').toMillis() >=
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).startOf('day').toMillis()) ||
+					(operand === 'is before or equal to' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).startOf('day').toMillis() >
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).startOf('day').toMillis()) ||
+					(operand === 'is not' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).startOf('day').toMillis() ===
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).startOf('day').toMillis())
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+			if (
+				type === 'DateTimeLocal' &&
+				typeof value === 'object' &&
+				!Array.isArray(value) &&
+				!isRelational
+			) {
+				if (
+					(operand === 'is' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).toMillis() !==
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).toMillis()) ||
+					(operand === 'is after' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).toMillis() <=
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).toMillis()) ||
+					(operand === 'is after or equal to' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).toMillis() <
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).toMillis()) ||
+					(operand === 'is before' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).toMillis() >=
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).toMillis()) ||
+					(operand === 'is before or equal to' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).toMillis() >
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).toMillis()) ||
+					(operand === 'is not' &&
+						Luxon.fromISO(row[key], { zone: 'America/New_York' }).toMillis() ===
+							Luxon.fromJSDate(value, { zone: 'America/New_York' }).toMillis())
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+			if (type === 'Int' && typeof value === 'number' && !isRelational) {
+				if (
+					(operand === 'is' && row[key] !== value) ||
+					(operand === 'is greater than' && row[key] <= value) ||
+					(operand === 'is greater than or equal to' && row[key] < value) ||
+					(operand === 'is less than' && row[key] >= value) ||
+					(operand === 'is less than or equal to' && row[key] > value) ||
+					(operand === 'is not' && row[key] === value)
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+			if (type === 'String' && typeof value === 'string' && !isRelational) {
+				if (
+					(operand === 'contains' && !new RegExp(`${value}`, 'gi').test(row[key])) ||
+					(operand === 'does not contain' && new RegExp(`${value}`, 'gi').test(row[key])) ||
+					(operand === 'does not end with' && new RegExp(`${value}\$`, 'gi').test(row[key])) ||
+					(operand === 'does not start with' && new RegExp(`\^${value}`, 'gi').test(row[key])) ||
+					(operand === 'ends with' && !new RegExp(`${value}\$`, 'gi').test(row[key])) ||
+					(operand === 'is' && !new RegExp(`\^${value}\$`, 'gi').test(row[key])) ||
+					(operand === 'is not' && new RegExp(`\^${value}\$`, 'gi').test(row[key])) ||
+					(operand === 'starts with' && !new RegExp(`\^${value}`, 'gi').test(row[key]))
+				) {
+					isValidRow = false;
+					break;
+				}
+			}
+		}
+		return isValidRow;
+	};
+	const getFilterOperandOptions = ({
+		filterIndex
+	}: {
+		filterIndex: number;
+	}): { label: (typeof filterOperands)[number]; value: (typeof filterOperands)[number] }[] => {
+		const key = toolbar.filter.modal.filters[filterIndex].key;
+		const column = sanitizedColumns.find((sanitizedColumn) => sanitizedColumn.key === key);
+		if (column === undefined) return [];
+		const { isList, isRelational, type } = column;
+		let values: (typeof filterOperands)[number][] = [];
+		if (type === 'Boolean') values = ['is', 'is not'];
+		if (type === 'DateTime')
+			values = [
+				'is',
+				'is after',
+				'is after or equal to',
+				'is before',
+				'is before or equal to',
+				'is not'
+			];
+		if (type === 'DateTimeLocal')
+			values = [
+				'is',
+				'is after',
+				'is after or equal to',
+				'is before',
+				'is before or equal to',
+				'is not'
+			];
+		if (type === 'Int')
+			values = [
+				'is',
+				'is greater than',
+				'is greater than or equal to',
+				'is less than',
+				'is less than or equal to',
+				'is not'
+			];
+		if (type === 'String')
+			values = [
+				'contains',
+				'does not contain',
+				'does not end with',
+				'does not start with',
+				'ends with',
+				'is',
+				'is not',
+				'starts with'
+			];
+		if (isRelational) {
+			if (isList) values = ['contains', 'does not contain', 'is', 'is not'];
+			if (!isList) values = ['is', 'is not'];
+		}
+		return values.map((value) => ({ label: value, value }));
+	};
 	const getUpdateData = (row: Row, rowIndex: number) =>
 		Object.keys(row)
 			.filter((key) => !key.startsWith('_') && row[key] !== originalPaginatedRows[rowIndex][key])
@@ -126,6 +311,17 @@
 		index: -1,
 		startX: -1
 	});
+	const rowHasBeenModified = ({
+		index,
+		newRows,
+		originalRows
+	}: {
+		index: number;
+		newRows: Row[];
+		originalRows: Row[];
+	}) =>
+		JSON.stringify(removeNonSchemaKeys(newRows?.[index]) || {}) !==
+		JSON.stringify(removeNonSchemaKeys(originalRows?.[index] || {}));
 	let sanitizedColumns: SanitizedColumn[] = $state([]);
 	let sanitizedPaginate: Paginate = $state({
 		currentPage: 0,
@@ -173,13 +369,20 @@
 			modal: {
 				numberOfRowsPerPage: 10
 			}
+		},
+		filter: {
+			modal: {
+				filters: []
+			}
 		}
 	});
 	const updateColumns = async (columns: Column[]) => {
 		sanitizedColumns = (await columns)
 			.map((column: Column) => {
 				let sanitizedColumn: SanitizedColumn = {
+					isCreatable,
 					isEditable,
+					isFilterable,
 					isList: false,
 					isRelational: false,
 					isVisible: true,
@@ -254,7 +457,7 @@
 	};
 	const updateSanitizePaginate = () => {
 		sanitizedPaginate.totalPages = Math.ceil(
-			sanitizedRows.length / sanitizedPaginate.numberOfRowsPerPage
+			filteredRows.length / sanitizedPaginate.numberOfRowsPerPage
 		);
 		if (
 			sanitizedPaginate.currentPage > sanitizedPaginate.totalPages - 1 &&
@@ -269,25 +472,30 @@
 			sanitizedPaginate.currentPage * sanitizedPaginate.numberOfRowsPerPage;
 		sanitizedPaginate.index.end = Math.min(
 			(sanitizedPaginate.currentPage + 1) * sanitizedPaginate.numberOfRowsPerPage,
-			sanitizedRows.length
+			filteredRows.length
 		);
-		sanitizedPaginate.options = [...Array(sanitizedPaginate.totalPages)].map((_, i) => {
-			const label = `${i * sanitizedPaginate.numberOfRowsPerPage + 1}-${Math.min((i + 1) * sanitizedPaginate.numberOfRowsPerPage, sanitizedRows.length)}`;
-			const value = i;
-			return { label, value };
-		});
+		sanitizedPaginate.options =
+			sanitizedPaginate.totalPages === 0
+				? [{ label: '0-0', value: 0 }]
+				: [...Array(sanitizedPaginate.totalPages)].map((_, i) => {
+						const label = `${i * sanitizedPaginate.numberOfRowsPerPage + 1}-${Math.min((i + 1) * sanitizedPaginate.numberOfRowsPerPage, sanitizedRows.length)}`;
+						const value = i;
+						return { label, value };
+					});
 	};
 
 	// $derives
+	const filteredRows = $derived(sanitizedRows.filter(filterRow));
+	const originalFilteredRows = $derived(originalRows.filter(filterRow));
 	const paginatedRows = $derived(
-		sanitizedRows.filter((_, rowIndex) =>
+		filteredRows.filter((_, rowIndex) =>
 			paginate === false
 				? true
 				: rowIndex >= sanitizedPaginate.index.start && rowIndex < sanitizedPaginate.index.end
 		)
 	);
 	const originalPaginatedRows = $derived(
-		originalRows.filter((_, rowIndex) =>
+		originalFilteredRows.filter((_, rowIndex) =>
 			paginate === false
 				? true
 				: rowIndex >= sanitizedPaginate.index.start && rowIndex < sanitizedPaginate.index.end
@@ -295,10 +503,8 @@
 	);
 	const rowsNeedingUpdates = $derived(
 		paginatedRows
-			.filter(
-				(row, i) =>
-					JSON.stringify(removeNonSchemaKeys(row)) !==
-					JSON.stringify(removeNonSchemaKeys(originalPaginatedRows?.[i] || {}))
+			.filter((_, index) =>
+				rowHasBeenModified({ index, newRows: paginatedRows, originalRows: originalPaginatedRows })
 			)
 			.map(getUpdateData)
 	);
@@ -408,6 +614,88 @@
 				/>
 			</Form>
 		{/if}
+		{#if FilterToolbar}
+			{@render FilterToolbar()}
+		{:else if isFilterable}
+			<Div>
+				<Button
+					onclick={() => {
+						toolbar.filter.modal.filters = structuredClone($state.snapshot(filters));
+						toolbar.filter.modal.open();
+					}}
+					variants={['default', 'icon']}
+				>
+					<Icon src={Funnel} />
+				</Button>
+				<Modal
+					bind:close={toolbar.filter.modal.close}
+					bind:open={toolbar.filter.modal.open}
+					class="p-0"
+				>
+					<Div class="flex justify-end px-6 py-3">
+						<Button
+							class="p-2"
+							onclick={() => {
+								toolbar.filter.modal.filters.push({ key: '', operand: '', value: '' });
+							}}
+							variants={['default', 'icon']}
+						>
+							<Icon class="h-4 w-4" src={Plus} />
+						</Button>
+					</Div>
+					<Form
+						class="space-y-0 overflow-auto"
+						onsubmit={(e) => {
+							e.preventDefault();
+							filters = structuredClone($state.snapshot(toolbar.filter.modal.filters));
+							toolbar.filter.modal.close();
+						}}
+						use={[]}
+					>
+						<Card class="overflow-auto rounded-none p-0">
+							<Table>
+								<Thead>
+									<Tr>
+										<Th></Th>
+										<Th>Column</Th>
+										<Th>Operand</Th>
+										<Th>Value</Th>
+									</Tr>
+								</Thead>
+								<Tbody>
+									{#each toolbar.filter.modal.filters as _, filterIndex}
+										<Tr>
+											<Td class="py-0">
+												<Button
+													class="px-2 py-2"
+													onclick={() => {
+														toolbar.filter.modal.filters = toolbar.filter.modal.filters.filter(
+															(_: any, i: number) => filterIndex !== i
+														);
+													}}
+													variants={['default', 'icon', 'error']}
+												>
+													<Icon class="h-4 w-4" src={Trash} />
+												</Button>
+											</Td>
+											{@render FilterKey({ filterIndex })}
+											{@render FilterOperand({ filterIndex })}
+											{@render FilterValue({ filterIndex })}
+										</Tr>
+									{/each}
+								</Tbody>
+							</Table>
+						</Card>
+						<Div class="grid grid-cols-2 gap-2 p-4 lg:flex lg:justify-end">
+							<Button onclick={toolbar.filter.modal.close} variants={['default', 'contrast']}>
+								Cancel
+							</Button>
+							<Button type="submit">Update</Button>
+						</Div>
+					</Form>
+				</Modal>
+			</Div>
+		{/if}
 		{#if SettingsToolbar}
 			{@render SettingsToolbar()}
 		{:else}
@@ -477,7 +765,8 @@
 			<Button
 				onclick={() => {
 					toolbar.create.modal.data = sanitizedColumns.reduce(
-						(obj: Row, { isRelational, key, relationKey, type }) => {
+						(obj: Row, { isCreatable, isList, key, type }) => {
+							if (!isCreatable) return obj;
 							if (['createdAt', 'createdById', 'updatedAt'].includes(key)) return obj;
 							const objectKey = key;
 							if (type === 'Boolean') obj[objectKey] = false;
@@ -485,6 +774,7 @@
 							if (type === 'DateTime') obj[objectKey] = Luxon.now();
 							if (type === 'Int') obj[objectKey] = 0;
 							if (type === 'String') obj[objectKey] = '';
+							if (isList) obj[objectKey] = [];
 							return obj;
 						},
 						{}
@@ -516,8 +806,8 @@
 				>
 					<Table>
 						<Tbody>
-							{#each sanitizedColumns as { isEditable, isRelational, isVisible, key, relationKey, relationOptions, snippet }}
-								{#if !['createdAt', 'createdById', 'updatedAt'].includes(key)}
+							{#each sanitizedColumns as { isCreatable, isEditable, isVisible, key, relationOptions, snippet }}
+								{#if !['createdAt', 'createdById', 'updatedAt'].includes(key) && isCreatable}
 									<Tr>
 										<Td>{key}</Td>
 										{@render snippet({
@@ -719,11 +1009,15 @@
 		<Td class="p-0" {isVisible}>
 			<Input
 				bind:value={() => {
-					const string = Luxon.fromJSDate(new Date(object[key])).toFormat('yyyy-MM-dd');
+					const string = Luxon.fromJSDate(new Date(object[key]), {
+						zone: 'America/New_York'
+					}).toFormat('yyyy-MM-dd');
 					return string;
 				},
 				(string) => {
-					const date = new Date(string);
+					const date = Luxon.fromFormat(string, 'yyyy-MM-dd', {
+						zone: 'America/New_York'
+					}).toJSDate();
 					object[key] = date;
 					return date;
 				}}
@@ -734,7 +1028,7 @@
 		</Td>
 	{:else}
 		<Td class="text-right" {isVisible}>
-			{Luxon.fromJSDate(new Date(object[key])).toFormat('M/d/yyyy')}
+			{Luxon.fromJSDate(new Date(object[key]), { zone: 'America/New_York' }).toFormat('M/d/yyyy')}
 		</Td>
 	{/if}
 {/snippet}
@@ -743,11 +1037,15 @@
 		<Td class="p-0" {isVisible}>
 			<Input
 				bind:value={() => {
-					const string = Luxon.fromJSDate(new Date(object[key])).toFormat("yyyy-MM-dd'T'HH:mm");
+					const string = Luxon.fromJSDate(new Date(object[key]), {
+						zone: 'America/New_York'
+					}).toFormat("yyyy-MM-dd'T'HH:mm");
 					return string;
 				},
 				(string) => {
-					const date = new Date(string);
+					const date = Luxon.fromFormat(string, "yyyy-MM-dd'T'HH:mm", {
+						zone: 'America/New_York'
+					}).toJSDate();
 					object[key] = date;
 					return date;
 				}}
@@ -758,8 +1056,136 @@
 		</Td>
 	{:else}
 		<Td class="text-right" {isVisible}>
-			{Luxon.fromJSDate(new Date(object[key])).toFormat('M/d/yyyy hh:mm a')}
+			{Luxon.fromJSDate(new Date(object[key]), { zone: 'America/New_York' }).toFormat(
+				'M/d/yyyy hh:mm a'
+			)}
 		</Td>
+	{/if}
+{/snippet}
+{#snippet FilterKey({ filterIndex }: { filterIndex: number })}
+	{@render RelationIsNotList({
+		changeHandler: () => {
+			const sanitizedColumn = sanitizedColumns.find(
+				(sanitizedColumn) => sanitizedColumn.key === toolbar.filter.modal.filters[filterIndex].key
+			);
+			const { isList, isRelational, type } = sanitizedColumn || {};
+			if (type === 'Boolean') toolbar.filter.modal.filters[filterIndex].value = false;
+			if (type === 'Currency') toolbar.filter.modal.filters[filterIndex].value = 0;
+			if (type === 'DateTime')
+				toolbar.filter.modal.filters[filterIndex].value = Luxon.fromJSDate(new Date(), {
+					zone: 'America/New_York'
+				}).toJSDate();
+			if (type === 'DateTimeLocal')
+				toolbar.filter.modal.filters[filterIndex].value = Luxon.fromJSDate(new Date(), {
+					zone: 'America/New_York'
+				}).toJSDate();
+			if (type === 'Int') toolbar.filter.modal.filters[filterIndex].value = 0;
+			if (type === 'String') toolbar.filter.modal.filters[filterIndex].value = '';
+			if (isRelational) {
+				if (!isList) toolbar.filter.modal.filters[filterIndex].value = '';
+				if (isList) toolbar.filter.modal.filters[filterIndex].value = [];
+			}
+		},
+		isEditable: true,
+		isVisible: true,
+		name: 'key',
+		object: toolbar.filter.modal.filters[filterIndex],
+		key: 'key',
+		relationOptions: sanitizedColumns
+			.filter(({ isFilterable }) => isFilterable)
+			.map(({ key, label }) => ({
+				label,
+				value: key
+			}))
+			.sort((a, b) => a.label.localeCompare(b.label))
+	})}
+{/snippet}
+{#snippet FilterOperand({ filterIndex }: { filterIndex: number })}
+	{#if toolbar.filter.modal.filters[filterIndex].key !== ''}
+		{@render RelationIsNotList({
+			isEditable: true,
+			isVisible: true,
+			name: 'operand',
+			object: toolbar.filter.modal.filters[filterIndex],
+			key: 'operand',
+			relationOptions: getFilterOperandOptions({ filterIndex })
+		})}
+	{:else}
+		<Td />
+	{/if}
+{/snippet}
+{#snippet FilterValue({ filterIndex }: { filterIndex: number })}
+	{@const sanitizedColumn = sanitizedColumns.find(
+		(sanitizedColumn) => sanitizedColumn.key === toolbar.filter.modal.filters[filterIndex].key
+	)}
+	{@const { value } = toolbar.filter.modal.filters[filterIndex]}
+	{#if sanitizedColumn?.isRelational}
+		{#if sanitizedColumn?.isList && Array.isArray(value)}
+			{@render RelationIsList({
+				isEditable: true,
+				isVisible: true,
+				name: 'value',
+				object: toolbar.filter.modal.filters[filterIndex],
+				key: 'value',
+				relationOptions: sanitizedColumn.relationOptions
+			})}
+		{:else}
+			{@render RelationIsNotList({
+				isEditable: true,
+				isVisible: true,
+				name: 'value',
+				object: toolbar.filter.modal.filters[filterIndex],
+				key: 'value',
+				relationOptions: sanitizedColumn.relationOptions
+			})}
+		{/if}
+	{:else if sanitizedColumn?.type === 'Boolean'}
+		{@render Boolean({
+			isEditable: true,
+			isVisible: true,
+			name: 'value',
+			object: toolbar.filter.modal.filters[filterIndex],
+			key: 'value',
+			relationOptions: []
+		})}
+	{:else if sanitizedColumn?.type === 'DateTime'}
+		{@render DateTime({
+			isEditable: true,
+			isVisible: true,
+			name: 'value',
+			object: toolbar.filter.modal.filters[filterIndex],
+			key: 'value',
+			relationOptions: []
+		})}
+	{:else if sanitizedColumn?.type === 'DateTimeLocal'}
+		{@render DateTimeLocal({
+			isEditable: true,
+			isVisible: true,
+			name: 'value',
+			object: toolbar.filter.modal.filters[filterIndex],
+			key: 'value',
+			relationOptions: []
+		})}
+	{:else if sanitizedColumn?.type === 'Int'}
+		{@render Int({
+			isEditable: true,
+			isVisible: true,
+			name: 'value',
+			object: toolbar.filter.modal.filters[filterIndex],
+			key: 'value',
+			relationOptions: []
+		})}
+	{:else if sanitizedColumn?.type === 'String'}
+		{@render String({
+			isEditable: true,
+			isVisible: true,
+			name: 'value',
+			object: toolbar.filter.modal.filters[filterIndex],
+			key: 'value',
+			relationOptions: []
+		})}
+	{:else}
+		<Td />
 	{/if}
 {/snippet}
 {#snippet Int({ isEditable, isVisible, name, object, key }: SnippetProps)}
@@ -793,12 +1219,13 @@
 	{:else}
 		<Td {isVisible}>
 			{object[key]
-				.map((string) => relationOptions.find(({ value }) => value === string)?.label || '')
+				.map((string: string) => relationOptions.find(({ value }) => value === string)?.label || '')
 				.join(', ')}
 		</Td>
 	{/if}
 {/snippet}
 {#snippet RelationIsNotList({
+	changeHandler,
 	isEditable,
 	isVisible,
 	name,
@@ -812,6 +1239,7 @@
 				bind:value={object[key]}
 				class="w-full rounded-none bg-transparent dark:bg-transparent"
 				{name}
+				onchange={changeHandler}
 				options={relationOptions}
 			/>
 		</Td>

@@ -5,6 +5,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			navigation: Map<string, Map<string, string>>;
+			user: Record<string, any> & { id: string };
 		}
 		// interface PageData {}
 		// interface PageState {}

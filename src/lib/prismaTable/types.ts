@@ -1,9 +1,12 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import type { Snippet } from 'svelte';
+import type { filterOperands } from './filterOperands';
 
 export type ActionParams = RequestEvent<Partial<Record<string, string>>, string | null>;
 export type Column = {
+	isCreatable: boolean;
 	isEditable: boolean;
+	isFilterable: boolean;
 	isList: boolean;
 	isRelational: boolean;
 	isVisible: boolean;
@@ -30,6 +33,11 @@ export type Field = {
 	relationToFields?: string[];
 	type: string;
 };
+export type Filter = {
+	key: string;
+	operand: (typeof filterOperands)[number];
+	value: boolean | Date | number | string | string[];
+};
 export type Paginate = {
 	currentPage: number;
 	index: {
@@ -51,9 +59,11 @@ export type PageServer = {
 	columnOmits?: string[];
 	columnOrder?: string[];
 	columnOverrides?: Map<string, Partial<Column>>;
+	filters?: Filter[];
 	isCreatable?: boolean;
 	isDeletable?: boolean;
 	isEditable?: boolean;
+	isFilterable?: boolean;
 	isSavable?: boolean;
 	modelName: string;
 	paginate?: boolean | Pick<Paginate, 'currentPage' | 'numberOfRowsPerPage'>;
@@ -66,12 +76,11 @@ export type RelationLabelFns = Map<string, (relationModel: Record<string, any>) 
 export type Row = Record<string, any>;
 export type SanitizedColumn = Column & { snippet: Snippet<[any]> };
 export type SnippetProps = {
+	changeHandler?: (e: any) => any;
 	isEditable: boolean;
 	isVisible: boolean;
 	key: string;
 	name?: string;
 	object: Record<string, any>;
 	relationOptions: { label: any; value: string }[];
-	row: Row;
-	rowIndex: number;
 };

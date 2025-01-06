@@ -19,17 +19,18 @@
 			previousLaborAmount: 0,
 			previousMarginAmount: 0,
 			previousMaterialAmount: 0,
-			previousQuoteDate: DateTime.fromFormat('1969-12-31', 'yyyy-MM-dd').toJSDate(),
+			previousQuoteDate: DateTime.fromFormat('1969-12-31', 'yyyy-MM-dd', {
+				zone: 'America/New_York'
+			}).toJSDate(),
 			previousQuoteNumber: 0,
 			previousSellPrice: 0,
 			previousTotalCostAmount: 0,
 			marginAmount: 0,
 			materialAmount: 0,
 			productType: '',
-			quoteDate: DateTime.fromFormat(
-				DateTime.now().toFormat('yyyy-MM-dd'),
-				'yyyy-MM-dd'
-			).toJSDate(),
+			quoteDate: DateTime.fromFormat(DateTime.now().toFormat('yyyy-MM-dd'), 'yyyy-MM-dd', {
+				zone: 'America/New_York'
+			}).toJSDate(),
 			quoteNumber: 0,
 			totalCostAmount: 0,
 			type: 'have-aes-quote',
@@ -77,10 +78,20 @@
 		).length === 0
 	);
 	const previousDateTooEarly = $derived(
-		DateTime.fromJSDate(quote.previousQuoteDate) < DateTime.fromFormat('2013-01-01', 'yyyy-MM-dd')
+		DateTime.fromJSDate(quote.previousQuoteDate, {
+			zone: 'America/New_York'
+		}) <
+			DateTime.fromFormat('2013-01-01', 'yyyy-MM-dd', {
+				zone: 'America/New_York'
+			})
 	);
 	const newDateTooEarly = $derived(
-		DateTime.fromJSDate(quote.quoteDate) < DateTime.fromJSDate(quote.previousQuoteDate)
+		DateTime.fromJSDate(quote.quoteDate, {
+			zone: 'America/New_York'
+		}) <
+			DateTime.fromJSDate(quote.previousQuoteDate, {
+				zone: 'America/New_York'
+			})
 	);
 	const previousTotalCostTooLow = $derived(
 		quote.previousTotalCostAmount < quote.previousMaterialAmount
@@ -132,7 +143,7 @@
 					{@render Label('Quote #')}
 					<Input
 						bind:value={quote.previousQuoteNumber}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="previousQuoteNumber"
 						required
 						type="number"
@@ -140,17 +151,21 @@
 					{@render Label('Date')}
 					<Input
 						bind:value={() => {
-							const string = DateTime.fromJSDate(quote.previousQuoteDate).toFormat('yyyy-MM-dd');
+							const string = DateTime.fromJSDate(quote.previousQuoteDate, {
+								zone: 'America/New_York'
+							}).toFormat('yyyy-MM-dd');
 							if (string === '1969-12-31') return '';
 							return string;
 						},
 						(string) => {
 							if (string === '') return new Date(0);
-							const newDate = DateTime.fromFormat(string, 'yyyy-MM-dd').toJSDate();
+							const newDate = DateTime.fromFormat(string, 'yyyy-MM-dd', {
+								zone: 'America/New_York'
+							}).toJSDate();
 							quote.previousQuoteDate = newDate;
 							return newDate;
 						}}
-						class="text-right min-w-[10rem] w-full appearance-none"
+						class="w-full min-w-[10rem] appearance-none text-right"
 						name="previousQuoteDate"
 						required
 						type="date"
@@ -159,7 +174,7 @@
 					{@render Label('Material Cost')}
 					<Input
 						bind:value={quote.previousMaterialAmount}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="previousMaterialAmount"
 						required
 						min="0"
@@ -170,7 +185,7 @@
 					{@render Label('Labor Cost')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
+							'w-full min-w-[10rem] bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="previousLaborAmount"
@@ -186,7 +201,7 @@
 					{@render Label('Total Cost')}
 					<Input
 						bind:value={quote.previousTotalCostAmount}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="previousTotalCostAmount"
 						required
 						min="0"
@@ -197,7 +212,7 @@
 					{@render Label('Margin')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
+							'w-full min-w-[10rem] bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="previousMarginAmount"
@@ -213,7 +228,7 @@
 					{@render Label('Total Price')}
 					<Input
 						bind:value={quote.previousSellPrice}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="previousSellPrice"
 						required
 						min="0"
@@ -224,11 +239,13 @@
 			</Card>
 			<Card class="space-y-8">
 				<H3>New</H3>
-				<Div class="grid grid-cols-[fit-content(0px)_1fr_fit-content(0px)] items-center gap-x-2 gap-y-1">
+				<Div
+					class="grid grid-cols-[fit-content(0px)_1fr_fit-content(0px)] items-center gap-x-2 gap-y-1"
+				>
 					{@render Label('Quote #')}
 					<Input
 						bind:value={quote.quoteNumber}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="quoteNumber"
 						required
 						type="number"
@@ -237,14 +254,18 @@
 					{@render Label('Date')}
 					<Input
 						bind:value={() => {
-							return DateTime.fromJSDate(quote.quoteDate).toFormat('yyyy-MM-dd');
+							return DateTime.fromJSDate(quote.quoteDate, {
+								zone: 'America/New_York'
+							}).toFormat('yyyy-MM-dd');
 						},
 						(string) => {
-							const newDate = DateTime.fromFormat(string, 'yyyy-MM-dd').toJSDate();
+							const newDate = DateTime.fromFormat(string, 'yyyy-MM-dd', {
+								zone: 'America/New_York'
+							}).toJSDate();
 							quote.quoteDate = newDate;
 							return newDate;
 						}}
-						class="text-right min-w-[10rem] w-full appearance-none"
+						class="w-full min-w-[10rem] appearance-none text-right"
 						name="quoteDate"
 						required
 						type="date"
@@ -254,7 +275,7 @@
 					{@render Label('Material Cost')}
 					<Input
 						bind:value={quote.materialAmount}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="materialAmount"
 						required
 						min="0"
@@ -264,13 +285,13 @@
 					/>
 					<Div class="text-right">
 						{#if state === 'Update'}
-							{format.percent((quote.materialAmount / quote.previousMaterialAmount) - 1)}
+							{format.percent(quote.materialAmount / quote.previousMaterialAmount - 1)}
 						{/if}
 					</Div>
 					{@render Label('Labor Cost')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
+							'w-full min-w-[10rem] bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="laborAmount"
@@ -283,13 +304,13 @@
 					/>
 					<Div class="text-right">
 						{#if state === 'Update'}
-							{format.percent((quote.laborAmount / quote.previousLaborAmount) - 1)}
+							{format.percent(quote.laborAmount / quote.previousLaborAmount - 1)}
 						{/if}
 					</Div>
 					{@render Label('Total Cost')}
 					<Input
 						bind:value={quote.totalCostAmount}
-						class="text-right min-w-[10rem] w-full"
+						class="w-full min-w-[10rem] text-right"
 						name="totalCostAmount"
 						required
 						min="0"
@@ -299,13 +320,13 @@
 					/>
 					<Div class="text-right">
 						{#if state === 'Update'}
-							{format.percent((quote.totalCostAmount / quote.previousTotalCostAmount) - 1)}
+							{format.percent(quote.totalCostAmount / quote.previousTotalCostAmount - 1)}
 						{/if}
 					</Div>
 					{@render Label('Margin')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
+							'w-full min-w-[10rem] bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="marginAmount"
@@ -318,13 +339,13 @@
 					/>
 					<Div class="text-right">
 						{#if state === 'Update'}
-							{format.percent((quote.marginAmount / quote.previousMarginAmount) - 1)}
+							{format.percent(quote.marginAmount / quote.previousMarginAmount - 1)}
 						{/if}
 					</Div>
 					{@render Label('Total Price')}
 					<Input
 						class={twMerge(
-							'bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent min-w-[10rem] w-full',
+							'w-full min-w-[10rem] bg-transparent text-right ring-0 ring-offset-0 hover:bg-transparent focus:bg-transparent dark:bg-transparent',
 							state === 'Calculate' ? 'opacity-0' : 'opacity-100'
 						)}
 						name="marginAmount"
@@ -337,7 +358,7 @@
 					/>
 					<Div class="text-right">
 						{#if state === 'Update'}
-							{format.percent((quote.sellPrice / quote.previousSellPrice) - 1)}
+							{format.percent(quote.sellPrice / quote.previousSellPrice - 1)}
 						{/if}
 					</Div>
 				</Div>

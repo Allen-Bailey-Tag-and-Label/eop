@@ -17,14 +17,18 @@
 		previousLaborAmount: 0,
 		previousMarginAmount: 0,
 		previousMaterialAmount: 0,
-		previousQuoteDate: DateTime.fromFormat('1969-12-31', 'yyyy-MM-dd').toJSDate(),
+		previousQuoteDate: DateTime.fromFormat('1969-12-31', 'yyyy-MM-dd', {
+			zone: 'America/New_York'
+		}).toJSDate(),
 		previousQuoteNumber: 0,
 		previousSellPrice: 0,
 		previousTotalCostAmount: 0,
 		marginAmount: 0,
 		materialAmount: 0,
 		productType: '',
-		quoteDate: DateTime.fromFormat(DateTime.now().toFormat('yyyy-MM-dd'), 'yyyy-MM-dd').toJSDate(),
+		quoteDate: DateTime.fromFormat(DateTime.now().toFormat('yyyy-MM-dd'), 'yyyy-MM-dd', {
+			zone: 'America/New_York'
+		}).toJSDate(),
 		quoteNumber: 0,
 		totalCostAmount: 0,
 		type: 'have-aes-quote',
@@ -33,8 +37,12 @@
 
 	onMount(() => {
 		quote = data.quote;
-		quote.previousQuoteDate = DateTime.fromJSDate(data.quote.previousQuoteDate).toJSDate();
-		quote.quoteDate = DateTime.fromJSDate(data.quote.quoteDate).toJSDate();
+		quote.previousQuoteDate = DateTime.fromJSDate(data.quote.previousQuoteDate, {
+			zone: 'America/New_York'
+		}).toJSDate();
+		quote.quoteDate = DateTime.fromJSDate(data.quote.quoteDate, {
+			zone: 'America/New_York'
+		}).toJSDate();
 	});
 </script>
 
