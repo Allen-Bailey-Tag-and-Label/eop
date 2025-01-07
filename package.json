@@ -4,8 +4,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "npm run prisma:generate && npm run prisma:db:push && vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
+		"build": "npm run prisma:generate && npm run prisma:db:push && vite build",
+		"preview": "npm run prisma:generate && npm run prisma:db:push && vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",

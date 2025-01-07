@@ -1,5 +1,5 @@
-import { default as bcrypt } from 'bcryptjs';
 import { fail, type Actions } from '@sveltejs/kit';
+import { default as bcrypt } from 'bcryptjs';
 import { prisma } from '$lib/prisma';
 
 export const actions: Actions = {

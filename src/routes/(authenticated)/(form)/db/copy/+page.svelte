@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Button, Div, Fieldset, Form, H1, Input, P, ProgressIndicator } from '$lib/components';
-	import { scale, slide } from 'svelte/transition';
-	import type { ActionData } from './$types';
 	import { cubicInOut } from 'svelte/easing';
+	import { scale, slide } from 'svelte/transition';
 	import { enhance } from '$app/forms';
+	import { Button, Div, Fieldset, Form, H1, Input, P, ProgressIndicator } from '$lib/components';
+	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
 	let disabled: boolean = $state(false);

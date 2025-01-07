@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { cubicInOut } from 'svelte/easing';
+	import { scale, slide } from 'svelte/transition';
+	import { twMerge } from 'tailwind-merge';
 	import { enhance } from '$app/forms';
 	import {
 		Button,
@@ -10,10 +13,7 @@
 		PasswordInput,
 		ProgressIndicator
 	} from '$lib/components';
-	import { cubicInOut } from 'svelte/easing';
-	import { scale, slide } from 'svelte/transition';
 	import type { ActionData } from './$types';
-	import { twMerge } from 'tailwind-merge';
 
 	let disabled: boolean = $state(false);
 	const enhanceHandler = async () => {

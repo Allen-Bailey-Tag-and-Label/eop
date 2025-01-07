@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { Eye, EyeSlash } from 'sveltewind/icons';
 	import { twMerge } from 'tailwind-merge';
 	import { Button, Div, Icon, Input } from '$lib/components';
-	import { Eye, EyeSlash } from 'sveltewind/icons';
 
 	type Props = {
 		class?: string;

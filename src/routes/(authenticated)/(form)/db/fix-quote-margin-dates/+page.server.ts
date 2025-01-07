@@ -1,5 +1,5 @@
-import { prisma } from '$lib/prisma/index.js';
 import { DateTime } from 'luxon';
+import { prisma } from '$lib/prisma';
 
 export const actions = {
 	default: async () => {

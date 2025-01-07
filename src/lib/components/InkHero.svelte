@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { ArrowPath } from 'sveltewind/icons';
 	import { twMerge } from 'tailwind-merge';
 	import { Button, Div, Icon } from '$lib/components';
-	import { ArrowPath } from 'sveltewind/icons';
 
 	type Video = string | undefined;
 

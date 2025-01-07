@@ -1,5 +1,7 @@
-import { getActions, getFieldsRequiringRelation, getLoad } from '$lib/prismaTable';
-import { getFields } from './index';
+import { getActions } from './getActions';
+import { getFieldsRequiringRelation } from './getFieldsRequiringRelation';
+import { getLoad } from './getLoad';
+import { getFields } from './getFields';
 import type { PageServer } from './types';
 
 export const pageServer = async ({

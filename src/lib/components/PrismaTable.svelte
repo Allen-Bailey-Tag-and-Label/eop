@@ -18,6 +18,7 @@
 	} from 'sveltewind/icons';
 	import { twMerge } from 'tailwind-merge';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import {
 		Button,
 		Card,
@@ -44,7 +45,6 @@
 	import { filterOperands } from '$lib/prismaTable';
 	import type {
 		Column,
-		Filter,
 		PageServer,
 		Paginate,
 		Row,
@@ -52,7 +52,6 @@
 		SnippetProps
 	} from '$lib/prismaTable/types';
 	import type { Snippet } from 'svelte';
-	import { page } from '$app/state';
 
 	type Props = Omit<PageServer, 'actions' | 'columnOmits' | 'modelName' | 'relationLabelFns'> & {
 		columns: Column[];
