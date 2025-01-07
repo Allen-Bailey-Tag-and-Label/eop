@@ -39,7 +39,13 @@ const { actions, load } = await pageServer({
 	columnOverrides: new Map([
 		[
 			'passwordHash',
-			{ isCreatable: false, isFilterable: false, label: 'password', type: 'Password' }
+			{
+				isCreatable: false,
+				isExportable: false,
+				isFilterable: false,
+				label: 'password',
+				type: 'Password'
+			}
 		]
 	]),
 	filters: [{ key: 'isActive', operand: 'is', value: true }],

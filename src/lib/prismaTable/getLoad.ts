@@ -24,6 +24,7 @@ export const getLoad = async ({
 	isCreatable,
 	isDeletable,
 	isEditable,
+	isExportable,
 	isFilterable,
 	isSavable,
 	modelName,
@@ -45,6 +46,7 @@ export const getLoad = async ({
 							{
 								isCreatable: isCreatable === undefined ? true : isCreatable,
 								isEditable: isEditable === undefined ? true : isEditable,
+								isExportable: isExportable === undefined ? true : isExportable,
 								isFilterable: isFilterable === undefined ? true : isFilterable,
 								isList: false,
 								isRelational: false,

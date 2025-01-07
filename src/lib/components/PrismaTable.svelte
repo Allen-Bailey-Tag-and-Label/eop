@@ -2,6 +2,7 @@
 	import { DateTime as Luxon } from 'luxon';
 	import { theme } from 'sveltewind';
 	import {
+		ArrowDownTray,
 		ArrowPath,
 		Check,
 		ChevronDoubleLeft,
@@ -29,6 +30,7 @@
 		Modal,
 		MultiSelect,
 		P,
+		Radio,
 		Select,
 		Table,
 		Tbody,
@@ -37,6 +39,7 @@
 		Thead,
 		Tr
 	} from '$lib/components';
+	import download from '$lib/download';
 	import format from '$lib/format';
 	import { filterOperands } from '$lib/prismaTable';
 	import type {
@@ -49,12 +52,14 @@
 		SnippetProps
 	} from '$lib/prismaTable/types';
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
 
 	type Props = Omit<PageServer, 'actions' | 'columnOmits' | 'modelName' | 'relationLabelFns'> & {
 		columns: Column[];
 		rows: Row[];
 		CreateToolbar?: Snippet;
 		DeleteToolbar?: Snippet;
+		ExportToolbar?: Snippet;
 		FilterToolbar?: Snippet;
 		SaveToolbar: Snippet;
 		SettingsToolbar?: Snippet;
@@ -67,11 +72,13 @@
 		columns = [],
 		CreateToolbar,
 		DeleteToolbar,
+		ExportToolbar,
 		filters = $bindable([]),
 		FilterToolbar,
 		isCreatable = $bindable(true),
 		isDeletable = $bindable(true),
 		isEditable = $bindable(true),
+		isExportable = $bindable(true),
 		isFilterable = $bindable(true),
 		isSavable = $bindable(true),
 		paginate = $bindable(true),
@@ -370,6 +377,17 @@
 				numberOfRowsPerPage: 10
 			}
 		},
+		export: {
+			modal: {
+				rowOptions: ['All', 'Current Page', 'Selected']
+					.sort((a, b) => a.localeCompare(b))
+					.map((label) => ({ label, value: label })),
+				rows: 'Current Page',
+				shouldShowHeaders: true,
+				type: '.csv',
+				types: new Map([['.csv', {}]])
+			}
+		},
 		filter: {
 			modal: {
 				filters: []
@@ -382,6 +400,7 @@
 				let sanitizedColumn: SanitizedColumn = {
 					isCreatable,
 					isEditable,
+					isExportable,
 					isFilterable,
 					isList: false,
 					isRelational: false,
@@ -735,6 +754,107 @@
 							<Button type="submit">Update</Button>
 						</Div>
 					</form>
+				</Modal>
+			</Div>
+		{/if}
+		{#if ExportToolbar}
+			{@render ExportToolbar()}
+		{:else if isExportable}
+			<Div>
+				<Button
+					onclick={() => {
+						toolbar.export.modal.open();
+					}}
+					variants={['default', 'icon']}
+				>
+					<Icon src={ArrowDownTray} />
+				</Button>
+				<Modal bind:close={toolbar.export.modal.close} bind:open={toolbar.export.modal.open}>
+					<Form
+						onsubmit={async (e) => {
+							e.preventDefault();
+
+							let selectedData: Row[] = [];
+							if (toolbar.export.modal.rows === 'All') selectedData = filteredRows;
+							if (toolbar.export.modal.rows === 'Current Page') selectedData = paginatedRows;
+							if (toolbar.export.modal.rows === 'Selected') selectedData = selectedRows;
+
+							const data = selectedData.map((row) => {
+								row = sanitizedColumns.reduce(
+									(obj: Row, { isList, isRelational, key, relationOptions, type }) => {
+										obj[key] = row[key];
+										if (type === 'DateTime')
+											obj[key] = Luxon.fromISO(obj[key], { zone: 'America/New_York' }).toFormat(
+												'M/d/yyyy'
+											);
+										if (type === 'DateTimeLocal')
+											obj[key] = Luxon.fromISO(obj[key], { zone: 'America/New_York' }).toFormat(
+												'M/d/yyyy  hh:mm:ss a'
+											);
+										if (isRelational) {
+											if (!isList) {
+												obj[key] = (
+													relationOptions.find(({ value }) => value === obj[key]) || { label: '' }
+												).label;
+											}
+											if (isList) {
+												obj[key] = obj[key].map(
+													(arrayValue: string) =>
+														(
+															relationOptions.find(({ value }) => value === arrayValue) || {
+																label: ''
+															}
+														).label
+												);
+											}
+										}
+										if (isList) obj[key] = obj[key].join(', ');
+										return obj;
+									},
+									{}
+								);
+								return row;
+							});
+
+							await download.csv({
+								data,
+								fileName: page.url.pathname.replace('/', '_').substring(1),
+								headers: sanitizedColumns
+									.filter(({ isExportable }) => isExportable)
+									.map(({ key, label }) => ({ key, label })),
+								shouldShowHeaders: toolbar.export.modal.shouldShowHeaders,
+								shouldUseDataKeys: false
+							});
+
+							toolbar.export.modal.close();
+						}}
+						use={[]}
+					>
+						<Checkbox bind:checked={toolbar.export.modal.shouldShowHeaders}>
+							Include Headers
+						</Checkbox>
+						<Fieldset legend="Rows">
+							<Select
+								bind:value={toolbar.export.modal.rows}
+								options={toolbar.export.modal.rowOptions}
+							/>
+						</Fieldset>
+						<Fieldset legend="Type">
+							<Select
+								bind:value={toolbar.export.modal.type}
+								options={[...toolbar.export.modal.types].map(([label]) => ({
+									label,
+									value: label
+								}))}
+							/>
+						</Fieldset>
+						<Div class="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+							<Button onclick={toolbar.export.modal.close} variants={['default', 'contrast']}>
+								Cancel
+							</Button>
+							<Button type="submit">Export</Button>
+						</Div>
+					</Form>
 				</Modal>
 			</Div>
 		{/if}

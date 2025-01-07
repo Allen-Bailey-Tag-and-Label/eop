@@ -6,6 +6,7 @@ export type ActionParams = RequestEvent<Partial<Record<string, string>>, string 
 export type Column = {
 	isCreatable: boolean;
 	isEditable: boolean;
+	isExportable: boolean;
 	isFilterable: boolean;
 	isList: boolean;
 	isRelational: boolean;
@@ -63,6 +64,7 @@ export type PageServer = {
 	isCreatable?: boolean;
 	isDeletable?: boolean;
 	isEditable?: boolean;
+	isExportable?: boolean;
 	isFilterable?: boolean;
 	isSavable?: boolean;
 	modelName: string;
