@@ -52,13 +52,13 @@
 		<Button class="relative z-[100] w-12" onclick={toggle} variants={['default', 'icon']}>
 			<Div
 				class={twMerge(
-					'absolute left-1/2 top-1/2 h-[1px] w-[50%] -translate-x-1/2 bg-current transition duration-200',
+					'pointer-events-none absolute left-1/2 top-1/2 h-[1px] w-[50%] -translate-x-1/2 bg-current transition duration-200',
 					isVisible ? 'translate-y-0 rotate-45' : 'translate-y-[-.25rem]'
 				)}
 			/>
 			<Div
 				class={twMerge(
-					'absolute left-1/2 top-1/2 h-[1px] w-[50%] -translate-x-1/2 bg-current transition duration-200',
+					'pointer-events-none absolute left-1/2 top-1/2 h-[1px] w-[50%] -translate-x-1/2 bg-current transition duration-200',
 					isVisible ? 'translate-y-0 -rotate-45' : 'translate-y-[.25rem]'
 				)}
 			/>
