@@ -112,7 +112,7 @@
 					break;
 				}
 			}
-			if (!isList && isRelational && Array.isArray(value)) {
+			if (!isList && isRelational) {
 				if (
 					(operand === 'is' && row[key] !== value) ||
 					(operand === 'is not' && row[key] === value)
