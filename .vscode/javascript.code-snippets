@@ -1,4 +1,16 @@
 {
+	"Prisma - New Model": {
+		"prefix": "@prismaNewModel",
+		"body": [
+			"model $1 {",
+			"\tid           String           @id @default(auto()) @map(\"_id\") @db.ObjectId",
+			"\tcreatedAt    DateTime         @default(now())",
+			"\tcreatedBy    User             @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)",
+			"\tcreatedById  String           @db.ObjectId",
+			"\tupdatedAt    DateTime?        @updatedAt",
+			"}"
+		]
+	},
 	"Sveltekit - Load Function": {
 		"prefix": "@sk-load",
 		"body": ["export const load = async () => {", "\t$1", "}"]
