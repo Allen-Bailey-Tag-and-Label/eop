@@ -17,7 +17,7 @@
 		"postinstall": "npm run prisma:generate"
 	},
 	"devDependencies": {
-		"@prisma/client": "^5.21.1",
+		"@prisma/client": "^6.3.1",
 		"@sveltejs/adapter-auto": "^3.0.0",
 		"@sveltejs/adapter-vercel": "^5.5.2",
 		"@sveltejs/kit": "^2.0.0",
@@ -29,6 +29,7 @@
 		"@types/bcryptjs": "^2.4.6",
 		"@types/eslint": "^9.6.0",
 		"@types/luxon": "^3.4.2",
+		"@types/zipcodes": "^8.0.5",
 		"autoprefixer": "^10.4.20",
 		"bcryptjs": "^2.4.3",
 		"eslint": "^9.7.0",
@@ -40,8 +41,9 @@
 		"prettier": "^3.3.2",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
-		"prisma": "^5.21.1",
+		"prisma": "^6.3.1",
 		"random-word-slugs": "^0.1.7",
+		"states-us": "^1.1.1",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"sveltewind": "^3.0.0",
@@ -50,6 +52,7 @@
 		"typescript": "^5.0.0",
 		"typescript-eslint": "^8.0.0",
 		"vite": "^5.0.3",
-		"vitest": "^2.0.4"
+		"vitest": "^2.0.4",
+		"zipcodes": "^8.0.0"
 	}
 }
