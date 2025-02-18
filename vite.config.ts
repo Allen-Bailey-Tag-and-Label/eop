@@ -4,6 +4,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 export default defineConfig({
 	optimizeDeps: {
 		include: [
+			'@prisma/client',
 			'clsx',
 			'devalue',
 			'imask',
