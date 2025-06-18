@@ -1,4 +1,4 @@
-import { compareSync } from 'bcrypt';
+import { compareSync } from 'bcryptjs';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 
