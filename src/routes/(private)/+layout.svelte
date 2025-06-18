@@ -6,7 +6,7 @@
 	import { type Navigation, type User } from '$lib/types.js';
 
 	let { children, data } = $props();
-	let isNavigationOpen = $state(true);
+	let isNavigationOpen = $state(false);
 	let navigation: Navigation[] = $state([]);
 	let user: User = $state({ id: -1, isActive: true, username: '' });
 
