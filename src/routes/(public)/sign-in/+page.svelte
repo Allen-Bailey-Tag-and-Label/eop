@@ -20,8 +20,14 @@
 		</Div>
 		<Form>
 			{#snippet inputs()}
-				<Input label="Username" required={true} />
-				<Input isPasswordButtonVisible={true} label="Password" required={true} type="password" />
+				<Input label="Username" name="username" required={true} />
+				<Input
+					isPasswordButtonVisible={true}
+					label="Password"
+					name="password"
+					required={true}
+					type="password"
+				/>
 			{/snippet}
 			{#snippet buttons()}
 				<Button type="submit">Sign In</Button>

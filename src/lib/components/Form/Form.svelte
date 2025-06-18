@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import { Div } from '../';
+	import { enhance } from '$app/forms';
 
 	type Props = {
 		action?: string;
@@ -22,7 +23,13 @@
 	}: Props = $props();
 </script>
 
-<form {action} class={twMerge('w-full max-w-sm space-y-12', className)} {method} {...restProps}>
+<form
+	{action}
+	class={twMerge('w-full max-w-sm space-y-12', className)}
+	{method}
+	use:enhance
+	{...restProps}
+>
 	{#if children}
 		{@render children()}
 	{/if}
