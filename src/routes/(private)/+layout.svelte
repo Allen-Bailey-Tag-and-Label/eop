@@ -42,7 +42,7 @@
 					theme="ghost"
 				></Button>
 				<Div
-					class="pointer-events-auto absolute top-0 left-0 z-10 flex min-h-full w-[calc(100vw_-_3rem)] flex-col bg-slate-50/30 backdrop-blur-md lg:w-auto dark:bg-slate-50/10"
+					class="pointer-events-auto absolute top-0 left-0 z-10 flex min-h-full w-[calc(100vw_-_3rem)] flex-col bg-slate-50/30 backdrop-blur-md lg:w-auto lg:min-w-[20rem] dark:bg-slate-50/10"
 				>
 					<Div class="flex flex-grow flex-col">
 						{@render tree(navigation)}
@@ -54,18 +54,21 @@
 	</Div>
 </Div>
 
-{#snippet link(href: string, label: string, depth: number)}
+{#snippet link(href: string, label: string, depth: number = 1)}
 	<A
 		class={twMerge(
+			'py-0',
 			page.url.pathname !== href
 				? 'bg-gray-950/0 text-gray-950 hover:bg-gray-950/10 focus:bg-gray-950/10 dark:bg-gray-50/0 dark:text-gray-50 dark:hover:bg-gray-50/10 dark:focus:bg-gray-50/10'
 				: undefined
 		)}
 		{href}
-		style="padding-left:{depth * 1.5}rem;"
+		style="padding-left:{(depth - 1) * 1.5}rem;"
 		theme="button"
 	>
-		{label}
+			<Div class={twMerge("border-l py-3 pl-6", depth > 1 ? 'border-slate-950/30 dark:border-slate-50/30' : 'border-slate-950/0')}>
+				{label}
+			</Div>
 	</A>
 {/snippet}
 
@@ -74,7 +77,7 @@
 		{#each items as item}
 			{#if item.isDirectory}
 				<Button
-					class="flex items-center justify-between"
+					class={twMerge("flex items-center justify-between border-l", depth> 1 ? 'border-slate-950/30 dark:border-slate-50/30' : 'border-slate-950/0')}
 					isRounded={false}
 					onclick={() => (item.isOpen = !item.isOpen)}
 					style="padding-left:{depth * 1.5}rem;"
