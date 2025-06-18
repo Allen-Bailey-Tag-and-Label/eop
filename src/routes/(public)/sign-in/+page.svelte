@@ -2,6 +2,9 @@
 	import { Button, Div, Form, Input } from '$lib/components';
 	import { ABTL, PTI } from '$lib/logos';
 	import { Plus } from '@lucide/svelte';
+	import { type PageProps } from './$types';
+
+	let { form }: PageProps = $props();
 </script>
 
 <Div class="grid grid-cols-1 md:grid-cols-2">
@@ -18,7 +21,7 @@
 				<PTI color="currentColor" size={128} />
 			</Div>
 		</Div>
-		<Form>
+		<Form {form}>
 			{#snippet inputs()}
 				<Input label="Username" name="username" required={true} />
 				<Input
@@ -29,6 +32,11 @@
 					type="password"
 				/>
 			{/snippet}
+			<!-- {#if form?.error} -->
+				{#snippet error()}
+					{form?.error}
+				{/snippet}
+			<!-- {/if} -->
 			{#snippet buttons()}
 				<Button type="submit">Sign In</Button>
 			{/snippet}

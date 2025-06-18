@@ -9,6 +9,8 @@
 		buttons?: Snippet;
 		children?: Snippet;
 		class?: string;
+		error?: Snippet;
+		form?: any;
 		inputs?: Snippet;
 		method?: 'GET' | 'POST';
 	};
@@ -17,6 +19,8 @@
 		buttons,
 		children,
 		class: className,
+		error,
+		form,
 		inputs,
 		method = 'POST',
 		...restProps
@@ -36,6 +40,11 @@
 	{#if inputs}
 		<Div class="flex flex-col space-y-6">
 			{@render inputs()}
+			{#if error}
+				<Div class="text-red-500 min-h-6">
+					{@render error()}
+				</Div>
+			{/if}
 		</Div>
 	{/if}
 	{#if buttons}

@@ -12,7 +12,7 @@ export const actions: Actions = {
 			where: (users, { eq }) => eq(users.username, username)
 		});
 
-		if (!user || !compareSync(password, user.passwordHash || '')) return fail(400);
+		if (!user || !compareSync(password, user.passwordHash || '')) return fail(400, {error:'Could not verify credentials'});
 
 		cookies.set('userId', user.id.toString(), { path: '/' });
 		redirect(303, '/dashboard');
