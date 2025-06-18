@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
-	import { Eye, EyeOff, Icon } from '$lib/icons';
+	import { Eye, EyeOff } from '$lib/icons';
 	import { Button, Div, Label } from '../';
 
 	type Props = {
@@ -12,10 +12,11 @@
 		name?: string;
 		required?: boolean;
 		style?: string;
-		type?: 'password' | 'text';
+		type?: "button" | "checkbox" | "color" | "date" | "datetime-local" | "email" | "file" | "hidden" | "image" | "month" | "number" | "password" | "radio" | "range" | "reset" | "search" | "submit" | "tel" | "text" | "time" | "url" | "week"
 		value?: string;
 	};
-	let {
+
+let {
 		children,
 		class: className,
 		isPasswordButtonVisible = false,
