@@ -1,0 +1,20 @@
+{
+    "Create Component": {
+        "prefiex": "Create component",
+        "body": [
+            "<script lang=\"ts\">",
+            "\timport type { Snippet } from 'svelte';",
+            "",
+            "\ttype Props = { children?: Snippet; class?: string, style?: string };",
+            "\tlet { children, class: className, style, ...restProps }: Props = \\$props();",
+            "</script>",
+            "",
+            "<$1 class={className} {style} {...restProps}>",
+            "\t{#if children}",
+            "\t\t{@render children()}",
+            "\t{/if}",
+            "</$1>"
+        ],
+        "description": "Boilerplate for creating a component"
+    }
+}
