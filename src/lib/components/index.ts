@@ -7,3 +7,4 @@ export { default as Label } from './Label/Label.svelte';
 export { default as Table } from './Table/Table.svelte';
 export { default as Td } from './Td/Td.svelte';
 export { default as Thead } from './Thead/Thead.svelte';
+export { default as Tr } from './Tr/Tr.svelte';
