@@ -13,6 +13,7 @@
 		form?: any;
 		inputs?: Snippet;
 		method?: 'GET' | 'POST';
+		style?: string;
 	};
 	let {
 		action,
@@ -23,6 +24,7 @@
 		form,
 		inputs,
 		method = 'POST',
+		style,
 		...restProps
 	}: Props = $props();
 </script>
@@ -31,6 +33,7 @@
 	{action}
 	class={twMerge('w-full max-w-sm space-y-12', className)}
 	{method}
+	{style}
 	use:enhance
 	{...restProps}
 >

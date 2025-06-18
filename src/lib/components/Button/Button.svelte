@@ -7,6 +7,7 @@
 		class?: string;
 		isIcon?: boolean;
 		isRounded?: boolean;
+		style?: string;
 		tabIndex?: string;
 		theme?: 'default' | 'contrast' | 'ghost' | 'secondary';
 		type?: 'button' | 'submit';
@@ -16,6 +17,7 @@
 		class: className,
 		isIcon,
 		isRounded = true,
+		style,
 		tabIndex,
 		theme = 'default',
 		type = 'button',
@@ -37,6 +39,7 @@
 		isRounded ? 'rounded-sm' : undefined,
 		className
 	)}
+	{style}
 	{tabIndex}
 	{type}
 	{...restProps}

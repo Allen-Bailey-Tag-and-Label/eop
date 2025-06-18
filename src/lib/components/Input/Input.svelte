@@ -11,6 +11,7 @@
 		label?: string;
 		name?: string;
 		required?: boolean;
+		style?: string;
 		type?: 'password' | 'text';
 		value?: string;
 	};
@@ -21,6 +22,7 @@
 		label,
 		name,
 		required,
+		style,
 		type = 'text',
 		value,
 		...restProps
@@ -48,6 +50,7 @@
 			)}
 			{name}
 			{required}
+			{style}
 			{type}
 			{value}
 			{...restProps}

@@ -6,6 +6,7 @@
 		children?: Snippet;
 		class?: string;
 		href?: string;
+		style?: string;
 		tabIndex?: string;
 		theme?: 'default' | 'button';
 	} & any;
@@ -13,6 +14,7 @@
 		children,
 		class: className,
 		href = '#',
+		style,
 		tabIndex,
 		theme = 'default',
 		...restProps
@@ -29,6 +31,7 @@
 	)}
 	{href}
 	{tabIndex}
+	{style}
 	{...restProps}
 >
 	{#if children}
