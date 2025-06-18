@@ -54,7 +54,7 @@
 	</Div>
 </Div>
 
-{#snippet link(href: string, label: string)}
+{#snippet link(href: string, label: string, depth: number)}
 	<A
 		class={twMerge(
 			page.url.pathname !== href
@@ -62,11 +62,14 @@
 				: undefined
 		)}
 		{href}
-		theme="button">{label}</A
+		style="padding-left:{depth * 1.5}rem;"
+		theme="button"
 	>
+		{label}
+	</A>
 {/snippet}
 
-{#snippet tree(items: Navigation[])}
+{#snippet tree(items: Navigation[], depth:number = 1)}
 	<Div class="flex flex-col">
 		{#each items as item}
 			{#if item.isDirectory}
@@ -74,6 +77,7 @@
 					class="flex items-center justify-between"
 					isRounded={false}
 					onclick={() => (item.isOpen = !item.isOpen)}
+					style="padding-left:{depth * 1.5}rem;"
 					theme="ghost"
 				>
 					<Div>
@@ -84,11 +88,11 @@
 					</Div>
 				</Button>
 				{#if item.isOpen && item.children.length > 0}
-					{@render tree(item.children)}
+					{@render tree(item.children, depth + 1)}
 				{/if}
 			{/if}
 			{#if !item.isDirectory && item.href}
-				{@render link(item.href, item.label)}
+				{@render link(item.href, item.label, depth)}
 			{/if}
 		{/each}
 	</Div>
