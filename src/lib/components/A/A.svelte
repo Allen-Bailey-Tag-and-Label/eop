@@ -1,8 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
 	import { twMerge } from 'tailwind-merge';
+	import { attachmentFactory } from '$lib/attachments';
 
 	type Props = {
+		attachments?: Attachment[];
 		children?: Snippet;
 		class?: string;
 		href?: string;
@@ -11,6 +14,7 @@
 		theme?: 'default' | 'button';
 	} & any;
 	let {
+		attachments = $bindable([]),
 		children,
 		class: className,
 		href = '#',
@@ -22,6 +26,8 @@
 </script>
 
 <a
+	{...restProps}
+	{@attach attachmentFactory(attachments)}
 	class={twMerge(
 		'',
 		theme === 'button'
@@ -32,7 +38,6 @@
 	{href}
 	{tabIndex}
 	{style}
-	{...restProps}
 >
 	{#if children}
 		{@render children()}

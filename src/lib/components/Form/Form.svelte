@@ -1,10 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
-	import { Div } from '../';
+	import type { Attachment } from 'svelte/attachments';
 	import { enhance } from '$app/forms';
+	import { attachmentFactory } from '$lib/attachments';
+
+	import Div from '../Div/Div.svelte';
 
 	type Props = {
+		attachments?: Attachment[];
 		action?: string;
 		buttons?: Snippet;
 		children?: Snippet;
@@ -17,6 +21,7 @@
 	};
 	let {
 		action,
+		attachments = $bindable([]),
 		buttons,
 		children,
 		class: className,
@@ -30,12 +35,13 @@
 </script>
 
 <form
+	{...restProps}
+	{@attach attachmentFactory(attachments)}
 	{action}
 	class={twMerge('w-full max-w-sm space-y-12', className)}
 	{method}
 	{style}
 	use:enhance
-	{...restProps}
 >
 	{#if children}
 		{@render children()}
@@ -44,7 +50,7 @@
 		<Div class="flex flex-col space-y-6">
 			{@render inputs()}
 			{#if error}
-				<Div class="text-red-500 min-h-6">
+				<Div class="min-h-6 text-red-500">
 					{@render error()}
 				</Div>
 			{/if}
