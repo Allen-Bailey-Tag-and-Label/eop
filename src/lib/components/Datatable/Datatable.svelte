@@ -87,6 +87,7 @@
 			return columnSanitized;
 		});
 	});
+	const isSelectable: boolean = $derived.by(() => isDeletable);
 	const rowsSelected: boolean[] = $derived.by(() =>
 		rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue)
 	);
@@ -144,29 +145,33 @@
 		{@render toolbar()}
 	{:else}
 		<Div class="flex items-center justify-end px-6 py-3">
-			<Button
-				disabled={rowsSelected.length > 0 ? undefined : true}
-				isIcon={true}
-				onclick={() => (isDeleteDialogOpen = true)}
-				theme="error"
-			>
-				<Trash />
-			</Button>
+			{#if isDeletable}
+				<Button
+					disabled={rowsSelected.length > 0 ? undefined : true}
+					isIcon={true}
+					onclick={() => (isDeleteDialogOpen = true)}
+					theme="error"
+				>
+					<Trash />
+				</Button>
+			{/if}
 		</Div>
 	{/if}
 	<Div class="relative flex flex-col overflow-auto">
 		<Table>
 			<Thead class="sticky top-0">
 				<Tr>
-					<Th class="relative z-10 w-6">
-						<Checkbox
-							bind:checked={isAllRowsSelected}
-							class="bg-slate-950 dark:bg-slate-50"
-							onchange={() => {
-								rowsCheckboxValues = rowsCheckboxValues.map((_) => isAllRowsSelected);
-							}}
-						/>
-					</Th>
+					{#if isSelectable}
+						<Th class="relative z-10 w-6">
+							<Checkbox
+								bind:checked={isAllRowsSelected}
+								class="bg-slate-950 dark:bg-slate-50"
+								onchange={() => {
+									rowsCheckboxValues = rowsCheckboxValues.map((_) => isAllRowsSelected);
+								}}
+							/>
+						</Th>
+					{/if}
 					{#each columnsSanitized as { key, label }, index}
 						<Th class="px-0 py-0">
 							<Button
@@ -207,11 +212,13 @@
 			<Tbody>
 				{#each rows as row, rowIndex}
 					<Tr>
-						<Td>
-							{#if rowsCheckboxValues[rowIndex] !== undefined}
-								<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
-							{/if}
-						</Td>
+						{#if isSelectable}
+							<Td>
+								{#if rowsCheckboxValues[rowIndex] !== undefined}
+									<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+								{/if}
+							</Td>
+						{/if}
 						{#each columnsSanitized as { key }}
 							<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 						{/each}
