@@ -30,6 +30,7 @@
 		isSortable?: boolean;
 		rows: Row[];
 		sort?: Sort;
+		tbody?: Snippet;
 		thead?: Snippet;
 		toolbar?: Snippet;
 	};
@@ -49,6 +50,7 @@
 		isSortable = true,
 		rows = $bindable([]),
 		sort = $bindable({ direction: 'asc', index: -1, key: '' }),
+		tbody,
 		thead,
 		toolbar
 	}: Props = $props();
@@ -215,22 +217,26 @@
 					</Tr>
 				</Thead>
 			{/if}
-			<Tbody>
-				{#each rows as row, rowIndex}
-					<Tr>
-						{#if isSelectable}
-							<Td>
-								{#if rowsCheckboxValues[rowIndex] !== undefined}
-									<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
-								{/if}
-							</Td>
-						{/if}
-						{#each columnsSanitized as { key }}
-							<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
-						{/each}
-					</Tr>
-				{/each}
-			</Tbody>
+			{#if tbody}
+				{@render tbody()}
+			{:else}
+				<Tbody>
+					{#each rows as row, rowIndex}
+						<Tr>
+							{#if isSelectable}
+								<Td>
+									{#if rowsCheckboxValues[rowIndex] !== undefined}
+										<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+									{/if}
+								</Td>
+							{/if}
+							{#each columnsSanitized as { key }}
+								<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+							{/each}
+						</Tr>
+					{/each}
+				</Tbody>
+			{/if}
 		</Table>
 	</Div>
 </Card>
