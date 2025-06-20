@@ -12,7 +12,7 @@
 			"\tlet { attachments = \\$bindable([]), children, class: className, style, ...restProps }: Props = \\$props();",
 			"</script>",
 			"",
-			"<$1 {@attach attachmentFactory(attachments)} class={twMerge('', className)} {style} {...restProps}>",
+			"<$1 {...restProps} {@attach attachmentFactory(attachments)} class={twMerge('', className)} {style}>",
 			"\t{#if children}",
 			"\t\t{@render children()}",
 			"\t{/if}",
