@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
-	import { ChevronDown, Trash, TriangleAlert } from '$lib/icons';
+	import {
+		ChevronDown,
+		ChevronFirst,
+		ChevronLast,
+		ChevronLeft,
+		ChevronRight,
+		Trash,
+		TriangleAlert
+	} from '$lib/icons';
 
 	import Button from '../Button/Button.svelte';
 	import Card from '../Card/Card.svelte';
@@ -9,6 +17,7 @@
 	import Dialog from '../Dialog/Dialog.svelte';
 	import Div from '../Div/Div.svelte';
 	import P from '../P/P.svelte';
+	import Select from '../Select/Select.svelte';
 	import Table from '../Table/Table.svelte';
 	import Tbody from '../Tbody/Tbody.svelte';
 	import Td from '../Td/Td.svelte';
@@ -24,10 +33,16 @@
 		key: string;
 		label: string;
 	};
+	type Pagination = boolean | Partial<PaginationSanitized>;
+	type PaginationSanitized = {
+		currentPage: number;
+		rowsPerPage: number;
+	};
 	type Props = {
 		columns: Column[];
 		isDeletable?: boolean;
 		isSortable?: boolean;
+		pagination?: Pagination;
 		rows: Row[];
 		sort?: Sort;
 		tbody?: Snippet;
@@ -44,10 +59,15 @@
 
 	let isAllRowsSelected = $state(false);
 	let isDeleteDialogOpen = $state(false);
+	let paginationSanitized: PaginationSanitized = $state({
+		currentPage: 0,
+		rowsPerPage: 10
+	});
 	let {
 		columns = $bindable(),
 		isDeletable = true,
 		isSortable = true,
+		pagination = $bindable(true),
 		rows = $bindable([]),
 		sort = $bindable({ direction: 'asc', index: -1, key: '' }),
 		tbody,
@@ -61,6 +81,7 @@
 		key: ''
 	});
 
+	// $derives
 	const columnsSanitized: ColumnSanitized[] = $derived.by(() => {
 		return columns.map((column) => {
 			const columnDefault: ColumnSanitized = {
@@ -92,10 +113,44 @@
 		});
 	});
 	const isSelectable: boolean = $derived.by(() => isDeletable);
+	const paginationIndexes: { start: number; end: number } = $derived.by(() => {
+		const start = paginationSanitized.currentPage * paginationSanitized.rowsPerPage;
+		let end = start + paginationSanitized.rowsPerPage;
+		if (end > rows.length) end = rows.length;
+		return { start, end };
+	});
+	const paginationTotalPages: number = $derived.by(() =>
+		Math.ceil(rows.length / paginationSanitized.rowsPerPage)
+	);
+	const paginationOptions: { label: string; value: number }[] = $derived.by(() => {
+		if (paginationTotalPages === 0) return [{ label: '0-0', value: 0 }];
+		return Array(paginationTotalPages)
+			.fill(0)
+			.map((_, value) => {
+				const start = value * paginationSanitized.rowsPerPage;
+				let end = start + paginationSanitized.rowsPerPage;
+				if (end > rows.length) end = rows.length;
+				return { label: `${start + 1}-${end}`, value };
+			});
+	});
 	const rowsSelected: boolean[] = $derived.by(() =>
 		rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue)
 	);
 
+	// $effects
+	$effect(() => {
+		if (JSON.stringify(pagination)) {
+			untrack(() => {
+				if (pagination === true)
+					paginationSanitized = Object.assign(
+						{ currentPage: 0, rowsPerPage: 10 },
+						paginationSanitized
+					);
+				if (typeof pagination === 'object')
+					paginationSanitized = Object.assign(paginationSanitized, pagination);
+			});
+		}
+	});
 	$effect(() => {
 		if (rows.length > rowsCheckboxValues.length) {
 			rowsCheckboxValues = [
@@ -222,23 +277,62 @@
 			{:else}
 				<Tbody>
 					{#each rows as row, rowIndex}
-						<Tr>
-							{#if isSelectable}
-								<Td>
-									{#if rowsCheckboxValues[rowIndex] !== undefined}
-										<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
-									{/if}
-								</Td>
-							{/if}
-							{#each columnsSanitized as { key }}
-								<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
-							{/each}
-						</Tr>
+						{#if pagination === false || (rowIndex >= paginationIndexes.start && rowIndex < paginationIndexes.end)}
+							<Tr>
+								{#if isSelectable}
+									<Td>
+										{#if rowsCheckboxValues[rowIndex] !== undefined}
+											<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+										{/if}
+									</Td>
+								{/if}
+								{#each columnsSanitized as { key }}
+									<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+								{/each}
+							</Tr>
+						{/if}
 					{/each}
 				</Tbody>
 			{/if}
 		</Table>
 	</Div>
+	{#if pagination !== false}
+		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
+			<Button
+				disabled={paginationSanitized.currentPage === 0 ? 'disabled' : undefined}
+				isIcon={true}
+				onclick={() => (paginationSanitized.currentPage = 0)}
+			>
+				<ChevronFirst />
+			</Button>
+			<Button
+				disabled={paginationSanitized.currentPage === 0 ? 'disabled' : undefined}
+				isIcon={true}
+				onclick={() => paginationSanitized.currentPage--}
+			>
+				<ChevronLeft />
+			</Button>
+			<Select bind:value={paginationSanitized.currentPage} options={paginationOptions} />
+			<Button
+				disabled={paginationSanitized.currentPage === Math.max(0, paginationTotalPages - 1)
+					? 'disabled'
+					: undefined}
+				isIcon={true}
+				onclick={() => paginationSanitized.currentPage++}
+			>
+				<ChevronRight />
+			</Button>
+			<Button
+				disabled={paginationSanitized.currentPage === Math.max(0, paginationTotalPages - 1)
+					? 'disabled'
+					: undefined}
+				isIcon={true}
+				onclick={() => (paginationSanitized.currentPage = paginationTotalPages - 1)}
+			>
+				<ChevronLast />
+			</Button>
+		</Div>
+	{/if}
 </Card>
 
 <Dialog bind:open={isDeleteDialogOpen}>
