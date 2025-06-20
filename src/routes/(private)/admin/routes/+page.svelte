@@ -23,5 +23,5 @@
 </script>
 
 <Div class="flex flex-grow flex-col overflow-auto p-6">
-	<Datatable bind:columns bind:rows isDeletable={false} />
+	<Datatable bind:columns bind:rows />
 </Div>
