@@ -30,6 +30,7 @@
 		isSortable?: boolean;
 		rows: Row[];
 		sort?: Sort;
+		thead?: Snippet;
 		toolbar?: Snippet;
 	};
 	type Row = Record<string, any>;
@@ -48,6 +49,7 @@
 		isSortable = true,
 		rows = $bindable([]),
 		sort = $bindable({ direction: 'asc', index: -1, key: '' }),
+		thead,
 		toolbar
 	}: Props = $props();
 	let rowsCheckboxValues: boolean[] = $state([]);
@@ -159,56 +161,60 @@
 	{/if}
 	<Div class="relative flex flex-col overflow-auto">
 		<Table class="bg-transparent dark:bg-transparent">
-			<Thead class="sticky top-0">
-				<Tr>
-					{#if isSelectable}
-						<Th class="relative z-10 w-6">
-							<Checkbox
-								bind:checked={isAllRowsSelected}
-								class="bg-slate-950 dark:bg-slate-50"
-								onchange={() => {
-									rowsCheckboxValues = rowsCheckboxValues.map((_) => isAllRowsSelected);
-								}}
-							/>
-						</Th>
-					{/if}
-					{#each columnsSanitized as { key, label }, index}
-						<Th class="px-0 py-0">
-							<Button
-								class="flex w-full items-center justify-between"
-								isRounded={false}
-								onclick={() => {
-									if (isSortable) {
-										sortSanitized = {
-											direction:
-												sortSanitized.key !== key
-													? 'asc'
-													: sortSanitized.direction === 'asc'
-														? 'desc'
-														: 'asc',
-											index,
-											key
-										};
-									}
-								}}
-								theme="ghost"
-							>
-								<Div>{label}</Div>
-								{#if isSortable}
-									<ChevronDown
-										class={twMerge(
-											'transition duration-200',
-											key === sortSanitized.key ? 'scale-100' : 'scale-0',
-											sortSanitized.direction === 'asc' ? 'rotate-0' : 'rotate-180'
-										)}
-										size={16}
-									/>
-								{/if}
-							</Button>
-						</Th>
-					{/each}
-				</Tr>
-			</Thead>
+			{#if thead}
+				{@render thead()}
+			{:else}
+				<Thead class="sticky top-0">
+					<Tr>
+						{#if isSelectable}
+							<Th class="relative z-10 w-6">
+								<Checkbox
+									bind:checked={isAllRowsSelected}
+									class="bg-slate-950 dark:bg-slate-50"
+									onchange={() => {
+										rowsCheckboxValues = rowsCheckboxValues.map((_) => isAllRowsSelected);
+									}}
+								/>
+							</Th>
+						{/if}
+						{#each columnsSanitized as { key, label }, index}
+							<Th class="px-0 py-0">
+								<Button
+									class="flex w-full items-center justify-between"
+									isRounded={false}
+									onclick={() => {
+										if (isSortable) {
+											sortSanitized = {
+												direction:
+													sortSanitized.key !== key
+														? 'asc'
+														: sortSanitized.direction === 'asc'
+															? 'desc'
+															: 'asc',
+												index,
+												key
+											};
+										}
+									}}
+									theme="ghost"
+								>
+									<Div>{label}</Div>
+									{#if isSortable}
+										<ChevronDown
+											class={twMerge(
+												'transition duration-200',
+												key === sortSanitized.key ? 'scale-100' : 'scale-0',
+												sortSanitized.direction === 'asc' ? 'rotate-0' : 'rotate-180'
+											)}
+											size={16}
+										/>
+									{/if}
+								</Button>
+							</Th>
+						{/each}
+					</Tr>
+				</Thead>
+			{/if}
 			<Tbody>
 				{#each rows as row, rowIndex}
 					<Tr>
