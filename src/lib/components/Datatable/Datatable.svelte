@@ -158,7 +158,7 @@
 		</Div>
 	{/if}
 	<Div class="relative flex flex-col overflow-auto">
-		<Table>
+		<Table class="bg-transparent dark:bg-transparent">
 			<Thead class="sticky top-0">
 				<Tr>
 					{#if isSelectable}
