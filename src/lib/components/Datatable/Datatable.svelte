@@ -10,6 +10,7 @@
 		Trash,
 		TriangleAlert
 	} from '$lib/icons';
+	import { currency } from '$lib/formats';
 
 	import Button from '../Button/Button.svelte';
 	import Card from '../Card/Card.svelte';
@@ -25,38 +26,38 @@
 	import Thead from '../Thead/Thead.svelte';
 	import Tr from '../Tr/Tr.svelte';
 
-	import { compareFn } from './';
+	import {
+		compareFn,
+		type ColumnSanitized,
+		type PaginationSanitized,
+		type Props,
+		type Row,
+		type SortSanitized
+	} from './';
 
-	type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
-	type ColumnSanitized = {
-		compareFn: (a: any, b: any) => any;
-		key: string;
-		label: string;
-	};
-	type Pagination = boolean | Partial<PaginationSanitized>;
-	type PaginationSanitized = {
-		currentPage: number;
-		rowsPerPage: number;
-	};
-	type Props = {
-		columns: Column[];
-		isDeletable?: boolean;
-		isSortable?: boolean;
-		pagination?: Pagination;
-		rows: Row[];
-		sort?: Sort;
-		tbody?: Snippet;
-		thead?: Snippet;
-		toolbar?: Snippet;
-	};
-	type Row = Record<string, any>;
-	type Sort = Partial<SortSanitized>;
-	type SortSanitized = {
-		direction: 'asc' | 'desc';
-		index: number;
-		key: string;
-	};
+	const initColumnSanitized = (key: string) => {
+		const columnSanitized: ColumnSanitized = {
+			compareFn: compareFn.string,
+			key,
+			label: key,
+			snippet: stringTd,
+			type: 'string'
+		};
 
+		if (rows.length > 0) {
+			for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+				if (rows[rowIndex][key] !== null) {
+					const type = typeof rows[rowIndex][key];
+					columnSanitized.compareFn = compareFn[type];
+					columnSanitized.snippet = tdSnippetMap.get(type) || stringTd;
+					columnSanitized.type = type;
+					break;
+				}
+			}
+		}
+
+		return columnSanitized;
+	};
 	let isAllRowsSelected = $state(false);
 	let isDeleteDialogOpen = $state(false);
 	let paginationSanitized: PaginationSanitized = $state({
@@ -80,34 +81,31 @@
 		index: -1,
 		key: ''
 	});
+	const tdSnippetMap = new Map([
+		['bigint', bigintTd],
+		['boolean', booleanTd],
+		['currency', currencyTd],
+		['function', functionTd],
+		['number', numberTd],
+		['object', objectTd],
+		['string', stringTd],
+		['symbol', symbolTd],
+		['undefined', undefinedTd]
+	]);
 
 	// $derives
 	const columnsSanitized: ColumnSanitized[] = $derived.by(() => {
 		return columns.map((column) => {
-			const columnDefault: ColumnSanitized = {
-				compareFn: compareFn.string,
-				key: '',
-				label: ''
-			};
-			const columnSanitized: ColumnSanitized = Object.assign(
-				columnDefault,
-				typeof column === 'string' ? { key: column, label: column } : column
-			);
-
-			untrack(() => {
-				if (rows.length > 0) {
-					for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-						if (rows[rowIndex][columnSanitized.key] !== null) {
-							columnSanitized.compareFn = compareFn[typeof rows[rowIndex][columnSanitized.key]];
-							if (typeof rows[rowIndex][columnSanitized.key] === 'boolean')
-								columnSanitized.compareFn = compareFn.boolean;
-							if (typeof rows[rowIndex][columnSanitized.key] === 'number')
-								columnSanitized.compareFn = compareFn.number;
-							break;
-						}
-					}
-				}
-			});
+			const columnSanitized: ColumnSanitized =
+				typeof column === 'string'
+					? untrack(() => initColumnSanitized(column))
+					: {
+							compareFn: column?.compareFn || compareFn[column?.type || 'string'],
+							key: column.key,
+							label: column?.label || column.key,
+							snippet: column?.snippet || tdSnippetMap.get(column?.type || 'string') || stringTd,
+							type: column?.type || 'string'
+						};
 
 			return columnSanitized;
 		});
@@ -229,7 +227,13 @@
 									bind:checked={isAllRowsSelected}
 									class="bg-slate-950 dark:bg-slate-50"
 									onchange={() => {
-										rowsCheckboxValues = rowsCheckboxValues.map((_) => isAllRowsSelected);
+										rowsCheckboxValues = rowsCheckboxValues.map((_, rowIndex) => {
+											if (pagination !== false) {
+												if (rowIndex < paginationIndexes.start || rowIndex >= paginationIndexes.end)
+													return false;
+											}
+											return isAllRowsSelected;
+										});
 									}}
 								/>
 							</Th>
@@ -286,8 +290,8 @@
 										{/if}
 									</Td>
 								{/if}
-								{#each columnsSanitized as { key }}
-									<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+								{#each columnsSanitized as { key, snippet }}
+									{@render snippet({ key, row })}
 								{/each}
 							</Tr>
 						{/if}
@@ -362,3 +366,31 @@
 		</Div>
 	</Card>
 </Dialog>
+
+{#snippet bigintTd({ key, row }: { key: string; row: Row })}
+	<Td>Bigint</Td>
+{/snippet}
+{#snippet booleanTd({ key, row }: { key: string; row: Row })}
+	<Td class="uppercase">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{/snippet}
+{#snippet currencyTd({ key, row }: { key: string; row: Row })}
+	<Td class="text-right">{currency(row[key] || JSON.stringify(row[key], null, 2))}</Td>
+{/snippet}
+{#snippet functionTd({ key, row }: { key: string; row: Row })}
+	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{/snippet}
+{#snippet numberTd({ key, row }: { key: string; row: Row })}
+	<Td class="text-right">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{/snippet}
+{#snippet objectTd({ key, row }: { key: string; row: Row })}
+	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{/snippet}
+{#snippet stringTd({ key, row }: { key: string; row: Row })}
+	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{/snippet}
+{#snippet symbolTd({ key, row }: { key: string; row: Row })}
+	<Td>Symbol</Td>
+{/snippet}
+{#snippet undefinedTd({ key, row }: { key: string; row: Row })}
+	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{/snippet}
