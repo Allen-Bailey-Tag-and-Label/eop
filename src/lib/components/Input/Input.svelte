@@ -94,11 +94,11 @@
 				{...restProps}
 				{@attach typeFactory(type)}
 				{@attach attachmentFactory(attachments)}
+				bind:value
 				class={twMerge(defaultClasses, className)}
 				{name}
 				{required}
 				{style}
-				{value}
 			/>
 			{#if isPasswordButtonVisible}
 				<Button
@@ -120,11 +120,11 @@
 			{...restProps}
 			{@attach typeFactory(type)}
 			{@attach attachmentFactory(attachments)}
+			bind:value
 			class={twMerge(defaultClasses, className)}
 			{name}
 			{required}
 			{style}
-			{value}
 		/>
 	{/if}
 {/snippet}
