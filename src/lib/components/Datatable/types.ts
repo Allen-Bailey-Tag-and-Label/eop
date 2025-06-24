@@ -3,9 +3,10 @@ import { type Snippet } from 'svelte';
 export type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
 export type ColumnSanitized = {
 	compareFn: (a: any, b: any) => any;
+	isEditable: boolean;
 	key: string;
 	label: string;
-	snippet: Snippet<[{ key: string; row: Row }]>;
+	snippet: Snippet<[TdSnippet]>;
 	type: ColumnType;
 };
 export type ColumnType =
@@ -26,6 +27,7 @@ export type PaginationSanitized = {
 export type Props = {
 	columns: Column[];
 	isDeletable?: boolean;
+	isEditable?: boolean;
 	isSortable?: boolean;
 	pagination?: Pagination;
 	rows: Row[];
@@ -41,3 +43,4 @@ export type SortSanitized = {
 	index: number;
 	key: string;
 };
+export type TdSnippet = { isEditable: boolean; key: string; row: Row; rowIndex: number };

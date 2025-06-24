@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte';
+	import { untrack } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import {
 		ChevronDown,
@@ -31,13 +31,14 @@
 		type ColumnSanitized,
 		type PaginationSanitized,
 		type Props,
-		type Row,
-		type SortSanitized
+		type SortSanitized,
+		type TdSnippet
 	} from './';
 
 	const initColumnSanitized = (key: string) => {
 		const columnSanitized: ColumnSanitized = {
 			compareFn: compareFn.string,
+			isEditable,
 			key,
 			label: key,
 			snippet: stringTd,
@@ -67,6 +68,7 @@
 	let {
 		columns = $bindable(),
 		isDeletable = true,
+		isEditable = true,
 		isSortable = true,
 		pagination = $bindable(true),
 		rows = $bindable([]),
@@ -101,6 +103,7 @@
 					? untrack(() => initColumnSanitized(column))
 					: {
 							compareFn: column?.compareFn || compareFn[column?.type || 'string'],
+							isEditable,
 							key: column.key,
 							label: column?.label || column.key,
 							snippet: column?.snippet || tdSnippetMap.get(column?.type || 'string') || stringTd,
@@ -290,8 +293,8 @@
 										{/if}
 									</Td>
 								{/if}
-								{#each columnsSanitized as { key, snippet }}
-									{@render snippet({ key, row })}
+								{#each columnsSanitized as { isEditable, key, snippet }}
+									{@render snippet({ isEditable, key, row, rowIndex })}
 								{/each}
 							</Tr>
 						{/if}
@@ -367,30 +370,90 @@
 	</Card>
 </Dialog>
 
-{#snippet bigintTd({ key, row }: { key: string; row: Row })}
+{#snippet bigintTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>Bigint</Td>
 {/snippet}
-{#snippet booleanTd({ key, row }: { key: string; row: Row })}
-	<Td class="uppercase">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{#snippet booleanTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+	{#if isEditable && rows[rowIndex][key] !== undefined}
+		<Td>
+			<Checkbox bind:checked={rows[rowIndex][key]} />
+		</Td>
+	{:else}
+		<Td class="uppercase">{row[key]}</Td>
+	{/if}
 {/snippet}
-{#snippet currencyTd({ key, row }: { key: string; row: Row })}
-	<Td class="text-right">{currency(row[key] || JSON.stringify(row[key], null, 2))}</Td>
+{#snippet currencyTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+	{#if isEditable && rows[rowIndex][key] !== undefined}
+		<Td class="hover:outline-primary-500/0 p-0">
+			<Div
+				bind:innerHTML={
+					() => {
+						return currency(rows[rowIndex][key]);
+					},
+					(string) => {
+						const value = parseFloat(string.replace(/[^0-9.-]+/g, ''));
+						rows[rowIndex][key] = value;
+					}
+				}
+				class="focus:outline-primary-500 outline-primary-500/0 hover:outline-primary-500 rounded-none bg-transparent p-3 text-right outline-1 backdrop-blur-none focus:outline-1 dark:bg-transparent"
+				contenteditable={true}
+			>
+				{rows[rowIndex][key]}
+			</Div>
+		</Td>
+	{:else}
+		<Td class="text-right">{currency(row[key] || JSON.stringify(row[key], null, 2))}</Td>
+	{/if}
 {/snippet}
-{#snippet functionTd({ key, row }: { key: string; row: Row })}
+{#snippet functionTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 {/snippet}
-{#snippet numberTd({ key, row }: { key: string; row: Row })}
-	<Td class="text-right">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{#snippet numberTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+	{#if isEditable && rows[rowIndex][key] !== undefined}
+		<Td class="hover:outline-primary-500/0 p-0">
+			<Div
+				bind:innerHTML={
+					() => {
+						return typeof rows[rowIndex][key] === 'number'
+							? rows[rowIndex][key].toString()
+							: rows[rowIndex][key];
+					},
+					(value) => {
+						value = typeof value === 'number' ? value : parseFloat(value.replace(/[^0-9.-]+/g, ''));
+						rows[rowIndex][key] = value;
+					}
+				}
+				class="focus:outline-primary-500 outline-primary-500/0 hover:outline-primary-500 rounded-none bg-transparent p-3 text-right outline-1 backdrop-blur-none focus:outline-1 dark:bg-transparent"
+				contenteditable={true}
+			>
+				{rows[rowIndex][key]}
+			</Div>
+		</Td>
+	{:else}
+		<Td class="text-right">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+	{/if}
 {/snippet}
-{#snippet objectTd({ key, row }: { key: string; row: Row })}
+{#snippet objectTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 {/snippet}
-{#snippet stringTd({ key, row }: { key: string; row: Row })}
-	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{#snippet stringTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+	{#if isEditable && rows[rowIndex][key] !== undefined}
+		<Td class="hover:outline-primary-500/0 p-0">
+			<Div
+				bind:innerHTML={rows[rowIndex][key]}
+				class="focus:outline-primary-500 outline-primary-500/0 hover:outline-primary-500 rounded-none bg-transparent p-3 outline-1 backdrop-blur-none focus:outline-1 dark:bg-transparent"
+				contenteditable={true}
+			>
+				{rows[rowIndex][key]}
+			</Div>
+		</Td>
+	{:else}
+		<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+	{/if}
 {/snippet}
-{#snippet symbolTd({ key, row }: { key: string; row: Row })}
+{#snippet symbolTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>Symbol</Td>
 {/snippet}
-{#snippet undefinedTd({ key, row }: { key: string; row: Row })}
+{#snippet undefinedTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 {/snippet}
