@@ -14,7 +14,12 @@
 	}: Props = $props();
 </script>
 
-<h1 {...restProps} {@attach attachmentFactory(attachments)} class={twMerge('', className)} {style}>
+<h1
+	{...restProps}
+	{@attach attachmentFactory(attachments)}
+	class={twMerge('block text-2xl font-bold text-gray-800 sm:text-3xl dark:text-white', className)}
+	{style}
+>
 	{#if children}
 		{@render children()}
 	{/if}
