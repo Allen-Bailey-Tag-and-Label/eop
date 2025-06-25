@@ -6,6 +6,7 @@ export { default as Datatable } from './Datatable/Datatable.svelte';
 export { default as Dialog } from './Dialog/Dialog.svelte';
 export { default as Div } from './Div/Div.svelte';
 export { default as Form } from './Form/Form.svelte';
+export { default as H1 } from './H1/H1.svelte';
 export { default as Input } from './Input/Input.svelte';
 export { default as Label } from './Label/Label.svelte';
 export { default as Option } from './Option/Option.svelte';
