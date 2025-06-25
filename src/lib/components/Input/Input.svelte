@@ -4,6 +4,7 @@
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory, typeFactory } from '$lib/attachments';
 	import { Eye, EyeOff } from '$lib/icons';
+	import { theme as themeStore } from '$lib/theme';
 
 	import Button from '../Button/Button.svelte';
 	import Div from '../Div/Div.svelte';
@@ -11,6 +12,7 @@
 
 	type Props = {
 		attachments?: Attachment[];
+		autoFocus?: boolean;
 		checked?: boolean;
 		children?: Snippet;
 		class?: string;
@@ -43,14 +45,14 @@
 			| 'url'
 			| 'week';
 		value?: string;
-	};
+		variants?: string[];
+	} & any;
 
-	const defaultClasses =
-		'outline-primary-500/0 focus:outline-primary-500 w-full rounded-sm bg-slate-50/30 p-3 outline-1 backdrop-blur-md transition duration-200 hover:outline-gray-400 focus:outline-2 dark:bg-slate-50/10';
 	const passwordTypeButtonClickHandler = () =>
 		type === 'text' ? (type = 'password') : (type = 'text');
 	let {
 		attachments = $bindable([]),
+		autoFocus = $bindable(),
 		checked = $bindable(),
 		children,
 		class: className,
@@ -61,6 +63,7 @@
 		style,
 		type = 'text',
 		value = $bindable(),
+		variants = [],
 		...restProps
 	}: Props = $props();
 </script>
@@ -80,8 +83,13 @@
 			{...restProps}
 			{@attach typeFactory(type)}
 			{@attach attachmentFactory(attachments)}
+			{autoFocus}
 			bind:checked
-			class={twMerge(defaultClasses, className)}
+			class={twMerge(
+				$themeStore.Input.default,
+				...variants.map((variant: string) => $themeStore.Input[variant]),
+				className
+			)}
 			{name}
 			{required}
 			{style}
@@ -94,8 +102,14 @@
 				{...restProps}
 				{@attach typeFactory(type)}
 				{@attach attachmentFactory(attachments)}
+				{autoFocus}
 				bind:value
-				class={twMerge(defaultClasses, className)}
+				class={twMerge(
+					'w-full',
+					$themeStore.Input.default,
+					...variants.map((variant: string) => $themeStore.Input[variant]),
+					className
+				)}
 				{name}
 				{required}
 				{style}
@@ -103,9 +117,8 @@
 			{#if isPasswordButtonVisible}
 				<Button
 					class="absolute top-0 right-3"
-					isIcon={true}
 					onclick={passwordTypeButtonClickHandler}
-					theme="ghost"
+					variants={['ghost', 'icon']}
 				>
 					{#if type === 'password'}
 						<EyeOff />
@@ -120,8 +133,13 @@
 			{...restProps}
 			{@attach typeFactory(type)}
 			{@attach attachmentFactory(attachments)}
+			{autoFocus}
 			bind:value
-			class={twMerge(defaultClasses, className)}
+			class={twMerge(
+				$themeStore.Input.default,
+				...variants.map((variant: string) => $themeStore.Input[variant]),
+				className
+			)}
 			{name}
 			{required}
 			{style}

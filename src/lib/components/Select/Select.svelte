@@ -3,6 +3,7 @@
 	import { type Attachment } from 'svelte/attachments';
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory } from '$lib/attachments';
+	import { theme as themeStore } from '$lib/theme';
 
 	import Option from '../Option/Option.svelte';
 
@@ -12,6 +13,7 @@
 		class?: string;
 		options: { label: string; value: number | string }[];
 		style?: string;
+		variants?: string[];
 		value?: number | string;
 	};
 	let {
@@ -21,6 +23,7 @@
 		options,
 		style,
 		value = $bindable(),
+		variants = [],
 		...restProps
 	}: Props = $props();
 </script>
@@ -30,7 +33,8 @@
 	{@attach attachmentFactory(attachments)}
 	bind:value
 	class={twMerge(
-		'outline-primary-500/0 focus:outline-primary-500 rounded-sm bg-slate-50/30 p-3 outline-1 backdrop-blur-md transition duration-200 hover:outline-gray-400 focus:outline-2 dark:bg-slate-50/10',
+		$themeStore.Select.default,
+		...variants.map((variant: string) => $themeStore.Select[variant]),
 		className
 	)}
 	{style}

@@ -4,6 +4,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { enhance } from '$app/forms';
 	import { attachmentFactory } from '$lib/attachments';
+	import { theme as themeStore } from '$lib/theme';
 
 	import Div from '../Div/Div.svelte';
 
@@ -18,6 +19,7 @@
 		inputs?: Snippet;
 		method?: 'GET' | 'POST';
 		style?: string;
+		variants?: string[];
 	};
 	let {
 		action,
@@ -30,6 +32,7 @@
 		inputs,
 		method = 'POST',
 		style,
+		variants = [],
 		...restProps
 	}: Props = $props();
 </script>
@@ -38,7 +41,11 @@
 	{...restProps}
 	{@attach attachmentFactory(attachments)}
 	{action}
-	class={twMerge('w-full max-w-sm space-y-12', className)}
+	class={twMerge(
+		$themeStore.Form.default,
+		...variants.map((variant: string) => $themeStore.Form[variant]),
+		className
+	)}
 	{method}
 	{style}
 	use:enhance

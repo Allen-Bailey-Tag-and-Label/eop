@@ -3,6 +3,7 @@
 	import { type Attachment } from 'svelte/attachments';
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory } from '$lib/attachments';
+	import { theme as themeStore } from '$lib/theme';
 
 	type Props = {
 		attachments?: Attachment[];
@@ -10,6 +11,7 @@
 		class?: string;
 		selected?: boolean;
 		style?: string;
+		variants?: string[];
 		value: string | number;
 	};
 	let {
@@ -18,6 +20,7 @@
 		class: className,
 		selected,
 		style,
+		variants = [],
 		value,
 		...restProps
 	}: Props = $props();
@@ -26,7 +29,11 @@
 <option
 	{...restProps}
 	{@attach attachmentFactory(attachments)}
-	class={twMerge('', className)}
+	class={twMerge(
+		$themeStore.Option.default,
+		...variants.map((variant: string) => $themeStore.Option[variant]),
+		className
+	)}
 	{selected}
 	{style}
 	{value}

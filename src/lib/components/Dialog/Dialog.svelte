@@ -3,6 +3,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory, focusTrap } from '$lib/attachments';
+	import { theme as themeStore } from '$lib/theme';
 
 	import Div from '../Div/Div.svelte';
 
@@ -13,6 +14,7 @@
 		elem?: HTMLDialogElement;
 		open?: boolean;
 		style?: string;
+		variants?: string[];
 	} & any;
 	let {
 		attachments = $bindable([focusTrap]),
@@ -20,7 +22,8 @@
 		class: className,
 		elem = $bindable(),
 		open = $bindable(false),
-		style,
+		style, 
+		variants = [],
 		...restProps
 	}: Props = $props();
 
@@ -50,7 +53,8 @@
 	{@attach attachmentFactory(attachments)}
 	bind:this={elem}
 	class={twMerge(
-		'max-w-screen bg-transparent h-full max-h-screen w-full bg-transparent text-current transition duration-200 backdrop-blur-md backdrop:bg-transparent',
+		$themeStore.Dialog.default,
+		...variants.map((variant: string) => $themeStore.Dialog[variant]),
 		className
 	)}
 	onclick={(event) => {

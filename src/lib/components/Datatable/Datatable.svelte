@@ -11,6 +11,7 @@
 		TriangleAlert
 	} from '$lib/icons';
 	import { currency } from '$lib/formats';
+	import { theme as themeStore } from '$lib/theme';
 
 	import Button from '../Button/Button.svelte';
 	import Card from '../Card/Card.svelte';
@@ -238,9 +239,8 @@
 			{#if isDeletable}
 				<Button
 					disabled={rowsSelected.length > 0 ? undefined : true}
-					isIcon={true}
 					onclick={() => (isDeleteDialogOpen = true)}
-					theme="error"
+					variants={['error', 'icon']}
 				>
 					<Trash />
 				</Button>
@@ -258,7 +258,6 @@
 							<Th class="relative z-10 w-6">
 								<Checkbox
 									bind:checked={isAllRowsSelected}
-									class="bg-slate-950 dark:bg-slate-50"
 									onchange={() => {
 										rowsCheckboxValues = rowsCheckboxValues.map((_, rowIndex) => {
 											if (pagination !== false) {
@@ -274,8 +273,7 @@
 						{#each columnsSanitized as { key, label }, index}
 							<Th class="px-0 py-0">
 								<Button
-									class="flex w-full items-center justify-between"
-									isRounded={false}
+									class="flex w-full items-center justify-between text-gray-500"
 									onclick={() => {
 										if (isSortable) {
 											sortSanitized = {
@@ -290,9 +288,11 @@
 											};
 										}
 									}}
-									theme="ghost"
+									variants={['ghost', 'square']}
 								>
-									<Div>{label}</Div>
+									<Div class={twMerge($themeStore.Th.default, 'px-0 py-0')}>
+										{label}
+									</Div>
 									{#if isSortable}
 										<ChevronDown
 											class={twMerge(
@@ -337,15 +337,15 @@
 		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
 			<Button
 				disabled={paginationSanitized.currentPage === 0 ? 'disabled' : undefined}
-				isIcon={true}
 				onclick={() => (paginationSanitized.currentPage = 0)}
+				variants={['icon']}
 			>
 				<ChevronFirst />
 			</Button>
 			<Button
 				disabled={paginationSanitized.currentPage === 0 ? 'disabled' : undefined}
-				isIcon={true}
 				onclick={() => paginationSanitized.currentPage--}
+				variants={['icon']}
 			>
 				<ChevronLeft />
 			</Button>
@@ -354,8 +354,8 @@
 				disabled={paginationSanitized.currentPage === Math.max(0, paginationTotalPages - 1)
 					? 'disabled'
 					: undefined}
-				isIcon={true}
 				onclick={() => paginationSanitized.currentPage++}
+				variants={['icon']}
 			>
 				<ChevronRight />
 			</Button>
@@ -363,8 +363,8 @@
 				disabled={paginationSanitized.currentPage === Math.max(0, paginationTotalPages - 1)
 					? 'disabled'
 					: undefined}
-				isIcon={true}
 				onclick={() => (paginationSanitized.currentPage = paginationTotalPages - 1)}
+				variants={['icon']}
 			>
 				<ChevronLast />
 			</Button>
@@ -384,7 +384,7 @@
 			This cannot be undone.
 		</P>
 		<Div class="grid w-full grid-cols-2 gap-4">
-			<Button onclick={() => (isDeleteDialogOpen = false)} theme="contrast">Cancel</Button>
+			<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}>Cancel</Button>
 			<Button
 				autoFocus={true}
 				onclick={() => {
@@ -392,7 +392,7 @@
 					rowsCheckboxValues = rowsCheckboxValues.filter((rowCheckboxValue) => !rowCheckboxValue);
 					isDeleteDialogOpen = false;
 				}}
-				theme="error"
+				variants={['error']}
 			>
 				Delete
 			</Button>
@@ -425,7 +425,10 @@
 						rows[rowIndex][key] = value;
 					}
 				}
-				class="focus:outline-primary-500 outline-primary-500/0 hover:outline-primary-500 rounded-none bg-transparent p-3 text-right outline-1 backdrop-blur-none focus:outline-1 dark:bg-transparent"
+				class={twMerge(
+					$themeStore.Input.default,
+					'rounded-none text-right outline-transparent dark:outline-transparent'
+				)}
 				contenteditable={true}
 			>
 				{rows[rowIndex][key]}
@@ -453,7 +456,10 @@
 						rows[rowIndex][key] = value;
 					}
 				}
-				class="focus:outline-primary-500 outline-primary-500/0 hover:outline-primary-500 rounded-none bg-transparent p-3 text-right outline-1 backdrop-blur-none focus:outline-1 dark:bg-transparent"
+				class={twMerge(
+					$themeStore.Input.default,
+					'rounded-none text-right outline-transparent dark:outline-transparent'
+				)}
 				contenteditable={true}
 			>
 				{rows[rowIndex][key]}
@@ -471,7 +477,10 @@
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
 				bind:innerHTML={rows[rowIndex][key]}
-				class="focus:outline-primary-500 outline-primary-500/0 hover:outline-primary-500 rounded-none bg-transparent p-3 outline-1 backdrop-blur-none focus:outline-1 dark:bg-transparent"
+				class={twMerge(
+					$themeStore.Input.default,
+					'rounded-none outline-transparent dark:outline-transparent'
+				)}
 				contenteditable={true}
 			>
 				{rows[rowIndex][key]}

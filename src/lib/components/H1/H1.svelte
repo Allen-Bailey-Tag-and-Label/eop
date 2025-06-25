@@ -3,13 +3,21 @@
 	import { type Attachment } from 'svelte/attachments';
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory } from '$lib/attachments';
+	import { theme as themeStore } from '$lib/theme';
 
-	type Props = { attachments?: Attachment[]; children?: Snippet; class?: string; style?: string };
+	type Props = {
+		attachments?: Attachment[];
+		children?: Snippet;
+		class?: string;
+		style?: string;
+		variants?: string[];
+	};
 	let {
 		attachments = $bindable([]),
 		children,
 		class: className,
 		style,
+		variants = [],
 		...restProps
 	}: Props = $props();
 </script>
@@ -17,7 +25,11 @@
 <h1
 	{...restProps}
 	{@attach attachmentFactory(attachments)}
-	class={twMerge('block text-2xl font-bold text-gray-800 sm:text-3xl dark:text-white', className)}
+	class={twMerge(
+		$themeStore.H1.default,
+		...variants.map((variant: string) => $themeStore.H1[variant]),
+		className
+	)}
 	{style}
 >
 	{#if children}

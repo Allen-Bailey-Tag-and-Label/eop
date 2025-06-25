@@ -20,5 +20,15 @@
 			"</$1>"
 		],
 		"description": "Boilerplate for creating a component"
+	},
+	"Fix Component Class": {
+		"prefix": "Fix component class",
+		"body": [
+			"class={twMerge(",
+			"\t\\$themeStore.$1.default,",
+			"\t...variants.map((variant: string) => \\$themeStore.$1[variant]),",
+			"\tclassName",
+			")}"
+		]
 	}
 }
