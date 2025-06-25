@@ -15,7 +15,7 @@
 	type Rows = Row[];
 
 	let columns: Column[] = $state([
-		'boolean',
+		{ isEditable: false, key: 'boolean' },
 		{ key: 'currency', type: 'currency' },
 		'function',
 		'number',

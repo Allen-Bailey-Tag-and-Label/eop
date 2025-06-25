@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import {
 		ChevronDown,
@@ -29,6 +29,7 @@
 	import {
 		compareFn,
 		type ColumnSanitized,
+		type ColumnType,
 		type PaginationSanitized,
 		type Props,
 		type SortSanitized,
@@ -83,7 +84,7 @@
 		index: -1,
 		key: ''
 	});
-	const tdSnippetMap = new Map([
+	const tdSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintTd],
 		['boolean', booleanTd],
 		['currency', currencyTd],
@@ -96,19 +97,48 @@
 	]);
 
 	// $derives
-	const columnsSanitized: ColumnSanitized[] = $derived.by(() => {
+	const columnInferredTypes: ColumnType[] = $derived.by(() => {
 		return columns.map((column) => {
-			const columnSanitized: ColumnSanitized =
-				typeof column === 'string'
-					? untrack(() => initColumnSanitized(column))
-					: {
-							compareFn: column?.compareFn || compareFn[column?.type || 'string'],
-							isEditable,
-							key: column.key,
-							label: column?.label || column.key,
-							snippet: column?.snippet || tdSnippetMap.get(column?.type || 'string') || stringTd,
-							type: column?.type || 'string'
-						};
+			const key = typeof column === 'string' ? column : column.key;
+			let type: ColumnType = 'string';
+
+			if (rows.length > 0) {
+				for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+					if (rows[rowIndex][key] !== null) {
+						type = typeof rows[rowIndex][key];
+						break;
+					}
+				}
+			}
+
+			return type;
+		});
+	});
+	const columnsSanitized: ColumnSanitized[] = $derived.by(() => {
+		return columns.map((column, columnIndex) => {
+			const type = untrack(() => columnInferredTypes[columnIndex]);
+
+			let columnSanitized: ColumnSanitized = {
+				compareFn: compareFn[type],
+				isEditable,
+				key: '',
+				label: '',
+				snippet: stringTd,
+				type
+			};
+
+			if (typeof column === 'string') {
+				columnSanitized.key = column;
+				columnSanitized.label = column;
+			}
+
+			if (typeof column === 'object') {
+				columnSanitized = Object.assign(columnSanitized, column);
+			}
+
+			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
+
+			columnSanitized.snippet = tdSnippetMap.get(columnSanitized.type) || columnSanitized.snippet;
 
 			return columnSanitized;
 		});
