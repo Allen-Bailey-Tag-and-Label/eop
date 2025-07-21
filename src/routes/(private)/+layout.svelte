@@ -2,7 +2,8 @@
 	import { ChevronDown, Menu, X } from '@lucide/svelte';
 	import { twMerge } from 'tailwind-merge';
 	import { page } from '$app/state';
-	import { A, Button, Div } from '$lib/components';
+	import { A, Button, Card, Div, Header } from '$lib/components';
+	import { theme as themeStore } from '$lib/theme';
 	import { type Navigation, type User } from '$lib/types.js';
 
 	let { children, data } = $props();
@@ -16,39 +17,38 @@
 	});
 </script>
 
-<Div class="relative flex max-h-screen min-h-screen flex-col">
-	<Div class="flex justify-between bg-slate-50/30 backdrop-blur-md dark:bg-slate-50/10">
-		<Button isIcon={true} onclick={() => (isNavigationOpen = !isNavigationOpen)} theme="ghost">
+<Div class="flex max-h-screen min-h-screen max-w-screen min-w-screen flex-col overflow-auto">
+	<Header class="sticky top-0 z-10">
+		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
 			{#if !isNavigationOpen}
 				<Menu></Menu>
 			{:else}
 				<X></X>
 			{/if}
 		</Button>
-	</Div>
+	</Header>
 	<Div class="relative flex flex-grow flex-col overflow-auto">
-		<Div class="flex flex-grow flex-col overflow-auto">
-			{#if children}
-				{@render children()}
-			{/if}
-		</Div>
 		<Div class="pointer-events-none top-0 left-0 z-10 h-full w-full">
 			{#if isNavigationOpen}
 				<Button
 					class="pointer-events-auto absolute top-0 left-0 h-full w-full"
-					isRounded={false}
 					onclick={() => (isNavigationOpen = false)}
 					tabIndex="-1"
-					theme="ghost"
+					variants={['ghost', 'square']}
 				></Button>
-				<Div
-					class="pointer-events-auto absolute top-0 left-0 z-10 flex min-h-full w-[calc(100vw_-_3rem)] flex-col bg-slate-50/30 backdrop-blur-md lg:w-auto lg:min-w-[20rem] dark:bg-slate-50/10"
+				<Card
+					class="pointer-events-auto absolute top-0 left-0 z-10 min-h-full w-[calc(100vw_-_3rem)] rounded-none p-0 lg:w-auto lg:min-w-[20rem]"
 				>
 					<Div class="flex flex-grow flex-col">
 						{@render tree(navigation)}
 					</Div>
 					{@render link('/sign-out', 'Sign Out')}
-				</Div>
+				</Card>
+			{/if}
+		</Div>
+		<Div class="flex flex-grow flex-col overflow-auto">
+			{#if children}
+				{@render children()}
 			{/if}
 		</Div>
 	</Div>
@@ -57,31 +57,36 @@
 {#snippet link(href: string, label: string, depth: number = 1)}
 	<A
 		class={twMerge(
-			'py-0',
-			page.url.pathname !== href
-				? 'bg-gray-950/0 text-gray-950 hover:bg-gray-950/10 focus:bg-gray-950/10 dark:bg-gray-50/0 dark:text-gray-50 dark:hover:bg-gray-50/10 dark:focus:bg-gray-50/10'
-				: undefined
+			$themeStore.Button.default,
+			'block rounded-none py-0 text-left outline-solid hover:no-underline focus:no-underline',
+			page.url.pathname !== href ? 'bg-transparent text-current' : undefined
 		)}
 		{href}
 		style="padding-left:{(depth - 1) * 1.5}rem;"
-		theme="button"
 	>
-			<Div class={twMerge("border-l py-3 pl-6", depth > 1 ? 'border-slate-950/30 dark:border-slate-50/30' : 'border-slate-950/0')}>
-				{label}
-			</Div>
+		<Div
+			class={twMerge(
+				'border-l py-3 pl-6',
+				depth > 1 ? 'border-gray-950/30 dark:border-gray-50/30' : 'border-gray-950/0'
+			)}
+		>
+			{label}
+		</Div>
 	</A>
 {/snippet}
 
-{#snippet tree(items: Navigation[], depth:number = 1)}
+{#snippet tree(items: Navigation[], depth: number = 1)}
 	<Div class="flex flex-col">
 		{#each items as item}
 			{#if item.isDirectory}
 				<Button
-					class={twMerge("flex items-center justify-between border-l", depth> 1 ? 'border-slate-950/30 dark:border-slate-50/30' : 'border-slate-950/0')}
-					isRounded={false}
+					class={twMerge(
+						'flex items-center justify-between border-l',
+						depth > 1 ? 'border-gray-950/30 dark:border-gray-50/30' : 'border-gray-950/0'
+					)}
 					onclick={() => (item.isOpen = !item.isOpen)}
 					style="padding-left:{depth * 1.5}rem;"
-					theme="ghost"
+					variants={['ghost', 'square']}
 				>
 					<Div>
 						{item.label}

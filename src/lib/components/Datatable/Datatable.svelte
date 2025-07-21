@@ -10,7 +10,7 @@
 		Trash,
 		TriangleAlert
 	} from '$lib/icons';
-	import { currency } from '$lib/formats';
+	import { currency } from '$lib/formats/index';
 	import { theme as themeStore } from '$lib/theme';
 
 	import Button from '../Button/Button.svelte';
@@ -427,7 +427,7 @@
 				}
 				class={twMerge(
 					$themeStore.Input.default,
-					'rounded-none text-right outline-transparent dark:outline-transparent'
+					'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
@@ -458,7 +458,7 @@
 				}
 				class={twMerge(
 					$themeStore.Input.default,
-					'rounded-none text-right outline-transparent dark:outline-transparent'
+					'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
@@ -479,7 +479,7 @@
 				bind:innerHTML={rows[rowIndex][key]}
 				class={twMerge(
 					$themeStore.Input.default,
-					'rounded-none outline-transparent dark:outline-transparent'
+					'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>

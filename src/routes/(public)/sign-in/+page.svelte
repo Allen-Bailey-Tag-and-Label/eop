@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Div, Form, Input } from '$lib/components';
+	import { Button, Card, Div, Form, Input } from '$lib/components';
 	import { ABTL, PTI } from '$lib/logos';
 	import { Plus } from '@lucide/svelte';
 	import { type PageProps } from './$types';
@@ -7,8 +7,8 @@
 	let { form }: PageProps = $props();
 </script>
 
-<Div class="grid grid-cols-1 md:grid-cols-2">
-	<Div class="flex min-h-screen flex-col items-center justify-center space-y-6 p-4">
+<Div class="flex min-h-screen flex-col items-center justify-center space-y-6 p-4">
+	<Card>
 		<Div>
 			<Div class="flex items-center space-x-2 dark:hidden">
 				<ABTL size={128} />
@@ -23,7 +23,7 @@
 		</Div>
 		<Form {form}>
 			{#snippet inputs()}
-				<Input label="Username" name="username" required={true} />
+				<Input autoFocus={true} label="Username" name="username" required={true} />
 				<Input
 					isPasswordButtonVisible={true}
 					label="Password"
@@ -33,14 +33,13 @@
 				/>
 			{/snippet}
 			<!-- {#if form?.error} -->
-				{#snippet error()}
-					{form?.error}
-				{/snippet}
+			{#snippet error()}
+				{form?.error}
+			{/snippet}
 			<!-- {/if} -->
 			{#snippet buttons()}
 				<Button type="submit">Sign In</Button>
 			{/snippet}
 		</Form>
-	</Div>
-	<Div class="hidden min-h-screen items-center justify-center bg-slate-950/10 p-4 md:flex"></Div>
+	</Card>
 </Div>

@@ -1,5 +1,8 @@
 import { type Theme } from '../types';
 
+const InputDefault =
+	'bg-gray-50 dark:bg-gray-800 transiton duration-200 outline-1 focus:outline-2 outline-gray-200 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg dark:outline-gray-700';
+
 export const defaultTheme: Theme = {
 	A: {
 		default:
@@ -33,17 +36,16 @@ export const defaultTheme: Theme = {
 		default: 'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50'
 	},
 	Input: {
-		default:
-			'transiton duration-200 outline-1 focus:outline-2 outline-gray-200 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg dark:outline-gray-700'
+		default: InputDefault
 	},
 	Label: { default: 'text-sm' },
 	Option: { default: '' },
 	P: { default: '' },
-	Select: { default: '' },
+	Select: { default: InputDefault },
 	Table: { default: '' },
 	Tbody: { default: '' },
-	Td: { default: '' },
-	Th: { default: 'text-sm uppercase px-6 py-3' },
+	Td: { default: 'px-6 py-3' },
+	Th: { default: 'uppercase px-6 py-3' },
 	Thead: {
 		default: 'dark:bg-gray-800 bg-gray-200'
 	},
