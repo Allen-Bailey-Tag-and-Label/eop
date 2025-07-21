@@ -32,6 +32,7 @@ export const defaultTheme: Theme = {
 	Div: { default: '' },
 	Form: { default: 'w-full max-w-sm space-y-12' },
 	H1: { default: 'block text-2xl font-bold text-gray-800 sm:text-3xl dark:text-white' },
+	H2: { default: 'block text-xl font-bold text-gray-800 sm:text-2xl dark:text-white' },
 	Header: {
 		default: 'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50'
 	},
