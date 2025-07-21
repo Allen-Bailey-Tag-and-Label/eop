@@ -32,16 +32,15 @@ export const actions: Actions = {
                 })
             });
 
+            const result = await response.json();
 
-            // const result = await response.json();
-
-            // console.log(result)
+            console.log(result)
+            return { result, success: true }
 
         } catch (error) {
             console.log(error)
         }
 
-        return { success: true }
     }
 }
 
