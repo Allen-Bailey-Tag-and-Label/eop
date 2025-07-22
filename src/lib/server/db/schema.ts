@@ -1,4 +1,13 @@
-import { boolean, date, integer, json, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import {
+	boolean,
+	date,
+	integer,
+	json,
+	pgTable,
+	serial,
+	timestamp,
+	text
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const role = pgTable('role', {
@@ -15,12 +24,13 @@ export const route = pgTable('route', {
 export const upsQuote = pgTable('upsQuote', {
 	id: serial('id').primaryKey(),
 	classification: text('classification'),
-	date: date('date'),
+	date: timestamp('date'),
 	packageTotalCount: integer('packageTotalCount'),
 	packageTotalWeight: integer('packageTotalWeight'),
 	packageWeight: integer('packageWeight'),
 	quote: integer('quote'),
 	rates: json('rates').array(),
+	shipper: json('shipper'),
 	shipTo: json('shipTo')
 });
 export const user = pgTable('user', {
