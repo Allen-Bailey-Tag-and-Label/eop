@@ -1,41 +1,55 @@
 import type { Actions } from "@sveltejs/kit";
-import { UPS_ACCESSLICENSE_NUMBER, UPS_CLIENT_ID, UPS_PASSWORD, UPS_USERNAME } from "$env/static/private";
+import { deserialize } from "$app/forms";
 
 export const actions: Actions = {
     nonValidated: async ({ request }) => {
-        const data = <Record<string, string>>Object.fromEntries(await request.formData());
-        console.log(data);
+        let { shipFromAddress, shipFromZIP, shipFromCity, shipFromState, shipToAddress, shipToZIP, shipToCity, shipToState, packageInfoTotalPackages, packageInfoTotalWeight } = <Record<string, string>>Object.fromEntries(await request.formData());
+
         return { success: true }
     },
-    validated: async ({ request }) => {
-        // await getToken();
-        const { shipFromAddress, shipFromZIP, shipFromCity, shipFromState, shipToAddress, shipToZIP, shipToCity, shipToState, packageInfoTotalPackages, packageInfoTotalWeight } = <Record<string, string>>Object.fromEntries(await request.formData());
+    validated: async ({ fetch, request }) => {
+        let { shipFromAddress, shipFromZIP, shipFromCity, shipFromState, shipToAddress, shipToZIP, shipToCity, shipToState, packageInfoTotalPackages, packageInfoTotalWeight } = <Record<string, string>>Object.fromEntries(await request.formData());
 
         try {
-            const response = await fetch('https://onlinetools.ups.com/addressvalidation/v1/3', {
+            const formData = new FormData();
+            formData.append('address', shipToAddress);
+            formData.append('city', shipToCity);
+            formData.append('state', shipToState);
+            formData.append('zip', shipToZIP);
+
+            const response = await fetch('/ups/address-validation', {
                 method: 'POST',
-                headers: {
-                    AccessLicenseNumber: UPS_ACCESSLICENSE_NUMBER,
-                    Password: UPS_PASSWORD,
-                    Username: UPS_USERNAME
-                },
-                body: JSON.stringify({
-                    XAVRequest: {
-                        AddressKeyFormat: {
-                            AddressLine: shipToAddress,
-                            PoliticalDivision2: shipToCity,
-                            PoliticalDivision1: shipToState,
-                            PostcodePrimaryLow: shipToZIP,
-                            CountryCode: 'US'
-                        }
-                    }
-                })
+                body: formData
             });
 
-            const result = await response.json();
+            const result = deserialize(await response.text()) || { data: {} };
 
-            console.log(result)
-            return { result, success: true }
+            if (result.type === 'success') {
+                const { data: candidates } = result;
+
+                if (candidates !== undefined && candidates.length === 1) {
+                    const [candidate] = candidates;
+                    const { AddressClassification, AddressKeyFormat: { AddressLine, PoliticalDivision2, PoliticalDivision1, PostcodePrimaryLow } } = candidate;
+                    shipToAddress = AddressLine[0];
+                    shipToCity = PoliticalDivision2;
+                    shipToState = PoliticalDivision1;
+                    shipToZIP = PostcodePrimaryLow
+                }
+            }
+
+            const packageWeight = Math.ceil(+packageInfoTotalWeight / +packageInfoTotalPackages).toString()
+
+            await getRates(fetch, shipFromAddress,
+                shipFromCity,
+                shipFromState,
+                shipFromZIP,
+                shipToAddress,
+                shipToCity,
+                shipToState,
+                shipToZIP,
+                packageWeight);
+
+            return {}
 
         } catch (error) {
             console.log(error)
@@ -44,24 +58,33 @@ export const actions: Actions = {
     }
 }
 
-const getToken = async () => {
-    const formData = {
-        grant_type: 'client_credentials'
-    };
+const getRates = async (fetch: any,
+    shipFromAddress: string,
+    shipFromCity: string,
+    shipFromState: string,
+    shipFromZIP: string,
+    shipToAddress: string,
+    shipToCity: string,
+    shipToState: string,
+    shipToZIP: string,
+    packageWeight: string) => {
+    const formData = new FormData();
+    formData.append('shipFromAddress', shipFromAddress),
+        formData.append('shipFromCity', shipFromCity),
+        formData.append('shipFromState', shipFromState),
+        formData.append('shipFromZIP', shipFromZIP),
+        formData.append('shipToAddress', shipToAddress),
+        formData.append('shipToCity', shipToCity),
+        formData.append('shipToState', shipToState),
+        formData.append('shipToZIP', shipToZIP),
+        formData.append('packageWeight', packageWeight)
 
-    const resp = await fetch(
-        `https://wwwcie.ups.com/security/v1/oauth/token`,
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'x-merchant-id': 'string',
-                Authorization: 'Basic ' + btoa(`${UPS_USERNAME}:${UPS_PASSWORD}`)
-            },
-            body: new URLSearchParams(formData).toString()
-        }
-    );
+    const response = await fetch('/ups/get-rate', {
+        method: 'POST',
+        body: formData
+    });
 
-    const data = await resp.text();
-    console.log(data);
+    const RatedShipment = deserialize(await response.text()) || { data: {} };
+
+    console.log(JSON.stringify(RatedShipment, null, 2))
 }

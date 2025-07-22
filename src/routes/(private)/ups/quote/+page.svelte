@@ -25,7 +25,6 @@
 		  };
 	type Option = { label: string; value: string };
 
-	let { data, form } = $props();
 	let stateOptions: Option[] = $state([{ label: '', value: '' }]);
 	let formData: { className?: string; inputs: Input[]; isOpen: boolean; title: string }[] = $state([
 		{
@@ -69,8 +68,6 @@
 			title: 'Package Info'
 		}
 	]);
-
-	$inspect({ data, form });
 
 	$effect(() => {
 		stateOptions = [
