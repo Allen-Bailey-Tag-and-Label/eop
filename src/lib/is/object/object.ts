@@ -1,0 +1,1 @@
+export const object = (obj: any): boolean => obj && typeof obj === 'object' && !Array.isArray(obj);

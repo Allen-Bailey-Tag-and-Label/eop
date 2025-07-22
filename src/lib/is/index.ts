@@ -1,0 +1,1 @@
+export { is } from './is'
