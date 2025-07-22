@@ -4,6 +4,7 @@ import {
 	integer,
 	json,
 	pgTable,
+	primaryKey,
 	serial,
 	timestamp,
 	text
@@ -51,7 +52,9 @@ export const roleRoutes = pgTable(
 			.notNull()
 			.references(() => route.id, { onDelete: 'cascade' })
 	},
-	(t) => [[t.roleId, t.routeId]]
+	(table) => ({
+		primaryKey: [table.roleId, table.routeId]
+	})
 );
 export const userRoles = pgTable(
 	'userRoles',
@@ -63,7 +66,9 @@ export const userRoles = pgTable(
 			.notNull()
 			.references(() => role.id, { onDelete: 'cascade' })
 	},
-	(t) => [[t.userId, t.roleId]]
+	(table) => ({
+		primaryKey: [table.userId, table.roleId]
+	})
 );
 
 // === Relations ===
