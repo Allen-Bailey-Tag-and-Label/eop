@@ -1,20 +1,10 @@
-import { pgTable, serial, text, boolean, integer } from 'drizzle-orm/pg-core';
+import { boolean, date, integer, json, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-
-// === Core Tables ===
-
-export const user = pgTable('user', {
-	id: serial('id').primaryKey(),
-	isActive: boolean('isActive').notNull().default(false),
-	passwordHash: text('passwordHash').notNull(),
-	username: text('username').unique().notNull()
-});
 
 export const role = pgTable('role', {
 	id: serial('id').primaryKey(),
 	label: text('label').unique().notNull()
 });
-
 export const route = pgTable('route', {
 	id: serial('id').primaryKey(),
 	href: text('href'),
@@ -22,9 +12,37 @@ export const route = pgTable('route', {
 	label: text('label').notNull(),
 	parentId: integer('parentId')
 });
+export const upsQuote = pgTable('upsQuote', {
+	id: serial('id').primaryKey(),
+	classification: text('classification'),
+	date: date('date'),
+	packageTotalCount: integer('packageTotalCount'),
+	packageTotalWeight: integer('packageTotalWeight'),
+	packageWeight: integer('packageWeight'),
+	quote: integer('quote'),
+	rates: json('rates').array(),
+	shipTo: json('shipTo')
+});
+export const user = pgTable('user', {
+	id: serial('id').primaryKey(),
+	isActive: boolean('isActive').notNull().default(false),
+	passwordHash: text('passwordHash').notNull(),
+	username: text('username').unique().notNull()
+});
 
 // === Join Tables ===
-
+export const roleRoutes = pgTable(
+	'roleRoutes',
+	{
+		roleId: integer('roleId')
+			.notNull()
+			.references(() => role.id, { onDelete: 'cascade' }),
+		routeId: integer('routeId')
+			.notNull()
+			.references(() => route.id, { onDelete: 'cascade' })
+	},
+	(t) => [[t.roleId, t.routeId]]
+);
 export const userRoles = pgTable(
 	'userRoles',
 	{
@@ -38,30 +56,15 @@ export const userRoles = pgTable(
 	(t) => [[t.userId, t.roleId]]
 );
 
-export const roleRoutes = pgTable(
-	'roleRoutes',
-	{
-		roleId: integer('roleId')
-			.notNull()
-			.references(() => role.id, { onDelete: 'cascade' }),
-		routeId: integer('routeId')
-			.notNull()
-			.references(() => route.id, { onDelete: 'cascade' })
-	},
-	(t) => [[t.roleId, t.routeId]]
-);
-
 // === Relations ===
-
-export const userRelations = relations(user, ({ many }) => ({
-	roles: many(userRoles)
-}));
-
 export const roleRelations = relations(role, ({ many }) => ({
 	users: many(userRoles),
 	routes: many(roleRoutes)
 }));
-
+export const roleRoutesRelations = relations(roleRoutes, ({ one }) => ({
+	role: one(role, { fields: [roleRoutes.roleId], references: [role.id] }),
+	route: one(route, { fields: [roleRoutes.routeId], references: [route.id] })
+}));
 export const routeRelations = relations(route, ({ one, many }) => ({
 	children: many(route),
 	parent: one(route, {
@@ -70,13 +73,10 @@ export const routeRelations = relations(route, ({ one, many }) => ({
 	}),
 	roles: many(roleRoutes)
 }));
-
+export const userRelations = relations(user, ({ many }) => ({
+	roles: many(userRoles)
+}));
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
 	user: one(user, { fields: [userRoles.userId], references: [user.id] }),
 	role: one(role, { fields: [userRoles.roleId], references: [role.id] })
-}));
-
-export const roleRoutesRelations = relations(roleRoutes, ({ one }) => ({
-	role: one(role, { fields: [roleRoutes.roleId], references: [role.id] }),
-	route: one(route, { fields: [roleRoutes.routeId], references: [route.id] })
 }));
