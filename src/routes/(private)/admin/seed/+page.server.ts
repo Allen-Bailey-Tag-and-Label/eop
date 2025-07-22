@@ -19,8 +19,15 @@ const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 				PostalCode: string;
 				CountryCode: string;
 			};
+			shipTo: {
+				AddressLine: string;
+				City: string;
+				StateProvinceCode: string;
+				PostalCode: string;
+				CountryCode: string;
+			};
 		}) => {
-			const { classification, date, packageInfo, quote, rates, shipper: shipTo } = doc;
+			const { classification, date, packageInfo, quote, rates, shipper, shipTo } = doc;
 			const packageTotalCount = Math.ceil(+packageInfo.Packages);
 			const packageTotalWeight = Math.ceil(+packageInfo.Weight);
 			const packageWeight = Math.ceil(packageTotalWeight / packageTotalCount);
@@ -33,6 +40,7 @@ const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 				packageWeight,
 				quote,
 				rates,
+				shipper,
 				shipTo
 			};
 		}
