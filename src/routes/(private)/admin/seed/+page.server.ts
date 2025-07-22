@@ -1,7 +1,6 @@
 import { fail, type Actions } from '@sveltejs/kit';
-import { clientInit } from '$lib/mongoDB';
-import { db } from '$lib/server/db';
-import * as schema from '$lib/server/db/schema';
+import { clientInit } from '$lib/server/mongoDB';
+import { UpsQuote } from '$lib/server/mongoose/models';
 
 const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 	[
@@ -46,7 +45,7 @@ const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 		}
 	]
 ]);
-const tableMap = new Map([['ups-quotes', schema.upsQuote]]);
+const tableMap = new Map([['ups-quotes', UpsQuote]]);
 
 export const actions: Actions = {
 	default: async ({ request }) => {
@@ -71,14 +70,14 @@ export const actions: Actions = {
 		const collection = mongoDB.collection(table);
 
 		const docs = await collection.find({}).toArray();
-		await db.delete(tableSchema);
+		await tableSchema.deleteMany();
 
 		const rows = docs.map(rowMapFn);
 		const BATCH_SIZE = 100;
 		console.log(`db.insert(${table}).values(rows) - start`);
 		for (let i = 0; i < rows.length; i += BATCH_SIZE) {
 			const batch = rows.slice(i, i + BATCH_SIZE);
-			await db.insert(tableSchema).values(batch);
+			await tableSchema.insertMany(batch);
 		}
 		console.log(`db.insert(${table}).values(rows) - end`);
 

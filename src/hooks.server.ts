@@ -1,6 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
+import { User } from '$lib/server/mongoose/models';
 import { type Navigation, type Route } from '$lib/types';
+import { Types } from 'mongoose';
 
 const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
 	const routeMap = new Map<number | null, Navigation[]>();
@@ -19,7 +20,7 @@ const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
 
 	// Recursively attach and sort children
 	const attachChildren = (parent: Navigation) => {
-		const children = routeMap.get(parent.id) || [];
+		const children = routeMap.get(parent._id) || [];
 
 		// Sort by label
 		children.sort((a, b) => a.label.localeCompare(b.label));
@@ -44,40 +45,48 @@ const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const userId = event.cookies.get('userId');
+	const userIdCookie = event.cookies.get('userId');
 
 	// handle root path
 	if (event.url.pathname === '/') {
-		if (userId === undefined) return redirect('/sign-in');
-		if (userId !== undefined) return redirect('/dashboard');
+		if (userIdCookie === undefined) return redirect('/sign-in');
+		if (userIdCookie !== undefined) return redirect('/dashboard');
 	}
+
+	const userId = new Types.ObjectId(userIdCookie);
 
 	// handle (private) routes
 	if (event.route.id?.startsWith('/(private)')) {
 		if (userId === undefined) return redirect('/sign-in');
-		const userData = await db.query.user.findFirst({
-			where: (u, { eq }) => eq(u.id, +userId),
-			with: {
-				roles: {
-					with: {
-						role: {
-							with: {
-								routes: {
-									with: {
-										route: true
-									}
-								}
-							}
+		const userData = JSON.parse(
+			JSON.stringify(
+				await User.findById(userId)
+					.populate({
+						path: 'roles',
+						populate: {
+							path: 'routes'
 						}
-					}
-				}
-			}
-		});
-		if (!userData) return redirect('/sign-in');
+					})
+					.lean()
+			)
+		);
+
+		if (!userData) {
+			// Redirect logic, or respond with error if user not found
+			return new Response(null, { status: 302, headers: { Location: '/sign-in' } });
+		}
+
+		// Exclude sensitive data and separate user info from roles
 		const { passwordHash, roles, ...user } = userData;
-		event.locals.user = user;
-		const flatRoutes = roles.flatMap((ur) => ur.role.routes.map((rr) => rr.route));
+
+		// Flatten routes from each role
+		const flatRoutes = roles.flatMap((role: any) => role.routes || []);
+
+		// Build navigation hierarchy using your custom function
 		const navigation = buildNavigation(flatRoutes);
+
+		// Store in locals or send response as required by your app
+		event.locals.user = user;
 		event.locals.navigation = navigation;
 	}
 

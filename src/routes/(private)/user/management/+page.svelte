@@ -4,9 +4,9 @@
 
 	let { data } = $props();
 	let rows = $state([]);
-	let settings = localState('admin/roles', {
-		columns: ['label'],
-		sort: { direction: 'asc', key: 'label' }
+	let settings = localState('user/management', {
+		columns: [{ key: 'isActive', type: 'boolean' }, 'username'],
+		sort: { direction: 'asc', key: 'href' }
 	});
 	const updateRows = async (rowsPromise: Promise<any[]>) => {
 		const resolved = await rowsPromise;

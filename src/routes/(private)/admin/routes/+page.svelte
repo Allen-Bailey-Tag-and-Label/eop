@@ -1,27 +1,32 @@
 <script lang="ts">
-	import type { PgRelationalQuery } from 'drizzle-orm/pg-core/query-builders/query';
-	import type { PageData } from './$types';
 	import { Datatable, Div } from '$lib/components';
+	import { localState } from '$lib/localState';
 
-	type Column = keyof Row;
-	type Props = {
-		data: PageData;
+	let { data } = $props();
+	let rows = $state([]);
+	let settings = localState('admin/routes', {
+		columns: [
+			'href',
+			{ key: 'isDirectory', type: 'boolean' },
+			'label',
+			{ key: 'parentId', type: 'string' }
+		],
+		sort: { direction: 'asc', key: 'href' }
+	});
+	const updateRows = async (rowsPromise: Promise<any[]>) => {
+		const resolved = await rowsPromise;
+		rows = resolved;
 	};
-	type Row = Rows[number];
-	type Rows = PageData['streamed']['routes'] extends PgRelationalQuery<infer U> ? U : never;
-
-	let columns: Column[] = $state([]);
-	let { data }: Props = $props();
-	let rows: Rows = $state([]);
 
 	$effect(() => {
-		data.streamed.routes.then((value) => {
-			if (value.length > 0) columns = <Column[]>Object.keys(value[0]);
-			rows = value;
-		});
+		updateRows(data.rows);
 	});
 </script>
 
-<Div class="flex flex-grow flex-col overflow-auto p-6">
-	<Datatable bind:columns bind:rows />
+<Div class="flex flex-col p-4">
+	{#if rows.length === 0}
+		<Div>Loading...</Div>
+	{:else}
+		<Datatable bind:columns={settings.columns} bind:rows bind:sort={settings.sort} />
+	{/if}
 </Div>

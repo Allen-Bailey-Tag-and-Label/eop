@@ -1,6 +1,6 @@
-import { compareSync } from 'bcryptjs';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
+import { compareSync } from 'bcryptjs';
+import { User } from '$lib/server/mongoose/models';
 
 export const actions: Actions = {
 	default: async ({ cookies, request }) => {
@@ -8,13 +8,12 @@ export const actions: Actions = {
 			Object.fromEntries(await request.formData())
 		);
 
-		const user = await db.query.user.findFirst({
-			where: (users, { eq }) => eq(users.username, username)
-		});
+		const user = await User.findOne({ username }).lean();
 
-		if (!user || !compareSync(password, user.passwordHash || '')) return fail(400, {error:'Could not verify credentials'});
+		if (!user || !user?.passwordHash || !compareSync(password, user.passwordHash))
+			return fail(400, { error: 'Could not verify credentials' });
 
-		cookies.set('userId', user.id.toString(), { path: '/' });
+		cookies.set('userId', user._id.toString(), { path: '/' });
 		redirect(303, '/dashboard');
 	}
 };

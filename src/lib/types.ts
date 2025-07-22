@@ -8,7 +8,7 @@ export type Route = {
 };
 
 export type User = {
-	id: number;
+	_id: number;
 	isActive: boolean;
 	username: string;
 };
