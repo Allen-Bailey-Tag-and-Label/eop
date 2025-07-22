@@ -10,7 +10,7 @@
 		Trash,
 		TriangleAlert
 	} from '$lib/icons';
-	import { currency } from '$lib/formats/index';
+	import { currency, dateTime, inputDateTimeLocal } from '$lib/formats';
 	import { theme as themeStore } from '$lib/theme';
 
 	import Button from '../Button/Button.svelte';
@@ -18,6 +18,7 @@
 	import Checkbox from '../Checkbox/Checkbox.svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import Div from '../Div/Div.svelte';
+	import Input from '../Input/Input.svelte';
 	import P from '../P/P.svelte';
 	import Select from '../Select/Select.svelte';
 	import Table from '../Table/Table.svelte';
@@ -94,6 +95,7 @@
 		['object', objectTd],
 		['string', stringTd],
 		['symbol', symbolTd],
+		['timestamp', timestampTd],
 		['undefined', undefinedTd]
 	]);
 
@@ -139,12 +141,16 @@
 
 			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
 
+			columnSanitized.compareFn = compareFn[columnSanitized.type];
 			columnSanitized.snippet = tdSnippetMap.get(columnSanitized.type) || columnSanitized.snippet;
+
+			if (columnSanitized.label === 'date') console.log(columnSanitized);
 
 			return columnSanitized;
 		});
 	});
 	const isSelectable: boolean = $derived.by(() => isDeletable);
+	const isToolbarVisible: boolean = $derived.by(() => isDeletable);
 	const paginationIndexes: { start: number; end: number } = $derived.by(() => {
 		const start = paginationSanitized.currentPage * paginationSanitized.rowsPerPage;
 		let end = start + paginationSanitized.rowsPerPage;
@@ -234,7 +240,7 @@
 <Card class="flex flex-col overflow-auto p-0">
 	{#if toolbar}
 		{@render toolbar()}
-	{:else}
+	{:else if isToolbarVisible}
 		<Div class="flex items-center justify-end px-6 py-3">
 			{#if isDeletable}
 				<Button
@@ -286,6 +292,9 @@
 												index,
 												key
 											};
+											if (sort.direction !== undefined) sort.direction = sortSanitized.direction;
+											if (sort.index !== undefined) sort.index = sortSanitized.index;
+											if (sort.key !== undefined) sort.key = sortSanitized.key;
 										}
 									}}
 									variants={['ghost', 'square']}
@@ -487,11 +496,33 @@
 			</Div>
 		</Td>
 	{:else}
-		<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+		<Td>{row[key] || ''}</Td>
 	{/if}
 {/snippet}
 {#snippet symbolTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>Symbol</Td>
+{/snippet}
+{#snippet timestampTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+	{#if isEditable && rows[rowIndex][key] !== undefined}
+		<Td class="hover:outline-primary-500/0 p-0">
+			<Input
+				bind:value={
+					() => {
+						console.log('get', rows[rowIndex][key]);
+						return inputDateTimeLocal(rows[rowIndex][key]);
+					},
+					(value: string) => {
+						console.log('set', value);
+						rows[rowIndex][key] = new Date(value);
+					}
+				}
+				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				type="datetime-local"
+			/>
+		</Td>
+	{:else}
+		<Td class="text-right">{dateTime(rows[rowIndex][key])}</Td>
+	{/if}
 {/snippet}
 {#snippet undefinedTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>

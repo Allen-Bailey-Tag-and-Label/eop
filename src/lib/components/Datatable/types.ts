@@ -18,6 +18,7 @@ export type ColumnType =
 	| 'object'
 	| 'string'
 	| 'symbol'
+	| 'timestamp'
 	| 'undefined';
 export type Pagination = boolean | Partial<PaginationSanitized>;
 export type PaginationSanitized = {

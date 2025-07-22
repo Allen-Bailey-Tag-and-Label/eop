@@ -1,3 +1,5 @@
+import { is } from '$lib/is';
+
 export const compareFn = {
 	bigint: (a: bigint, b: bigint) => {
 		if (typeof a !== 'bigint' || typeof b !== 'bigint') return 0;
@@ -48,6 +50,13 @@ export const compareFn = {
 		if (a === null) return 1;
 		if (b === null) return -1;
 		return 0;
+	},
+	timestamp: (a: Date, b: Date) => {
+		console.log(a);
+		if (!is.date(a) || !is.date(b)) return 0;
+		if (a === null) return 1;
+		if (b === null) return -1;
+		return a.getTime() - b.getTime();
 	},
 	undefined: (a: undefined, b: undefined) => {
 		if (typeof a !== 'undefined' || typeof b !== 'undefined') return 0;
