@@ -42,17 +42,10 @@
 	} from './';
 	import type { Filter, FilterOperator, Row, RowSanitized } from './types';
 
-	let filtersTemp: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[] = $state([]);
-	let isAllRowsSelected = $state(false);
-	let isDeleteDialogOpen = $state(false);
-	let isFilterDialogOpen = $state(false);
-	let paginationSanitized: PaginationSanitized = $state({
-		currentPage: 0,
-		rowsPerPage: 10
-	});
 	let {
 		columns = $bindable(),
 		filters = $bindable([]),
+		isCreatable = true,
 		isDeletable = true,
 		isEditable = true,
 		isFilterable = true,
@@ -64,6 +57,16 @@
 		thead,
 		toolbar
 	}: Props = $props();
+	let create = $state({});
+	let filtersTemp: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[] = $state([]);
+	let isAllRowsSelected = $state(false);
+	let isCreatableDialogOpen = $state(false);
+	let isDeleteDialogOpen = $state(false);
+	let isFilterDialogOpen = $state(false);
+	let paginationSanitized: PaginationSanitized = $state({
+		currentPage: 0,
+		rowsPerPage: 10
+	});
 	let rowsCheckboxValues: boolean[] = $state([]);
 	let sortSanitized: SortSanitized = $state({
 		direction: 'asc',
@@ -108,6 +111,7 @@
 
 			let columnSanitized: ColumnSanitized = {
 				compareFn: compareFn[type],
+				isCreatable,
 				isEditable,
 				isFilterable,
 				key: '',
@@ -124,6 +128,8 @@
 
 			if (typeof column === 'object') {
 				columnSanitized.compareFn = column?.compareFn || columnSanitized.compareFn;
+				columnSanitized.isCreatable =
+					column?.isCreatable !== undefined ? column.isCreatable : columnSanitized.isCreatable;
 				columnSanitized.isEditable =
 					column?.isEditable !== undefined ? column.isEditable : columnSanitized.isEditable;
 				columnSanitized.isFilterable =
@@ -159,7 +165,7 @@
 		})
 	);
 	const isSelectable: boolean = $derived.by(() => isDeletable);
-	const isToolbarVisible: boolean = $derived.by(() => isDeletable || isFilterable);
+	const isToolbarVisible: boolean = $derived.by(() => isCreatable || isDeletable || isFilterable);
 	const paginationIndexes: { start: number; end: number } = $derived.by(() => {
 		const start = paginationSanitized.currentPage * paginationSanitized.rowsPerPage;
 		let end = start + paginationSanitized.rowsPerPage;
@@ -314,6 +320,29 @@
 					<Funnel />
 				</Button>
 			{/if}
+			{#if isCreatable}
+				<Button
+					onclick={() => {
+						create = columnsSanitized.reduce((obj, { key, type }) => {
+							if (type === 'bigint') obj[key] = BigInt(0);
+							if (type === 'boolean') obj[key] = false;
+							if (type === 'currency') obj[key] = 0;
+							if (type === 'function') obj[key] = () => {};
+							if (type === 'number') obj[key] = 0;
+							if (type === 'object') obj[key] = {};
+							if (type === 'select') obj[key] = '';
+							if (type === 'string') obj[key] = '';
+							if (type === 'symbol') obj[key] = Symbol('');
+							if (type === 'timestamp') obj[key] = new Date();
+							return obj;
+						}, {});
+						isCreatableDialogOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Plus />
+				</Button>
+			{/if}
 		</Div>
 	{/if}
 	<Div class="relative flex flex-col overflow-auto">
@@ -441,6 +470,34 @@
 		</Div>
 	{/if}
 </Card>
+
+<Dialog bind:open={isCreatableDialogOpen}>
+	<Card class="space-y-6">
+		<Table>
+			<Tbody>
+				{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
+					{#if isCreatable}
+						<Tr>
+							<Td class="whitespace-nowrap">{label}</Td>
+							{@render snippet({ isEditable: true, key, object: create, options })}
+						</Tr>
+					{/if}
+				{/each}
+			</Tbody>
+		</Table>
+		<Div class="flex justify-end space-x-2">
+			<Button
+				onclick={() => {
+					rows.push({ ...create });
+					isCreatableDialogOpen = false;
+				}}
+			>
+				Add
+			</Button>
+			<Button onclick={() => (isCreatableDialogOpen = false)} variants={['ghost']}>Cancel</Button>
+		</Div>
+	</Card>
+</Dialog>
 
 <Dialog bind:open={isDeleteDialogOpen}>
 	<Card class="items-center space-y-6">
@@ -640,16 +697,6 @@
 				class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
 				{options}
 			/>
-			<!-- <Div
-				bind:innerHTML={object[key]}
-				class={twMerge(
-					$themeStore.Input.default,
-					'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
-				)}
-				contenteditable={true}
-			>
-				{object[key]}
-			</Div> -->
 		</Td>
 	{:else}
 		<Td class="whitespace-nowrap">{object[key] || ''}</Td>

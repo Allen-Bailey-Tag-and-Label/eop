@@ -63,6 +63,7 @@
 			bind:filters={settings.filters}
 			bind:rows
 			bind:sort={settings.sort}
+			isCreatable={false}
 			isDeletable={false}
 			isEditable={false}
 		/>

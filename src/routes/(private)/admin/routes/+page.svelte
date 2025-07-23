@@ -6,7 +6,8 @@
 	let rows = $state([]);
 	let settings = localState('admin/routes', {
 		columns: [
-			'href',
+			{ isCreatable: false, isFilterable: false, key: '_id', type: 'string' },
+			{ key: 'href', type: 'string' },
 			{ key: 'isDirectory', type: 'boolean' },
 			'label',
 			{ key: 'parentId', type: 'string' }

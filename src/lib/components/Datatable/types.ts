@@ -4,6 +4,7 @@ import { filterOperators } from './filterOperators';
 export type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
 export type ColumnSanitized = {
 	compareFn: (a: any, b: any) => any;
+	isCreatable: boolean;
 	isEditable: boolean;
 	isFilterable: boolean;
 	key: string;
@@ -46,6 +47,7 @@ export type PaginationSanitized = {
 export type Props = {
 	columns: Column[];
 	filters?: Filter[];
+	isCreatable?: boolean;
 	isDeletable?: boolean;
 	isEditable?: boolean;
 	isFilterable?: boolean;
