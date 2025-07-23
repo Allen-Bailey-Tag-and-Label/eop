@@ -1,6 +1,7 @@
 import { fail, type Actions } from '@sveltejs/kit';
 import { clientInit } from '$lib/server/mongoDB';
 import { UpsQuote } from '$lib/server/mongoose/models';
+import { connect } from '$lib/server/mongoose';
 
 const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 	[
@@ -49,6 +50,8 @@ const tableMap = new Map([['ups-quotes', UpsQuote]]);
 
 export const actions: Actions = {
 	default: async ({ request }) => {
+		await connect();
+
 		const { table } = <Record<string, string>>Object.fromEntries(await request.formData());
 
 		const rowMapFn = rowMap.get(table);

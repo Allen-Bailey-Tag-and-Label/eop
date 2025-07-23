@@ -136,15 +136,16 @@
 			}
 
 			if (typeof column === 'object') {
-				columnSanitized = Object.assign(columnSanitized, column);
+				columnSanitized.compareFn = column?.compareFn || columnSanitized.compareFn;
+				columnSanitized.isEditable = column?.isEditable || columnSanitized.isEditable;
+				columnSanitized.key = column?.key || columnSanitized.key;
+				columnSanitized.label = column?.label || columnSanitized.label;
+				columnSanitized.snippet =
+					column?.snippet || tdSnippetMap.get(column?.type) || columnSanitized.snippet;
+				columnSanitized.type = column?.type || columnSanitized.type;
 			}
 
 			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
-
-			columnSanitized.compareFn = compareFn[columnSanitized.type];
-			columnSanitized.snippet = tdSnippetMap.get(columnSanitized.type) || columnSanitized.snippet;
-
-			if (columnSanitized.label === 'date') console.log(columnSanitized);
 
 			return columnSanitized;
 		});

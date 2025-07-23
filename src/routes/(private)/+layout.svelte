@@ -62,6 +62,9 @@
 			page.url.pathname !== href ? 'bg-transparent text-current' : undefined
 		)}
 		{href}
+		onclick={() => {
+			isNavigationOpen = false;
+		}}
 		style="padding-left:{(depth - 1) * 1.5}rem;"
 	>
 		<Div

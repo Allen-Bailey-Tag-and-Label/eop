@@ -17,15 +17,15 @@ export const Route = model('Route', RouteSchema);
 
 // === UPS Quote ===
 const UpsQuoteSchema = new Schema({
-	classification: String,
-	date: Date,
-	packageTotalCount: Number,
-	packageTotalWeight: Number,
-	packageWeight: Number,
-	quote: Number,
-	rates: [Schema.Types.Mixed],
-	shipper: Schema.Types.Mixed,
-	shipTo: Schema.Types.Mixed
+	classification: { type: String, required: true },
+	date: { type: Date, required: true },
+	packageTotalCount: { type: Number, required: true },
+	packageTotalWeight: { type: Number, required: true },
+	packageWeight: { type: Number, required: true },
+	quote: { type: Number, required: true },
+	rates: { type: [Schema.Types.Mixed], required: true },
+	shipper: { type: Schema.Types.Mixed, required: true },
+	shipTo: { type: Schema.Types.Mixed, required: true }
 });
 export const UpsQuote = model('UpsQuote', UpsQuoteSchema);
 

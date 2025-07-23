@@ -2,6 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 import { User } from '$lib/server/mongoose/models';
 import { type Navigation, type Route } from '$lib/types';
 import { Types } from 'mongoose';
+import { connect } from '$lib/server/mongoose';
 
 const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
 	const routeMap = new Map<number | null, Navigation[]>();
@@ -45,6 +46,7 @@ const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
+	await connect();
 	const userIdCookie = event.cookies.get('userId');
 
 	// handle root path

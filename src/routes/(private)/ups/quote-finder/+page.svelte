@@ -1,19 +1,24 @@
 <script lang="ts">
-	import { Datatable, Div } from '$lib/components';
+	import { A, Datatable, Div, Td } from '$lib/components';
+	import { type TdSnippet } from '$lib/components/Datatable/types.js';
 	import { localState } from '$lib/localState';
+	import { theme } from '$lib/theme/index.js';
+	import { Eye } from '@lucide/svelte';
+	import { twMerge } from 'tailwind-merge';
 
 	let { data } = $props();
+	let columns = $state([
+		{ key: 'test', snippet: optionsTd },
+		{ label: 'Quote #', key: 'quote' },
+		{ key: 'date', type: 'timestamp' },
+		'address',
+		'city',
+		'state',
+		'zip',
+		'classification'
+	]);
 	let rows = $state([]);
 	let settings = localState('ups/quote-finder', {
-		columns: [
-			{ label: 'Quote #', key: 'quote' },
-			{ key: 'date', type: 'timestamp' },
-			'address',
-			'city',
-			'state',
-			'zip',
-			'classification'
-		],
 		sort: { direction: 'desc', key: 'quote' }
 	});
 	const updateRows = async (rowsPromise: Promise<any[]>) => {
@@ -46,7 +51,7 @@
 		<Div>Loading...</Div>
 	{:else}
 		<Datatable
-			bind:columns={settings.columns}
+			bind:columns
 			bind:rows
 			bind:sort={settings.sort}
 			isDeletable={false}
@@ -54,3 +59,14 @@
 		/>
 	{/if}
 </Div>
+
+{#snippet optionsTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+	<Td class="py-0">
+		<A
+			class={twMerge($theme.Button.default, $theme.Button.icon, 'w-10')}
+			href="/ups/quote/{rows[rowIndex].quote}"
+		>
+			<Eye />
+		</A>
+	</Td>
+{/snippet}
