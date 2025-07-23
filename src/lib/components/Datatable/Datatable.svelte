@@ -77,6 +77,7 @@
 		['function', functionTd],
 		['number', numberTd],
 		['object', objectTd],
+		['select', selectTd],
 		['string', stringTd],
 		['symbol', symbolTd],
 		['timestamp', timestampTd],
@@ -111,6 +112,7 @@
 				isFilterable,
 				key: '',
 				label: '',
+				options: [{ label: '', value: '' }],
 				snippet: stringTd,
 				type
 			};
@@ -131,6 +133,8 @@
 				columnSanitized.snippet =
 					column?.snippet || tdSnippetMap.get(column?.type) || columnSanitized.snippet;
 				columnSanitized.type = column?.type || columnSanitized.type;
+				if (columnSanitized.type === 'select')
+					columnSanitized.options = column?.options || columnSanitized.options;
 			}
 
 			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
@@ -149,8 +153,9 @@
 			const columnSanitized = columnsSanitized.find(
 				(columnSanitized) => columnSanitized.key === filterTemp.key
 			);
+			const options = columnSanitized?.options;
 			const snippet = columnSanitized?.snippet;
-			return { ...filterTemp, snippet };
+			return { ...filterTemp, options, snippet };
 		})
 	);
 	const isSelectable: boolean = $derived.by(() => isDeletable);
@@ -282,6 +287,7 @@
 				rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
 			});
 	});
+	$inspect(filtersTempSanitized);
 </script>
 
 <Card class="flex flex-col overflow-auto p-0">
@@ -389,8 +395,8 @@
 									{/if}
 								</Td>
 							{/if}
-							{#each columnsSanitized as { isEditable, key, snippet }}
-								{@render snippet({ isEditable, key, object: rows[rowIndex] })}
+							{#each columnsSanitized as { isEditable, key, options, snippet }}
+								{@render snippet({ isEditable, key, object: rows[rowIndex], options })}
 							{/each}
 						</Tr>
 					{/each}
@@ -470,7 +476,7 @@
 		<Div class="flex items-center justify-end space-x-2">
 			<Button
 				onclick={() => {
-					filtersTemp.push({ key: '', operator: '', value: '' });
+					filtersTemp.push({ key: '', operator: '', options: [], value: '' });
 				}}
 			>
 				<Div class="flex items-center space-x-2">
@@ -528,7 +534,8 @@
 								{@render filtersTempSanitized[filterTempIndex].snippet({
 									isEditable: true,
 									key: 'value',
-									object: filtersTemp[filterTempIndex]
+									object: filtersTemp[filterTempIndex],
+									options: filtersTempSanitized[filterTempIndex].options
 								})}
 							{/if}
 						</Tr>
@@ -625,6 +632,29 @@
 {/snippet}
 {#snippet objectTd({ isEditable, key, object }: TdSnippet)}
 	<Td class="whitespace-nowrap">{object[key] || JSON.stringify(object[key], null, 2)}</Td>
+{/snippet}
+{#snippet selectTd({ isEditable, key, object, options }: TdSnippet)}
+	{#if isEditable && object[key] !== undefined}
+		<Td class="hover:outline-primary-500/0 p-0">
+			<Select
+				bind:value={object[key]}
+				class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				{options}
+			/>
+			<!-- <Div
+				bind:innerHTML={object[key]}
+				class={twMerge(
+					$themeStore.Input.default,
+					'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
+				)}
+				contenteditable={true}
+			>
+				{object[key]}
+			</Div> -->
+		</Td>
+	{:else}
+		<Td class="whitespace-nowrap">{object[key] || ''}</Td>
+	{/if}
 {/snippet}
 {#snippet stringTd({ isEditable, key, object }: TdSnippet)}
 	{#if isEditable && object[key] !== undefined}

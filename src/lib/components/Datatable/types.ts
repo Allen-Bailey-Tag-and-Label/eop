@@ -9,8 +9,15 @@ export type ColumnSanitized = {
 	key: string;
 	label: string;
 	snippet: Snippet<[TdSnippet]>;
-	type: ColumnType;
-};
+} & (
+	| {
+			type: Exclude<ColumnType, 'select'>;
+	  }
+	| {
+			options: Option[];
+			type: 'select';
+	  }
+);
 export type ColumnType =
 	| 'bigint'
 	| 'boolean'
@@ -18,6 +25,7 @@ export type ColumnType =
 	| 'function'
 	| 'number'
 	| 'object'
+	| 'select'
 	| 'string'
 	| 'symbol'
 	| 'timestamp'
@@ -25,9 +33,11 @@ export type ColumnType =
 export type Filter = {
 	key: string;
 	operator: FilterOperator;
+	options: Option[];
 	value: any;
 };
 export type FilterOperator = (typeof filterOperators)[number];
+export type Option = { label: any; value: any };
 export type Pagination = boolean | Partial<PaginationSanitized>;
 export type PaginationSanitized = {
 	currentPage: number;
@@ -59,4 +69,4 @@ export type SortSanitized = {
 	index: number;
 	key: string;
 };
-export type TdSnippet = { isEditable: boolean; key: string; object: any };
+export type TdSnippet = { isEditable: boolean; key: string; object: any; options: Option[] };

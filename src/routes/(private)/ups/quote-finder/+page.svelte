@@ -15,7 +15,14 @@
 		'city',
 		'state',
 		'zip',
-		'classification'
+		{
+			key: 'classification',
+			options: ['', 'Commercial', 'Residential', 'Unknown'].map((label) => ({
+				label,
+				value: label
+			})),
+			type: 'select'
+		}
 	]);
 	let rows: Row[] = $state([]);
 	let settings = localState('ups/quote-finder', {

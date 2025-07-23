@@ -39,6 +39,9 @@ export const compareFn = {
 		if (b === null) return -1;
 		return 0;
 	},
+	select: (a: any, b: any) => {
+		return 0;
+	},
 	string: (a: string, b: string) => {
 		if (typeof a !== 'string' || typeof b !== 'string') return 0;
 		if (a === null) return 1;
