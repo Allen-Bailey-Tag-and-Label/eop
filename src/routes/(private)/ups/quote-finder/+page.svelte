@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { Eye } from '@lucide/svelte';
+	import { twMerge } from 'tailwind-merge';
 	import { A, Datatable, Div, Td } from '$lib/components';
 	import { type TdSnippet } from '$lib/components/Datatable/types.js';
 	import { localState } from '$lib/localState';
 	import { theme } from '$lib/theme/index.js';
-	import { Eye } from '@lucide/svelte';
-	import { twMerge } from 'tailwind-merge';
+	import { type Row, type RowPromise } from './types';
 
 	let { data } = $props();
 	let columns = $state([
@@ -17,11 +18,11 @@
 		'zip',
 		'classification'
 	]);
-	let rows = $state([]);
+	let rows: Row[] = $state([]);
 	let settings = localState('ups/quote-finder', {
 		sort: { direction: 'desc', key: 'quote' }
 	});
-	const updateRows = async (rowsPromise: Promise<any[]>) => {
+	const updateRows = async (rowsPromise: Promise<RowPromise[]>) => {
 		const resolved = await rowsPromise;
 		rows = resolved.map(
 			({
