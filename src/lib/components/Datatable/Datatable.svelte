@@ -300,7 +300,7 @@
 									}}
 									variants={['ghost', 'square']}
 								>
-									<Div class={twMerge($themeStore.Th.default, 'px-0 py-0')}>
+									<Div class={twMerge($themeStore.Th.default, 'px-0 py-0 whitespace-nowrap')}>
 										{label}
 									</Div>
 									{#if isSortable}
@@ -445,7 +445,9 @@
 			</Div>
 		</Td>
 	{:else}
-		<Td class="text-right">{currency(row[key] || JSON.stringify(row[key], null, 2))}</Td>
+		<Td class="text-right whitespace-nowrap"
+			>{currency(row[key] || JSON.stringify(row[key], null, 2))}</Td
+		>
 	{/if}
 {/snippet}
 {#snippet functionTd({ isEditable, key, row, rowIndex }: TdSnippet)}
@@ -476,11 +478,11 @@
 			</Div>
 		</Td>
 	{:else}
-		<Td class="text-right">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+		<Td class="text-right whitespace-nowrap">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 	{/if}
 {/snippet}
 {#snippet objectTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+	<Td class="whitespace-nowrap">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 {/snippet}
 {#snippet stringTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	{#if isEditable && rows[rowIndex][key] !== undefined}
@@ -497,7 +499,7 @@
 			</Div>
 		</Td>
 	{:else}
-		<Td>{row[key] || ''}</Td>
+		<Td class="whitespace-nowrap">{row[key] || ''}</Td>
 	{/if}
 {/snippet}
 {#snippet symbolTd({ isEditable, key, row, rowIndex }: TdSnippet)}
@@ -522,9 +524,9 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="text-right">{dateTime(rows[rowIndex][key])}</Td>
+		<Td class="text-right whitespace-nowrap">{dateTime(rows[rowIndex][key])}</Td>
 	{/if}
 {/snippet}
 {#snippet undefinedTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+	<Td class="whitespace-nowrap">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
 {/snippet}
