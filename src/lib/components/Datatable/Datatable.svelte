@@ -287,14 +287,13 @@
 				rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
 			});
 	});
-	$inspect(filtersTempSanitized);
 </script>
 
 <Card class="flex flex-col overflow-auto p-0">
 	{#if toolbar}
 		{@render toolbar()}
 	{:else if isToolbarVisible}
-		<Div class="flex items-center justify-end px-6 py-3">
+		<Div class="flex items-center justify-end space-x-2 px-6 py-3">
 			{#if isDeletable}
 				<Button
 					disabled={rowsSelected.length > 0 ? undefined : true}
