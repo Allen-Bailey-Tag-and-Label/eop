@@ -9,7 +9,7 @@
 
 	let { data } = $props();
 	let columns = $state([
-		{ key: 'test', snippet: optionsTd },
+		{ key: ' ', snippet: optionsTd },
 		{ label: 'Quote #', key: 'quote' },
 		{ key: 'date', type: 'timestamp' },
 		'address',
@@ -63,11 +63,14 @@
 
 {#snippet optionsTd({ isEditable, key, row, rowIndex }: TdSnippet)}
 	<Td class="py-0">
-		<A
-			class={twMerge($theme.Button.default, $theme.Button.icon, 'w-10')}
-			href="/ups/quote/{rows[rowIndex].quote}"
-		>
-			<Eye />
-		</A>
+		<Div class="flex space-x-2">
+			<A
+				class={twMerge($theme.Button.default, 'px-2 py-1')}
+				href="/ups/quote/{rows[rowIndex].quote}"
+			>
+				View
+			</A>
+			<A class={twMerge($theme.Button.default, 'px-2 py-1')} href="/ups/quote">Duplicate</A>
+		</Div>
 	</Td>
 {/snippet}
