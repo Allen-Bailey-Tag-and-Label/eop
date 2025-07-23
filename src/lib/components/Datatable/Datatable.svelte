@@ -202,7 +202,7 @@
 		if (JSON.stringify(sort)) {
 			untrack(() => {
 				if (sort?.direction) sortSanitized.direction = sort.direction;
-				if (sort?.index) sortSanitized.index = sort.index;
+				if (typeof sort?.index === 'number') sortSanitized.index = sort.index;
 				if (sort?.key) sortSanitized.key = sort.key;
 			});
 		}
