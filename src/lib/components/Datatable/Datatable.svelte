@@ -7,6 +7,8 @@
 		ChevronLast,
 		ChevronLeft,
 		ChevronRight,
+		Funnel,
+		Plus,
 		Trash,
 		TriangleAlert
 	} from '$lib/icons';
@@ -30,6 +32,7 @@
 
 	import {
 		compareFn,
+		filterOperatorOptions,
 		type ColumnSanitized,
 		type ColumnType,
 		type PaginationSanitized,
@@ -37,41 +40,22 @@
 		type SortSanitized,
 		type TdSnippet
 	} from './';
+	import type { Filter, FilterOperator, Row, RowSanitized } from './types';
 
-	const initColumnSanitized = (key: string) => {
-		const columnSanitized: ColumnSanitized = {
-			compareFn: compareFn.string,
-			isEditable,
-			key,
-			label: key,
-			snippet: stringTd,
-			type: 'string'
-		};
-
-		if (rows.length > 0) {
-			for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-				if (rows[rowIndex][key] !== null) {
-					const type = typeof rows[rowIndex][key];
-					columnSanitized.compareFn = compareFn[type];
-					columnSanitized.snippet = tdSnippetMap.get(type) || stringTd;
-					columnSanitized.type = type;
-					break;
-				}
-			}
-		}
-
-		return columnSanitized;
-	};
+	let filtersTemp: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[] = $state([]);
 	let isAllRowsSelected = $state(false);
 	let isDeleteDialogOpen = $state(false);
+	let isFilterDialogOpen = $state(false);
 	let paginationSanitized: PaginationSanitized = $state({
 		currentPage: 0,
 		rowsPerPage: 10
 	});
 	let {
 		columns = $bindable(),
+		filters = $bindable([]),
 		isDeletable = true,
 		isEditable = true,
+		isFilterable = true,
 		isSortable = true,
 		pagination = $bindable(true),
 		rows = $bindable([]),
@@ -124,6 +108,7 @@
 			let columnSanitized: ColumnSanitized = {
 				compareFn: compareFn[type],
 				isEditable,
+				isFilterable,
 				key: '',
 				label: '',
 				snippet: stringTd,
@@ -137,7 +122,10 @@
 
 			if (typeof column === 'object') {
 				columnSanitized.compareFn = column?.compareFn || columnSanitized.compareFn;
-				columnSanitized.isEditable = column?.isEditable || columnSanitized.isEditable;
+				columnSanitized.isEditable =
+					column?.isEditable !== undefined ? column.isEditable : columnSanitized.isEditable;
+				columnSanitized.isFilterable =
+					column?.isFilterable !== undefined ? column.isFilterable : columnSanitized.isFilterable;
 				columnSanitized.key = column?.key || columnSanitized.key;
 				columnSanitized.label = column?.label || columnSanitized.label;
 				columnSanitized.snippet =
@@ -150,16 +138,31 @@
 			return columnSanitized;
 		});
 	});
+	const filterKeyOptions = $derived.by(() => [
+		{ label: '', key: '' },
+		...columnsSanitized
+			.filter(({ isFilterable }) => isFilterable)
+			.map(({ label, key }) => ({ label, value: key }))
+	]);
+	const filtersTempSanitized = $derived.by(() =>
+		filtersTemp.map((filterTemp) => {
+			const columnSanitized = columnsSanitized.find(
+				(columnSanitized) => columnSanitized.key === filterTemp.key
+			);
+			const snippet = columnSanitized?.snippet;
+			return { ...filterTemp, snippet };
+		})
+	);
 	const isSelectable: boolean = $derived.by(() => isDeletable);
-	const isToolbarVisible: boolean = $derived.by(() => isDeletable);
+	const isToolbarVisible: boolean = $derived.by(() => isDeletable || isFilterable);
 	const paginationIndexes: { start: number; end: number } = $derived.by(() => {
 		const start = paginationSanitized.currentPage * paginationSanitized.rowsPerPage;
 		let end = start + paginationSanitized.rowsPerPage;
-		if (end > rows.length) end = rows.length;
+		if (end > rowsFiltered.length) end = rowsFiltered.length;
 		return { start, end };
 	});
 	const paginationTotalPages: number = $derived.by(() =>
-		Math.ceil(rows.length / paginationSanitized.rowsPerPage)
+		Math.ceil(rowsFiltered.length / paginationSanitized.rowsPerPage)
 	);
 	const paginationOptions: { label: string; value: number }[] = $derived.by(() => {
 		if (paginationTotalPages === 0) return [{ label: '0-0', value: 0 }];
@@ -168,10 +171,48 @@
 			.map((_, value) => {
 				const start = value * paginationSanitized.rowsPerPage;
 				let end = start + paginationSanitized.rowsPerPage;
-				if (end > rows.length) end = rows.length;
+				if (end > rowsFiltered.length) end = rowsFiltered.length;
 				return { label: `${start + 1}-${end}`, value };
 			});
 	});
+	const rowsSanitized: RowSanitized[] = $derived.by(() =>
+		rows.map((row, index) => ({ index, isSelected: false, row }))
+	);
+	const rowsFiltered: RowSanitized[] = $derived.by(() =>
+		rowsSanitized.filter(({ row }) => {
+			return filters.every(({ key, operator, value }) => {
+				const cell = row[key];
+
+				switch (operator) {
+					case 'contains':
+						return typeof cell === 'string' && cell.toLowerCase().includes(value.toLowerCase());
+					case 'does not contain':
+						return typeof cell === 'string' && !cell.toLowerCase().includes(value.toLowerCase());
+					case 'does not equal':
+						return cell !== value;
+					case 'equals':
+						return cell === value;
+					case 'greater than':
+						return parseFloat(cell) > parseFloat(value);
+					case 'greater than or equals':
+						return parseFloat(cell) >= parseFloat(value);
+					case 'less than':
+						return parseFloat(cell) < parseFloat(value);
+					case 'less than or equals':
+						return parseFloat(cell) <= parseFloat(value);
+					default:
+						return true;
+				}
+			});
+		})
+	);
+	const rowsPaginated: RowSanitized[] = $derived.by(() =>
+		rowsFiltered.filter((_, rowIndex) => {
+			if (pagination === false) return true;
+			if (rowIndex >= paginationIndexes.start && rowIndex < paginationIndexes.end) return true;
+			return false;
+		})
+	);
 	const rowsSelected: boolean[] = $derived.by(() =>
 		rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue)
 	);
@@ -189,6 +230,11 @@
 					paginationSanitized = Object.assign(paginationSanitized, pagination);
 			});
 		}
+	});
+	$effect(() => {
+		if (paginationSanitized.currentPage > paginationTotalPages - 1)
+			paginationSanitized.currentPage = paginationTotalPages - 1;
+		if (paginationSanitized.currentPage < 0) paginationSanitized.currentPage = 0;
 	});
 	$effect(() => {
 		if (rows.length > rowsCheckboxValues.length) {
@@ -250,6 +296,17 @@
 					variants={['error', 'icon']}
 				>
 					<Trash />
+				</Button>
+			{/if}
+			{#if isFilterable}
+				<Button
+					onclick={() => {
+						filtersTemp = $state.snapshot(filters);
+						isFilterDialogOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Funnel />
 				</Button>
 			{/if}
 		</Div>
@@ -323,21 +380,19 @@
 				{@render tbody()}
 			{:else}
 				<Tbody>
-					{#each rows as row, rowIndex}
-						{#if pagination === false || (rowIndex >= paginationIndexes.start && rowIndex < paginationIndexes.end)}
-							<Tr>
-								{#if isSelectable}
-									<Td>
-										{#if rowsCheckboxValues[rowIndex] !== undefined}
-											<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
-										{/if}
-									</Td>
-								{/if}
-								{#each columnsSanitized as { isEditable, key, snippet }}
-									{@render snippet({ isEditable, key, row, rowIndex })}
-								{/each}
-							</Tr>
-						{/if}
+					{#each rowsPaginated as { index: rowIndex }}
+						<Tr>
+							{#if isSelectable}
+								<Td>
+									{#if rowsCheckboxValues[rowIndex] !== undefined}
+										<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+									{/if}
+								</Td>
+							{/if}
+							{#each columnsSanitized as { isEditable, key, snippet }}
+								{@render snippet({ isEditable, key, object: rows[rowIndex] })}
+							{/each}
+						</Tr>
 					{/each}
 				</Tbody>
 			{/if}
@@ -410,29 +465,116 @@
 	</Card>
 </Dialog>
 
-{#snippet bigintTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+<Dialog bind:open={isFilterDialogOpen}>
+	<Card class="space-y-6">
+		<Div class="flex items-center justify-end space-x-2">
+			<Button
+				onclick={() => {
+					filtersTemp.push({ key: '', operator: '', value: '' });
+				}}
+			>
+				<Div class="flex items-center space-x-2">
+					<Plus />
+					<Div>Add Filter</Div>
+				</Div>
+			</Button>
+			<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
+		</Div>
+		<Table>
+			<Thead>
+				<Tr>
+					<Th></Th>
+					<Th>Column</Th>
+					<Th>Operator</Th>
+					<Th>Value</Th>
+				</Tr>
+			</Thead>
+			<Tbody>
+				{#if filtersTemp.length === 0}
+					<Tr>
+						<Td colspan="4">No Filters</Td>
+					</Tr>
+				{:else}
+					{#each filtersTemp as _, filterTempIndex}
+						<Tr>
+							<Td class="px-2 py-0">
+								<Button
+									class="w-10"
+									onclick={() => {
+										filtersTemp = filtersTemp.filter((_, i) => filterTempIndex !== i);
+									}}
+									variants={['icon', 'error']}
+								>
+									<Trash />
+								</Button>
+							</Td>
+							<Td class="p-0">
+								<Select
+									bind:value={filtersTemp[filterTempIndex].key}
+									class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+									options={filterKeyOptions}
+								/>
+							</Td>
+							<Td class="p-0">
+								<Select
+									bind:value={filtersTemp[filterTempIndex].operator}
+									class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+									options={filterOperatorOptions}
+								/>
+							</Td>
+							{#if filtersTempSanitized[filterTempIndex].snippet === undefined}
+								<Td></Td>
+							{:else}
+								{@render filtersTempSanitized[filterTempIndex].snippet({
+									isEditable: true,
+									key: 'value',
+									object: filtersTemp[filterTempIndex]
+								})}
+							{/if}
+						</Tr>
+					{/each}
+				{/if}
+			</Tbody>
+		</Table>
+		<Div class="flex justify-end space-x-2">
+			<Button
+				onclick={() => {
+					filters = $state
+						.snapshot(filtersTemp)
+						.filter(({ key, operator }) => key !== '' && operator !== '');
+					isFilterDialogOpen = false;
+				}}
+			>
+				Apply
+			</Button>
+			<Button onclick={() => (isFilterDialogOpen = false)} variants={['ghost']}>Cancel</Button>
+		</Div>
+	</Card>
+</Dialog>
+
+{#snippet bigintTd({ isEditable, key, object }: TdSnippet)}
 	<Td>Bigint</Td>
 {/snippet}
-{#snippet booleanTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	{#if isEditable && rows[rowIndex][key] !== undefined}
+{#snippet booleanTd({ isEditable, key, object }: TdSnippet)}
+	{#if isEditable && object[key] !== undefined}
 		<Td>
-			<Checkbox bind:checked={rows[rowIndex][key]} />
+			<Checkbox bind:checked={object[key]} />
 		</Td>
 	{:else}
-		<Td class="uppercase">{row[key]}</Td>
+		<Td class="uppercase">{object[key]}</Td>
 	{/if}
 {/snippet}
-{#snippet currencyTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	{#if isEditable && rows[rowIndex][key] !== undefined}
+{#snippet currencyTd({ isEditable, key, object }: TdSnippet)}
+	{#if isEditable && object[key] !== undefined}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
 				bind:innerHTML={
 					() => {
-						return currency(rows[rowIndex][key]);
+						return currency(object[key]);
 					},
 					(string) => {
 						const value = parseFloat(string.replace(/[^0-9.-]+/g, ''));
-						rows[rowIndex][key] = value;
+						object[key] = value;
 					}
 				}
 				class={twMerge(
@@ -441,31 +583,29 @@
 				)}
 				contenteditable={true}
 			>
-				{rows[rowIndex][key]}
+				{object[key]}
 			</Div>
 		</Td>
 	{:else}
 		<Td class="text-right whitespace-nowrap"
-			>{currency(row[key] || JSON.stringify(row[key], null, 2))}</Td
+			>{currency(object[key] || JSON.stringify(object[key], null, 2))}</Td
 		>
 	{/if}
 {/snippet}
-{#snippet functionTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	<Td>{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{#snippet functionTd({ isEditable, key, object }: TdSnippet)}
+	<Td>{object[key] || JSON.stringify(object[key], null, 2)}</Td>
 {/snippet}
-{#snippet numberTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	{#if isEditable && rows[rowIndex][key] !== undefined}
+{#snippet numberTd({ isEditable, key, object }: TdSnippet)}
+	{#if isEditable && object[key] !== undefined}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
 				bind:innerHTML={
 					() => {
-						return typeof rows[rowIndex][key] === 'number'
-							? rows[rowIndex][key].toString()
-							: rows[rowIndex][key];
+						return typeof object[key] === 'number' ? object[key].toString() : object[key];
 					},
 					(value) => {
 						value = typeof value === 'number' ? value : parseFloat(value.replace(/[^0-9.-]+/g, ''));
-						rows[rowIndex][key] = value;
+						object[key] = value;
 					}
 				}
 				class={twMerge(
@@ -474,49 +614,49 @@
 				)}
 				contenteditable={true}
 			>
-				{rows[rowIndex][key]}
+				{object[key]}
 			</Div>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+		<Td class="text-right whitespace-nowrap"
+			>{object[key] || JSON.stringify(object[key], null, 2)}</Td
+		>
 	{/if}
 {/snippet}
-{#snippet objectTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	<Td class="whitespace-nowrap">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{#snippet objectTd({ isEditable, key, object }: TdSnippet)}
+	<Td class="whitespace-nowrap">{object[key] || JSON.stringify(object[key], null, 2)}</Td>
 {/snippet}
-{#snippet stringTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	{#if isEditable && rows[rowIndex][key] !== undefined}
+{#snippet stringTd({ isEditable, key, object }: TdSnippet)}
+	{#if isEditable && object[key] !== undefined}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
-				bind:innerHTML={rows[rowIndex][key]}
+				bind:innerHTML={object[key]}
 				class={twMerge(
 					$themeStore.Input.default,
 					'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
-				{rows[rowIndex][key]}
+				{object[key]}
 			</Div>
 		</Td>
 	{:else}
-		<Td class="whitespace-nowrap">{row[key] || ''}</Td>
+		<Td class="whitespace-nowrap">{object[key] || ''}</Td>
 	{/if}
 {/snippet}
-{#snippet symbolTd({ isEditable, key, row, rowIndex }: TdSnippet)}
+{#snippet symbolTd({ isEditable, key, object }: TdSnippet)}
 	<Td>Symbol</Td>
 {/snippet}
-{#snippet timestampTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	{#if isEditable && rows[rowIndex][key] !== undefined}
+{#snippet timestampTd({ isEditable, key, object }: TdSnippet)}
+	{#if isEditable && object[key] !== undefined}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Input
 				bind:value={
 					() => {
-						console.log('get', rows[rowIndex][key]);
-						return inputDateTimeLocal(rows[rowIndex][key]);
+						return inputDateTimeLocal(object[key]);
 					},
 					(value: string) => {
-						console.log('set', value);
-						rows[rowIndex][key] = new Date(value);
+						object[key] = new Date(value);
 					}
 				}
 				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
@@ -524,9 +664,9 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap">{dateTime(rows[rowIndex][key])}</Td>
+		<Td class="text-right whitespace-nowrap">{dateTime(object[key])}</Td>
 	{/if}
 {/snippet}
-{#snippet undefinedTd({ isEditable, key, row, rowIndex }: TdSnippet)}
-	<Td class="whitespace-nowrap">{row[key] || JSON.stringify(row[key], null, 2)}</Td>
+{#snippet undefinedTd({ isEditable, key, object }: TdSnippet)}
+	<Td class="whitespace-nowrap">{object[key] || JSON.stringify(object[key], null, 2)}</Td>
 {/snippet}
