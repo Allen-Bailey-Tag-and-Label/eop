@@ -717,7 +717,7 @@
 				bind:innerHTML={object[key]}
 				class={twMerge(
 					$themeStore.Input.default,
-					'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
+					'rounded-none bg-transparent whitespace-nowrap outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
