@@ -1,50 +1,64 @@
-import { type Model, Types } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 
 export const sanitizeDataFromSchema = <T extends Record<string, any>>(
 	model: Model<any>,
 	data: T
 ): T => {
-	const sanitizedData = {} as T;
+	const sanitized: Record<string, any> = {};
 	const schemaPaths = model.schema.paths;
 
-	for (const key in data) {
+	for (const key in schemaPaths) {
 		const path = schemaPaths[key];
-		if (!path) continue; // Skip if key not in schema
+		const rawValue = data[key];
 
-		let value = data[key];
-		const instance = path.instance?.toLowerCase();
+		if (rawValue === undefined) continue;
 
-		// Skip empty string for ObjectId fields
-		if (instance === 'objectid' && value === '') continue;
+		const isRequired = path.options?.required === true;
 
-		// Convert string to ObjectId if applicable
-		if (instance === 'objectid' && typeof value === 'string') {
-			try {
-				value = new Types.ObjectId(value);
-			} catch {
+		// Handle empty strings for optional fields
+		if (typeof rawValue === 'string' && rawValue === '' && !isRequired) continue;
+
+		// Handle ObjectId
+		if (path.instance === 'ObjectID') {
+			if (Types.ObjectId.isValid(rawValue)) {
+				sanitized[key] = new Types.ObjectId(rawValue);
+			}
+			continue;
+		}
+
+		// Handle arrays
+		if (path.instance === 'Array') {
+			const caster = path.caster;
+
+			// Array of ObjectIds
+			if (caster?.instance === 'ObjectID') {
+				const arrayValues = Array.isArray(rawValue) ? rawValue : [rawValue];
+				sanitized[key] = arrayValues
+					.filter((id) => Types.ObjectId.isValid(id))
+					.map((id) => new Types.ObjectId(id));
+				continue;
+			}
+
+			// Array of subdocuments
+			if (caster?.schema) {
+				const subModel = model.db.model(`${model.modelName}_${key}`, caster.schema);
+				sanitized[key] = Array.isArray(rawValue)
+					? rawValue.map((item) => sanitizeDataFromSchema(subModel, item))
+					: [];
 				continue;
 			}
 		}
 
-		// Coerce numbers
-		if (instance === 'number') {
-			const num = Number(value);
-			if (!Number.isNaN(num)) value = num;
-			else continue;
+		// Handle nested schema / subdocument
+		if (path.schema) {
+			const subModel = model.db.model(`${model.modelName}_${key}`, path.schema);
+			sanitized[key] = sanitizeDataFromSchema(subModel, rawValue);
+			continue;
 		}
 
-		// Coerce booleans
-		if (instance === 'boolean') {
-			if (value === 'true' || value === true) value = true;
-			else if (value === 'false' || value === false) value = false;
-			else continue;
-		}
-
-		// Optional: strip empty strings for other types
-		if (value === '') continue;
-
-		sanitizedData[key] = value;
+		// Handle Mixed or other generic types
+		sanitized[key] = rawValue;
 	}
 
-	return sanitizedData;
+	return sanitized as T;
 };

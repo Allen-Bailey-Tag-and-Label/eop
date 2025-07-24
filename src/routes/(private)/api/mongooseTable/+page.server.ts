@@ -1,7 +1,6 @@
 import { fail, type Actions } from '@sveltejs/kit';
-import { type Model } from 'mongoose';
+import { type Model, Types } from 'mongoose';
 import * as models from '$lib/server/mongoose/models';
-import { Types } from 'mongoose';
 import { sanitizeDataFromSchema } from './sanitizeDataFromSchema';
 
 type ModelName = keyof typeof models;
@@ -16,15 +15,45 @@ export const actions: Actions = {
 		const { modelName, ...data } = formData as { modelName: ModelName } & Record<string, string>;
 
 		const model = modelCache.get(modelName);
-		if (!model) {
-			return fail(400, { error: `Unknown model: ${modelName}` });
-		}
+		if (!model) return fail(400, { error: `Unknown model: ${modelName}` });
 
 		const sanitizedData = sanitizeDataFromSchema(model, data);
 
 		const row = await model
 			.create({ _createdById: new Types.ObjectId(locals.user._id), ...sanitizedData })
 			.then((doc) => doc.toObject());
+
+		return { row: JSON.parse(JSON.stringify(row)) };
+	},
+
+	update: async ({ request }) => {
+		const formData = await request.formData();
+
+		const _id = formData.get('_id')?.toString();
+		if (!_id) return fail(400, { error: 'Missing _id' });
+
+		const modelName = formData.get('modelName') as ModelName;
+		if (!modelName) return fail(400, { error: 'Missing modelName' });
+
+		const model = modelCache.get(modelName);
+		if (!model) return fail(400, { error: `Model "${modelName}" doesn't exist` });
+
+		const data: Record<string, any> = {};
+
+		for (const [key, value] of formData.entries()) {
+			if (key === 'modelName' || key === '_id') continue;
+
+			if (data[key] !== undefined) {
+				// Convert to array if duplicate keys
+				data[key] = Array.isArray(data[key]) ? [...data[key], value] : [data[key], value];
+			} else {
+				data[key] = value;
+			}
+		}
+
+		const sanitizedData = sanitizeDataFromSchema(model, data);
+
+		const row = await model.findByIdAndUpdate(_id, sanitizedData, { new: true }).lean();
 
 		return { row: JSON.parse(JSON.stringify(row)) };
 	}
