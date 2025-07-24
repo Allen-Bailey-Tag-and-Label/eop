@@ -40,7 +40,7 @@
 		type SortSanitized,
 		type TdSnippet
 	} from './';
-	import type { Filter, FilterOperator, Row, RowSanitized } from './types';
+	import { type RowSanitized } from './types';
 
 	let {
 		columns = $bindable([]),
@@ -176,43 +176,44 @@
 	// $effects
 	$effect(() => {
 		columnsSanitized = columns.map((column, columnIndex) => {
-			const type = untrack(() => columnInferredTypes[columnIndex]);
+			const inferredType = untrack(() => columnInferredTypes[columnIndex]);
+			const inferredSnippet = tdSnippetMap.get(inferredType);
 
-			let columnSanitized: ColumnSanitized = {
-				compareFn: compareFn[type],
-				isCreatable,
-				isEditable,
-				isFilterable,
-				key: '',
-				label: '',
-				options: [{ label: '', value: '' }],
-				snippet: stringTd,
-				type
-			};
+			let columnSanitized: ColumnSanitized;
 
 			if (typeof column === 'string') {
-				columnSanitized.key = column;
-				columnSanitized.label = column;
+				columnSanitized = {
+					compareFn: compareFn[inferredType],
+					isCreatable,
+					isEditable,
+					isFilterable,
+					key: column,
+					label: column,
+					options: [],
+					snippet: inferredSnippet !== undefined ? inferredSnippet : stringTd,
+					type: inferredType
+				};
+			} else {
+				if (column.key === '_createdById') {
+					console.log(column, column?.snippet === undefined);
+				}
+				columnSanitized = {
+					compareFn: column?.compareFn !== undefined ? column.compareFn : compareFn[inferredType],
+					isCreatable: column?.isCreatable !== undefined ? column.isCreatable : isCreatable,
+					isEditable: column?.isEditable !== undefined ? column.isEditable : isEditable,
+					isFilterable: column?.isFilterable !== undefined ? column.isFilterable : isFilterable,
+					key: column.key,
+					label: column?.label !== undefined ? column.label : column.key,
+					options: column?.options !== undefined ? column.options : [],
+					snippet:
+						column?.snippet !== undefined
+							? column.snippet
+							: inferredSnippet !== undefined
+								? inferredSnippet
+								: stringTd,
+					type: column?.type !== undefined ? column.type : inferredType
+				};
 			}
-
-			if (typeof column === 'object') {
-				columnSanitized.compareFn = column?.compareFn || columnSanitized.compareFn;
-				columnSanitized.isCreatable =
-					column?.isCreatable !== undefined ? column.isCreatable : columnSanitized.isCreatable;
-				columnSanitized.isEditable =
-					column?.isEditable !== undefined ? column.isEditable : columnSanitized.isEditable;
-				columnSanitized.isFilterable =
-					column?.isFilterable !== undefined ? column.isFilterable : columnSanitized.isFilterable;
-				columnSanitized.key = column?.key || columnSanitized.key;
-				columnSanitized.label = column?.label || columnSanitized.label;
-				columnSanitized.snippet =
-					column?.snippet || tdSnippetMap.get(column?.type) || columnSanitized.snippet;
-				columnSanitized.type = column?.type || columnSanitized.type;
-				if (columnSanitized.type === 'select')
-					columnSanitized.options = column?.options || columnSanitized.options;
-			}
-
-			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
 
 			return columnSanitized;
 		});

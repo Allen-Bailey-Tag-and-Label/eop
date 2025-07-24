@@ -4,8 +4,8 @@
 
 	let { data } = $props();
 	let rows = $state([]);
+	let columns = $state([{ key: 'isActive', type: 'boolean' }, 'username']);
 	let settings = localState('user/management', {
-		columns: [{ key: 'isActive', type: 'boolean' }, 'username'],
 		sort: { direction: 'asc', key: 'href' }
 	});
 	const updateRows = async (rowsPromise: Promise<any[]>) => {
@@ -22,6 +22,6 @@
 	{#if rows.length === 0}
 		<Div>Loading...</Div>
 	{:else}
-		<Datatable bind:columns={settings.columns} bind:rows bind:sort={settings.sort} />
+		<Datatable bind:columns bind:rows bind:sort={settings.sort} />
 	{/if}
 </Div>

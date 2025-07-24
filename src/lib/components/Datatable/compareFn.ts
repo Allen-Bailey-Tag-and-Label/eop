@@ -54,8 +54,9 @@ export const compareFn = {
 		if (b === null) return -1;
 		return 0;
 	},
-	timestamp: (a: Date, b: Date) => {
-		console.log(a);
+	timestamp: (a: Date | string, b: Date | string) => {
+		if (typeof a === 'string') a = new Date(a);
+		if (typeof b === 'string') b = new Date(b);
 		if (!is.date(a) || !is.date(b)) return 0;
 		if (a === null) return 1;
 		if (b === null) return -1;

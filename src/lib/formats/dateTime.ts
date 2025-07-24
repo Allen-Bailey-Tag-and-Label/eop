@@ -1,4 +1,4 @@
-export const dateTime = (date: Date) => {
+export const dateTime = (date: Date | string) => {
 	const { format } = new Intl.DateTimeFormat('en-US', {
 		year: 'numeric',
 		month: 'numeric',
@@ -9,5 +9,5 @@ export const dateTime = (date: Date) => {
 		hour12: true
 	});
 
-	return format(date).replace(',', '');
+	return format(typeof date === 'string' ? new Date(date) : date).replace(',', '');
 };

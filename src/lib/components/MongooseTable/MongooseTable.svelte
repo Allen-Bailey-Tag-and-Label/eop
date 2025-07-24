@@ -16,6 +16,7 @@
 	import Thead from '../Thead/Thead.svelte';
 	import Th from '../Th/Th.svelte';
 	import Select from '../Select/Select.svelte';
+	import { compareFn, type TdSnippet } from '../Datatable';
 
 	let {
 		columns = $bindable([]),
@@ -46,6 +47,63 @@
 		thead,
 		toolbar
 	}: Props = $props();
+
+	$effect(() => {
+		let _createdByIdExists = false;
+		let createdAtExists = false;
+		let updatedAtExists = false;
+
+		columns.forEach((column) => {
+			if (
+				(typeof column === 'object' && column.key === '_createdById') ||
+				(typeof column === 'string' && column === '_createdById')
+			)
+				_createdByIdExists = true;
+			if (
+				(typeof column === 'object' && column.key === 'createdAt') ||
+				(typeof column === 'string' && column === 'createdAt')
+			)
+				createdAtExists = true;
+			if (
+				(typeof column === 'object' && column.key === 'updatedAt') ||
+				(typeof column === 'string' && column === 'updatedAt')
+			)
+				updatedAtExists = true;
+		});
+
+		if (!_createdByIdExists)
+			columns.push({
+				compareFn: (a: { username: string }, b: { username: string }) => {
+					return a.username.localeCompare(b.username);
+				},
+				isCreatable: false,
+				isEditable: false,
+				isFilterable: true,
+				key: '_createdById',
+				label: 'Created By',
+				snippet: createdByTd
+			});
+		if (!createdAtExists)
+			columns.push({
+				compareFn: compareFn.timestamp,
+				isCreatable: false,
+				isEditable: false,
+				isFilterable: true,
+				key: 'createdAt',
+				label: 'Created At',
+				type: 'timestamp'
+			});
+		if (!updatedAtExists)
+			columns.push({
+				compareFn: compareFn.timestamp,
+				isCreatable: false,
+				isEditable: false,
+				isFilterable: true,
+				key: 'updatedAt',
+				label: 'Updated At',
+				type: 'timestamp'
+			});
+	});
 </script>
 
 <Datatable
@@ -106,6 +164,9 @@
 			</Card>
 		</Dialog>
 	{/if}
+{/snippet}
+{#snippet createdByTd({ object }: TdSnippet)}
+	<Td>{object._createdById.username}</Td>
 {/snippet}
 {#snippet deleteDialog()}
 	<Dialog bind:open={isDeleteDialogOpen}>

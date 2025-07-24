@@ -3,9 +3,9 @@
 	import { localState } from '$lib/localState';
 
 	let { data } = $props();
+	let columns = $state(['label']);
 	let rows = $state([]);
 	let settings = localState('admin/roles', {
-		columns: ['label'],
 		sort: { direction: 'asc', key: 'label' }
 	});
 	const updateRows = async (rowsPromise: Promise<any[]>) => {
@@ -22,6 +22,6 @@
 	{#if rows.length === 0}
 		<Div>Loading...</Div>
 	{:else}
-		<Datatable bind:columns={settings.columns} bind:rows bind:sort={settings.sort} />
+		<Datatable bind:columns bind:rows bind:sort={settings.sort} />
 	{/if}
 </Div>
