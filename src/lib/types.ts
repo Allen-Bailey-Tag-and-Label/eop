@@ -1,14 +1,14 @@
 export type Navigation = Route & { children: Navigation[]; isOpen: boolean };
 export type Route = {
-	id: number;
+	_id: string;
+	_parentId: string | null;
 	label: string;
 	href: string | null;
 	isDirectory: boolean;
-	parentId: number | null;
 };
 
 export type User = {
-	_id: number;
+	_id: string;
 	isActive: boolean;
 	username: string;
 };

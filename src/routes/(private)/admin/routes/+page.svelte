@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Datatable, Div, MongooseTable } from '$lib/components';
+	import { Div, MongooseTable } from '$lib/components';
 	import { localState } from '$lib/localState';
 
 	let { data } = $props();
@@ -9,8 +9,7 @@
 			{ isCreatable: false, isFilterable: false, key: '_id', type: 'string' },
 			{ key: 'href', type: 'string' },
 			{ key: 'isDirectory', type: 'boolean' },
-			'label',
-			{ key: 'parentId', type: 'string' }
+			'label'
 		],
 		sort: { direction: 'asc', key: 'href' }
 	});
@@ -21,6 +20,7 @@
 
 	$effect(() => {
 		updateRows(data.rows);
+		console.log(data.rows);
 	});
 </script>
 

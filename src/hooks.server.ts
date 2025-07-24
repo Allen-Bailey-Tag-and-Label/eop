@@ -1,16 +1,19 @@
-import type { Handle } from '@sveltejs/kit';
-import { User } from '$lib/server/mongoose/models';
-import { type Navigation, type Route } from '$lib/types';
+import { type Handle } from '@sveltejs/kit';
+import { hashSync } from 'bcryptjs';
 import { Types } from 'mongoose';
+import { INIT_ADMIN_PASSWORD, INIT_ADMIN_USERNAME } from '$env/static/private';
 import { connect } from '$lib/server/mongoose';
+import { setSkipLogging } from '$lib/server/mongoose/middleware';
+import { Log, Role, Route, UpsQuote, User } from '$lib/server/mongoose/models';
+import { type Navigation, type Route as RouteType } from '$lib/types';
 
-const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
-	const routeMap = new Map<number | null, Navigation[]>();
+const buildNavigation = (flatRoutes: RouteType[]): Navigation[] => {
+	const routeMap = new Map<string | null, Navigation[]>();
 
-	// Group routes by parentId
+	// Group routes by _parentId
 	for (const route of flatRoutes) {
 		const node: Navigation = { ...route, children: [], isOpen: false };
-		const parentKey = route.parentId ?? null;
+		const parentKey = route._parentId ?? null;
 
 		if (!routeMap.has(parentKey)) {
 			routeMap.set(parentKey, []);
@@ -45,8 +48,76 @@ const buildNavigation = (flatRoutes: Route[]): Navigation[] => {
 	return rootRoutes;
 };
 
+const initDB = async () => {
+	try {
+		// exit if we already have a user
+		const isUserPresent = (await User.find().lean()).length > 0;
+		if (isUserPresent) return;
+
+		// disabled logging for init
+		setSkipLogging(true);
+
+		// delete all existing docs
+		await Promise.all([
+			Log.deleteMany(),
+			Role.deleteMany(),
+			Route.deleteMany(),
+			UpsQuote.deleteMany(),
+			User.deleteMany()
+		]);
+
+		// create admin user
+		const passwordHash = hashSync(INIT_ADMIN_PASSWORD);
+		const adminUser = await User.create({
+			isActive: true,
+			passwordHash,
+			username: INIT_ADMIN_USERNAME
+		});
+
+		// re-enable logging for everything else
+		setSkipLogging(false);
+
+		// create routes
+		const adminRoute = await Route.create({
+			_createdById: adminUser._id,
+			isDirectory: true,
+			label: 'Admin'
+		});
+		const allOtherRoutes = await Promise.all([
+			Route.create({ _createdById: adminUser._id, href: '/dashboard', label: 'Dashboard' }),
+			Route.create({
+				_createdById: adminUser._id,
+				_parentId: adminRoute._id,
+				href: '/admin/roles',
+				label: 'Roles'
+			}),
+			Route.create({
+				_createdById: adminUser._id,
+				_parentId: adminRoute._id,
+				href: '/admin/routes',
+				label: 'Routes'
+			})
+		]);
+
+		// create roles
+		const adminRole = await Role.create({
+			_createdById: adminUser._id,
+			label: 'Admin',
+			routes: [adminRoute._id, ...allOtherRoutes.map((route) => route._id)]
+		});
+		await User.findOneAndUpdate(
+			{ username: adminUser.username },
+			{ _createdById: adminUser._id, roles: [adminRole._id] }
+		);
+	} catch (error) {
+		console.log(error);
+	}
+};
+
 export const handle: Handle = async ({ event, resolve }) => {
 	await connect();
+	await initDB();
+
 	const userIdCookie = event.cookies.get('userId');
 
 	// handle root path
@@ -60,7 +131,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// handle (private) routes
 	if (event.route.id?.startsWith('/(private)')) {
 		if (userId === undefined) return redirect('/sign-in');
-		const userData = JSON.parse(
+		const userData: {
+			_id: string;
+			isActive: boolean;
+			passwordHash: string;
+			roles: { label: string }[];
+			username: string;
+		} = JSON.parse(
 			JSON.stringify(
 				await User.findById(userId)
 					.populate({
