@@ -121,6 +121,7 @@
 	bind:rows
 	bind:rowsCheckboxValues
 	bind:rowsSelected
+	bind:sort
 	createDialog={customCreateDialog !== undefined ? customCreateDialog : createDialog}
 	deleteDialog={customDeleteDialog !== undefined ? customDeleteDialog : deleteDialog}
 	filterDialog={customFilterDialog !== undefined ? customFilterDialog : filterDialog}

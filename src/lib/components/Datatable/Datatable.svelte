@@ -179,43 +179,26 @@
 			const inferredType = untrack(() => columnInferredTypes[columnIndex]);
 			const inferredSnippet = tdSnippetMap.get(inferredType);
 
-			let columnSanitized: ColumnSanitized;
+			const columnSanitized = typeof column === 'string' ? { key: column, label: column } : column;
 
-			if (typeof column === 'string') {
-				columnSanitized = {
-					compareFn: compareFn[inferredType],
-					isCreatable,
-					isEditable,
-					isFilterable,
-					key: column,
-					label: column,
-					options: [],
-					snippet: inferredSnippet !== undefined ? inferredSnippet : stringTd,
-					type: inferredType
-				};
-			} else {
-				if (column.key === '_createdById') {
-					console.log(column, column?.snippet === undefined);
-				}
-				columnSanitized = {
-					compareFn: column?.compareFn !== undefined ? column.compareFn : compareFn[inferredType],
-					isCreatable: column?.isCreatable !== undefined ? column.isCreatable : isCreatable,
-					isEditable: column?.isEditable !== undefined ? column.isEditable : isEditable,
-					isFilterable: column?.isFilterable !== undefined ? column.isFilterable : isFilterable,
-					key: column.key,
-					label: column?.label !== undefined ? column.label : column.key,
-					options: column?.options !== undefined ? column.options : [],
-					snippet:
-						column?.snippet !== undefined
-							? column.snippet
-							: inferredSnippet !== undefined
-								? inferredSnippet
-								: stringTd,
-					type: column?.type !== undefined ? column.type : inferredType
-				};
-			}
+			const type = columnSanitized.type ?? inferredType;
+			const snippet =
+				columnSanitized.snippet ??
+				(columnSanitized.type && tdSnippetMap.get(columnSanitized.type)) ??
+				inferredSnippet ??
+				stringTd;
 
-			return columnSanitized;
+			return {
+				compareFn: columnSanitized.compareFn ?? compareFn[inferredType],
+				isCreatable: columnSanitized.isCreatable ?? isCreatable,
+				isEditable: columnSanitized.isEditable ?? isEditable,
+				isFilterable: columnSanitized.isFilterable ?? isFilterable,
+				key: columnSanitized.key,
+				label: columnSanitized.label ?? columnSanitized.key,
+				options: columnSanitized.options ?? [],
+				snippet,
+				type
+			};
 		});
 	});
 	$effect(() => {
@@ -295,13 +278,14 @@
 	$effect(() => {
 		if (isSortable && JSON.stringify(sortSanitized))
 			untrack(() => {
-				const indexes = Array.from(rows.keys()).sort(
-					(a, b) =>
-						columnsSanitized[sortSanitized.index].compareFn(
-							rows[a][sortSanitized.key],
-							rows[b][sortSanitized.key]
-						) * (sortSanitized.direction === 'asc' ? 1 : -1)
-				);
+				const indexes = Array.from(rows.keys()).sort((a, b) => {
+					const sortColumn = columnsSanitized[sortSanitized.index];
+					if (sortColumn === undefined) return 0;
+					return (
+						sortColumn.compareFn(rows[a][sortSanitized.key], rows[b][sortSanitized.key]) *
+						(sortSanitized.direction === 'asc' ? 1 : -1)
+					);
+				});
 				rows = indexes.map((index) => rows[index]);
 				rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
 			});
