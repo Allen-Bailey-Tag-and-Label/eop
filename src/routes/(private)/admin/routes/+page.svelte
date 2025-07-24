@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Datatable, Div } from '$lib/components';
+	import { Datatable, Div, MongooseTable } from '$lib/components';
 	import { localState } from '$lib/localState';
 
 	let { data } = $props();
@@ -28,6 +28,11 @@
 	{#if rows.length === 0}
 		<Div>Loading...</Div>
 	{:else}
-		<Datatable bind:columns={settings.columns} bind:rows bind:sort={settings.sort} />
+		<MongooseTable
+			bind:columns={settings.columns}
+			bind:rows
+			bind:sort={settings.sort}
+			modelName={'Route'}
+		/>
 	{/if}
 </Div>

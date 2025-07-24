@@ -9,16 +9,10 @@ export type ColumnSanitized = {
 	isFilterable: boolean;
 	key: string;
 	label: string;
+	options: Option[];
 	snippet: Snippet<[TdSnippet]>;
-} & (
-	| {
-			type: Exclude<ColumnType, 'select'>;
-	  }
-	| {
-			options: Option[];
-			type: 'select';
-	  }
-);
+	type: ColumnType;
+};
 export type ColumnType =
 	| 'bigint'
 	| 'boolean'
@@ -46,14 +40,33 @@ export type PaginationSanitized = {
 };
 export type Props = {
 	columns: Column[];
+	columnsSanitized?: ColumnSanitized[];
+	create?: Record<string, any>;
+	createDialog?: Snippet;
+	deleteDialog?: Snippet;
 	filters?: Filter[];
+	filterDialog?: Snippet;
+	filterKeyOptions?: Option[];
+	filtersTemp?: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[];
+	filtersTempSanitized?: {
+		key: string;
+		operator: FilterOperator | '';
+		options: Option[];
+		snippet: Snippet<[TdSnippet]>;
+		value: any;
+	}[];
 	isCreatable?: boolean;
+	isCreateDialogOpen?: boolean;
 	isDeletable?: boolean;
+	isDeleteDialogOpen?: boolean;
 	isEditable?: boolean;
 	isFilterable?: boolean;
+	isFilterDialogOpen?: boolean;
 	isSortable?: boolean;
 	pagination?: Pagination;
 	rows: Row[];
+	rowsCheckboxValues?: boolean[];
+	rowsSelected?: boolean[];
 	sort?: Sort;
 	tbody?: Snippet;
 	thead?: Snippet;
@@ -62,7 +75,6 @@ export type Props = {
 export type Row = Record<string, any>;
 export type RowSanitized = {
 	index: number;
-	isSelected: boolean;
 	row: Row;
 };
 export type Sort = Partial<SortSanitized>;

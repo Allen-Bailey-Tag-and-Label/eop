@@ -43,31 +43,38 @@
 	import type { Filter, FilterOperator, Row, RowSanitized } from './types';
 
 	let {
-		columns = $bindable(),
+		columns = $bindable([]),
+		columnsSanitized = $bindable([]),
+		create = $bindable({}),
+		createDialog,
+		deleteDialog,
 		filters = $bindable([]),
+		filterDialog,
+		filterKeyOptions = $bindable([]),
+		filtersTemp = $bindable([]),
+		filtersTempSanitized = $bindable([]),
 		isCreatable = true,
+		isCreateDialogOpen = $bindable(false),
 		isDeletable = true,
+		isDeleteDialogOpen = $bindable(false),
 		isEditable = true,
 		isFilterable = true,
+		isFilterDialogOpen = $bindable(false),
 		isSortable = true,
 		pagination = $bindable(true),
 		rows = $bindable([]),
+		rowsCheckboxValues = $bindable([]),
+		rowsSelected = $bindable([]),
 		sort = $bindable({ direction: 'asc', index: -1, key: '' }),
 		tbody,
 		thead,
 		toolbar
 	}: Props = $props();
-	let create = $state({});
-	let filtersTemp: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[] = $state([]);
 	let isAllRowsSelected = $state(false);
-	let isCreatableDialogOpen = $state(false);
-	let isDeleteDialogOpen = $state(false);
-	let isFilterDialogOpen = $state(false);
 	let paginationSanitized: PaginationSanitized = $state({
 		currentPage: 0,
 		rowsPerPage: 10
 	});
-	let rowsCheckboxValues: boolean[] = $state([]);
 	let sortSanitized: SortSanitized = $state({
 		direction: 'asc',
 		index: -1,
@@ -105,65 +112,6 @@
 			return type;
 		});
 	});
-	const columnsSanitized: ColumnSanitized[] = $derived.by(() => {
-		return columns.map((column, columnIndex) => {
-			const type = untrack(() => columnInferredTypes[columnIndex]);
-
-			let columnSanitized: ColumnSanitized = {
-				compareFn: compareFn[type],
-				isCreatable,
-				isEditable,
-				isFilterable,
-				key: '',
-				label: '',
-				options: [{ label: '', value: '' }],
-				snippet: stringTd,
-				type
-			};
-
-			if (typeof column === 'string') {
-				columnSanitized.key = column;
-				columnSanitized.label = column;
-			}
-
-			if (typeof column === 'object') {
-				columnSanitized.compareFn = column?.compareFn || columnSanitized.compareFn;
-				columnSanitized.isCreatable =
-					column?.isCreatable !== undefined ? column.isCreatable : columnSanitized.isCreatable;
-				columnSanitized.isEditable =
-					column?.isEditable !== undefined ? column.isEditable : columnSanitized.isEditable;
-				columnSanitized.isFilterable =
-					column?.isFilterable !== undefined ? column.isFilterable : columnSanitized.isFilterable;
-				columnSanitized.key = column?.key || columnSanitized.key;
-				columnSanitized.label = column?.label || columnSanitized.label;
-				columnSanitized.snippet =
-					column?.snippet || tdSnippetMap.get(column?.type) || columnSanitized.snippet;
-				columnSanitized.type = column?.type || columnSanitized.type;
-				if (columnSanitized.type === 'select')
-					columnSanitized.options = column?.options || columnSanitized.options;
-			}
-
-			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
-
-			return columnSanitized;
-		});
-	});
-	const filterKeyOptions = $derived.by(() => [
-		{ label: '', key: '' },
-		...columnsSanitized
-			.filter(({ isFilterable }) => isFilterable)
-			.map(({ label, key }) => ({ label, value: key }))
-	]);
-	const filtersTempSanitized = $derived.by(() =>
-		filtersTemp.map((filterTemp) => {
-			const columnSanitized = columnsSanitized.find(
-				(columnSanitized) => columnSanitized.key === filterTemp.key
-			);
-			const options = columnSanitized?.options;
-			const snippet = columnSanitized?.snippet;
-			return { ...filterTemp, options, snippet };
-		})
-	);
 	const isSelectable: boolean = $derived.by(() => isDeletable);
 	const isToolbarVisible: boolean = $derived.by(() => isCreatable || isDeletable || isFilterable);
 	const paginationIndexes: { start: number; end: number } = $derived.by(() => {
@@ -224,11 +172,72 @@
 			return false;
 		})
 	);
-	const rowsSelected: boolean[] = $derived.by(() =>
-		rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue)
-	);
 
 	// $effects
+	$effect(() => {
+		columnsSanitized = columns.map((column, columnIndex) => {
+			const type = untrack(() => columnInferredTypes[columnIndex]);
+
+			let columnSanitized: ColumnSanitized = {
+				compareFn: compareFn[type],
+				isCreatable,
+				isEditable,
+				isFilterable,
+				key: '',
+				label: '',
+				options: [{ label: '', value: '' }],
+				snippet: stringTd,
+				type
+			};
+
+			if (typeof column === 'string') {
+				columnSanitized.key = column;
+				columnSanitized.label = column;
+			}
+
+			if (typeof column === 'object') {
+				columnSanitized.compareFn = column?.compareFn || columnSanitized.compareFn;
+				columnSanitized.isCreatable =
+					column?.isCreatable !== undefined ? column.isCreatable : columnSanitized.isCreatable;
+				columnSanitized.isEditable =
+					column?.isEditable !== undefined ? column.isEditable : columnSanitized.isEditable;
+				columnSanitized.isFilterable =
+					column?.isFilterable !== undefined ? column.isFilterable : columnSanitized.isFilterable;
+				columnSanitized.key = column?.key || columnSanitized.key;
+				columnSanitized.label = column?.label || columnSanitized.label;
+				columnSanitized.snippet =
+					column?.snippet || tdSnippetMap.get(column?.type) || columnSanitized.snippet;
+				columnSanitized.type = column?.type || columnSanitized.type;
+				if (columnSanitized.type === 'select')
+					columnSanitized.options = column?.options || columnSanitized.options;
+			}
+
+			if (columnSanitized.label === '') columnSanitized.label = columnSanitized.key;
+
+			return columnSanitized;
+		});
+	});
+	$effect(() => {
+		filterKeyOptions = [
+			{ label: '', value: '' },
+			...columnsSanitized
+				.filter(({ isFilterable }) => isFilterable)
+				.map(({ label, key }) => ({ label, value: key }))
+		];
+	});
+	$effect(() => {
+		filtersTempSanitized = filtersTemp
+			.map((filterTemp) => {
+				const columnSanitized = columnsSanitized.find(
+					(columnSanitized) => columnSanitized.key === filterTemp.key
+				);
+				if (columnSanitized === undefined) return null;
+				const options = columnSanitized.options;
+				const snippet = columnSanitized.snippet;
+				return { ...filterTemp, options, snippet };
+			})
+			.filter((value) => value !== null);
+	});
 	$effect(() => {
 		if (JSON.stringify(pagination)) {
 			untrack(() => {
@@ -254,6 +263,9 @@
 				...Array(rows.length - rowsCheckboxValues.length).fill(false)
 			];
 		}
+	});
+	$effect(() => {
+		rowsSelected = rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue);
 	});
 	$effect(() => {
 		if (JSON.stringify(sort)) {
@@ -336,7 +348,7 @@
 							if (type === 'timestamp') obj[key] = new Date();
 							return obj;
 						}, {});
-						isCreatableDialogOpen = true;
+						isCreateDialogOpen = true;
 					}}
 					variants={['icon']}
 				>
@@ -471,149 +483,161 @@
 	{/if}
 </Card>
 
-<Dialog bind:open={isCreatableDialogOpen}>
-	<Card class="space-y-6">
-		<Table>
-			<Tbody>
-				{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
-					{#if isCreatable}
-						<Tr>
-							<Td class="whitespace-nowrap">{label}</Td>
-							{@render snippet({ isEditable: true, key, object: create, options })}
-						</Tr>
-					{/if}
-				{/each}
-			</Tbody>
-		</Table>
-		<Div class="flex justify-end space-x-2">
-			<Button
-				onclick={() => {
-					rows.push({ ...create });
-					isCreatableDialogOpen = false;
-				}}
-			>
-				Add
-			</Button>
-			<Button onclick={() => (isCreatableDialogOpen = false)} variants={['ghost']}>Cancel</Button>
-		</Div>
-	</Card>
-</Dialog>
-
-<Dialog bind:open={isDeleteDialogOpen}>
-	<Card class="items-center space-y-6">
-		<Div class="text-red-500">
-			<TriangleAlert size={80} />
-		</Div>
-		<P>
-			Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
-				? ''
-				: 's'}?<br />
-			This cannot be undone.
-		</P>
-		<Div class="grid w-full grid-cols-2 gap-4">
-			<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}>Cancel</Button>
-			<Button
-				autoFocus={true}
-				onclick={() => {
-					rows = rows.filter((_, rowIndex) => !rowsCheckboxValues[rowIndex]);
-					rowsCheckboxValues = rowsCheckboxValues.filter((rowCheckboxValue) => !rowCheckboxValue);
-					isDeleteDialogOpen = false;
-				}}
-				variants={['error']}
-			>
-				Delete
-			</Button>
-		</Div>
-	</Card>
-</Dialog>
-
-<Dialog bind:open={isFilterDialogOpen}>
-	<Card class="space-y-6">
-		<Div class="flex items-center justify-end space-x-2">
-			<Button
-				onclick={() => {
-					filtersTemp.push({ key: '', operator: '', options: [], value: '' });
-				}}
-			>
-				<Div class="flex items-center space-x-2">
-					<Plus />
-					<Div>Add Filter</Div>
-				</Div>
-			</Button>
-			<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
-		</Div>
-		<Table>
-			<Thead>
-				<Tr>
-					<Th></Th>
-					<Th>Column</Th>
-					<Th>Operator</Th>
-					<Th>Value</Th>
-				</Tr>
-			</Thead>
-			<Tbody>
-				{#if filtersTemp.length === 0}
-					<Tr>
-						<Td colspan="4">No Filters</Td>
-					</Tr>
-				{:else}
-					{#each filtersTemp as _, filterTempIndex}
-						<Tr>
-							<Td class="px-2 py-0">
-								<Button
-									class="w-10"
-									onclick={() => {
-										filtersTemp = filtersTemp.filter((_, i) => filterTempIndex !== i);
-									}}
-									variants={['icon', 'error']}
-								>
-									<Trash />
-								</Button>
-							</Td>
-							<Td class="p-0">
-								<Select
-									bind:value={filtersTemp[filterTempIndex].key}
-									class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
-									options={filterKeyOptions}
-								/>
-							</Td>
-							<Td class="p-0">
-								<Select
-									bind:value={filtersTemp[filterTempIndex].operator}
-									class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
-									options={filterOperatorOptions}
-								/>
-							</Td>
-							{#if filtersTempSanitized[filterTempIndex].snippet === undefined}
-								<Td></Td>
-							{:else}
-								{@render filtersTempSanitized[filterTempIndex].snippet({
-									isEditable: true,
-									key: 'value',
-									object: filtersTemp[filterTempIndex],
-									options: filtersTempSanitized[filterTempIndex].options
-								})}
-							{/if}
-						</Tr>
+{#if createDialog}
+	{@render createDialog()}
+{:else}
+	<Dialog bind:open={isCreateDialogOpen}>
+		<Card class="space-y-6">
+			<Table>
+				<Tbody>
+					{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
+						{#if isCreatable}
+							<Tr>
+								<Td class="whitespace-nowrap">{label}</Td>
+								{@render snippet({ isEditable: true, key, object: create, options })}
+							</Tr>
+						{/if}
 					{/each}
-				{/if}
-			</Tbody>
-		</Table>
-		<Div class="flex justify-end space-x-2">
-			<Button
-				onclick={() => {
-					filters = $state
-						.snapshot(filtersTemp)
-						.filter(({ key, operator }) => key !== '' && operator !== '');
-					isFilterDialogOpen = false;
-				}}
-			>
-				Apply
-			</Button>
-			<Button onclick={() => (isFilterDialogOpen = false)} variants={['ghost']}>Cancel</Button>
-		</Div>
-	</Card>
-</Dialog>
+				</Tbody>
+			</Table>
+			<Div class="flex justify-end space-x-2">
+				<Button
+					onclick={() => {
+						rows.push({ ...create });
+						isCreateDialogOpen = false;
+					}}
+				>
+					Add
+				</Button>
+				<Button onclick={() => (isCreateDialogOpen = false)} variants={['ghost']}>Cancel</Button>
+			</Div>
+		</Card>
+	</Dialog>
+{/if}
+
+{#if deleteDialog}
+	{@render deleteDialog()}
+{:else}
+	<Dialog bind:open={isDeleteDialogOpen}>
+		<Card class="items-center space-y-6">
+			<Div class="text-red-500">
+				<TriangleAlert size={80} />
+			</Div>
+			<P>
+				Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
+					? ''
+					: 's'}?<br />
+				This cannot be undone.
+			</P>
+			<Div class="grid w-full grid-cols-2 gap-4">
+				<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}>Cancel</Button>
+				<Button
+					autoFocus={true}
+					onclick={() => {
+						rows = rows.filter((_, rowIndex) => !rowsCheckboxValues[rowIndex]);
+						rowsCheckboxValues = rowsCheckboxValues.filter((rowCheckboxValue) => !rowCheckboxValue);
+						isDeleteDialogOpen = false;
+					}}
+					variants={['error']}
+				>
+					Delete
+				</Button>
+			</Div>
+		</Card>
+	</Dialog>
+{/if}
+
+{#if filterDialog}
+	{@render filterDialog()}
+{:else}
+	<Dialog bind:open={isFilterDialogOpen}>
+		<Card class="space-y-6">
+			<Div class="flex items-center justify-end space-x-2">
+				<Button
+					onclick={() => {
+						filtersTemp.push({ key: '', operator: '', options: [], value: '' });
+					}}
+				>
+					<Div class="flex items-center space-x-2">
+						<Plus />
+						<Div>Add Filter</Div>
+					</Div>
+				</Button>
+				<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
+			</Div>
+			<Table>
+				<Thead>
+					<Tr>
+						<Th></Th>
+						<Th>Column</Th>
+						<Th>Operator</Th>
+						<Th>Value</Th>
+					</Tr>
+				</Thead>
+				<Tbody>
+					{#if filtersTemp.length === 0}
+						<Tr>
+							<Td colspan="4">No Filters</Td>
+						</Tr>
+					{:else}
+						{#each filtersTemp as _, filterTempIndex}
+							<Tr>
+								<Td class="px-2 py-0">
+									<Button
+										class="w-10"
+										onclick={() => {
+											filtersTemp = filtersTemp.filter((_, i) => filterTempIndex !== i);
+										}}
+										variants={['icon', 'error']}
+									>
+										<Trash />
+									</Button>
+								</Td>
+								<Td class="p-0">
+									<Select
+										bind:value={filtersTemp[filterTempIndex].key}
+										class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+										options={filterKeyOptions}
+									/>
+								</Td>
+								<Td class="p-0">
+									<Select
+										bind:value={filtersTemp[filterTempIndex].operator}
+										class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+										options={filterOperatorOptions}
+									/>
+								</Td>
+								{#if filtersTempSanitized?.[filterTempIndex]?.snippet === undefined}
+									<Td></Td>
+								{:else}
+									{@render filtersTempSanitized[filterTempIndex].snippet({
+										isEditable: true,
+										key: 'value',
+										object: filtersTemp[filterTempIndex],
+										options: filtersTempSanitized[filterTempIndex].options
+									})}
+								{/if}
+							</Tr>
+						{/each}
+					{/if}
+				</Tbody>
+			</Table>
+			<Div class="flex justify-end space-x-2">
+				<Button
+					onclick={() => {
+						filters = $state
+							.snapshot(filtersTemp)
+							.filter(({ key, operator }) => key !== '' && operator !== '');
+						isFilterDialogOpen = false;
+					}}
+				>
+					Apply
+				</Button>
+				<Button onclick={() => (isFilterDialogOpen = false)} variants={['ghost']}>Cancel</Button>
+			</Div>
+		</Card>
+	</Dialog>
+{/if}
 
 {#snippet bigintTd({ isEditable, key, object }: TdSnippet)}
 	<Td>Bigint</Td>
