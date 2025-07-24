@@ -33,7 +33,6 @@
 	import {
 		compareFn,
 		filterOperatorOptions,
-		type ColumnSanitized,
 		type ColumnType,
 		type PaginationSanitized,
 		type Props,

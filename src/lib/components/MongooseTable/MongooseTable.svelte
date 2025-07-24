@@ -1,22 +1,28 @@
 <script lang="ts">
 	import { Plus, Trash, TriangleAlert } from '@lucide/svelte';
-	import { type Props } from './types';
-	import { filterOperatorOptions } from '../Datatable/filterOperators';
+	import { twMerge } from 'tailwind-merge';
+	import { currency, inputDateTimeLocal } from '$lib/formats';
 
-	import Datatable from '../Datatable/Datatable.svelte';
-	import Dialog from '../Dialog/Dialog.svelte';
-	import Card from '../Card/Card.svelte';
-	import Div from '../Div/Div.svelte';
-	import P from '../P/P.svelte';
 	import Button from '../Button/Button.svelte';
+	import Card from '../Card/Card.svelte';
+	import Checkbox from '../Checkbox/Checkbox.svelte';
+	import { compareFn, type ColumnType, type TdSnippet } from '../Datatable';
+	import Datatable from '../Datatable/Datatable.svelte';
+	import { filterOperatorOptions } from '../Datatable/filterOperators';
+	import Dialog from '../Dialog/Dialog.svelte';
+	import Div from '../Div/Div.svelte';
+	import Input from '../Input/Input.svelte';
+	import Form from '../Form/Form.svelte';
+	import P from '../P/P.svelte';
+	import Select from '../Select/Select.svelte';
 	import Table from '../Table/Table.svelte';
 	import Tbody from '../Tbody/Tbody.svelte';
 	import Tr from '../Tr/Tr.svelte';
 	import Td from '../Td/Td.svelte';
 	import Thead from '../Thead/Thead.svelte';
 	import Th from '../Th/Th.svelte';
-	import Select from '../Select/Select.svelte';
-	import { compareFn, type TdSnippet } from '../Datatable';
+	import { type Props } from './types';
+	import type { Snippet } from 'svelte';
 
 	let {
 		columns = $bindable([]),
@@ -47,6 +53,19 @@
 		thead,
 		toolbar
 	}: Props = $props();
+	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
+		['bigint', bigintCreate],
+		['boolean', booleanCreate],
+		['currency', currencyCreate],
+		['function', functionCreate],
+		['number', numberCreate],
+		['object', objectCreate],
+		['select', selectCreate],
+		['string', stringCreate],
+		['symbol', symbolCreate],
+		['timestamp', timestampCreate],
+		['undefined', undefinedCreate]
+	]);
 
 	$effect(() => {
 		let _createdByIdExists = false;
@@ -138,36 +157,45 @@
 {#snippet createDialog()}
 	{#if columnsSanitized}
 		<Dialog bind:open={isCreateDialogOpen}>
-			<Card class="space-y-6">
-				<Table>
-					<Tbody>
-						{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
-							{#if isCreatable}
-								<Tr>
-									<Td class="whitespace-nowrap">{label}</Td>
-									{@render snippet({ isEditable: true, key, object: create, options })}
-								</Tr>
-							{/if}
-						{/each}
-					</Tbody>
-				</Table>
-				<Div class="flex justify-end space-x-2">
-					<Button
-						onclick={() => {
-							rows.push({ ...create });
-							isCreateDialogOpen = false;
-						}}
-					>
-						Add
-					</Button>
-					<Button onclick={() => (isCreateDialogOpen = false)} variants={['ghost']}>Cancel</Button>
-				</Div>
-			</Card>
+			<Form
+				action="/api/mongooseTable?/create"
+				submitFunction={() => {
+					return async ({ result, update }) => {
+						await update();
+						console.log(result);
+						isCreateDialogOpen = false;
+					};
+				}}
+			>
+				<Input
+					class="absolute top-0 left-0 h-0 w-0 opacity-0"
+					name="modelName"
+					type="hidden"
+					value={modelName}
+				/>
+				<Card class="space-y-6">
+					<Table>
+						<Tbody>
+							{#each columnsSanitized as { isCreatable, key, label, options, type }}
+								{@const snippet = createSnippetMap.get(type) ?? stringCreate}
+								{#if isCreatable && create?.[key] !== undefined}
+									<Tr>
+										<Td class="whitespace-nowrap">{label}</Td>
+										{@render snippet({ isEditable: true, key, object: create, options })}
+									</Tr>
+								{/if}
+							{/each}
+						</Tbody>
+					</Table>
+					<Div class="flex justify-end space-x-2">
+						<Button type="submit">Add</Button>
+						<Button onclick={() => (isCreateDialogOpen = false)} variants={['ghost']}>Cancel</Button
+						>
+					</Div>
+				</Card>
+			</Form>
 		</Dialog>
 	{/if}
-{/snippet}
-{#snippet createdByTd({ object }: TdSnippet)}
-	<Td>{object._createdById.username}</Td>
 {/snippet}
 {#snippet deleteDialog()}
 	<Dialog bind:open={isDeleteDialogOpen}>
@@ -286,4 +314,106 @@
 			</Div>
 		</Card>
 	</Dialog>
+{/snippet}
+
+{#snippet bigintCreate({}: TdSnippet)}
+	<Td />
+{/snippet}
+{#snippet booleanCreate({ key, object }: TdSnippet)}
+	<Td>
+		<Checkbox bind:checked={object[key]} name={key} />
+	</Td>
+{/snippet}
+{#snippet currencyCreate({ key, object }: TdSnippet)}
+	<Td class="hover:outline-primary-500/0 p-0">
+		<Input
+			bind:value={
+				() => {
+					return currency(object[key]);
+				},
+				(string) => {
+					const value = parseFloat(string.replace(/[^0-9.-]+/g, ''));
+					object[key] = value;
+				}
+			}
+			class={twMerge(
+				'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
+			)}
+			name={key}
+		/>
+	</Td>
+{/snippet}
+{#snippet functionCreate({}: TdSnippet)}
+	<Td />
+{/snippet}
+{#snippet numberCreate({ key, object }: TdSnippet)}
+	<Td class="hover:outline-primary-500/0 p-0">
+		<Input
+			bind:value={
+				() => {
+					return typeof object[key] === 'number' ? object[key].toString() : object[key];
+				},
+				(value) => {
+					value = typeof value === 'number' ? value : parseFloat(value.replace(/[^0-9.-]+/g, ''));
+					object[key] = value;
+				}
+			}
+			class={twMerge(
+				'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
+			)}
+			name={key}
+			type="number"
+		/>
+	</Td>
+{/snippet}
+{#snippet objectCreate({}: TdSnippet)}
+	<Td />
+{/snippet}
+{#snippet selectCreate({ key, object, options }: TdSnippet)}
+	<Td class="hover:outline-primary-500/0 p-0">
+		<Select
+			bind:value={object[key]}
+			class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+			name={key}
+			{options}
+		/>
+	</Td>
+{/snippet}
+{#snippet stringCreate({ key, object }: TdSnippet)}
+	<Td class="hover:outline-primary-500/0 p-0">
+		<Input
+			bind:value={object[key]}
+			class={twMerge(
+				'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
+			)}
+			name={key}
+		/>
+	</Td>
+{/snippet}
+{#snippet symbolCreate({}: TdSnippet)}
+	<Td />
+{/snippet}
+{#snippet timestampCreate({ key, object }: TdSnippet)}
+	<Td class="hover:outline-primary-500/0 p-0">
+		<Input
+			bind:value={
+				() => {
+					return inputDateTimeLocal(object[key]);
+				},
+				(value: string) => {
+					object[key] = new Date(value);
+				}
+			}
+			class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+			name={key}
+			type="datetime-local"
+		/>
+	</Td>
+{/snippet}
+{#snippet undefinedCreate({}: TdSnippet)}
+	<Td />
+{/snippet}
+
+{#snippet createdByTd({ object }: TdSnippet)}
+	<Td>{object._createdById.username}</Td>
 {/snippet}

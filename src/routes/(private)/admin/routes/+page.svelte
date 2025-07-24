@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { Div, MongooseTable } from '$lib/components';
+	import { type Column } from '$lib/components/MongooseTable/types.js';
 	import { localState } from '$lib/localState';
 
 	let { data } = $props();
-	let columns = $state([
+	let columns: Column[] = $state([
+		{ isCreatable: false, isEditable: false, key: '_id' },
 		{ key: 'href', type: 'string' },
 		{ key: 'isDirectory', type: 'boolean' },
-		'label'
+		'label',
+		{ key: '_parentId', type: 'string' }
 	]);
 	let rows = $state([]);
 	let settings = localState('admin/routes', {

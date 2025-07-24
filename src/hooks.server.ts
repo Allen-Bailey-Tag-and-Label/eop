@@ -162,7 +162,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const flatRoutes = roles.flatMap((role: any) => role.routes || []);
 
 		// Redirect if event.url.pathname is not in flatRoutes
-		if (!flatRoutes.some((flatRoute) => flatRoute.href === event.url.pathname))
+		if (
+			!flatRoutes.some((flatRoute) => flatRoute.href === event.url.pathname) &&
+			!event.url.pathname.startsWith('/api')
+		)
 			return redirect('/dashboard');
 
 		// Build navigation hierarchy using your custom function

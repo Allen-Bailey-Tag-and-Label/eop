@@ -7,6 +7,7 @@
 	import { theme as themeStore } from '$lib/theme';
 
 	import Div from '../Div/Div.svelte';
+	import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
 
 	type Props = {
 		attachments?: Attachment[];
@@ -18,6 +19,7 @@
 		form?: any;
 		inputs?: Snippet;
 		method?: 'GET' | 'POST';
+		submitFunction?: SubmitFunction;
 		style?: string;
 		variants?: string[];
 	};
@@ -31,6 +33,9 @@
 		form,
 		inputs,
 		method = 'POST',
+		submitFunction = ({ action, cancel, formData, formElement, submitter }) => {
+			return async ({ update }) => await update();
+		},
 		style,
 		variants = [],
 		...restProps
@@ -48,7 +53,7 @@
 	)}
 	{method}
 	{style}
-	use:enhance
+	use:enhance={submitFunction}
 >
 	{#if children}
 		{@render children()}
