@@ -13,16 +13,36 @@ export const attachLogging = <T>(schema: Schema<T>, modelName: string) => {
 		});
 	});
 
+	schema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
+		const _createdById = this.getOptions()._createdById;
+		if (_createdById) {
+			(this as any)._createdById = _createdById;
+		}
+		next();
+	});
+
 	schema.post(['findOneAndUpdate', 'updateOne', 'updateMany'], function () {
+		const _createdById = (this as any)._createdById;
 		logOperation({
+			_createdById,
 			data: { query: this.getQuery(), update: this.getUpdate() },
 			model: modelName,
 			operation: 'update'
 		});
 	});
 
+	schema.pre(['findOneAndDelete', 'deleteOne', 'deleteMany'], function (next) {
+		const _createdById = this.getOptions()._createdById;
+		if (_createdById) {
+			(this as any)._createdById = _createdById;
+		}
+		next();
+	});
+
 	schema.post(['findOneAndDelete', 'deleteOne', 'deleteMany'], function () {
+		const _createdById = (this as any)._createdById;
 		logOperation({
+			_createdById,
 			data: this.getQuery(),
 			model: modelName,
 			operation: 'delete'

@@ -160,9 +160,8 @@
 			<Form
 				action="/api/mongooseTable?/create"
 				submitFunction={() => {
-					return async ({ result, update }) => {
+					return async ({ update }) => {
 						await update();
-						console.log(result);
 						isCreateDialogOpen = false;
 					};
 				}}
@@ -199,31 +198,41 @@
 {/snippet}
 {#snippet deleteDialog()}
 	<Dialog bind:open={isDeleteDialogOpen}>
-		<Card class="items-center space-y-6">
-			<Div class="text-red-500">
-				<TriangleAlert size={80} />
-			</Div>
-			<P>
-				Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
-					? ''
-					: 's'}?<br />
-				This cannot be undone.
-			</P>
-			<Div class="grid w-full grid-cols-2 gap-4">
-				<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}>Cancel</Button>
-				<Button
-					autoFocus={true}
-					onclick={() => {
-						rows = rows.filter((_, rowIndex) => !rowsCheckboxValues[rowIndex]);
-						rowsCheckboxValues = rowsCheckboxValues.filter((rowCheckboxValue) => !rowCheckboxValue);
-						isDeleteDialogOpen = false;
-					}}
-					variants={['error']}
-				>
-					Delete
-				</Button>
-			</Div>
-		</Card>
+		<Form
+			action="/api/mongooseTable?/delete"
+			submitFunction={() => {
+				return async ({ update }) => {
+					await update();
+					rowsCheckboxValues = rowsCheckboxValues.map((_) => false);
+					isDeleteDialogOpen = false;
+				};
+			}}
+		>
+			<Input name="modelName" type="hidden" value={modelName} />
+			{#each rowsCheckboxValues as isChecked, rowIndex}
+				{#if isChecked}
+					<Input name="_id" type="hidden" value={rows[rowIndex]._id} />
+				{/if}
+			{/each}
+			<Card class="items-center space-y-6">
+				<Div class="text-red-500">
+					<TriangleAlert size={80} />
+				</Div>
+				<P>
+					Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
+						? ''
+						: 's'}?<br />
+					This cannot be undone.
+				</P>
+				<Div>{JSON.stringify(rowsSelected, null, 2)}</Div>
+				<Div class="grid w-full grid-cols-2 gap-4">
+					<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}
+						>Cancel</Button
+					>
+					<Button autoFocus={true} type="submit" variants={['error']}>Delete</Button>
+				</Div>
+			</Card>
+		</Form>
 	</Dialog>
 {/snippet}
 {#snippet filterDialog()}
