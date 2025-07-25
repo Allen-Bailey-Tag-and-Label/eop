@@ -1,6 +1,7 @@
 import { fail, type Actions } from '@sveltejs/kit';
+import { Types } from 'mongoose';
 import { clientInit } from '$lib/server/mongoDB';
-import { UpsQuote } from '$lib/server/mongoose/models';
+import { Log, UpsQuote } from '$lib/server/mongoose/models';
 import { connect } from '$lib/server/mongoose';
 
 const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
@@ -27,21 +28,22 @@ const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 				CountryCode: string;
 			};
 		}) => {
-			const { classification, date, packageInfo, quote, rates, shipper, shipTo } = doc;
+			const { classification, date: createdAt, packageInfo, quote, rates, shipper, shipTo } = doc;
 			const packageTotalCount = Math.ceil(+packageInfo.Packages);
 			const packageTotalWeight = Math.ceil(+packageInfo.Weight);
 			const packageWeight = Math.ceil(packageTotalWeight / packageTotalCount);
 
 			return {
 				classification,
-				date,
 				packageTotalCount,
 				packageTotalWeight,
 				packageWeight,
 				quote,
 				rates,
 				shipper,
-				shipTo
+				shipTo,
+				createdAt,
+				updatedAt: createdAt
 			};
 		}
 	]
@@ -49,7 +51,7 @@ const rowMap: Map<string, (doc: any) => Record<string, any>> = new Map([
 const tableMap = new Map([['ups-quotes', UpsQuote]]);
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ locals, request }) => {
 		await connect();
 
 		const { table } = <Record<string, string>>Object.fromEntries(await request.formData());
@@ -75,12 +77,22 @@ export const actions: Actions = {
 		const docs = await collection.find({}).toArray();
 		await tableSchema.deleteMany();
 
-		const rows = docs.map(rowMapFn);
+		const rows = docs
+			.map(rowMapFn)
+			.map((row) => ({ _createdById: new Types.ObjectId(locals.user._id), ...row }));
 		const BATCH_SIZE = 100;
 		console.log(`db.insert(${table}).values(rows) - start`);
 		for (let i = 0; i < rows.length; i += BATCH_SIZE) {
 			const batch = rows.slice(i, i + BATCH_SIZE);
-			await tableSchema.insertMany(batch);
+			const insertedDocs = await tableSchema.insertMany(batch);
+			await Log.insertMany(
+				insertedDocs.map((doc) => ({
+					_createdById: doc._createdById,
+					data: doc,
+					model: table,
+					operation: 'create'
+				}))
+			);
 		}
 		console.log(`db.insert(${table}).values(rows) - end`);
 

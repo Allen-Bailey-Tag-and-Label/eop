@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { twMerge } from 'tailwind-merge';
-	import { A, Datatable, Div, Td } from '$lib/components';
-	import { type Column, type TdSnippet } from '$lib/components/Datatable/types.js';
+	import { A, MongooseTable, Div, Td } from '$lib/components';
+	import { type Column, type TdSnippet } from '$lib/components/MongooseTable/types.js';
 	import { localState } from '$lib/localState';
 	import { theme } from '$lib/theme/index.js';
 	import { type Row, type RowPromise } from './types';
@@ -10,7 +10,6 @@
 	let columns: Column[] = $state([
 		{ isFilterable: false, key: ' ', snippet: optionsTd },
 		{ label: 'Quote #', key: 'quote', type: 'number' },
-		{ key: 'date', type: 'timestamp' },
 		'address',
 		'city',
 		'state',
@@ -33,18 +32,14 @@
 		const resolved = await rowsPromise;
 		rows = resolved.map(
 			({
-				classification,
-				quote,
-				date,
-				shipTo: { AddressLine: address, City: city, StateProvinceCode: state, PostalCode: zip }
+				shipTo: { AddressLine: address, City: city, StateProvinceCode: state, PostalCode: zip },
+				...row
 			}) => ({
-				quote,
-				date: new Date(date),
 				address,
 				city,
 				state,
 				zip,
-				classification
+				...row
 			})
 		);
 	};
@@ -58,7 +53,7 @@
 	{#if rows.length === 0}
 		<Div>Loading...</Div>
 	{:else}
-		<Datatable
+		<MongooseTable
 			bind:columns
 			bind:filters={settings.filters}
 			bind:rows
@@ -66,6 +61,7 @@
 			isCreatable={false}
 			isDeletable={false}
 			isEditable={false}
+			modelName="UpsQuote"
 		/>
 	{/if}
 </Div>

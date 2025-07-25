@@ -8,7 +8,7 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		rows: new Promise<RowPromise[]>(async (res) => {
-			const rows = await UpsQuote.find().lean();
+			const rows = await UpsQuote.find().populate('_createdById', 'username').lean();
 			return res(JSON.parse(JSON.stringify(rows)));
 		})
 	};

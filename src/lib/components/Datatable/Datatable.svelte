@@ -707,7 +707,7 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="whitespace-nowrap">{object[key] || ''}</Td>
+		<Td class="whitespace-nowrap">{object[key] ?? ''}</Td>
 	{/if}
 {/snippet}
 {#snippet stringTd({ isEditable, key, object }: TdSnippet)}
@@ -725,7 +725,7 @@
 			</Div>
 		</Td>
 	{:else}
-		<Td class="whitespace-nowrap">{object[key] || ''}</Td>
+		<Td class="whitespace-nowrap">{object[key] ?? ''}</Td>
 	{/if}
 {/snippet}
 {#snippet symbolTd({ isEditable, key, object }: TdSnippet)}

@@ -1,18 +1,22 @@
 export type Row = {
 	classification: string;
 	quote: number;
-	date: Date;
 	address: string;
 	city: string;
 	state: string;
 	zip: string;
+	_createdById: string;
+	createdAt: Date;
+	updatedAt: Date;
 };
 export type RowPromise = {
 	classification: string;
 	quote: number;
-	date: Date;
 	shipper: ShippingInfo;
 	shipTo: ShippingInfo;
+	_createdById: string;
+	createdAt: Date;
+	updatedAt: Date;
 };
 export type ShippingInfo = {
 	AddressLine: string;
