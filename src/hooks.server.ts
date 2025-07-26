@@ -126,10 +126,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (userIdCookie !== undefined) return redirect('/dashboard');
 	}
 
-	const userId = new Types.ObjectId(userIdCookie);
-
 	// handle (private) routes
 	if (event.route.id?.startsWith('/(private)')) {
+		if (userIdCookie === undefined || userIdCookie === '') return redirect('/sign-in');
+
+		const userId = new Types.ObjectId(userIdCookie);
+
 		if (userId === undefined) return redirect('/sign-in');
 		const userData: {
 			_id: string;

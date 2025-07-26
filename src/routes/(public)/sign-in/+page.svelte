@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Card, Div, Form, Input } from '$lib/components';
+	import { A, Button, Card, Div, Form, Input } from '$lib/components';
 	import { ABTL, PTI } from '$lib/logos';
 	import { Plus } from '@lucide/svelte';
 	import { type PageProps } from './$types';
@@ -31,6 +31,7 @@
 					required={true}
 					type="password"
 				/>
+				<A href="forgot-password">Forgot Password</A>
 			{/snippet}
 			<!-- {#if form?.error} -->
 			{#snippet error()}

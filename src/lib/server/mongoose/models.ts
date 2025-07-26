@@ -75,3 +75,15 @@ const UserSchema = new Schema(
 );
 attachLogging(UserSchema, 'User');
 export const User = model('User', UserSchema);
+
+// == UserPasswordReset ===
+const UserPasswordResetSchema = new Schema(
+	{
+		_createdById,
+		codeHash: { type: String, required: true },
+		username: { type: String, required: true }
+	},
+	schemaOptions
+);
+attachLogging(UserPasswordResetSchema, 'UserPasswordReset');
+export const UserPasswordReset = model('UserPasswordReset', UserPasswordResetSchema);

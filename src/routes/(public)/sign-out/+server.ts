@@ -5,5 +5,4 @@ export const GET: RequestHandler = ({ cookies }) => {
 		path: '/'
 	});
 	redirect(303, '/sign-in');
-	return new Response();
 };
