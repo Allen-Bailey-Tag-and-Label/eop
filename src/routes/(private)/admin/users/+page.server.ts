@@ -1,5 +1,5 @@
 import { connect } from '$lib/server/mongoose';
-import { User, UserPasswordReset } from '$lib/server/mongoose/models';
+import { Role, User, UserPasswordReset } from '$lib/server/mongoose/models';
 import type { Actions } from '@sveltejs/kit';
 import { hashSync } from 'bcryptjs';
 import { Types } from 'mongoose';
@@ -38,8 +38,12 @@ export const load = async () => {
 	await connect();
 
 	return {
+		roles: new Promise(async (res) => {
+			const roles = await Role.find().lean();
+			res(JSON.parse(JSON.stringify(roles)));
+		}),
 		rows: new Promise(async (res) => {
-			const rows = await User.find().populate('_createdById', 'username');
+			const rows = await User.find().populate('_createdById', 'username').populate('roles');
 			res(JSON.parse(JSON.stringify(rows)));
 		})
 	};
