@@ -41,6 +41,8 @@ export const defaultTheme: Theme = {
 		default: InputDefault
 	},
 	Label: { default: 'text-sm' },
+	MongooseTable: { default: '' },
+	MultiSelect: { default: 'w-[15rem] justify-between' },
 	Option: { default: '' },
 	P: { default: '' },
 	Select: { default: InputDefault },

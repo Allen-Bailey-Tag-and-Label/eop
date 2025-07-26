@@ -1,6 +1,6 @@
 {
 	"Create Component": {
-		"prefiex": "Create component",
+		"prefix": "Create component",
 		"body": [
 			"<script lang=\"ts\">",
 			"\timport { type Snippet } from 'svelte';",
