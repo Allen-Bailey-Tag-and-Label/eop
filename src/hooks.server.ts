@@ -163,12 +163,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Flatten routes from each role
 		const flatRoutes = roles.flatMap((role: any) => role.routes || []);
 
+		const isMatch = flatRoutes.some((route) => {
+			const routeHref = route.href;
+			const pathname = event.url.pathname;
+
+			// Exact match
+			if (pathname === routeHref) return true;
+
+			// Slug or subpath match (with safe prefix check)
+			return pathname.startsWith(routeHref + '/');
+		});
+
 		// Redirect if event.url.pathname is not in flatRoutes
-		if (
-			!flatRoutes.some((flatRoute) => flatRoute.href === event.url.pathname) &&
-			!event.url.pathname.startsWith('/api')
-		)
-			return redirect('/dashboard');
+		if (!isMatch && !event.url.pathname.startsWith('/api')) return redirect('/dashboard');
 
 		// Build navigation hierarchy using your custom function
 		const navigation = buildNavigation(flatRoutes);

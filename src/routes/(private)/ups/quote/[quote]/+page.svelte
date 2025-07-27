@@ -23,7 +23,7 @@
 		<Div class="flex flex-col items-start space-y-6">
 			<H1>Quote {quote.quote}</H1>
 			<Div class="grid grid-cols-[fit-content(0px)_fit-content(0px)] gap-x-2">
-				{@render detail('Date', dateTime(new Date(quote.date)))}
+				{@render detail('Date', dateTime(new Date(quote.createdAt)))}
 				{@render detail(
 					'Ship From',
 					`${quote.shipper.AddressLine}, ${quote.shipper.City}, ${quote.shipper.StateProvinceCode} ${quote.shipper.PostalCode}`
