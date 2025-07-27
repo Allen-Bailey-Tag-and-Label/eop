@@ -4,7 +4,7 @@ import { UpsQuote } from '$lib/server/mongoose/models';
 import { connect } from '$lib/server/mongoose';
 
 export const actions: Actions = {
-	nonValidated: async ({ fetch, request }) => {
+	nonValidated: async ({ fetch, locals, request }) => {
 		await connect();
 
 		let {
@@ -37,6 +37,7 @@ export const actions: Actions = {
 		);
 
 		const quote = await createQuote(
+			locals.user._id,
 			{ Description: 'Unknown' },
 			packageInfoTotalPackages,
 			packageInfoTotalWeight,
@@ -60,7 +61,7 @@ export const actions: Actions = {
 
 		throw redirect(303, `/ups/quote/${quote}`);
 	},
-	validated: async ({ fetch, request }) => {
+	validated: async ({ fetch, locals, request }) => {
 		await connect();
 
 		let {
@@ -106,6 +107,7 @@ export const actions: Actions = {
 		);
 
 		const quote = await createQuote(
+			locals.user._id,
 			AddressClassification,
 			packageInfoTotalPackages,
 			packageInfoTotalWeight,
@@ -132,6 +134,7 @@ export const actions: Actions = {
 };
 
 const createQuote = async (
+	_createdById: string,
 	AddressClassification: any,
 	packageInfoTotalPackages: string,
 	packageInfoTotalWeight: string,
@@ -157,6 +160,7 @@ const createQuote = async (
 	const quote = lastQuote.quote + 1;
 
 	const quoteData = {
+		_createdById,
 		classification: AddressClassification.Description,
 		date: new Date(),
 		packageTotalCount: +packageInfoTotalPackages,
