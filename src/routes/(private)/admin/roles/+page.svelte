@@ -8,7 +8,8 @@
 		Form,
 		Select,
 		Card,
-		Input
+		Input,
+		MultiSelect
 	} from '$lib/components';
 	import { type TdSnippet } from '$lib/components/MongooseTable/types';
 	import { localState } from '$lib/localState';
@@ -25,7 +26,7 @@
 		},
 		'label'
 	]);
-	let doc = $state({});
+	let doc = $state({ routes: [] });
 	let isRoutesDialogOpen = $state(false);
 	let routes = $state([]);
 	let rows = $state([]);
@@ -67,6 +68,7 @@
 <Dialog bind:open={isRoutesDialogOpen}>
 	<Form
 		action="/api/mongooseTable?/update"
+		class="max-w-full"
 		submitFunction={() => {
 			return async ({ update }) => {
 				await update();
@@ -81,13 +83,7 @@
 		{/each}
 		<Card class="space-y-6">
 			<Div class="space-y-4">
-				<Select
-					bind:value={doc.routes}
-					class="h-[10rem]"
-					label="Assigned Routes"
-					multiple
-					options={routeOptions}
-				/>
+				<MultiSelect bind:value={doc.routes} label="Routes" options={routeOptions} />
 			</Div>
 			<Div class="flex justify-end space-x-2">
 				<Button type="submit">Update</Button>
@@ -106,14 +102,13 @@
 {#snippet routesSnippet({ object }: TdSnippet)}
 	<Td class="py-0">
 		<Button
-			class="w-10"
 			onclick={() => {
 				doc = object;
 				isRoutesDialogOpen = true;
 			}}
-			variants={['icon']}
+			variants={['small']}
 		>
-			<Pencil />
+			Roles
 		</Button>
 	</Td>
 {/snippet}

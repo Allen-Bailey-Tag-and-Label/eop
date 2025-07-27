@@ -6,7 +6,7 @@ export const load = async () => {
 
 	return {
 		routes: new Promise(async (res) => {
-			const rows = await Route.find().lean();
+			const rows = await Route.find().sort({ href: 1 }).lean();
 			res(JSON.parse(JSON.stringify(rows)));
 		}),
 		rows: new Promise(async (res) => {

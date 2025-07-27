@@ -28,7 +28,7 @@ export const defaultTheme: Theme = {
 	Datatable: { default: '' },
 	Dialog: {
 		default:
-			'max-w-screen bg-transparent h-full max-h-screen w-full bg-transparent text-current transition duration-200 backdrop-blur-md backdrop:bg-transparent'
+			'max-w-screen bg-transparent h-full max-h-screen w-full bg-transparent text-current transition duration-200 backdrop-blur-md backdrop:bg-transparent px-4'
 	},
 	Div: { default: '' },
 	Form: { default: 'w-full max-w-sm space-y-12' },
@@ -42,7 +42,7 @@ export const defaultTheme: Theme = {
 	},
 	Label: { default: 'text-sm' },
 	MongooseTable: { default: '' },
-	MultiSelect: { default: 'w-[15rem] justify-between' },
+	MultiSelect: { default: 'w-[529px] justify-between space-x-2' },
 	Option: { default: '' },
 	P: { default: '' },
 	Select: { default: InputDefault },

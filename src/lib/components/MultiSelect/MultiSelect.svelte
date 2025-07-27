@@ -10,6 +10,7 @@
 	import Card from '../Card/Card.svelte';
 	import Checkbox from '../Checkbox/Checkbox.svelte';
 	import Input from '../Input/Input.svelte';
+	import Label from '../Label/Label.svelte';
 
 	type Props = {
 		attachments?: Attachment[];
@@ -17,6 +18,7 @@
 		class?: string;
 		dropDown?: Snippet;
 		isOpen?: boolean;
+		label?: string;
 		name?: string;
 		options?: { label: string; value: any }[];
 		style?: string;
@@ -29,6 +31,7 @@
 		class: className,
 		dropDown,
 		isOpen = $bindable(false),
+		label,
 		name,
 		options = $bindable([]),
 		style,
@@ -50,55 +53,70 @@
 	);
 </script>
 
-<Div class="relative">
-	<Button
-		{...restProps}
-		{@attach attachmentFactory(attachments)}
-		class={twMerge(
-			$themeStore.Input.default,
-			$themeStore.MultiSelect.default,
-			...variants.map((variant: string) => $themeStore.MultiSelect[variant]),
-			className
-		)}
-		onclick={() => (isOpen = !isOpen)}
-		{style}
-	>
-		{#if children}
-			{@render children()}
-		{:else}
-			<Div>
-				{buttonLabel}
-			</Div>
-			<Div class={twMerge('transition duration-200', isOpen ? 'rotate-180' : undefined)}>
-				<ChevronDown />
-			</Div>
+{#if label}
+	<Div class="flex w-full flex-col">
+		<Label>{label}</Label>
+		{@render multiSelect()}
+	</Div>
+{:else}
+	{@render multiSelect()}
+{/if}
+{#snippet multiSelect()}
+	<Div class="relative">
+		<Button
+			{...restProps}
+			{@attach attachmentFactory(attachments)}
+			class={twMerge(
+				$themeStore.Input.default,
+				$themeStore.MultiSelect.default,
+				...variants.map((variant: string) => $themeStore.MultiSelect[variant]),
+				className
+			)}
+			onclick={() => (isOpen = !isOpen)}
+			{style}
+		>
+			{#if children}
+				{@render children()}
+			{:else}
+				<Div
+					class="flex flex-grow justify-start overflow-hidden"
+					style="mask-image: linear-gradient(to right, #000 80%, transparent 100%);"
+				>
+					{buttonLabel}
+				</Div>
+				<Div class={twMerge('transition duration-200', isOpen ? 'rotate-180' : undefined)}>
+					<ChevronDown />
+				</Div>
+			{/if}
+		</Button>
+		{#each value as v}
+			<Input {name} type="hidden" value={v} />
+		{/each}
+		{#if isOpen}
+			{#if dropDown}
+				{@render dropDown()}
+			{:else}
+				<Card
+					class="absolute -bottom-4 left-0 flex max-h-[18rem] min-w-full translate-y-full flex-col overflow-x-hidden overflow-y-auto"
+				>
+					{#each options as option}
+						<Button
+							class="flex justify-start p-0"
+							onclick={() => toggle(option.value)}
+							variants={['ghost']}
+						>
+							<Div class="flex w-full justify-start space-x-2 p-3">
+								<Checkbox
+									class="pointer-events-none"
+									checked={value.includes(option.value)}
+									disabled={true}
+								/>
+								<Div>{option.label}</Div>
+							</Div>
+						</Button>
+					{/each}
+				</Card>
+			{/if}
 		{/if}
-	</Button>
-	{#each value as v}
-		<Input {name} type="hidden" value={v} />
-	{/each}
-	{#if isOpen}
-		{#if dropDown}
-			{@render dropDown()}
-		{:else}
-			<Card
-				class="absolute -bottom-4 left-0 flex max-h-[18rem] w-full translate-y-full flex-col overflow-auto"
-			>
-				{#each options as option, optionIndex}
-					<Button
-						class="flex justify-start space-x-2 px-3"
-						onclick={() => toggle(option.value)}
-						variants={['ghost']}
-					>
-						<Checkbox
-							class="pointer-events-none"
-							checked={value.includes(option.value)}
-							disabled={true}
-						/>
-						<Div>{option.label}</Div>
-					</Button>
-				{/each}
-			</Card>
-		{/if}
-	{/if}
-</Div>
+	</Div>
+{/snippet}
