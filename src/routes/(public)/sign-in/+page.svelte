@@ -33,11 +33,9 @@
 				/>
 				<A href="forgot-password">Forgot Password</A>
 			{/snippet}
-			<!-- {#if form?.error} -->
 			{#snippet error()}
 				{form?.error}
 			{/snippet}
-			<!-- {/if} -->
 			{#snippet buttons()}
 				<Button type="submit">Sign In</Button>
 			{/snippet}

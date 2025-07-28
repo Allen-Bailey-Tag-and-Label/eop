@@ -69,7 +69,7 @@
 		</Div>
 	{/if}
 	{#if buttons}
-		<Div class="flex flex-col gap-4 md:flex-row [&>*]:flex-grow">
+		<Div class="flex flex-col space-y-4 md:flex-row md:justify-end md:space-y-0 md:space-x-2">
 			{@render buttons()}
 		</Div>
 	{/if}
