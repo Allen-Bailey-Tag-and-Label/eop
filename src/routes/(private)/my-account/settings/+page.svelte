@@ -3,7 +3,7 @@
 	import { percent } from '$lib/formats';
 	import { untrack } from 'svelte';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	const formatValue = (v: string | number) =>
 		percent((typeof v === 'number' ? v : +v) / 16, {
 			maximumFractionDigits: 0,
@@ -21,16 +21,21 @@
 
 <Div class="flex flex-col p-4">
 	<Form>
-		<RangeInput
-			bind:value
-			{formatValue}
-			label="Magnification"
-			max="22"
-			min="10"
-			name="magnification"
-		/>
-		<Div class="flex justify-end">
-			<Button type="submit">Update</Button>
-		</Div>
+		{#snippet inputs()}
+			<RangeInput
+				bind:value
+				{formatValue}
+				label="Magnification"
+				max="22"
+				min="10"
+				name="magnification"
+			/>
+		{/snippet}
+		{#snippet error()}
+			{form?.error}
+		{/snippet}
+		{#snippet buttons()}
+			<Button type="submit">Update Settings</Button>
+		{/snippet}
 	</Form>
 </Div>
