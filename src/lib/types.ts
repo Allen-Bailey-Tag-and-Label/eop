@@ -10,5 +10,16 @@ export type Route = {
 export type User = {
 	_id: string;
 	isActive: boolean;
+	profile: {
+		_id: string;
+		email: string;
+		firstName: string;
+		lastName: string;
+		phone: number;
+	};
+	settings: {
+		_id: string;
+		magnification: number;
+	};
 	username: string;
 };

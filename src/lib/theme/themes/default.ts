@@ -24,7 +24,10 @@ export const defaultTheme: Theme = {
 		default:
 			'flex flex-col rounded-xl bg-gray-50 p-6 backdrop-blur-md transition duration-200 dark:bg-gray-900 outline-1 outline-gray-200 shadow-2xs dark:outline-gray-700'
 	},
-	Checkbox: { default: '' },
+	Checkbox: {
+		default:
+			'peer-checked:bg-primary-500 peer-focus:outline-primary-500 flex h-6 w-6 items-center justify-center px-0 py-0 peer-focus:outline-2 rounded transition duration-200'
+	},
 	Datatable: { default: '' },
 	Dialog: {
 		default:
@@ -45,6 +48,10 @@ export const defaultTheme: Theme = {
 	MultiSelect: { default: 'w-[529px] justify-between space-x-2' },
 	Option: { default: '' },
 	P: { default: '' },
+	RangeInput: {
+		default:
+			'[&::-webkit-slider-thumb]:bg-primary-500 h-2 w-full appearance-none rounded-full bg-gray-200 p-0 outline-none dark:bg-gray-700 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
+	},
 	Select: { default: InputDefault },
 	Table: { default: '' },
 	Tbody: { default: '' },

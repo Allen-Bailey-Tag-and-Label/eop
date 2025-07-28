@@ -133,8 +133,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const userId = new Types.ObjectId(userIdCookie);
 
 		if (userId === undefined) return redirect('/sign-in');
-		const userData: {
+		const {
+			_profileId,
+			_settingsId,
+			...rawData
+		}: {
 			_id: string;
+			_profileId: {
+				email: string;
+				firstName: string;
+				lastName: string;
+				phone: number;
+			};
+			_settingsId: {
+				magnification: number;
+			};
 			isActive: boolean;
 			passwordHash: string;
 			roles: { label: string }[];
@@ -142,20 +155,35 @@ export const handle: Handle = async ({ event, resolve }) => {
 		} = JSON.parse(
 			JSON.stringify(
 				await User.findById(userId)
+					.select('-_createdById -createdAt -updatedAt')
 					.populate({
 						path: 'roles',
 						populate: {
 							path: 'routes'
 						}
 					})
+					.populate({
+						path: '_profileId',
+						select: '-_createdById -createdAt -updatedAt'
+					})
+					.populate({
+						path: '_settingsId',
+						select: '-_createdById -createdAt -updatedAt'
+					})
 					.lean()
 			)
 		);
 
-		if (!userData) {
+		if (!rawData) {
 			// Redirect logic, or respond with error if user not found
 			return new Response(null, { status: 302, headers: { Location: '/sign-in' } });
 		}
+
+		const userData = {
+			...rawData,
+			profile: _profileId,
+			settings: _settingsId
+		};
 
 		// Exclude sensitive data and separate user info from roles
 		const { passwordHash, roles, ...user } = userData;

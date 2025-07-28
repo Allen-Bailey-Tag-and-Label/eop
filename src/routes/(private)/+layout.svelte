@@ -5,15 +5,45 @@
 	import { A, Button, Card, Div, Header } from '$lib/components';
 	import { theme as themeStore } from '$lib/theme';
 	import { type Navigation, type User } from '$lib/types.js';
+	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
 
 	let { children, data } = $props();
 	let isNavigationOpen = $state(false);
 	let navigation: Navigation[] = $state([]);
-	let user: User = $state({ id: -1, isActive: true, username: '' });
+	const magnificationMap = new Map([
+		[10, 'text-[10px]'],
+		[11, 'text-[11px]'],
+		[12, 'text-[12px]'],
+		[13, 'text-[13px]'],
+		[14, 'text-[14px]'],
+		[15, 'text-[15px]'],
+		[16, 'text-[16px]'],
+		[17, 'text-[17px]'],
+		[18, 'text-[18px]'],
+		[19, 'text-[19px]'],
+		[20, 'text-[20px]'],
+		[21, 'text-[21px]'],
+		[22, 'text-[22px]']
+	]);
+	let user: User = $state({
+		_id: '',
+		isActive: true,
+		profile: { email: '', firstName: '', lastName: '', phone: 0 },
+		settings: { magnification: 16 },
+		username: ''
+	});
 
 	$effect(() => {
 		navigation = data.locals.navigation;
 		user = data.locals.user;
+
+		untrack(() => {
+			if (browser) {
+				const magnification = magnificationMap.get(user.settings.magnification);
+				if (magnification) document.documentElement.className = magnification;
+			}
+		});
 	});
 </script>
 
@@ -21,9 +51,9 @@
 	<Header class="sticky top-0 z-10">
 		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
 			{#if !isNavigationOpen}
-				<Menu></Menu>
+				<Menu size={(user.settings.magnification * 24) / 16}></Menu>
 			{:else}
-				<X></X>
+				<X size={(user.settings.magnification * 24) / 16}></X>
 			{/if}
 		</Button>
 	</Header>
