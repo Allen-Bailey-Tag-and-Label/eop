@@ -16,6 +16,11 @@
 	import { localState } from '$lib/localState';
 
 	let { data } = $props();
+	let columns: Column[] = $state([
+		{ class: 'w-[0px]', key: '_options', label: ' ', snippet: optionsSnippet },
+		{ class: 'w-[0px]', key: 'isActive', type: 'boolean' },
+		'username'
+	]);
 	let resetPasswordDialog: {
 		code: string;
 		isOpen: boolean;
@@ -34,11 +39,6 @@
 		value: []
 	});
 	let rows: any[] = $state([]);
-	let columns: Column[] = $state([
-		{ key: '_options', label: ' ', snippet: optionsSnippet },
-		{ key: 'isActive', type: 'boolean' },
-		'username'
-	]);
 	let settings = localState('user/management', {
 		sort: { direction: 'asc', key: 'href' }
 	});

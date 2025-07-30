@@ -3,6 +3,7 @@ import { filterOperators } from './filterOperators';
 
 export type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
 export type ColumnSanitized = {
+	class?: string;
 	compareFn: (a: any, b: any) => any;
 	isCreatable: boolean;
 	isEditable: boolean;
@@ -83,4 +84,10 @@ export type SortSanitized = {
 	index: number;
 	key: string;
 };
-export type TdSnippet = { isEditable: boolean; key: string; object: any; options: Option[] };
+export type TdSnippet = {
+	class?: string;
+	isEditable: boolean;
+	key: string;
+	object: any;
+	options: Option[];
+};

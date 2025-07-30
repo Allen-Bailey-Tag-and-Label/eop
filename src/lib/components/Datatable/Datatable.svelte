@@ -188,6 +188,7 @@
 				stringTd;
 
 			return {
+				class: columnSanitized.class,
 				compareFn: columnSanitized.compareFn ?? compareFn[inferredType],
 				isCreatable: columnSanitized.isCreatable ?? isCreatable,
 				isEditable: columnSanitized.isEditable ?? isEditable,
@@ -319,7 +320,7 @@
 			{#if isCreatable}
 				<Button
 					onclick={() => {
-						create = columnsSanitized.reduce((obj, { key, type }) => {
+						create = columnsSanitized.reduce((obj: Record<string, any>, { key, type }) => {
 							if (type === 'bigint') obj[key] = BigInt(0);
 							if (type === 'boolean') obj[key] = false;
 							if (type === 'currency') obj[key] = 0;
@@ -364,8 +365,8 @@
 								/>
 							</Th>
 						{/if}
-						{#each columnsSanitized as { key, label }, index}
-							<Th class="px-0 py-0">
+						{#each columnsSanitized as { class: className, key, label }, index}
+							<Th class={twMerge('px-0 py-0', className)}>
 								<Button
 									class="flex w-full items-center justify-between text-gray-500"
 									onclick={() => {
