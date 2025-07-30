@@ -4,8 +4,10 @@ import { hooks } from '../hooks';
 export const UserProfile = defineModel(
 	'UserProfile',
 	{
-		email: { type: String, unique: true, sparse: true, default: '' },
+		ennisId: { type: Number, default: 0 },
+		email: { type: String, default: '' },
 		firstName: { type: String, default: '' },
+		hireDate: { type: Date },
 		lastName: { type: String, default: '' },
 		phone: { type: Number, default: 0 }
 	},

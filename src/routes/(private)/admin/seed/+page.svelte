@@ -1,19 +1,27 @@
 <script lang="ts">
 	import { Button, Div, Form, Select } from '$lib/components';
+	import { untrack } from 'svelte';
 
-	let { form } = $props();
-	let tableOptions = [
-		{ label: '', value: '' },
-		{ label: 'ups-quotes', value: 'ups-quotes' }
-	];
+	let { data, form } = $props();
+	let tableOptions: { label: string; value: string }[] = $state([]);
+
+	$effect(() => {
+		if (data.tableOptions) untrack(() => (tableOptions = data.tableOptions));
+	});
 </script>
 
 <Div class="flex flex-col p-4">
 	<Form>
-		<Select label="Table" name="table" options={tableOptions} required={true} />
-		<Button type="submit">Get JSON</Button>
+		{#snippet inputs()}
+			<Select label="Table" name="table" options={tableOptions} required={true} />
+		{/snippet}
+		{#snippet error()}
+			{#if form}
+				<textarea>{JSON.stringify(form, null, 2)}</textarea>
+			{/if}
+		{/snippet}
+		{#snippet buttons()}
+			<Button type="submit">Update Table</Button>
+		{/snippet}
 	</Form>
-	{#if form}
-		<textarea>{JSON.stringify(form, null, 2)}</textarea>
-	{/if}
 </Div>
