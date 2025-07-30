@@ -140,17 +140,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}: {
 			_id: string;
 			_profileId: {
+				_id: string;
 				email: string;
 				firstName: string;
 				lastName: string;
 				phone: number;
 			};
 			_settingsId: {
+				_id: string;
 				magnification: number;
 			};
 			isActive: boolean;
 			passwordHash: string;
-			roles: { label: string }[];
+			roles: { label: string; routes: RouteType[] }[];
 			username: string;
 		} = JSON.parse(
 			JSON.stringify(
@@ -188,8 +190,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Exclude sensitive data and separate user info from roles
 		const { passwordHash, roles, ...user } = userData;
 
-		// Flatten routes from each role
-		const flatRoutes = roles.flatMap((role: any) => role.routes || []);
+		// Flatten and deduplicate routes by _id
+		const routeMap = new Map<string, RouteType>();
+		for (const role of roles) {
+			for (const route of role.routes || []) {
+				if (route && route._id) {
+					routeMap.set(route._id.toString(), route);
+				}
+			}
+		}
+		const flatRoutes = Array.from(routeMap.values());
 
 		const isMatch = flatRoutes.some((route) => {
 			const routeHref = route.href;
