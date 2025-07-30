@@ -1,3 +1,4 @@
+export { Branch } from './Branch';
 export { Log } from './Log';
 export { Role } from './Role';
 export { Route } from './Route';

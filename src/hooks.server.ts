@@ -107,7 +107,7 @@ const initDB = async () => {
 		});
 		await User.findOneAndUpdate(
 			{ username: adminUser.username },
-			{ _createdById: adminUser._id, roles: [adminRole._id] }
+			{ _createdById: adminUser._id, _roleIds: [adminRole._id] }
 		);
 	} catch (error) {
 		console.log(error);
@@ -135,6 +135,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (userId === undefined) return redirect('/sign-in');
 		const {
 			_profileId,
+			_roleIds,
 			_settingsId,
 			...rawData
 		}: {
@@ -146,20 +147,20 @@ export const handle: Handle = async ({ event, resolve }) => {
 				lastName: string;
 				phone: number;
 			};
+			_roleIds: { label: string; routes: RouteType[] }[];
 			_settingsId: {
 				_id: string;
 				magnification: number;
 			};
 			isActive: boolean;
 			passwordHash: string;
-			roles: { label: string; routes: RouteType[] }[];
 			username: string;
 		} = JSON.parse(
 			JSON.stringify(
 				await User.findById(userId)
 					.select('-_createdById -createdAt -updatedAt')
 					.populate({
-						path: 'roles',
+						path: '_roleIds',
 						populate: {
 							path: 'routes'
 						}
@@ -183,6 +184,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		const userData = {
 			...rawData,
+			roles: _roleIds,
 			profile: _profileId,
 			settings: _settingsId
 		};

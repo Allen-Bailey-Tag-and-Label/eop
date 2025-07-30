@@ -20,7 +20,7 @@
 		style?: string;
 		variants?: string[];
 		value?: number | string;
-	};
+	} & any;
 	let {
 		attachments = $bindable([]),
 		children,

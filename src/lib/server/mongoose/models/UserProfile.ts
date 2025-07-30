@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { defineModel } from '../defineModel';
 import { hooks } from '../hooks';
 

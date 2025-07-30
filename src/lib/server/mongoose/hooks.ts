@@ -12,6 +12,26 @@ const enableVirtuals = (schema: Schema) => {
 const schemasWithVirtuals = new WeakSet<Schema>();
 
 export class Hooks {
+	branch = {
+		_branchIds(schema: Schema) {
+			schema.virtual('_branchIds', {
+				ref: 'User',
+				localField: '_id',
+				foreignField: '_branchIds',
+				justOne: false
+			});
+			enableVirtuals(schema);
+		},
+		_defaultBranchId(schema: Schema) {
+			schema.virtual('_defaultBranchId', {
+				ref: 'User',
+				localField: '_id',
+				foreignField: '_defaultBranchId',
+				justOne: false
+			});
+			enableVirtuals(schema);
+		}
+	};
 	log = {
 		all(schema: Schema, modelName: string) {
 			schema.post('save', function (doc) {

@@ -1,7 +1,15 @@
 import { fail, type Actions } from '@sveltejs/kit';
 import { Types } from 'mongoose';
 import { clientInit } from '$lib/server/mongoDB';
-import { Log, Role, UpsQuote, User, UserProfile, UserSettings } from '$lib/server/mongoose/models';
+import {
+	Branch,
+	Log,
+	Role,
+	UpsQuote,
+	User,
+	UserProfile,
+	UserSettings
+} from '$lib/server/mongoose/models';
 import { connect } from '$lib/server/mongoose';
 import type { MongoClient } from 'mongodb';
 
@@ -83,6 +91,7 @@ const tableMap: Map<string, Update> = new Map([
 				UserProfile.deleteMany({ email: { $ne: 'bob_mcaleavey@ennis.com' } }),
 				UserSettings.deleteMany({ magnification: { $ne: 14 } })
 			]);
+			const abtlBranch = await Branch.findOne({ number: 2046 });
 			const userRole = await Role.findOne({ label: 'User' });
 			const docs = await collection.find({ username: { $ne: 'bmcaleavey' } }).toArray();
 			const formattedDocs = docs.map((doc) => {
@@ -102,12 +111,14 @@ const tableMap: Map<string, Update> = new Map([
 
 				return {
 					user: {
+						_branchIds: [abtlBranch?._id ?? ''],
 						_createdById,
+						_defaultBranchId: abtlBranch?._id ?? '',
 						_profileId: '',
+						_roleIds: [userRole?._id ?? ''],
 						_settingsId: '',
 						isActive: isActive ?? false,
 						passwordHash,
-						roles: [userRole?._id ?? ''],
 						username
 					},
 					userProfile: {
