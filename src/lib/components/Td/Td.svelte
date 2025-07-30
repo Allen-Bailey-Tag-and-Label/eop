@@ -9,6 +9,7 @@
 		attachments?: Attachment[];
 		children?: Snippet;
 		class?: string;
+		colspan?: string;
 		style?: string;
 		variants?: string[];
 	};
@@ -16,6 +17,7 @@
 		attachments = $bindable([]),
 		children,
 		class: className,
+		colspan,
 		style,
 		variants = [],
 		...restProps
@@ -30,6 +32,7 @@
 		...variants.map((variant: string) => $themeStore.Td[variant]),
 		className
 	)}
+	colspan
 	{style}
 >
 	{#if children}
