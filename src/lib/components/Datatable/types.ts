@@ -13,7 +13,7 @@ export type ColumnSanitized = {
 	options: Option[];
 	snippet: Snippet<[TdSnippet]>;
 	type: ColumnType;
-};
+} & any;
 export type ColumnType =
 	| 'bigint'
 	| 'boolean'
@@ -90,4 +90,4 @@ export type TdSnippet = {
 	key: string;
 	object: any;
 	options: Option[];
-};
+} & any;
