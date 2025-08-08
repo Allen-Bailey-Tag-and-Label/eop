@@ -721,7 +721,15 @@
 	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Select
-				bind:value={object[key]}
+				bind:value={
+					() => {
+						if (object?.[key] === undefined) return '';
+						return object[key];
+					},
+					(value) => {
+						object[key] = value;
+					}
+				}
 				class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
 				{options}
 			/>
