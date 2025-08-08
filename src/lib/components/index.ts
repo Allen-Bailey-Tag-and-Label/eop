@@ -17,6 +17,7 @@ export { default as Option } from './Option/Option.svelte';
 export { default as P } from './P/P.svelte';
 export { default as RangeInput } from './RangeInput/RangeInput.svelte';
 export { default as Select } from './Select/Select.svelte';
+export { default as Spinner } from './Spinner/Spinner.svelte';
 export { default as Table } from './Table/Table.svelte';
 export { default as Tbody } from './Tbody/Tbody.svelte';
 export { default as Td } from './Td/Td.svelte';

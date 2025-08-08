@@ -1,13 +1,21 @@
-import { connect } from '$lib/server/mongoose';
 import { Route } from '$lib/server/mongoose/models';
+import { serverLoad } from '$lib/server/mongoose/serverLoad';
 
-export const load = async () => {
-	await connect();
-
-	return {
-		rows: new Promise(async (res) => {
-			const rows = await Route.find().populate('_createdById', 'username').lean();
-			res(JSON.parse(JSON.stringify(rows)));
-		})
-	};
-};
+export const load = serverLoad({
+	labelFunctionMap: new Map([
+		[
+			'Route',
+			(doc) => {
+				if (doc.isDirectory) return doc.label;
+				return `${doc.href}`;
+			}
+		],
+		[
+			'User',
+			(doc) => {
+				return doc.username;
+			}
+		]
+	]),
+	model: Route
+});

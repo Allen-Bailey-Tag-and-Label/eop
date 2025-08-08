@@ -56,6 +56,31 @@ export const actions: Actions = {
 
 		return {};
 	},
+	find: async ({ locals, request }) => {
+		const { _routeId, currentPage, filter, rowsPerPage, sortDirection, sortKey } = <
+			Record<string, string>
+		>Object.fromEntries(await request.formData());
+		const update = {
+			_routeId,
+			_userId: locals.user._id,
+			currentPage: +currentPage,
+			filter: JSON.parse(filter),
+			rowsPerPage: +rowsPerPage,
+			sortDirection,
+			sortKey
+		};
+		await models.RouteSettings.findOneAndUpdate(
+			{ _routeId: update._routeId, _userId: update._userId },
+			update,
+			{
+				_createdById: new Types.ObjectId(locals.user._id),
+				context: 'query',
+				setDefaultsOnInsert: true,
+				upsert: true
+			}
+		);
+		return {};
+	},
 	update: async ({ locals, request }) => {
 		const formData = await request.formData();
 

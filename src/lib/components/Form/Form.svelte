@@ -7,7 +7,8 @@
 	import { theme as themeStore } from '$lib/theme';
 
 	import Div from '../Div/Div.svelte';
-	import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
+
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	type Props = {
 		attachments?: Attachment[];
@@ -22,7 +23,7 @@
 		submitFunction?: SubmitFunction;
 		style?: string;
 		variants?: string[];
-	};
+	} & HTMLFormElement;
 	let {
 		action,
 		attachments = $bindable([]),
@@ -33,7 +34,7 @@
 		form,
 		inputs,
 		method = 'POST',
-		submitFunction = ({ action, cancel, formData, formElement, submitter }) => {
+		submitFunction = () => {
 			return async ({ update }) => await update();
 		},
 		style,

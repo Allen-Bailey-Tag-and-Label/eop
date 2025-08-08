@@ -1,14 +1,24 @@
 <script lang="ts">
-	import { Plus, Trash, TriangleAlert } from '@lucide/svelte';
+	import {
+		ChevronDown,
+		ChevronFirst,
+		ChevronLast,
+		ChevronLeft,
+		ChevronRight,
+		Funnel,
+		Plus,
+		Trash,
+		TriangleAlert
+	} from '@lucide/svelte';
+	import { untrack, type Component, type Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import { currency, inputDateTimeLocal } from '$lib/formats';
+	import { theme } from '$lib/theme';
 
 	import Button from '../Button/Button.svelte';
 	import Card from '../Card/Card.svelte';
 	import Checkbox from '../Checkbox/Checkbox.svelte';
-	import { compareFn, type ColumnType, type TdSnippet } from '../Datatable';
 	import Datatable from '../Datatable/Datatable.svelte';
-	import { filterOperatorOptions } from '../Datatable/filterOperators';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import Div from '../Div/Div.svelte';
 	import Input from '../Input/Input.svelte';
@@ -17,41 +27,80 @@
 	import Select from '../Select/Select.svelte';
 	import Table from '../Table/Table.svelte';
 	import Tbody from '../Tbody/Tbody.svelte';
-	import Tr from '../Tr/Tr.svelte';
 	import Td from '../Td/Td.svelte';
 	import Thead from '../Thead/Thead.svelte';
 	import Th from '../Th/Th.svelte';
-	import { type Props } from './types';
-	import type { Snippet } from 'svelte';
+	import Tr from '../Tr/Tr.svelte';
+
+	import { compareFn } from '../Datatable';
+	import { filterOperatorOptions } from '../Datatable/filterOperators';
+
+	import type {
+		ColumnSanitized,
+		ColumnType,
+		Data,
+		Option,
+		Props,
+		Row,
+		Settings,
+		TdSnippet
+	} from './types';
+	import Spinner from '../Spinner/Spinner.svelte';
 
 	let {
 		columns = $bindable([]),
+		columnInferredTypes = $bindable([]),
 		columnsSanitized = $bindable([]),
 		create = $bindable({}),
 		createDialog: customCreateDialog,
+		data,
 		deleteDialog: customDeleteDialog,
 		filters = $bindable([]),
 		filterDialog: customFilterDialog,
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
-		isCreatable = true,
+		isCreatable = $bindable(true),
 		isCreateDialogOpen = $bindable(false),
-		isDeletable = true,
+		isDeletable = $bindable(true),
 		isDeleteDialogOpen = $bindable(false),
-		isEditable = true,
-		isFilterable = true,
+		isEditable = $bindable(true),
+		isFilterable = $bindable(true),
 		isFilterDialogOpen = $bindable(false),
-		isSortable = true,
+		isLoading = $bindable(true),
+		isPaginateable = $bindable(true),
+		isSelectable = $bindable(true),
+		isSortable = $bindable(true),
+		isToolbarVisible = $bindable(true),
 		modelName = $bindable(),
-		pagination = $bindable(true),
+		pagination: customPagination,
+		paginationSettings = $bindable({
+			indexes: {
+				start: 0,
+				end: 0
+			},
+			options: [],
+			totalPages: 0
+		}),
 		rows = $bindable([]),
 		rowsCheckboxValues = $bindable([]),
+		rowsFiltered = $bindable([]),
+		rowsPaginated = $bindable([]),
+		rowsSanitized = $bindable([]),
 		rowsSelected = $bindable([]),
-		sort = $bindable({ direction: 'asc', index: -1, key: '' }),
-		tbody,
+		settings = $bindable({
+			_routeId: '',
+			currentPage: 0,
+			filter: {},
+			rowsPerPage: 10,
+			sortDirection: 'asc',
+			sortKey: ''
+		}),
+		tbody: customTbody,
+		th: customTh,
 		thead,
-		toolbar
+		toolbar: customToolbar,
+		totalRows = $bindable(0)
 	}: Props = $props();
 	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintCreate],
@@ -60,13 +109,30 @@
 		['function', functionCreate],
 		['number', numberCreate],
 		['object', objectCreate],
+		['ref', selectCreate],
 		['select', selectCreate],
 		['string', stringCreate],
 		['symbol', symbolCreate],
 		['timestamp', timestampCreate],
 		['undefined', undefinedCreate]
 	]);
-
+	let initialized = $state(false);
+	const updateData = async (data: Data) => {
+		isLoading = true;
+		const [resolvedRows, resolvedTotalRows] = await Promise.all([data.rows, data.totalRows]);
+		columns = data.columns;
+		rows = resolvedRows as Row[];
+		settings = data.settings;
+		totalRows = resolvedTotalRows as number;
+		isLoading = false;
+		initialized = true;
+	};
+	$effect(() => {
+		if (data)
+			untrack(() => {
+				updateData(data);
+			});
+	});
 	$effect(() => {
 		let _createdByIdExists = false;
 		let createdAtExists = false;
@@ -92,15 +158,15 @@
 
 		if (!_createdByIdExists)
 			columns.push({
-				compareFn: (a: { username: string }, b: { username: string }) => {
-					return a.username.localeCompare(b.username);
+				compareFn: (a: { username: string }, b: { username: string }, direction: -1 | 1) => {
+					return a.username.localeCompare(b.username) * direction;
 				},
 				isCreatable: false,
 				isEditable: false,
 				isFilterable: true,
 				key: '_createdById',
 				label: 'Created By',
-				snippet: createdByTd
+				type: 'ref'
 			});
 		if (!createdAtExists)
 			columns.push({
@@ -123,42 +189,279 @@
 				type: 'timestamp'
 			});
 	});
+
+	$effect(() => {
+		if (
+			columns.filter(
+				(column) =>
+					typeof column === 'object' && column.type === 'ref' && column.snippet === undefined
+			).length > 0
+		) {
+			columns = columns.map((column) => {
+				if (typeof column === 'string') return column;
+				if (typeof column === 'object' && column.type === 'ref' && column.snippet === undefined) {
+					column.snippet = refTd;
+				}
+				return column;
+			});
+		}
+	});
 </script>
 
-<Datatable
-	bind:columns
-	bind:columnsSanitized
-	bind:create
-	bind:filters
-	bind:filterKeyOptions
-	bind:filtersTemp
-	bind:filtersTempSanitized
-	bind:isCreateDialogOpen
-	bind:isDeleteDialogOpen
-	bind:isFilterDialogOpen
-	bind:pagination
-	bind:rows
-	bind:rowsCheckboxValues
-	bind:rowsSelected
-	bind:sort
-	createDialog={customCreateDialog !== undefined ? customCreateDialog : createDialog}
-	deleteDialog={customDeleteDialog !== undefined ? customDeleteDialog : deleteDialog}
-	filterDialog={customFilterDialog !== undefined ? customFilterDialog : filterDialog}
-	{isCreatable}
-	{isDeletable}
-	{isEditable}
-	{isFilterable}
-	{isSortable}
-	{tbody}
-	{thead}
-	{toolbar}
-/>
+{#if initialized}
+	<Div class="relative">
+		<Datatable
+			bind:columns
+			bind:columnInferredTypes
+			bind:columnsSanitized
+			bind:create
+			bind:filters
+			bind:filterKeyOptions
+			bind:filtersTemp
+			bind:filtersTempSanitized
+			bind:isCreatable
+			bind:isCreateDialogOpen
+			bind:isDeletable
+			bind:isDeleteDialogOpen
+			bind:isEditable
+			bind:isFilterable
+			bind:isFilterDialogOpen
+			bind:isPaginateable
+			bind:isSortable
+			bind:paginationSettings
+			bind:rows
+			bind:rowsCheckboxValues
+			bind:rowsFiltered
+			bind:rowsPaginated
+			bind:rowsSanitized
+			bind:rowsSelected
+			bind:settings
+			createDialog={customCreateDialog !== undefined ? customCreateDialog : createDialog}
+			deleteDialog={customDeleteDialog !== undefined ? customDeleteDialog : deleteDialog}
+			filterDialog={customFilterDialog !== undefined ? customFilterDialog : filterDialog}
+			pagination={customPagination !== undefined ? customPagination : pagination}
+			tbody={customTbody !== undefined ? customTbody : tbody}
+			th={customTh !== undefined ? customTh : th}
+			{thead}
+			toolbar={customToolbar !== undefined ? customToolbar : toolbar}
+			{totalRows}
+		/>
+		{#if isLoading}
+			<Div
+				class="text-primary-500 absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-xl backdrop-blur-md"
+			>
+				<Spinner class="h-16 w-16" strokeWidth="2" />
+			</Div>
+		{/if}
+	</Div>
+{:else}
+	Loading...
+{/if}
+
+{#snippet pagination()}
+	{#if isPaginateable !== false}
+		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
+			{@render paginationButton({
+				currentPage: 0,
+				disabled: settings.currentPage === 0,
+				Icon: ChevronFirst
+			})}
+			{@render paginationButton({
+				currentPage: settings.currentPage - 1,
+				disabled: settings.currentPage === 0,
+				Icon: ChevronLeft
+			})}
+			<Form
+				action="/api/mongooseTable?/find"
+				class="w-auto"
+				onchange={(e: Event) => {
+					if (!e?.currentTarget) return;
+					const form = e.currentTarget as HTMLFormElement;
+					form.requestSubmit();
+				}}
+				submitFunction={() => {
+					isLoading = true;
+					return async ({ update }) => {
+						await update();
+					};
+				}}
+			>
+				<Input name="_routeId" type="hidden" value={settings._routeId} />
+				<Input name="currentPage" type="hidden" value={settings.currentPage} />
+				<Input name="filter" type="hidden" value={JSON.stringify(settings.filter)} />
+				<Input name="rowsPerPage" type="hidden" value={settings.rowsPerPage} />
+				<Input name="sortDirection" type="hidden" value={settings.sortDirection} />
+				<Input name="sortKey" type="hidden" value={settings.sortKey} />
+				<Select bind:value={settings.currentPage} options={paginationSettings.options} />
+			</Form>
+			{@render paginationButton({
+				currentPage: settings.currentPage + 1,
+				disabled: settings.currentPage === paginationSettings.totalPages - 1,
+				Icon: ChevronRight
+			})}
+			{@render paginationButton({
+				currentPage: paginationSettings.totalPages - 1,
+				disabled: settings.currentPage === paginationSettings.totalPages - 1,
+				Icon: ChevronLast
+			})}
+		</Div>
+	{/if}
+{/snippet}
+{#snippet paginationButton({
+	currentPage,
+	disabled,
+	Icon
+}: {
+	currentPage: number;
+	disabled: boolean | undefined;
+	Icon: Component;
+})}
+	<Form
+		action="/api/mongooseTable?/find"
+		class="w-auto"
+		submitFunction={() => {
+			isLoading = true;
+			return async ({ update }) => {
+				await update();
+			};
+		}}
+	>
+		<Input name="_routeId" type="hidden" value={settings._routeId} />
+		<Input name="currentPage" type="hidden" value={currentPage} />
+		<Input name="filter" type="hidden" value={JSON.stringify(settings.filter)} />
+		<Input name="rowsPerPage" type="hidden" value={settings.rowsPerPage} />
+		<Input name="sortDirection" type="hidden" value={settings.sortDirection} />
+		<Input name="sortKey" type="hidden" value={settings.sortKey} />
+		<Button {disabled} type="submit" variants={['icon']}>
+			<Icon />
+		</Button>
+	</Form>
+{/snippet}
+{#snippet tbody()}
+	<Tbody>
+		{#each rowsSanitized as { index: rowIndex }}
+			<Tr>
+				{#if isSelectable}
+					<Td>
+						{#if rowsCheckboxValues[rowIndex] !== undefined}
+							<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+						{/if}
+					</Td>
+				{/if}
+				{#each columnsSanitized as { isEditable, key, options, snippet }}
+					{@render snippet({ isEditable, key, object: rows[rowIndex], options })}
+				{/each}
+			</Tr>
+		{/each}
+	</Tbody>
+{/snippet}
+{#snippet th({ class: className, key, label }: ColumnSanitized)}
+	{#if !isSortable}
+		<Th class={className}>{label}</Th>
+	{:else}
+		<Th class={twMerge('p-0', className)}>
+			<Form
+				action="/api/mongooseTable?/find"
+				submitFunction={() => {
+					isLoading = true;
+					return async ({ update }) => {
+						await update();
+					};
+				}}
+			>
+				<Input name="_routeId" type="hidden" value={settings._routeId} />
+				<Input name="currentPage" type="hidden" value={settings.currentPage} />
+				<Input name="filter" type="hidden" value={JSON.stringify(settings.filter)} />
+				<Input name="rowsPerPage" type="hidden" value={settings.rowsPerPage} />
+				<Input
+					name="sortDirection"
+					type="hidden"
+					value={key !== settings.sortKey
+						? 'asc'
+						: settings.sortDirection === 'asc'
+							? 'desc'
+							: 'asc'}
+				/>
+				<Input name="sortKey" type="hidden" value={key} />
+				<Button
+					class="flex w-full items-center justify-between space-x-2 text-gray-500"
+					type="submit"
+					variants={['ghost', 'square']}
+				>
+					<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+						{label}
+					</Div>
+
+					<ChevronDown
+						class={twMerge(
+							'transition duration-200',
+							key === settings.sortKey ? 'scale-100' : 'scale-0',
+							settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
+						)}
+						size={16}
+					/>
+				</Button>
+			</Form>
+		</Th>
+	{/if}
+{/snippet}
+{#snippet toolbar()}
+	{#if isToolbarVisible}
+		<Div class="flex items-center justify-end space-x-2 px-6 py-3">
+			{#if isDeletable}
+				<Button
+					disabled={rowsSelected.length > 0 ? undefined : true}
+					onclick={() => (isDeleteDialogOpen = true)}
+					variants={['error', 'icon']}
+				>
+					<Trash />
+				</Button>
+			{/if}
+			{#if isFilterable}
+				<Button
+					onclick={() => {
+						filtersTemp = $state.snapshot(filters);
+						isFilterDialogOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Funnel />
+				</Button>
+			{/if}
+			{#if isCreatable}
+				<Button
+					onclick={() => {
+						create = columnsSanitized.reduce((obj: Record<string, any>, { key, type }) => {
+							if (type === 'bigint') obj[key] = BigInt(0);
+							if (type === 'boolean') obj[key] = false;
+							if (type === 'currency') obj[key] = 0;
+							if (type === 'function') obj[key] = () => {};
+							if (type === 'number') obj[key] = 0;
+							if (type === 'object') obj[key] = {};
+							if (type === 'ref') obj[key] = '';
+							if (type === 'select') obj[key] = '';
+							if (type === 'string') obj[key] = '';
+							if (type === 'symbol') obj[key] = Symbol('');
+							if (type === 'timestamp') obj[key] = new Date();
+							return obj;
+						}, {});
+						isCreateDialogOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Plus />
+				</Button>
+			{/if}
+		</Div>
+	{/if}
+{/snippet}
 
 {#snippet createDialog()}
 	{#if columnsSanitized}
 		<Dialog bind:open={isCreateDialogOpen}>
 			<Form
 				action="/api/mongooseTable?/create"
+				class="max-w-full"
 				submitFunction={() => {
 					return async ({ update }) => {
 						await update();
@@ -423,6 +726,18 @@
 	<Td />
 {/snippet}
 
-{#snippet createdByTd({ object }: TdSnippet)}
-	<Td>{object._createdById.username}</Td>
+{#snippet refTd({ isEditable, key, object, options }: TdSnippet)}
+	{#if isEditable}
+		<Td class="p-0">
+			<Select
+				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				options={[{ label: '', value: '' }, ...options]}
+				value={object?.[key] ?? ''}
+			/>
+		</Td>
+	{:else}
+		<Td>
+			{options.find((option: Option) => option.value === object?.[key])?.label ?? ''}
+		</Td>
+	{/if}
 {/snippet}

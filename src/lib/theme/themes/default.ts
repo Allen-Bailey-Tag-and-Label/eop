@@ -26,7 +26,7 @@ export const defaultTheme: Theme = {
 	},
 	Checkbox: {
 		default:
-			'peer-checked:bg-primary-500 peer-focus:outline-primary-500 flex h-6 w-6 items-center justify-center px-0 py-0 peer-focus:outline-2 rounded transition duration-200'
+			'peer-checked:bg-primary-500 peer-checked:outline-primary-500 peer-focus:outline-primary-500 flex h-6 w-6 items-center justify-center px-0 py-0 peer-focus:outline-2 rounded transition duration-200 outline-current outline'
 	},
 	Datatable: { default: '' },
 	Dialog: {
@@ -53,6 +53,7 @@ export const defaultTheme: Theme = {
 			'[&::-webkit-slider-thumb]:bg-primary-500 h-2 w-full appearance-none rounded-full bg-gray-200 p-0 outline-none dark:bg-gray-700 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
 	},
 	Select: { default: InputDefault },
+	Spinner: { default: 'w-6 h-6' },
 	Table: { default: '' },
 	Tbody: { default: '' },
 	Td: { default: 'px-6 py-3' },

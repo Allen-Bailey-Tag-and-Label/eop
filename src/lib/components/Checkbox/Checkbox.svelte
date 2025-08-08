@@ -18,7 +18,7 @@
 		handle?: Snippet;
 		style?: string;
 		variants?: string[];
-	} & any;
+	} & Partial<HTMLInputElement>;
 	let {
 		attachments = $bindable([]),
 		checked = $bindable(false),

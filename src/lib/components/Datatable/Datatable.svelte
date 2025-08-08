@@ -30,19 +30,12 @@
 	import Thead from '../Thead/Thead.svelte';
 	import Tr from '../Tr/Tr.svelte';
 
-	import {
-		compareFn,
-		filterOperatorOptions,
-		type ColumnType,
-		type PaginationSanitized,
-		type Props,
-		type SortSanitized,
-		type TdSnippet
-	} from './';
-	import { type RowSanitized } from './types';
+	import { compareFn, filterOperatorOptions } from './';
+	import type { ColumnType, Props, RowSanitized, TdSnippet } from './types';
 
 	let {
 		columns = $bindable([]),
+		columnInferredTypes = $bindable([]),
 		columnsSanitized = $bindable([]),
 		create = $bindable({}),
 		createDialog,
@@ -52,33 +45,46 @@
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
-		isCreatable = true,
+		isCreatable = $bindable(true),
 		isCreateDialogOpen = $bindable(false),
-		isDeletable = true,
+		isDeletable = $bindable(true),
 		isDeleteDialogOpen = $bindable(false),
-		isEditable = true,
-		isFilterable = true,
+		isEditable = $bindable(true),
+		isFilterable = $bindable(true),
 		isFilterDialogOpen = $bindable(false),
-		isSortable = true,
-		pagination = $bindable(true),
+		isPaginateable = $bindable(true),
+		isSelectable = $bindable(true),
+		isSortable = $bindable(true),
+		isToolbarVisible = $bindable(true),
+		pagination,
+		paginationSettings = $bindable({
+			indexes: {
+				start: 0,
+				end: 0
+			},
+			options: [],
+			totalPages: 0
+		}),
 		rows = $bindable([]),
 		rowsCheckboxValues = $bindable([]),
+		rowsFiltered = $bindable([]),
+		rowsPaginated = $bindable([]),
+		rowsSanitized = $bindable([]),
 		rowsSelected = $bindable([]),
-		sort = $bindable({ direction: 'asc', index: -1, key: '' }),
+		settings = $bindable({
+			currentPage: 0,
+			filter: {},
+			rowsPerPage: 10,
+			sortDirection: 'asc',
+			sortKey: ''
+		}),
 		tbody,
+		th,
 		thead,
-		toolbar
+		toolbar,
+		totalRows = $bindable()
 	}: Props = $props();
 	let isAllRowsSelected = $state(false);
-	let paginationSanitized: PaginationSanitized = $state({
-		currentPage: 0,
-		rowsPerPage: 10
-	});
-	let sortSanitized: SortSanitized = $state({
-		direction: 'asc',
-		index: -1,
-		key: ''
-	});
 	const tdSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintTd],
 		['boolean', booleanTd],
@@ -93,86 +99,28 @@
 		['undefined', undefinedTd]
 	]);
 
-	// $derives
-	const columnInferredTypes: ColumnType[] = $derived.by(() => {
-		return columns.map((column) => {
-			const key = typeof column === 'string' ? column : column.key;
-			let type: ColumnType = 'string';
-
-			if (rows.length > 0) {
-				for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-					if (rows[rowIndex][key] !== null) {
-						type = typeof rows[rowIndex][key];
-						break;
-					}
-				}
-			}
-
-			return type;
-		});
-	});
-	const isSelectable: boolean = $derived.by(() => isDeletable);
-	const isToolbarVisible: boolean = $derived.by(() => isCreatable || isDeletable || isFilterable);
-	const paginationIndexes: { start: number; end: number } = $derived.by(() => {
-		const start = paginationSanitized.currentPage * paginationSanitized.rowsPerPage;
-		let end = start + paginationSanitized.rowsPerPage;
-		if (end > rowsFiltered.length) end = rowsFiltered.length;
-		return { start, end };
-	});
-	const paginationTotalPages: number = $derived.by(() =>
-		Math.ceil(rowsFiltered.length / paginationSanitized.rowsPerPage)
-	);
-	const paginationOptions: { label: string; value: number }[] = $derived.by(() => {
-		if (paginationTotalPages === 0) return [{ label: '0-0', value: 0 }];
-		return Array(paginationTotalPages)
-			.fill(0)
-			.map((_, value) => {
-				const start = value * paginationSanitized.rowsPerPage;
-				let end = start + paginationSanitized.rowsPerPage;
-				if (end > rowsFiltered.length) end = rowsFiltered.length;
-				return { label: `${start + 1}-${end}`, value };
-			});
-	});
-	const rowsSanitized: RowSanitized[] = $derived.by(() =>
-		rows.map((row, index) => ({ index, isSelected: false, row }))
-	);
-	const rowsFiltered: RowSanitized[] = $derived.by(() =>
-		rowsSanitized.filter(({ row }) => {
-			return filters.every(({ key, operator, value }) => {
-				const cell = row[key];
-
-				switch (operator) {
-					case 'contains':
-						return typeof cell === 'string' && cell.toLowerCase().includes(value.toLowerCase());
-					case 'does not contain':
-						return typeof cell === 'string' && !cell.toLowerCase().includes(value.toLowerCase());
-					case 'does not equal':
-						return cell !== value;
-					case 'equals':
-						return cell === value;
-					case 'greater than':
-						return parseFloat(cell) > parseFloat(value);
-					case 'greater than or equals':
-						return parseFloat(cell) >= parseFloat(value);
-					case 'less than':
-						return parseFloat(cell) < parseFloat(value);
-					case 'less than or equals':
-						return parseFloat(cell) <= parseFloat(value);
-					default:
-						return true;
-				}
-			});
-		})
-	);
-	const rowsPaginated: RowSanitized[] = $derived.by(() =>
-		rowsFiltered.filter((_, rowIndex) => {
-			if (pagination === false) return true;
-			if (rowIndex >= paginationIndexes.start && rowIndex < paginationIndexes.end) return true;
-			return false;
-		})
-	);
-
 	// $effects
+	$effect(() => {
+		if (columns) {
+			untrack(() => {
+				columnInferredTypes = columns.map((column) => {
+					const key = typeof column === 'string' ? column : column.key;
+					let type: ColumnType = 'string';
+
+					if (rows.length > 0) {
+						for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+							if (rows[rowIndex][key] !== null) {
+								type = typeof rows[rowIndex][key];
+								break;
+							}
+						}
+					}
+
+					return type;
+				});
+			});
+		}
+	});
 	$effect(() => {
 		columnsSanitized = columns.map((column, columnIndex) => {
 			const inferredType = untrack(() => columnInferredTypes[columnIndex]);
@@ -181,6 +129,7 @@
 			const columnSanitized = typeof column === 'string' ? { key: column, label: column } : column;
 
 			const type = columnSanitized.type ?? inferredType;
+
 			const snippet =
 				columnSanitized.snippet ??
 				(columnSanitized.type && tdSnippetMap.get(columnSanitized.type)) ??
@@ -189,7 +138,7 @@
 
 			return {
 				class: columnSanitized.class,
-				compareFn: columnSanitized.compareFn ?? compareFn[inferredType],
+				compareFn: columnSanitized.compareFn ?? compareFn[type] ?? compareFn[inferredType],
 				isCreatable: columnSanitized.isCreatable ?? isCreatable,
 				isEditable: columnSanitized.isEditable ?? isEditable,
 				isFilterable: columnSanitized.isFilterable ?? isFilterable,
@@ -223,22 +172,44 @@
 			.filter((value) => value !== null);
 	});
 	$effect(() => {
-		if (JSON.stringify(pagination)) {
-			untrack(() => {
-				if (pagination === true)
-					paginationSanitized = Object.assign(
-						{ currentPage: 0, rowsPerPage: 10 },
-						paginationSanitized
-					);
-				if (typeof pagination === 'object')
-					paginationSanitized = Object.assign(paginationSanitized, pagination);
-			});
-		}
+		const isDeletableValue = isDeletable;
+
+		untrack(() => {
+			isSelectable = isDeletableValue;
+		});
 	});
 	$effect(() => {
-		if (paginationSanitized.currentPage > paginationTotalPages - 1)
-			paginationSanitized.currentPage = paginationTotalPages - 1;
-		if (paginationSanitized.currentPage < 0) paginationSanitized.currentPage = 0;
+		const isCreatableValue = isCreatable;
+		const isDeletableValue = isDeletable;
+		const isFilterableValue = isFilterable;
+
+		untrack(() => {
+			isToolbarVisible = isCreatableValue || isDeletableValue || isFilterableValue;
+		});
+	});
+	$effect(() => {
+		const currentPageValue = settings.currentPage ?? 0;
+		const rowsPerPageValue = settings.rowsPerPage ?? 10;
+		const totalRowsValue = totalRows ?? rowsFiltered.length;
+
+		untrack(() => {
+			paginationSettings.indexes.start = currentPageValue * rowsPerPageValue;
+			paginationSettings.indexes.end = Math.min(
+				paginationSettings.indexes.start + rowsPerPageValue,
+				totalRowsValue
+			);
+			paginationSettings.totalPages = Math.ceil(totalRowsValue / rowsPerPageValue);
+			if (paginationSettings.totalPages === 0)
+				paginationSettings.options = [{ label: '0-0', value: 0 }];
+			if (paginationSettings.totalPages > 0)
+				paginationSettings.options = Array(paginationSettings.totalPages)
+					.fill(0)
+					.map((_, value) => {
+						const start = value * rowsPerPageValue;
+						let end = Math.min(start + rowsPerPageValue, totalRowsValue);
+						return { label: `${start + 1}-${end}`, value };
+					});
+		});
 	});
 	$effect(() => {
 		if (rows.length > rowsCheckboxValues.length) {
@@ -249,46 +220,53 @@
 		}
 	});
 	$effect(() => {
+		rowsFiltered = rowsSanitized.filter(({ row }) => {
+			return filters.every(({ key, operator, value }) => {
+				const cell = row[key];
+
+				switch (operator) {
+					case 'contains':
+						return typeof cell === 'string' && cell.toLowerCase().includes(value.toLowerCase());
+					case 'does not contain':
+						return typeof cell === 'string' && !cell.toLowerCase().includes(value.toLowerCase());
+					case 'does not equal':
+						return cell !== value;
+					case 'equals':
+						return cell === value;
+					case 'greater than':
+						return parseFloat(cell) > parseFloat(value);
+					case 'greater than or equals':
+						return parseFloat(cell) >= parseFloat(value);
+					case 'less than':
+						return parseFloat(cell) < parseFloat(value);
+					case 'less than or equals':
+						return parseFloat(cell) <= parseFloat(value);
+					default:
+						return true;
+				}
+			});
+		});
+	});
+	$effect(() => {
+		rowsPaginated = rowsFiltered.filter((_, rowIndex) => {
+			if (isPaginateable === false) return true;
+			if (rowIndex >= paginationSettings.indexes.start && rowIndex < paginationSettings.indexes.end)
+				return true;
+			return false;
+		});
+	});
+	$effect(() => {
+		rowsSanitized = rows.map((row, index) => ({ index, isSelected: false, row }));
+	});
+	$effect(() => {
 		rowsSelected = rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue);
 	});
 	$effect(() => {
-		if (JSON.stringify(sort)) {
-			untrack(() => {
-				if (sort?.direction) sortSanitized.direction = sort.direction;
-				if (typeof sort?.index === 'number') sortSanitized.index = sort.index;
-				if (sort?.key) sortSanitized.key = sort.key;
-			});
-		}
-
-		if (columnsSanitized.length > 0) {
-			untrack(() => {
-				if (sortSanitized.index === -1 && sortSanitized.key === '') {
-					sortSanitized.index = 0;
-					sortSanitized.key = columnsSanitized[0].key;
-				}
-				if (sortSanitized.index === -1 && sortSanitized.key !== '')
-					sortSanitized.index = columnsSanitized.findIndex(
-						(columnSanitized) => columnSanitized.key === sortSanitized.key
-					);
-				if (sortSanitized.index !== -1 && sortSanitized.key === '')
-					sortSanitized.key = columnsSanitized[sortSanitized.index].key;
-			});
-		}
-	});
-	$effect(() => {
-		if (isSortable && JSON.stringify(sortSanitized))
-			untrack(() => {
-				const indexes = Array.from(rows.keys()).sort((a, b) => {
-					const sortColumn = columnsSanitized[sortSanitized.index];
-					if (sortColumn === undefined) return 0;
-					return (
-						sortColumn.compareFn(rows[a][sortSanitized.key], rows[b][sortSanitized.key]) *
-						(sortSanitized.direction === 'asc' ? 1 : -1)
-					);
-				});
-				rows = indexes.map((index) => rows[index]);
-				rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
-			});
+		if (settings.currentPage === undefined) settings.currentPage = 0;
+		if (settings.filter === undefined) settings.filter = {};
+		if (settings.rowsPerPage === undefined) settings.rowsPerPage = 10;
+		if (settings.sortDirection === undefined) settings.sortDirection = 'asc';
+		if (settings.sortKey === undefined) settings.sortKey = columnsSanitized[0].key;
 	});
 </script>
 
@@ -355,8 +333,11 @@
 									bind:checked={isAllRowsSelected}
 									onchange={() => {
 										rowsCheckboxValues = rowsCheckboxValues.map((_, rowIndex) => {
-											if (pagination !== false) {
-												if (rowIndex < paginationIndexes.start || rowIndex >= paginationIndexes.end)
+											if (isPaginateable !== false) {
+												if (
+													rowIndex < paginationSettings.indexes.start ||
+													rowIndex >= paginationSettings.indexes.end
+												)
 													return false;
 											}
 											return isAllRowsSelected;
@@ -365,44 +346,70 @@
 								/>
 							</Th>
 						{/if}
-						{#each columnsSanitized as { class: className, key, label }, index}
-							<Th class={twMerge('px-0 py-0', className)}>
-								<Button
-									class="flex w-full items-center justify-between text-gray-500"
-									onclick={() => {
-										if (isSortable) {
-											sortSanitized = {
-												direction:
-													sortSanitized.key !== key
-														? 'asc'
-														: sortSanitized.direction === 'asc'
-															? 'desc'
-															: 'asc',
-												index,
-												key
-											};
-											if (sort.direction !== undefined) sort.direction = sortSanitized.direction;
-											if (sort.index !== undefined) sort.index = sortSanitized.index;
-											if (sort.key !== undefined) sort.key = sortSanitized.key;
-										}
-									}}
-									variants={['ghost', 'square']}
-								>
-									<Div class={twMerge($themeStore.Th.default, 'px-0 py-0 whitespace-nowrap')}>
-										{label}
-									</Div>
-									{#if isSortable}
-										<ChevronDown
-											class={twMerge(
-												'transition duration-200',
-												key === sortSanitized.key ? 'scale-100' : 'scale-0',
-												sortSanitized.direction === 'asc' ? 'rotate-0' : 'rotate-180'
-											)}
-											size={16}
-										/>
-									{/if}
-								</Button>
-							</Th>
+						{#each columnsSanitized as { class: className, compareFn, key, label, ...columnSanitized }, index}
+							{#if th}
+								{@render th({ class: className, compareFn, key, label, ...columnSanitized })}
+							{:else}
+								<Th class={twMerge('px-0 py-0', className)}>
+									<Button
+										class="flex w-full items-center justify-between space-x-2 text-gray-500"
+										onclick={() => {
+											if (isSortable) {
+												if (settings.sortKey !== key) settings.sortDirection = 'asc';
+												if (settings.sortKey === key)
+													settings.sortDirection =
+														settings.sortDirection === 'asc' ? 'desc' : 'asc';
+												settings.sortKey = key;
+
+												const indexes = Array.from(rows.keys()).sort((a, b) => {
+													if (settings.sortKey === undefined) return 0;
+													const sortColumn = columnsSanitized.find(
+														(columnSanitized) => columnSanitized.key === settings.sortKey
+													);
+													if (sortColumn === undefined) return 0;
+
+													let aValue = rows[a][settings.sortKey];
+													let bValue = rows[b][settings.sortKey];
+
+													if (sortColumn.type === 'select') {
+														aValue =
+															sortColumn.options.find(
+																(option: { value: any }) => option.value === aValue
+															)?.label ?? aValue;
+														bValue =
+															sortColumn.options.find(
+																(option: { value: any }) => option.value === bValue
+															)?.label ?? bValue;
+													}
+
+													return sortColumn.compareFn(
+														aValue,
+														bValue,
+														settings.sortDirection === 'asc' ? 1 : -1
+													);
+												});
+												rows = indexes.map((index) => rows[index]);
+												rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
+											}
+										}}
+										variants={['ghost', 'square']}
+									>
+										<Div class={twMerge($themeStore.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+											{label}
+										</Div>
+										{#if isSortable}
+											<ChevronDown
+												class={twMerge(
+													'transition duration-200',
+													key === settings.sortKey ? 'scale-100' : 'scale-0',
+													settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
+												)}
+												size={16}
+											/>
+										{/if}
+									</Button>
+								</Th>
+							{/if}
 						{/each}
 					</Tr>
 				</Thead>
@@ -429,37 +436,39 @@
 			{/if}
 		</Table>
 	</Div>
-	{#if pagination !== false}
+	{#if pagination}
+		{@render pagination()}
+	{:else if isPaginateable !== false}
 		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
 			<Button
-				disabled={paginationSanitized.currentPage === 0 ? 'disabled' : undefined}
-				onclick={() => (paginationSanitized.currentPage = 0)}
+				disabled={settings.currentPage === 0 ? 'disabled' : undefined}
+				onclick={() => (settings.currentPage = 0)}
 				variants={['icon']}
 			>
 				<ChevronFirst />
 			</Button>
 			<Button
-				disabled={paginationSanitized.currentPage === 0 ? 'disabled' : undefined}
-				onclick={() => paginationSanitized.currentPage--}
+				disabled={settings.currentPage === 0 ? 'disabled' : undefined}
+				onclick={() => (settings.currentPage = (settings.currentPage ?? 1) - 1)}
 				variants={['icon']}
 			>
 				<ChevronLeft />
 			</Button>
-			<Select bind:value={paginationSanitized.currentPage} options={paginationOptions} />
+			<Select bind:value={settings.currentPage} options={paginationSettings.options} />
 			<Button
-				disabled={paginationSanitized.currentPage === Math.max(0, paginationTotalPages - 1)
+				disabled={settings.currentPage === Math.max(0, paginationSettings.totalPages - 1)
 					? 'disabled'
 					: undefined}
-				onclick={() => paginationSanitized.currentPage++}
+				onclick={() => (settings.currentPage = (settings.currentPage ?? 0) + 1)}
 				variants={['icon']}
 			>
 				<ChevronRight />
 			</Button>
 			<Button
-				disabled={paginationSanitized.currentPage === Math.max(0, paginationTotalPages - 1)
+				disabled={settings.currentPage === Math.max(0, paginationSettings.totalPages - 1)
 					? 'disabled'
 					: undefined}
-				onclick={() => (paginationSanitized.currentPage = paginationTotalPages - 1)}
+				onclick={() => (settings.currentPage = paginationSettings.totalPages - 1)}
 				variants={['icon']}
 			>
 				<ChevronLast />
@@ -624,24 +633,32 @@
 	</Dialog>
 {/if}
 
-{#snippet bigintTd({ isEditable, key, object }: TdSnippet)}
+{#snippet bigintTd(_: TdSnippet)}
 	<Td>Bigint</Td>
 {/snippet}
 {#snippet booleanTd({ isEditable, key, object }: TdSnippet)}
-	{#if isEditable && object[key] !== undefined}
+	{#if isEditable}
 		<Td>
-			<Checkbox bind:checked={object[key]} />
+			<Checkbox
+				checked={object?.[key] ?? false}
+				onchange={(e) => {
+					if (!e?.currentTarget) return;
+					const element = e.currentTarget as HTMLInputElement;
+					object[key] = element.checked;
+				}}
+			/>
 		</Td>
 	{:else}
-		<Td class="uppercase">{object[key]}</Td>
+		<Td class="uppercase">{object?.[key]}</Td>
 	{/if}
 {/snippet}
 {#snippet currencyTd({ isEditable, key, object }: TdSnippet)}
-	{#if isEditable && object[key] !== undefined}
+	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
 				bind:innerHTML={
 					() => {
+						if (object?.[key] === undefined) return '';
 						return currency(object[key]);
 					},
 					(string) => {
@@ -655,25 +672,27 @@
 				)}
 				contenteditable={true}
 			>
-				{object[key]}
+				{object?.[key]}
 			</Div>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap"
-			>{currency(object[key] || JSON.stringify(object[key], null, 2))}</Td
-		>
+		<Td class="text-right whitespace-nowrap">
+			{currency(object?.[key] || JSON.stringify(object?.[key], null, 2))}
+		</Td>
 	{/if}
 {/snippet}
-{#snippet functionTd({ isEditable, key, object }: TdSnippet)}
-	<Td>{object[key] || JSON.stringify(object[key], null, 2)}</Td>
+{#snippet functionTd(_: TdSnippet)}
+	<Td>Function</Td>
 {/snippet}
 {#snippet numberTd({ isEditable, key, object }: TdSnippet)}
-	{#if isEditable && object[key] !== undefined}
+	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
 				bind:innerHTML={
 					() => {
-						return typeof object[key] === 'number' ? object[key].toString() : object[key];
+						if (object?.[key] === undefined) return '';
+						if (typeof object[key] === 'number') return object[key].toString();
+						return object[key];
 					},
 					(value) => {
 						value = typeof value === 'number' ? value : parseFloat(value.replace(/[^0-9.-]+/g, ''));
@@ -686,20 +705,20 @@
 				)}
 				contenteditable={true}
 			>
-				{object[key]}
+				{object?.[key]}
 			</Div>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap"
-			>{object[key] || JSON.stringify(object[key], null, 2)}</Td
-		>
+		<Td class="text-right whitespace-nowrap">
+			{object?.[key] || JSON.stringify(object?.[key], null, 2)}
+		</Td>
 	{/if}
 {/snippet}
-{#snippet objectTd({ isEditable, key, object }: TdSnippet)}
-	<Td class="whitespace-nowrap">{object[key] || JSON.stringify(object[key], null, 2)}</Td>
+{#snippet objectTd(_: TdSnippet)}
+	<Td class="whitespace-nowrap">Object</Td>
 {/snippet}
 {#snippet selectTd({ isEditable, key, object, options }: TdSnippet)}
-	{#if isEditable && object[key] !== undefined}
+	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Select
 				bind:value={object[key]}
@@ -708,37 +727,48 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="whitespace-nowrap">{object[key] ?? ''}</Td>
+		<Td class="whitespace-nowrap">
+			{options.find((option: any) => option.value === object?.[key])?.label ?? "can't find"}
+		</Td>
 	{/if}
 {/snippet}
 {#snippet stringTd({ isEditable, key, object }: TdSnippet)}
-	{#if isEditable && object[key] !== undefined}
+	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Div
-				bind:innerHTML={object[key]}
+				bind:innerHTML={
+					() => {
+						if (object?.[key] === undefined) return '';
+						return object[key];
+					},
+					(value) => {
+						object[key] = value;
+					}
+				}
 				class={twMerge(
 					$themeStore.Input.default,
 					'rounded-none bg-transparent whitespace-nowrap outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
-				{object[key]}
+				{object?.[key]}
 			</Div>
 		</Td>
 	{:else}
-		<Td class="whitespace-nowrap">{object[key] ?? ''}</Td>
+		<Td class="whitespace-nowrap">{object?.[key] ?? ''}</Td>
 	{/if}
 {/snippet}
-{#snippet symbolTd({ isEditable, key, object }: TdSnippet)}
+{#snippet symbolTd(_: TdSnippet)}
 	<Td>Symbol</Td>
 {/snippet}
 {#snippet timestampTd({ isEditable, key, object }: TdSnippet)}
-	{#if isEditable && object[key] !== undefined}
+	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
 			<Input
 				bind:value={
 					() => {
-						return inputDateTimeLocal(object[key]);
+						if (object?.[key] === undefined) return '';
+						return inputDateTimeLocal(object?.[key]);
 					},
 					(value: string) => {
 						object[key] = new Date(value);
@@ -749,9 +779,9 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap">{dateTime(object[key])}</Td>
+		<Td class="text-right whitespace-nowrap">{dateTime(object?.[key])}</Td>
 	{/if}
 {/snippet}
-{#snippet undefinedTd({ isEditable, key, object }: TdSnippet)}
-	<Td class="whitespace-nowrap">{object[key] || JSON.stringify(object[key], null, 2)}</Td>
+{#snippet undefinedTd(_: TdSnippet)}
+	<Td class="whitespace-nowrap">undefined</Td>
 {/snippet}

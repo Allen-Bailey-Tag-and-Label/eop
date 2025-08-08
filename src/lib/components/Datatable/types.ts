@@ -4,7 +4,7 @@ import { filterOperators } from './filterOperators';
 export type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
 export type ColumnSanitized = {
 	class?: string;
-	compareFn: (a: any, b: any) => any;
+	compareFn: (a: any, b: any, direction: -1 | 1) => any;
 	isCreatable: boolean;
 	isEditable: boolean;
 	isFilterable: boolean;
@@ -34,13 +34,17 @@ export type Filter = {
 };
 export type FilterOperator = (typeof filterOperators)[number];
 export type Option = { label: any; value: any };
-export type Pagination = boolean | Partial<PaginationSanitized>;
-export type PaginationSanitized = {
-	currentPage: number;
-	rowsPerPage: number;
+export type PaginationSettings = {
+	indexes: {
+		start: number;
+		end: number;
+	};
+	options: Option[];
+	totalPages: number;
 };
 export type Props = {
 	columns: Column[];
+	columnInferredTypes?: ColumnType[];
 	columnsSanitized?: ColumnSanitized[];
 	create?: Record<string, any>;
 	createDialog?: Snippet;
@@ -63,26 +67,36 @@ export type Props = {
 	isEditable?: boolean;
 	isFilterable?: boolean;
 	isFilterDialogOpen?: boolean;
+	isPaginateable?: boolean;
+	isSelectable?: boolean;
 	isSortable?: boolean;
-	pagination?: Pagination;
+	isToolbarVisible?: boolean;
+	pagination?: Snippet;
+	paginationSettings?: PaginationSettings;
 	rows: Row[];
+	rowsFiltered?: RowSanitized[];
 	rowsCheckboxValues?: boolean[];
+	rowsPaginated?: RowSanitized[];
+	rowsSanitized?: RowSanitized[];
 	rowsSelected?: boolean[];
-	sort?: Sort;
+	settings?: Partial<Settings>;
 	tbody?: Snippet;
+	th?: Snippet<[ColumnSanitized]>;
 	thead?: Snippet;
 	toolbar?: Snippet;
+	totalRows?: number;
 };
 export type Row = Record<string, any>;
 export type RowSanitized = {
 	index: number;
 	row: Row;
 };
-export type Sort = Partial<SortSanitized>;
-export type SortSanitized = {
-	direction: 'asc' | 'desc';
-	index: number;
-	key: string;
+export type Settings = {
+	currentPage: number;
+	filter: object;
+	rowsPerPage: number;
+	sortDirection: 'asc' | 'desc';
+	sortKey: string;
 };
 export type TdSnippet = {
 	class?: string;

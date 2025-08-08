@@ -1,2 +1,10 @@
-export { connect } from './connect';
 export * as models from './models';
+export { attachHooks } from './attachHooks';
+export { connect } from './connect';
+export { getColumns } from './getColumns';
+export { getRows } from './getRows';
+export { getSettings } from './getSettings';
+export { hooks, Hooks } from './hooks';
+export * as middleware from './middleware';
+export { serverLoad } from './serverLoad';
+export * from './types';

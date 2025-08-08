@@ -2,6 +2,7 @@ export { Branch } from './Branch';
 export { Log } from './Log';
 export { Role } from './Role';
 export { Route } from './Route';
+export { RouteSettings } from './RouteSettings';
 export { UpsQuote } from './UpsQuote';
 export { User } from './User';
 export { UserPasswordReset } from './UserPasswordReset';
