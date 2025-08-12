@@ -1,8 +1,8 @@
-import { connect } from '$lib/server/mongoose';
-import { Branch, Role, User, UserPasswordReset } from '$lib/server/mongoose/models';
 import type { Actions } from '@sveltejs/kit';
 import { hashSync } from 'bcryptjs';
 import { Types } from 'mongoose';
+import { User, UserPasswordReset } from '$lib/server/mongoose/models';
+import { serverLoad } from '$lib/server/mongoose/serverLoad';
 
 export const actions: Actions = {
 	'reset-password': async ({ locals, request }) => {
@@ -34,21 +34,8 @@ export const actions: Actions = {
 	}
 };
 
-export const load = async () => {
-	await connect();
-
-	return {
-		branches: new Promise(async (res) => {
-			const branches = await Branch.find().lean();
-			res(JSON.parse(JSON.stringify(branches)));
-		}),
-		roles: new Promise(async (res) => {
-			const roles = await Role.find().lean();
-			res(JSON.parse(JSON.stringify(roles)));
-		}),
-		rows: new Promise(async (res) => {
-			const rows = await User.find().populate('_createdById', 'username').populate('_roleIds');
-			res(JSON.parse(JSON.stringify(rows)));
-		})
-	};
-};
+export const load = serverLoad({
+	labelFunctionMap: new Map([['UserProfile', (doc) => `${doc.firstName} ${doc.lastName}`]]),
+	model: User,
+	omitColumns: ['_settingsId', 'passwordHash']
+});

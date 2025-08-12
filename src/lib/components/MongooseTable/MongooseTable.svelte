@@ -7,6 +7,7 @@
 		ChevronRight,
 		Funnel,
 		Plus,
+		Save,
 		Trash,
 		TriangleAlert
 	} from '@lucide/svelte';
@@ -15,58 +16,57 @@
 	import { currency, inputDateTimeLocal } from '$lib/formats';
 	import { theme } from '$lib/theme';
 
-	import Button from '../Button/Button.svelte';
-	import Card from '../Card/Card.svelte';
-	import Checkbox from '../Checkbox/Checkbox.svelte';
-	import Datatable from '../Datatable/Datatable.svelte';
-	import Dialog from '../Dialog/Dialog.svelte';
-	import Div from '../Div/Div.svelte';
-	import Input from '../Input/Input.svelte';
-	import Form from '../Form/Form.svelte';
-	import P from '../P/P.svelte';
-	import Select from '../Select/Select.svelte';
-	import Table from '../Table/Table.svelte';
-	import Tbody from '../Tbody/Tbody.svelte';
-	import Td from '../Td/Td.svelte';
-	import Thead from '../Thead/Thead.svelte';
-	import Th from '../Th/Th.svelte';
-	import Tr from '../Tr/Tr.svelte';
-
-	import { compareFn } from '../Datatable';
-	import { filterOperatorOptions } from '../Datatable/filterOperators';
+	import {
+		Button,
+		Checkbox,
+		Datatable,
+		Div,
+		Input,
+		Form,
+		Modal,
+		MultiSelect,
+		P,
+		Select,
+		Spinner,
+		Table,
+		Tbody,
+		Td,
+		Thead,
+		Th,
+		Tr
+	} from '../';
 
 	import type {
+		Column,
 		ColumnSanitized,
 		ColumnType,
 		Data,
 		Option,
 		Props,
 		Row,
-		Settings,
 		TdSnippet
 	} from './types';
-	import Spinner from '../Spinner/Spinner.svelte';
+	import { compareFn, filterOperatorOptions, getAt, isSame } from './';
 
 	let {
 		columns = $bindable([]),
 		columnInferredTypes = $bindable([]),
 		columnsSanitized = $bindable([]),
 		create = $bindable({}),
-		createDialog: customCreateDialog,
+		createModal: customCreateModal,
 		data,
-		deleteDialog: customDeleteDialog,
-		filters = $bindable([]),
-		filterDialog: customFilterDialog,
+		deleteModal: customDeleteModal,
+		filterModal: customFilterModal,
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
 		isCreatable = $bindable(true),
-		isCreateDialogOpen = $bindable(false),
+		isCreateModalOpen = $bindable(false),
 		isDeletable = $bindable(true),
-		isDeleteDialogOpen = $bindable(false),
+		isDeleteModalOpen = $bindable(false),
 		isEditable = $bindable(true),
 		isFilterable = $bindable(true),
-		isFilterDialogOpen = $bindable(false),
+		isFilterModalOpen = $bindable(false),
 		isLoading = $bindable(true),
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
@@ -91,7 +91,7 @@
 		settings = $bindable({
 			_routeId: '',
 			currentPage: 0,
-			filter: {},
+			filter: [],
 			rowsPerPage: 10,
 			sortDirection: 'asc',
 			sortKey: ''
@@ -100,13 +100,15 @@
 		th: customTh,
 		thead,
 		toolbar: customToolbar,
-		totalRows = $bindable(0)
+		totalRows = $bindable(0),
+		virtualColumns = $bindable([])
 	}: Props = $props();
 	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintCreate],
 		['boolean', booleanCreate],
 		['currency', currencyCreate],
 		['function', functionCreate],
+		['multiSelect', multiSelectCreate],
 		['number', numberCreate],
 		['object', objectCreate],
 		['ref', selectCreate],
@@ -117,16 +119,27 @@
 		['undefined', undefinedCreate]
 	]);
 	let initialized = $state(false);
+	let originalRows = $state(new Map<string, Row>());
+	let modifiedRows = $state(new Map<string, Map<string, any>>());
 	const updateData = async (data: Data) => {
 		isLoading = true;
 		const [resolvedRows, resolvedTotalRows] = await Promise.all([data.rows, data.totalRows]);
 		columns = data.columns;
+		modifiedRows = new Map();
+		originalRows = new Map(
+			(resolvedRows as Row[]).map((row: Row) => [row._id, structuredClone(row)])
+		);
 		rows = resolvedRows as Row[];
 		settings = data.settings;
 		totalRows = resolvedTotalRows as number;
 		isLoading = false;
 		initialized = true;
 	};
+
+	const updatedData = $derived.by(() =>
+		Array.from(modifiedRows).map(([_id, fields]) => ({ _id, $set: Object.fromEntries(fields) }))
+	);
+
 	$effect(() => {
 		if (data)
 			untrack(() => {
@@ -189,22 +202,41 @@
 				type: 'timestamp'
 			});
 	});
-
 	$effect(() => {
-		if (
-			columns.filter(
-				(column) =>
-					typeof column === 'object' && column.type === 'ref' && column.snippet === undefined
-			).length > 0
-		) {
-			columns = columns.map((column) => {
-				if (typeof column === 'string') return column;
-				if (typeof column === 'object' && column.type === 'ref' && column.snippet === undefined) {
-					column.snippet = refTd;
-				}
-				return column;
-			});
+		if (virtualColumns?.length) {
+			const existingColumns = new Set(
+				columns.map((column: Column) => (typeof column === 'string' ? column : column.key))
+			);
+			const mergedColumns = [
+				...columns,
+				...virtualColumns.filter(
+					(column: Column) => !existingColumns.has(typeof column === 'string' ? column : column.key)
+				)
+			];
+			columns = mergedColumns;
 		}
+	});
+	$effect(() => {
+		const _rowValues = rows.map((row) => columnsSanitized.map(({ key }) => getAt(row, key)));
+		untrack(() => {
+			modifiedRows = new Map();
+		});
+		rows.forEach((row) => {
+			const originalRow = originalRows.get(row._id);
+			if (!originalRow) return;
+			const changes = new Map<string, any>();
+			columnsSanitized.forEach(({ key }) => {
+				if (!isSame(row, originalRow, key)) {
+					changes.set(key, getAt(row, key));
+				}
+			});
+			if (changes.size > 0) {
+				untrack(() => {
+					modifiedRows.set(row._id, changes);
+					modifiedRows = new Map(modifiedRows);
+				});
+			}
+		});
 	});
 </script>
 
@@ -215,18 +247,18 @@
 			bind:columnInferredTypes
 			bind:columnsSanitized
 			bind:create
-			bind:filters
 			bind:filterKeyOptions
 			bind:filtersTemp
 			bind:filtersTempSanitized
 			bind:isCreatable
-			bind:isCreateDialogOpen
+			bind:isCreateModalOpen
 			bind:isDeletable
-			bind:isDeleteDialogOpen
+			bind:isDeleteModalOpen
 			bind:isEditable
 			bind:isFilterable
-			bind:isFilterDialogOpen
+			bind:isFilterModalOpen
 			bind:isPaginateable
+			bind:isSelectable
 			bind:isSortable
 			bind:paginationSettings
 			bind:rows
@@ -236,9 +268,9 @@
 			bind:rowsSanitized
 			bind:rowsSelected
 			bind:settings
-			createDialog={customCreateDialog !== undefined ? customCreateDialog : createDialog}
-			deleteDialog={customDeleteDialog !== undefined ? customDeleteDialog : deleteDialog}
-			filterDialog={customFilterDialog !== undefined ? customFilterDialog : filterDialog}
+			createModal={customCreateModal !== undefined ? customCreateModal : createModal}
+			deleteModal={customDeleteModal !== undefined ? customDeleteModal : deleteModal}
+			filterModal={customFilterModal !== undefined ? customFilterModal : filterModal}
 			pagination={customPagination !== undefined ? customPagination : pagination}
 			tbody={customTbody !== undefined ? customTbody : tbody}
 			th={customTh !== undefined ? customTh : th}
@@ -286,12 +318,43 @@
 					};
 				}}
 			>
-				<Input name="_routeId" type="hidden" value={settings._routeId} />
-				<Input name="currentPage" type="hidden" value={settings.currentPage} />
-				<Input name="filter" type="hidden" value={JSON.stringify(settings.filter)} />
-				<Input name="rowsPerPage" type="hidden" value={settings.rowsPerPage} />
-				<Input name="sortDirection" type="hidden" value={settings.sortDirection} />
-				<Input name="sortKey" type="hidden" value={settings.sortKey} />
+				<Input
+					defaultValue={settings._routeId}
+					name="_routeId"
+					type="hidden"
+					value={settings._routeId}
+				/>
+				<Input
+					defaultValue={settings.currentPage.toString()}
+					name="currentPage"
+					type="hidden"
+					value={settings.currentPage.toString()}
+				/>
+				<Input
+					defaultValue={JSON.stringify(settings.filter)}
+					name="filter"
+					type="hidden"
+					value={JSON.stringify(settings.filter)}
+				/>
+				<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
+				<Input
+					defaultValue={settings.rowsPerPage.toString()}
+					name="rowsPerPage"
+					type="hidden"
+					value={settings.rowsPerPage.toString()}
+				/>
+				<Input
+					defaultValue={settings.sortDirection}
+					name="sortDirection"
+					type="hidden"
+					value={settings.sortDirection}
+				/>
+				<Input
+					defaultValue={settings.sortKey}
+					name="sortKey"
+					type="hidden"
+					value={settings.sortKey}
+				/>
 				<Select bind:value={settings.currentPage} options={paginationSettings.options} />
 			</Form>
 			{@render paginationButton({
@@ -326,12 +389,38 @@
 			};
 		}}
 	>
-		<Input name="_routeId" type="hidden" value={settings._routeId} />
-		<Input name="currentPage" type="hidden" value={currentPage} />
-		<Input name="filter" type="hidden" value={JSON.stringify(settings.filter)} />
-		<Input name="rowsPerPage" type="hidden" value={settings.rowsPerPage} />
-		<Input name="sortDirection" type="hidden" value={settings.sortDirection} />
-		<Input name="sortKey" type="hidden" value={settings.sortKey} />
+		<Input
+			defaultValue={settings._routeId}
+			name="_routeId"
+			type="hidden"
+			value={settings._routeId}
+		/>
+		<Input
+			defaultValue={currentPage.toString()}
+			name="currentPage"
+			type="hidden"
+			value={currentPage.toString()}
+		/>
+		<Input
+			defaultValue={JSON.stringify(settings.filter)}
+			name="filter"
+			type="hidden"
+			value={JSON.stringify(settings.filter)}
+		/>
+		<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
+		<Input
+			defaultValue={settings.rowsPerPage.toString()}
+			name="rowsPerPage"
+			type="hidden"
+			value={settings.rowsPerPage.toString()}
+		/>
+		<Input
+			defaultValue={settings.sortDirection}
+			name="sortDirection"
+			type="hidden"
+			value={settings.sortDirection}
+		/>
+		<Input defaultValue={settings.sortKey} name="sortKey" type="hidden" value={settings.sortKey} />
 		<Button {disabled} type="submit" variants={['icon']}>
 			<Icon />
 		</Button>
@@ -369,10 +458,30 @@
 					};
 				}}
 			>
-				<Input name="_routeId" type="hidden" value={settings._routeId} />
-				<Input name="currentPage" type="hidden" value={settings.currentPage} />
-				<Input name="filter" type="hidden" value={JSON.stringify(settings.filter)} />
-				<Input name="rowsPerPage" type="hidden" value={settings.rowsPerPage} />
+				<Input
+					defaultValue={settings._routeId}
+					name="_routeId"
+					type="hidden"
+					value={settings._routeId}
+				/>
+				<Input
+					defaultValue={settings.currentPage.toString()}
+					name="currentPage"
+					type="hidden"
+					value={settings.currentPage.toString()}
+				/>
+				<Input
+					defaultValue={JSON.stringify(settings.filter)}
+					name="filter"
+					type="hidden"
+					value={JSON.stringify(settings.filter)}
+				/>
+				<Input
+					defaultValue={settings.rowsPerPage.toString()}
+					name="rowsPerPage"
+					type="hidden"
+					value={settings.rowsPerPage.toString()}
+				/>
 				<Input
 					name="sortDirection"
 					type="hidden"
@@ -382,7 +491,7 @@
 							? 'desc'
 							: 'asc'}
 				/>
-				<Input name="sortKey" type="hidden" value={key} />
+				<Input defaultValue={key} name="sortKey" type="hidden" value={key} />
 				<Button
 					class="flex w-full items-center justify-between space-x-2 text-gray-500"
 					type="submit"
@@ -408,10 +517,39 @@
 {#snippet toolbar()}
 	{#if isToolbarVisible}
 		<Div class="flex items-center justify-end space-x-2 px-6 py-3">
+			{#if isEditable}
+				<Form
+					action="/api/mongooseTable?/updateMany"
+					class="w-auto min-w-auto"
+					submitFunction={() => {
+						isLoading = true;
+
+						return async ({ update }) => {
+							await update();
+							isLoading = false;
+						};
+					}}
+				>
+					<Input
+						class="sr-only absolute h-0 w-0"
+						defaultValue={modelName}
+						name="modelName"
+						value={modelName}
+					/>
+					<Input class="sr-only absolute h-0 w-0" name="data" value={JSON.stringify(updatedData)} />
+					<Button
+						disabled={modifiedRows.size > 0 ? undefined : true}
+						type="submit"
+						variants={['success', 'icon']}
+					>
+						<Save />
+					</Button>
+				</Form>
+			{/if}
 			{#if isDeletable}
 				<Button
 					disabled={rowsSelected.length > 0 ? undefined : true}
-					onclick={() => (isDeleteDialogOpen = true)}
+					onclick={() => (isDeleteModalOpen = true)}
 					variants={['error', 'icon']}
 				>
 					<Trash />
@@ -420,8 +558,8 @@
 			{#if isFilterable}
 				<Button
 					onclick={() => {
-						filtersTemp = $state.snapshot(filters);
-						isFilterDialogOpen = true;
+						filtersTemp = $state.snapshot(settings.filter);
+						isFilterModalOpen = true;
 					}}
 					variants={['icon']}
 				>
@@ -436,16 +574,16 @@
 							if (type === 'boolean') obj[key] = false;
 							if (type === 'currency') obj[key] = 0;
 							if (type === 'function') obj[key] = () => {};
+							if (type === 'multiSelect') obj[key] = [];
 							if (type === 'number') obj[key] = 0;
 							if (type === 'object') obj[key] = {};
-							if (type === 'ref') obj[key] = '';
 							if (type === 'select') obj[key] = '';
 							if (type === 'string') obj[key] = '';
 							if (type === 'symbol') obj[key] = Symbol('');
 							if (type === 'timestamp') obj[key] = new Date();
 							return obj;
 						}, {});
-						isCreateDialogOpen = true;
+						isCreateModalOpen = true;
 					}}
 					variants={['icon']}
 				>
@@ -456,16 +594,18 @@
 	{/if}
 {/snippet}
 
-{#snippet createDialog()}
+{#snippet createModal()}
 	{#if columnsSanitized}
-		<Dialog bind:open={isCreateDialogOpen}>
+		<Modal bind:isOpen={isCreateModalOpen}>
 			<Form
 				action="/api/mongooseTable?/create"
-				class="max-w-full"
+				class="max-w-full space-y-6"
 				submitFunction={() => {
+					isLoading = true;
+					isCreateModalOpen = false;
 					return async ({ update }) => {
 						await update();
-						isCreateDialogOpen = false;
+						isLoading = false;
 					};
 				}}
 			>
@@ -475,39 +615,39 @@
 					type="hidden"
 					value={modelName}
 				/>
-				<Card class="space-y-6">
-					<Table>
-						<Tbody>
-							{#each columnsSanitized as { isCreatable, key, label, options, type }}
-								{@const snippet = createSnippetMap.get(type) ?? stringCreate}
-								{#if isCreatable && create?.[key] !== undefined}
-									<Tr>
-										<Td class="whitespace-nowrap">{label}</Td>
-										{@render snippet({ isEditable: true, key, object: create, options })}
-									</Tr>
-								{/if}
-							{/each}
-						</Tbody>
-					</Table>
-					<Div class="flex justify-end space-x-2">
-						<Button type="submit">Add</Button>
-						<Button onclick={() => (isCreateDialogOpen = false)} variants={['ghost']}>Cancel</Button
-						>
-					</Div>
-				</Card>
+				<Table>
+					<Tbody>
+						{#each columnsSanitized as { isCreatable, key, label, options, type }}
+							{@const snippet = createSnippetMap.get(type) ?? stringCreate}
+							{#if isCreatable && create?.[key] !== undefined}
+								<Tr>
+									<Td class="whitespace-nowrap">{label}</Td>
+									{@render snippet({ isEditable: true, key, object: create, options })}
+								</Tr>
+							{/if}
+						{/each}
+					</Tbody>
+				</Table>
+				<Div class="flex justify-end space-x-2">
+					<Button type="submit">Add</Button>
+					<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}>Cancel</Button>
+				</Div>
 			</Form>
-		</Dialog>
+		</Modal>
 	{/if}
 {/snippet}
-{#snippet deleteDialog()}
-	<Dialog bind:open={isDeleteDialogOpen}>
+{#snippet deleteModal()}
+	<Modal bind:isOpen={isDeleteModalOpen}>
 		<Form
 			action="/api/mongooseTable?/delete"
+			class="flex flex-col items-center space-y-6"
 			submitFunction={() => {
+				isLoading = true;
+				isDeleteModalOpen = false;
 				return async ({ update }) => {
 					await update();
+					isLoading = false;
 					rowsCheckboxValues = rowsCheckboxValues.map((_) => false);
-					isDeleteDialogOpen = false;
 				};
 			}}
 		>
@@ -517,30 +657,73 @@
 					<Input name="_id" type="hidden" value={rows[rowIndex]._id} />
 				{/if}
 			{/each}
-			<Card class="items-center space-y-6">
-				<Div class="text-red-500">
-					<TriangleAlert size={80} />
-				</Div>
-				<P>
-					Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
-						? ''
-						: 's'}?<br />
-					This cannot be undone.
-				</P>
-				<Div>{JSON.stringify(rowsSelected, null, 2)}</Div>
-				<Div class="grid w-full grid-cols-2 gap-4">
-					<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}
-						>Cancel</Button
-					>
-					<Button autoFocus={true} type="submit" variants={['error']}>Delete</Button>
-				</Div>
-			</Card>
+			<Div class="text-red-500">
+				<TriangleAlert size={80} />
+			</Div>
+			<P>
+				Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
+					? ''
+					: 's'}?<br />
+				This cannot be undone.
+			</P>
+			<Div class="grid w-full grid-cols-2 gap-4">
+				<Button onclick={() => (isDeleteModalOpen = false)} variants={['contrast']}>Cancel</Button>
+				<Button type="submit" variants={['error']}>Delete</Button>
+			</Div>
 		</Form>
-	</Dialog>
+	</Modal>
 {/snippet}
-{#snippet filterDialog()}
-	<Dialog bind:open={isFilterDialogOpen}>
-		<Card class="space-y-6">
+{#snippet filterModal()}
+	<Modal bind:isOpen={isFilterModalOpen}>
+		<Form
+			action="/api/mongooseTable?/find"
+			class="max-w-auto space-y-6"
+			submitFunction={() => {
+				isLoading = true;
+				isFilterModalOpen = false;
+				return async ({ update }) => {
+					await update();
+					isLoading = false;
+				};
+			}}
+		>
+			<Input
+				defaultValue={settings._routeId}
+				name="_routeId"
+				type="hidden"
+				value={settings._routeId}
+			/>
+			<Input
+				defaultValue={settings.currentPage.toString()}
+				name="currentPage"
+				type="hidden"
+				value={settings.currentPage.toString()}
+			/>
+			<Input
+				defaultValue={JSON.stringify(filtersTemp)}
+				name="filter"
+				type="hidden"
+				value={JSON.stringify(filtersTemp)}
+			/>
+			<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
+			<Input
+				defaultValue={settings.rowsPerPage.toString()}
+				name="rowsPerPage"
+				type="hidden"
+				value={settings.rowsPerPage.toString()}
+			/>
+			<Input
+				defaultValue={settings.sortDirection}
+				name="sortDirection"
+				type="hidden"
+				value={settings.sortDirection}
+			/>
+			<Input
+				defaultValue={settings.sortKey}
+				name="sortKey"
+				type="hidden"
+				value={settings.sortKey}
+			/>
 			<Div class="flex items-center justify-end space-x-2">
 				<Button
 					onclick={() => {
@@ -566,7 +749,7 @@
 				<Tbody>
 					{#if filtersTemp.length === 0}
 						<Tr>
-							<Td colspan="4">No Filters</Td>
+							<Td colspan={4}>No Filters</Td>
 						</Tr>
 					{:else}
 						{#each filtersTemp as _, filterTempIndex}
@@ -612,20 +795,11 @@
 				</Tbody>
 			</Table>
 			<Div class="flex justify-end space-x-2">
-				<Button
-					onclick={() => {
-						filters = $state
-							.snapshot(filtersTemp)
-							.filter(({ key, operator }) => key !== '' && operator !== '');
-						isFilterDialogOpen = false;
-					}}
-				>
-					Apply
-				</Button>
-				<Button onclick={() => (isFilterDialogOpen = false)} variants={['ghost']}>Cancel</Button>
+				<Button type="submit">Apply</Button>
+				<Button onclick={() => (isFilterModalOpen = false)} variants={['ghost']}>Cancel</Button>
 			</Div>
-		</Card>
-	</Dialog>
+		</Form>
+	</Modal>
 {/snippet}
 
 {#snippet bigintCreate({}: TdSnippet)}
@@ -657,6 +831,16 @@
 {/snippet}
 {#snippet functionCreate({}: TdSnippet)}
 	<Td />
+{/snippet}
+{#snippet multiSelectCreate({ key, object, options }: TdSnippet)}
+	<Td class="hover:outline-primary-500/0 p-0">
+		<MultiSelect
+			bind:value={object[key]}
+			class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+			name={key}
+			{options}
+		/>
+	</Td>
 {/snippet}
 {#snippet numberCreate({ key, object }: TdSnippet)}
 	<Td class="hover:outline-primary-500/0 p-0">

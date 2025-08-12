@@ -1,35 +1,28 @@
-import { connect, type Filter, type Model, type Query, type Settings, type Sort } from './';
+import { connect, type Model, type Query, type Settings, type Sort } from './';
 
 type ModelParams<T> = {
 	model: Model<T>;
-	settings: Settings;
-	filter?: Filter;
+	settings: Omit<Settings, 'filter'> & { mongoFilter: Record<string, any> };
 };
-type Params<T> = ModelParams<T> | QueryParams<T>;
 type QueryParams<T> = {
 	query: () => Query<T[], T>;
-	settings: Settings;
+	settings: Omit<Settings, 'filter'> & { mongoFilter: Record<string, any> };
 };
+type Params<T> = ModelParams<T> | QueryParams<T>;
 
 export const getRows = async <T>(params: Params<T>): Promise<T[]> => {
 	await connect();
 
-	const { currentPage, rowsPerPage, sortDirection, sortKey } = params.settings;
+	const { currentPage, mongoFilter, rowsPerPage, sortDirection, sortKey } = params.settings;
 	const skip = currentPage * rowsPerPage;
-	const sort: Sort = {
-		[sortKey]: sortDirection === 'asc' ? 1 : -1
-	};
+	const sort: Sort = { [sortKey]: sortDirection === 'asc' ? 1 : -1 };
 
 	let query: Query<T[], T>;
-
 	if ('query' in params) {
-		query = params.query().sort(sort).skip(skip).limit(rowsPerPage);
+		// Apply filter on top of the caller's base query
+		query = params.query().find(mongoFilter).sort(sort).skip(skip).limit(rowsPerPage);
 	} else {
-		query = params.model
-			.find(params.filter || {})
-			.sort(sort)
-			.skip(skip)
-			.limit(rowsPerPage);
+		query = params.model.find(mongoFilter).sort(sort).skip(skip).limit(rowsPerPage);
 	}
 
 	const rows = await query.lean().exec();

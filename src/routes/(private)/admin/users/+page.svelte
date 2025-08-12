@@ -1,4 +1,14 @@
 <script lang="ts">
+	import { Div, MongooseTable } from '$lib/components';
+
+	let { data } = $props();
+</script>
+
+<Div class="flex flex-col p-4">
+	<MongooseTable {data} modelName={'User'} />
+</Div>
+
+<!-- <script lang="ts">
 	import { deserialize } from '$app/forms';
 	import {
 		MongooseTable,
@@ -233,4 +243,4 @@
 			value={object[key]}
 		/>
 	</Td>
-{/snippet}
+{/snippet} -->

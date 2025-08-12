@@ -19,6 +19,7 @@ export type ColumnType =
 	| 'boolean'
 	| 'currency'
 	| 'function'
+	| 'multiSelect'
 	| 'number'
 	| 'object'
 	| 'select'
@@ -47,10 +48,10 @@ export type Props = {
 	columnInferredTypes?: ColumnType[];
 	columnsSanitized?: ColumnSanitized[];
 	create?: Record<string, any>;
-	createDialog?: Snippet;
-	deleteDialog?: Snippet;
+	createModal?: Snippet;
+	deleteModal?: Snippet;
 	filters?: Filter[];
-	filterDialog?: Snippet;
+	filterModal?: Snippet;
 	filterKeyOptions?: Option[];
 	filtersTemp?: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[];
 	filtersTempSanitized?: {
@@ -61,12 +62,12 @@ export type Props = {
 		value: any;
 	}[];
 	isCreatable?: boolean;
-	isCreateDialogOpen?: boolean;
+	isCreateModalOpen?: boolean;
 	isDeletable?: boolean;
-	isDeleteDialogOpen?: boolean;
+	isDeleteModalOpen?: boolean;
 	isEditable?: boolean;
 	isFilterable?: boolean;
-	isFilterDialogOpen?: boolean;
+	isFilterModalOpen?: boolean;
 	isPaginateable?: boolean;
 	isSelectable?: boolean;
 	isSortable?: boolean;
@@ -93,7 +94,7 @@ export type RowSanitized = {
 };
 export type Settings = {
 	currentPage: number;
-	filter: object;
+	filter: Filter[];
 	rowsPerPage: number;
 	sortDirection: 'asc' | 'desc';
 	sortKey: string;

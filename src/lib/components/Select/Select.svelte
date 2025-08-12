@@ -1,35 +1,25 @@
 <script lang="ts">
 	import { type Snippet } from 'svelte';
-	import { type Attachment } from 'svelte/attachments';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory } from '$lib/attachments';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
+	import { Div, Label, Option } from '../';
 
-	import Div from '../Div/Div.svelte';
-	import Label from '../Label/Label.svelte';
-	import Option from '../Option/Option.svelte';
-
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLSelectElement>, 'class' | 'value'> & {
 		children?: Snippet;
 		class?: string;
+		element?: HTMLSelectElement | null;
 		label?: string;
-		name?: string;
-		options: { label: string; value: number | string }[];
-		required?: boolean;
-		style?: string;
-		variants?: string[];
+		options?: { label: string; value: number | string }[];
 		value?: number | string;
+		variants?: string[];
 	} & any;
 	let {
-		attachments = $bindable([]),
 		children,
 		class: className,
+		element = $bindable(null),
 		label,
-		name,
-		options,
-		required,
-		style,
+		options = [],
 		value = $bindable(),
 		variants = [],
 		...restProps
@@ -48,16 +38,13 @@
 {#snippet select()}
 	<select
 		{...restProps}
-		{@attach attachmentFactory(attachments)}
+		bind:this={element}
 		bind:value
 		class={twMerge(
-			$themeStore.Select.default,
-			...variants.map((variant: string) => $themeStore.Select[variant]),
+			$theme.Select.default,
+			...variants.map((variant: string) => $theme.Select[variant]),
 			className
 		)}
-		{name}
-		{required}
-		{style}
 	>
 		{#if children}
 			{@render children()}

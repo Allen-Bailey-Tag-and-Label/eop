@@ -8,50 +8,52 @@
 		ChevronLeft,
 		ChevronRight,
 		Funnel,
+		Key,
 		Plus,
 		Trash,
 		TriangleAlert
 	} from '$lib/icons';
 	import { currency, dateTime, inputDateTimeLocal } from '$lib/formats';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
+	import {
+		Button,
+		Card,
+		Checkbox,
+		Div,
+		Input,
+		Modal,
+		MultiSelect,
+		P,
+		Select,
+		Table,
+		Tbody,
+		Td,
+		Th,
+		Thead,
+		Tr
+	} from '../';
 
-	import Button from '../Button/Button.svelte';
-	import Card from '../Card/Card.svelte';
-	import Checkbox from '../Checkbox/Checkbox.svelte';
-	import Dialog from '../Dialog/Dialog.svelte';
-	import Div from '../Div/Div.svelte';
-	import Input from '../Input/Input.svelte';
-	import P from '../P/P.svelte';
-	import Select from '../Select/Select.svelte';
-	import Table from '../Table/Table.svelte';
-	import Tbody from '../Tbody/Tbody.svelte';
-	import Td from '../Td/Td.svelte';
-	import Th from '../Th/Th.svelte';
-	import Thead from '../Thead/Thead.svelte';
-	import Tr from '../Tr/Tr.svelte';
-
-	import { compareFn, filterOperatorOptions } from './';
-	import type { ColumnType, Props, RowSanitized, TdSnippet } from './types';
+	import { compareFn, filterOperatorOptions, getAt, setAt } from './';
+	import type { ColumnType, Props, TdSnippet } from './types';
 
 	let {
 		columns = $bindable([]),
 		columnInferredTypes = $bindable([]),
 		columnsSanitized = $bindable([]),
 		create = $bindable({}),
-		createDialog,
-		deleteDialog,
-		filters = $bindable([]),
-		filterDialog,
+		createModal,
+		deleteModal,
+		filterModal,
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
 		isCreatable = $bindable(true),
-		isCreateDialogOpen = $bindable(false),
+		isCreateModalOpen = $bindable(false),
 		isDeletable = $bindable(true),
-		isDeleteDialogOpen = $bindable(false),
+		isDeleteModalOpen = $bindable(false),
 		isEditable = $bindable(true),
 		isFilterable = $bindable(true),
-		isFilterDialogOpen = $bindable(false),
+		isFilterModalOpen = $bindable(false),
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
 		isSortable = $bindable(true),
@@ -73,7 +75,7 @@
 		rowsSelected = $bindable([]),
 		settings = $bindable({
 			currentPage: 0,
-			filter: {},
+			filter: [],
 			rowsPerPage: 10,
 			sortDirection: 'asc',
 			sortKey: ''
@@ -90,6 +92,7 @@
 		['boolean', booleanTd],
 		['currency', currencyTd],
 		['function', functionTd],
+		['multiSelect', multiSelectTd],
 		['number', numberTd],
 		['object', objectTd],
 		['select', selectTd],
@@ -221,7 +224,8 @@
 	});
 	$effect(() => {
 		rowsFiltered = rowsSanitized.filter(({ row }) => {
-			return filters.every(({ key, operator, value }) => {
+			if (!settings?.filter) return;
+			return settings.filter.every(({ key, operator, value }) => {
 				const cell = row[key];
 
 				switch (operator) {
@@ -263,7 +267,7 @@
 	});
 	$effect(() => {
 		if (settings.currentPage === undefined) settings.currentPage = 0;
-		if (settings.filter === undefined) settings.filter = {};
+		if (settings.filter === undefined) settings.filter = [];
 		if (settings.rowsPerPage === undefined) settings.rowsPerPage = 10;
 		if (settings.sortDirection === undefined) settings.sortDirection = 'asc';
 		if (settings.sortKey === undefined) settings.sortKey = columnsSanitized[0].key;
@@ -278,7 +282,7 @@
 			{#if isDeletable}
 				<Button
 					disabled={rowsSelected.length > 0 ? undefined : true}
-					onclick={() => (isDeleteDialogOpen = true)}
+					onclick={() => (isDeleteModalOpen = true)}
 					variants={['error', 'icon']}
 				>
 					<Trash />
@@ -287,8 +291,8 @@
 			{#if isFilterable}
 				<Button
 					onclick={() => {
-						filtersTemp = $state.snapshot(filters);
-						isFilterDialogOpen = true;
+						filtersTemp = $state.snapshot(settings.filter);
+						isFilterModalOpen = true;
 					}}
 					variants={['icon']}
 				>
@@ -298,20 +302,23 @@
 			{#if isCreatable}
 				<Button
 					onclick={() => {
-						create = columnsSanitized.reduce((obj: Record<string, any>, { key, type }) => {
-							if (type === 'bigint') obj[key] = BigInt(0);
-							if (type === 'boolean') obj[key] = false;
-							if (type === 'currency') obj[key] = 0;
-							if (type === 'function') obj[key] = () => {};
-							if (type === 'number') obj[key] = 0;
-							if (type === 'object') obj[key] = {};
-							if (type === 'select') obj[key] = '';
-							if (type === 'string') obj[key] = '';
-							if (type === 'symbol') obj[key] = Symbol('');
-							if (type === 'timestamp') obj[key] = new Date();
-							return obj;
+						create = columnsSanitized.reduce((object: Record<string, any>, { key, type }) => {
+							let value: any = '';
+							if (type === 'bigint') value = BigInt(0);
+							if (type === 'boolean') value = false;
+							if (type === 'currency') value = 0;
+							if (type === 'function') value = () => {};
+							if (type === 'multiSelect') value = [];
+							if (type === 'number') value = 0;
+							if (type === 'object') value = {};
+							if (type === 'select') value = '';
+							if (type === 'string') value = '';
+							if (type === 'symbol') value = Symbol('');
+							if (type === 'timestamp') value = new Date();
+							setAt(object, key, value);
+							return object;
 						}, {});
-						isCreateDialogOpen = true;
+						isCreateModalOpen = true;
 					}}
 					variants={['icon']}
 				>
@@ -394,7 +401,7 @@
 										}}
 										variants={['ghost', 'square']}
 									>
-										<Div class={twMerge($themeStore.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+										<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
 											{label}
 										</Div>
 										{#if isSortable}
@@ -441,14 +448,14 @@
 	{:else if isPaginateable !== false}
 		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
 			<Button
-				disabled={settings.currentPage === 0 ? 'disabled' : undefined}
+				disabled={settings.currentPage === 0 ? true : undefined}
 				onclick={() => (settings.currentPage = 0)}
 				variants={['icon']}
 			>
 				<ChevronFirst />
 			</Button>
 			<Button
-				disabled={settings.currentPage === 0 ? 'disabled' : undefined}
+				disabled={settings.currentPage === 0 ? true : undefined}
 				onclick={() => (settings.currentPage = (settings.currentPage ?? 1) - 1)}
 				variants={['icon']}
 			>
@@ -457,7 +464,7 @@
 			<Select bind:value={settings.currentPage} options={paginationSettings.options} />
 			<Button
 				disabled={settings.currentPage === Math.max(0, paginationSettings.totalPages - 1)
-					? 'disabled'
+					? true
 					: undefined}
 				onclick={() => (settings.currentPage = (settings.currentPage ?? 0) + 1)}
 				variants={['icon']}
@@ -466,7 +473,7 @@
 			</Button>
 			<Button
 				disabled={settings.currentPage === Math.max(0, paginationSettings.totalPages - 1)
-					? 'disabled'
+					? true
 					: undefined}
 				onclick={() => (settings.currentPage = paginationSettings.totalPages - 1)}
 				variants={['icon']}
@@ -477,88 +484,84 @@
 	{/if}
 </Card>
 
-{#if createDialog}
-	{@render createDialog()}
+{#if createModal}
+	{@render createModal()}
 {:else}
-	<Dialog bind:open={isCreateDialogOpen}>
-		<Card class="space-y-6">
-			<Table>
-				<Tbody>
-					{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
-						{#if isCreatable}
-							<Tr>
-								<Td class="whitespace-nowrap">{label}</Td>
-								{@render snippet({ isEditable: true, key, object: create, options })}
-							</Tr>
-						{/if}
-					{/each}
-				</Tbody>
-			</Table>
-			<Div class="flex justify-end space-x-2">
-				<Button
-					onclick={() => {
-						rows.push({ ...create });
-						isCreateDialogOpen = false;
-					}}
-				>
-					Add
-				</Button>
-				<Button onclick={() => (isCreateDialogOpen = false)} variants={['ghost']}>Cancel</Button>
-			</Div>
-		</Card>
-	</Dialog>
+	<Modal bind:isOpen={isCreateModalOpen} class="space-y-6">
+		<Table>
+			<Tbody>
+				{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
+					{#if isCreatable}
+						<Tr>
+							<Td class="whitespace-nowrap">{label}</Td>
+							{@render snippet({ isEditable: true, key, object: create, options })}
+						</Tr>
+					{/if}
+				{/each}
+			</Tbody>
+		</Table>
+		<Div class="flex justify-end space-x-2">
+			<Button
+				onclick={() => {
+					rows.push({ ...create });
+					isCreateModalOpen = false;
+				}}
+			>
+				Add
+			</Button>
+			<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}>Cancel</Button>
+		</Div>
+	</Modal>
 {/if}
 
-{#if deleteDialog}
-	{@render deleteDialog()}
+{#if deleteModal}
+	{@render deleteModal()}
 {:else}
-	<Dialog bind:open={isDeleteDialogOpen}>
-		<Card class="items-center space-y-6">
-			<Div class="text-red-500">
-				<TriangleAlert size={80} />
-			</Div>
-			<P>
-				Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
-					? ''
-					: 's'}?<br />
-				This cannot be undone.
-			</P>
-			<Div class="grid w-full grid-cols-2 gap-4">
-				<Button onclick={() => (isDeleteDialogOpen = false)} variants={['contrast']}>Cancel</Button>
-				<Button
-					autoFocus={true}
-					onclick={() => {
-						rows = rows.filter((_, rowIndex) => !rowsCheckboxValues[rowIndex]);
-						rowsCheckboxValues = rowsCheckboxValues.filter((rowCheckboxValue) => !rowCheckboxValue);
-						isDeleteDialogOpen = false;
-					}}
-					variants={['error']}
-				>
-					Delete
-				</Button>
-			</Div>
-		</Card>
-	</Dialog>
+	<Modal bind:isOpen={isDeleteModalOpen} class="items-center space-y-6">
+		<Div class="text-red-500">
+			<TriangleAlert size={80} />
+		</Div>
+		<P>
+			Are you sure you want to delete {rowsSelected.length} row{rowsSelected.length === 1
+				? ''
+				: 's'}?<br />
+			This cannot be undone.
+		</P>
+		<Div class="grid w-full grid-cols-2 gap-4">
+			<Button onclick={() => (isDeleteModalOpen = false)} variants={['contrast']}>Cancel</Button>
+			<Button
+				autofocus={true}
+				onclick={() => {
+					rows = rows.filter((_, rowIndex) => !rowsCheckboxValues[rowIndex]);
+					rowsCheckboxValues = rowsCheckboxValues.filter((rowCheckboxValue) => !rowCheckboxValue);
+					isDeleteModalOpen = false;
+				}}
+				variants={['error']}
+			>
+				Delete
+			</Button>
+		</Div>
+	</Modal>
 {/if}
 
-{#if filterDialog}
-	{@render filterDialog()}
+{#if filterModal}
+	{@render filterModal()}
 {:else}
-	<Dialog bind:open={isFilterDialogOpen}>
-		<Card class="space-y-6">
-			<Div class="flex items-center justify-end space-x-2">
-				<Button
-					onclick={() => {
-						filtersTemp.push({ key: '', operator: '', options: [], value: '' });
-					}}
-				>
-					<Div class="flex items-center space-x-2">
-						<Plus />
-						<Div>Add Filter</Div>
-					</Div>
-				</Button>
-				<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
-			</Div>
+	<Modal bind:isOpen={isFilterModalOpen} class="space-y-6">
+		<Div class="flex items-center justify-end space-x-2">
+			<Button
+				onclick={() => {
+					filtersTemp.push({ key: '', operator: '', options: [], value: '' });
+				}}
+			>
+				<Div class="flex items-center space-x-2">
+					<Plus />
+					<Div>Add Filter</Div>
+				</Div>
+			</Button>
+			<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
+		</Div>
+		<Div class="relative flex flex-col overflow-auto">
 			<Table>
 				<Thead>
 					<Tr>
@@ -571,7 +574,7 @@
 				<Tbody>
 					{#if filtersTemp.length === 0}
 						<Tr>
-							<Td colspan="4">No Filters</Td>
+							<Td colspan={4}>No Filters</Td>
 						</Tr>
 					{:else}
 						{#each filtersTemp as _, filterTempIndex}
@@ -616,21 +619,21 @@
 					{/if}
 				</Tbody>
 			</Table>
-			<Div class="flex justify-end space-x-2">
-				<Button
-					onclick={() => {
-						filters = $state
-							.snapshot(filtersTemp)
-							.filter(({ key, operator }) => key !== '' && operator !== '');
-						isFilterDialogOpen = false;
-					}}
-				>
-					Apply
-				</Button>
-				<Button onclick={() => (isFilterDialogOpen = false)} variants={['ghost']}>Cancel</Button>
-			</Div>
-		</Card>
-	</Dialog>
+		</Div>
+		<Div class="flex justify-end space-x-2">
+			<Button
+				onclick={() => {
+					settings.filter = $state
+						.snapshot(filtersTemp)
+						.filter(({ key, operator }) => key !== '' && operator !== '');
+					isFilterModalOpen = false;
+				}}
+			>
+				Apply
+			</Button>
+			<Button onclick={() => (isFilterModalOpen = false)} variants={['ghost']}>Cancel</Button>
+		</Div>
+	</Modal>
 {/if}
 
 {#snippet bigintTd(_: TdSnippet)}
@@ -640,16 +643,18 @@
 	{#if isEditable}
 		<Td>
 			<Checkbox
-				checked={object?.[key] ?? false}
-				onchange={(e) => {
-					if (!e?.currentTarget) return;
-					const element = e.currentTarget as HTMLInputElement;
-					object[key] = element.checked;
-				}}
+				bind:checked={
+					() => {
+						return getAt(object, key);
+					},
+					(value) => {
+						setAt(object, key, value);
+					}
+				}
 			/>
 		</Td>
 	{:else}
-		<Td class="uppercase">{object?.[key]}</Td>
+		<Td class="uppercase">{getAt(object, key)}</Td>
 	{/if}
 {/snippet}
 {#snippet currencyTd({ isEditable, key, object }: TdSnippet)}
@@ -658,16 +663,14 @@
 			<Div
 				bind:innerHTML={
 					() => {
-						if (object?.[key] === undefined) return '';
-						return currency(object[key]);
+						return currency(getAt(object, key));
 					},
 					(string) => {
-						const value = parseFloat(string.replace(/[^0-9.-]+/g, ''));
-						object[key] = value;
+						setAt(object, key, parseFloat(string.replace(/[^0-9.-]+/g, '')));
 					}
 				}
 				class={twMerge(
-					$themeStore.Input.default,
+					$theme.Input.default,
 					'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
@@ -677,12 +680,34 @@
 		</Td>
 	{:else}
 		<Td class="text-right whitespace-nowrap">
-			{currency(object?.[key] || JSON.stringify(object?.[key], null, 2))}
+			{currency(getAt(object, key))}
 		</Td>
 	{/if}
 {/snippet}
 {#snippet functionTd(_: TdSnippet)}
 	<Td>Function</Td>
+{/snippet}
+{#snippet multiSelectTd({ isEditable, key, object, options }: TdSnippet)}
+	{#if isEditable}
+		<Td class="hover:outline-primary-500/0 p-0">
+			<MultiSelect
+				bind:value={
+					() => {
+						return getAt(object, key);
+					},
+					(value) => {
+						setAt(object, key, value);
+					}
+				}
+				class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				{options}
+			/>
+		</Td>
+	{:else}
+		<Td class="whitespace-nowrap">
+			{options.find((option: any) => option.value === getAt(object, key))?.label ?? "can't find"}
+		</Td>
+	{/if}
 {/snippet}
 {#snippet numberTd({ isEditable, key, object }: TdSnippet)}
 	{#if isEditable}
@@ -690,27 +715,28 @@
 			<Div
 				bind:innerHTML={
 					() => {
-						if (object?.[key] === undefined) return '';
-						if (typeof object[key] === 'number') return object[key].toString();
-						return object[key];
+						const value = getAt(object, key);
+						if (typeof value === 'number') return value.toString();
+						return value;
 					},
 					(value) => {
-						value = typeof value === 'number' ? value : parseFloat(value.replace(/[^0-9.-]+/g, ''));
-						object[key] = value;
+						if (typeof value === 'number') setAt(object, key, value);
+						if (typeof value === 'string')
+							setAt(object, key, parseFloat(value.replace(/[^0-9.-]+/g, '')));
 					}
 				}
 				class={twMerge(
-					$themeStore.Input.default,
+					$theme.Input.default,
 					'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
-				{object?.[key]}
+				{getAt(object, key)}
 			</Div>
 		</Td>
 	{:else}
 		<Td class="text-right whitespace-nowrap">
-			{object?.[key] || JSON.stringify(object?.[key], null, 2)}
+			{getAt(object, key)}
 		</Td>
 	{/if}
 {/snippet}
@@ -723,20 +749,19 @@
 			<Select
 				bind:value={
 					() => {
-						if (object?.[key] === undefined) return '';
-						return object[key];
+						return getAt(object, key);
 					},
 					(value) => {
-						object[key] = value;
+						setAt(object, key, value);
 					}
 				}
-				class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
 				{options}
 			/>
 		</Td>
 	{:else}
 		<Td class="whitespace-nowrap">
-			{options.find((option: any) => option.value === object?.[key])?.label ?? "can't find"}
+			{options.find((option: any) => option.value === getAt(object, key))?.label ?? "can't find"}
 		</Td>
 	{/if}
 {/snippet}
@@ -746,24 +771,23 @@
 			<Div
 				bind:innerHTML={
 					() => {
-						if (object?.[key] === undefined) return '';
-						return object[key];
+						return getAt(object, key);
 					},
 					(value) => {
-						object[key] = value;
+						setAt(object, key, value);
 					}
 				}
 				class={twMerge(
-					$themeStore.Input.default,
+					$theme.Input.default,
 					'rounded-none bg-transparent whitespace-nowrap outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
-				{object?.[key]}
+				{getAt(object, key)}
 			</Div>
 		</Td>
 	{:else}
-		<Td class="whitespace-nowrap">{object?.[key] ?? ''}</Td>
+		<Td class="whitespace-nowrap">{getAt(object, key)}</Td>
 	{/if}
 {/snippet}
 {#snippet symbolTd(_: TdSnippet)}
@@ -775,11 +799,10 @@
 			<Input
 				bind:value={
 					() => {
-						if (object?.[key] === undefined) return '';
-						return inputDateTimeLocal(object?.[key]);
+						return inputDateTimeLocal(getAt(object, key));
 					},
 					(value: string) => {
-						object[key] = new Date(value);
+						setAt(objectTd, key, new Date(value));
 					}
 				}
 				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
@@ -787,7 +810,7 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap">{dateTime(object?.[key])}</Td>
+		<Td class="text-right whitespace-nowrap">{dateTime(getAt(object, key))}</Td>
 	{/if}
 {/snippet}
 {#snippet undefinedTd(_: TdSnippet)}

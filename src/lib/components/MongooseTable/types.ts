@@ -27,5 +27,6 @@ export type Props = Omit<DatatableProps, 'columns' | 'columnsSanitized' | 'rows'
 	rows?: Row[];
 	settings?: Settings;
 	totalRows?: number;
+	virtualColumns?: Column[];
 };
 export type Settings = DatatableSettings & { _routeId: string };

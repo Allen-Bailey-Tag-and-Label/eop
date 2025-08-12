@@ -1,27 +1,22 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory } from '$lib/attachments';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
 
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLButtonElement>, 'class' | 'disabled'> & {
 		children?: Snippet;
 		class?: string;
 		disabled?: boolean;
-		style?: string;
-		tabIndex?: string;
+		element?: HTMLButtonElement | null;
 		type?: 'button' | 'submit';
 		variants?: string[];
-	} & any;
+	};
 	let {
-		attachments = $bindable([]),
 		children,
 		class: className,
 		disabled,
-		style,
-		tabIndex,
+		element = $bindable(null),
 		type = 'button',
 		variants = [],
 		...restProps
@@ -30,16 +25,14 @@
 
 <button
 	{...restProps}
-	{@attach attachmentFactory(attachments)}
+	bind:this={element}
 	class={twMerge(
-		$themeStore.Button.default,
-		...variants.map((variant: string) => $themeStore.Button[variant]),
-		disabled ? $themeStore.Button.disabled : undefined,
+		$theme.Button.default,
+		...variants.map((variant: string) => $theme.Button[variant]),
+		disabled ? $theme.Button.disabled : undefined,
 		className
 	)}
 	{disabled}
-	{style}
-	{tabIndex}
 	{type}
 >
 	{#if children}

@@ -1,26 +1,19 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory, typeFactory } from '$lib/attachments';
-	import { Eye, EyeOff } from '$lib/icons';
-	import { theme as themeStore } from '$lib/theme';
+	import { typeFactory } from '$lib/attachments';
+	import { theme } from '$lib/theme';
+	import { Div, Label } from '../';
 
-	import Button from '../Button/Button.svelte';
-	import Div from '../Div/Div.svelte';
-	import Label from '../Label/Label.svelte';
-
-	type Props = {
-		attachments?: Attachment[];
-		autoFocus?: boolean;
+	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'checked' | 'class' | 'name'> & {
 		checked?: boolean;
 		children?: Snippet;
 		class?: string;
-		isPasswordButtonVisible?: boolean;
+		defaultValue?: string;
+		element?: HTMLInputElement | null;
 		label?: string;
 		name?: string;
-		required?: boolean;
-		style?: string;
 		type?:
 			| 'button'
 			| 'checkbox'
@@ -46,23 +39,19 @@
 			| 'week';
 		value?: string;
 		variants?: string[];
-	} & any;
+	};
 
-	const passwordTypeButtonClickHandler = () =>
-		type === 'text' ? (type = 'password') : (type = 'text');
 	let {
-		attachments = $bindable([]),
-		autoFocus = $bindable(),
-		checked = $bindable(),
+		checked = $bindable(false),
 		children,
 		class: className,
-		isPasswordButtonVisible = false,
+		defaultValue,
+		element = $bindable(null),
 		label,
 		name,
-		required,
 		style,
 		type = 'text',
-		value = $bindable(),
+		value = $bindable(''),
 		variants = [],
 		...restProps
 	}: Props = $props();
@@ -82,67 +71,30 @@
 		<input
 			{...restProps}
 			{@attach typeFactory(type)}
-			{@attach attachmentFactory(attachments)}
-			{autoFocus}
 			bind:checked
+			bind:this={element}
 			class={twMerge(
-				$themeStore.Input.default,
-				...variants.map((variant: string) => $themeStore.Input[variant]),
+				$theme.Input.default,
+				...variants.map((variant: string) => $theme.Input[variant]),
 				className
 			)}
+			{defaultValue}
 			{name}
-			{required}
-			{style}
 			type="checkbox"
-			{value}
 		/>
-	{:else if type === 'password'}
-		<Div class="relative w-full">
-			<input
-				{...restProps}
-				{@attach typeFactory(type)}
-				{@attach attachmentFactory(attachments)}
-				{autoFocus}
-				bind:value
-				class={twMerge(
-					'w-full',
-					$themeStore.Input.default,
-					...variants.map((variant: string) => $themeStore.Input[variant]),
-					className
-				)}
-				{name}
-				{required}
-				{style}
-			/>
-			{#if isPasswordButtonVisible}
-				<Button
-					class="absolute top-0 right-3"
-					onclick={passwordTypeButtonClickHandler}
-					variants={['ghost', 'icon']}
-				>
-					{#if type === 'password'}
-						<EyeOff />
-					{:else}
-						<Eye />
-					{/if}
-				</Button>
-			{/if}
-		</Div>
 	{:else}
 		<input
 			{...restProps}
 			{@attach typeFactory(type)}
-			{@attach attachmentFactory(attachments)}
-			{autoFocus}
+			bind:this={element}
 			bind:value
 			class={twMerge(
-				$themeStore.Input.default,
-				...variants.map((variant: string) => $themeStore.Input[variant]),
+				$theme.Input.default,
+				...variants.map((variant: string) => $theme.Input[variant]),
 				className
 			)}
+			{defaultValue}
 			{name}
-			{required}
-			{style}
 		/>
 	{/if}
 {/snippet}

@@ -2,4 +2,4 @@
 	import { Div } from '$lib/components';
 </script>
 
-<Div class="flex flex-col p-4">Dashboard</Div>
+<Div class="flex flex-col items-start p-4">Dashboard</Div>

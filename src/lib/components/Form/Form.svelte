@@ -1,17 +1,13 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { twMerge } from 'tailwind-merge';
-	import type { Attachment } from 'svelte/attachments';
-	import { enhance } from '$app/forms';
-	import { attachmentFactory } from '$lib/attachments';
-	import { theme as themeStore } from '$lib/theme';
-
-	import Div from '../Div/Div.svelte';
-
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { twMerge } from 'tailwind-merge';
+	import { enhance } from '$app/forms';
+	import { theme } from '$lib/theme';
+	import { Div } from '../';
 
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLFormElement>, 'class' | 'style'> & {
 		action?: string;
 		buttons?: Snippet;
 		children?: Snippet;
@@ -23,10 +19,9 @@
 		submitFunction?: SubmitFunction;
 		style?: string;
 		variants?: string[];
-	} & HTMLFormElement;
+	};
 	let {
 		action,
-		attachments = $bindable([]),
 		buttons,
 		children,
 		class: className,
@@ -45,11 +40,10 @@
 
 <form
 	{...restProps}
-	{@attach attachmentFactory(attachments)}
 	{action}
 	class={twMerge(
-		$themeStore.Form.default,
-		...variants.map((variant: string) => $themeStore.Form[variant]),
+		$theme.Form.default,
+		...variants.map((variant: string) => $theme.Form[variant]),
 		className
 	)}
 	{method}

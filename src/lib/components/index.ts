@@ -11,6 +11,7 @@ export { default as H2 } from './H2/H2.svelte';
 export { default as Header } from './Header/Header.svelte';
 export { default as Input } from './Input/Input.svelte';
 export { default as Label } from './Label/Label.svelte';
+export { default as Modal } from './Modal/Modal.svelte';
 export { default as MultiSelect } from './MultiSelect/MultiSelect.svelte';
 export { default as MongooseTable } from './MongooseTable/MongooseTable.svelte';
 export { default as Option } from './Option/Option.svelte';

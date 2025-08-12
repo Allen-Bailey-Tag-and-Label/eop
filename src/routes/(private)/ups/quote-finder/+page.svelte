@@ -1,78 +1,21 @@
 <script lang="ts">
-	import { twMerge } from 'tailwind-merge';
-	import { A, MongooseTable, Div, Td } from '$lib/components';
-	import { type Column, type TdSnippet } from '$lib/components/MongooseTable/types.js';
-	import { localState } from '$lib/localState';
-	import { theme } from '$lib/theme/index.js';
-	import { type Row, type RowPromise } from './types';
+	import { Div, MongooseTable } from '$lib/components';
 
 	let { data } = $props();
-	let columns: Column[] = $state([
-		{ isFilterable: false, key: ' ', snippet: optionsTd },
-		{ label: 'Quote #', key: 'quote', type: 'number' },
-		'address',
-		'city',
-		'state',
-		'zip',
-		{
-			key: 'classification',
-			options: ['', 'Commercial', 'Residential', 'Unknown'].map((label) => ({
-				label,
-				value: label
-			})),
-			type: 'select'
-		}
-	]);
-	let rows: Row[] = $state([]);
-	let settings = localState('ups/quote-finder', {
-		filters: [],
-		sort: { direction: 'desc', key: 'quote' }
-	});
-	const updateRows = async (rowsPromise: Promise<RowPromise[]>) => {
-		const resolved = await rowsPromise;
-		rows = resolved.map(
-			({
-				shipTo: { AddressLine: address, City: city, StateProvinceCode: state, PostalCode: zip },
-				...row
-			}) => ({
-				address,
-				city,
-				state,
-				zip,
-				...row
-			})
-		);
-	};
-
-	$effect(() => {
-		updateRows(data.rows);
-	});
 </script>
 
 <Div class="flex flex-col p-4">
-	{#if rows.length === 0}
-		<Div>Loading...</Div>
-	{:else}
-		<MongooseTable
-			bind:columns
-			bind:filters={settings.filters}
-			bind:rows
-			bind:sort={settings.sort}
-			isCreatable={false}
-			isDeletable={false}
-			isEditable={false}
-			modelName="UpsQuote"
-		/>
-	{/if}
+	<MongooseTable
+		{data}
+		isCreatable={false}
+		isDeletable={false}
+		isEditable={false}
+		modelName={'UpsQuote'}
+		virtualColumns={[
+			{ key: 'shipTo.AddressLine', label: 'Street', type: 'string' },
+			{ key: 'shipTo.City', label: 'City', type: 'string' },
+			{ key: 'shipTo.StateProvinceCode', label: 'State', type: 'string' },
+			{ key: 'shipTo.PostalCode', label: 'ZIP', type: 'string' }
+		]}
+	/>
 </Div>
-
-{#snippet optionsTd({ isEditable, key, object }: TdSnippet)}
-	<Td class="py-0">
-		<Div class="flex space-x-2">
-			<A class={twMerge($theme.Button.default, 'px-2 py-1')} href="/ups/quote/{object.quote}">
-				View
-			</A>
-			<A class={twMerge($theme.Button.default, 'px-2 py-1')} href="/ups/quote">Duplicate</A>
-		</Div>
-	</Td>
-{/snippet}

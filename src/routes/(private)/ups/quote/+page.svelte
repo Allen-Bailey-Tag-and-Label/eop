@@ -99,7 +99,7 @@
 					<Button
 						class="justify-between px-0 py-0"
 						onclick={() => (formData[sectionIndex].isOpen = !formData[sectionIndex].isOpen)}
-						tabIndex="-1"
+						tabindex="-1"
 						variants={['ghost']}
 					>
 						<H2>{title}</H2>

@@ -1,13 +1,14 @@
 import { Branch } from '$lib/server/mongoose/models';
+import { serverLoad } from '$lib/server/mongoose/serverLoad';
 
-export const load = async () => {
-	return {
-		branches: new Promise(async (res) => {
-			const branches = await Branch.find()
-				.populate('_createdById', 'username')
-				.sort({ number: 1 })
-				.lean();
-			res(JSON.parse(JSON.stringify(branches)));
-		})
-	};
-};
+export const load = serverLoad({
+	labelFunctionMap: new Map([
+		[
+			'User',
+			(doc) => {
+				return doc.username;
+			}
+		]
+	]),
+	model: Branch
+});

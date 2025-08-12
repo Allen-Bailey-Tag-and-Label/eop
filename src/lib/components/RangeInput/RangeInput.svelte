@@ -1,40 +1,25 @@
 <script lang="ts">
-	import type { Attachment } from 'svelte/attachments';
-	import Div from '../Div/Div.svelte';
-	import Label from '../Label/Label.svelte';
-	import Input from '../Input/Input.svelte';
-	import { theme as themeStore } from '$lib/theme';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory } from '$lib/attachments';
+	import { theme } from '$lib/theme';
+	import { Div, Label, Input } from '../';
 
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'class'> & {
 		class?: string;
+		element?: HTMLInputElement | null;
 		formatValue?: (v: string) => string;
 		isValueVisible?: boolean;
 		label?: string;
-		max?: string;
-		min?: string;
-		name?: string;
-		required?: boolean;
-		step?: string;
-		style?: string;
 		value?: string;
 		variants?: string[];
-	} & any;
+	};
 
 	let {
-		attachments = $bindable([]),
 		class: className,
+		element = $bindable(null),
 		formatValue = (v: string) => v,
 		isValueVisible = true,
 		label,
-		max,
-		min,
-		name,
-		required,
-		step,
-		style,
 		value = $bindable('0'),
 		variants = [],
 		...restProps
@@ -54,13 +39,9 @@
 	<Div class="flex items-center space-x-2">
 		<Input
 			{...restProps}
-			{@attach attachmentFactory(attachments)}
+			bind:element
 			bind:value
-			class={twMerge($themeStore.RangeInput.default, className)}
-			{max}
-			{min}
-			{name}
-			{step}
+			class={twMerge($theme.RangeInput.default, className)}
 			type="range"
 		/>
 		{#if isValueVisible}

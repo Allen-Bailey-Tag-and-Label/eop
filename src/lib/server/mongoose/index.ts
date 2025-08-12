@@ -1,10 +1,14 @@
 export * as models from './models';
 export { attachHooks } from './attachHooks';
 export { connect } from './connect';
+export { defineModel } from './defineModel';
+export { escapeRegex } from './escapeRegex';
+export { filtersToMongoQuery } from './filtersToMongoQuery';
 export { getColumns } from './getColumns';
 export { getRows } from './getRows';
 export { getSettings } from './getSettings';
 export { hooks, Hooks } from './hooks';
+export { isUiFilterArray } from './isUiFilterArray';
 export * as middleware from './middleware';
 export { serverLoad } from './serverLoad';
 export * from './types';

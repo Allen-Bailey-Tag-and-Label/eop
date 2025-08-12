@@ -18,15 +18,16 @@ export const defaultTheme: Theme = {
 			'bg-gray-950/0 text-gray-950 hover:bg-gray-950/10 focus:bg-gray-950/10 dark:bg-gray-50/0 dark:text-gray-50 dark:hover:bg-gray-50/10 dark:focus:bg-gray-50/10',
 		secondary: 'bg-secondary-500 outline-secondary-500/0',
 		small: 'px-4 py-2',
-		square: 'rounded-none'
+		square: 'rounded-none',
+		success: 'bg-green-500',
+		xSmall: 'px-2 py-1'
 	},
 	Card: {
 		default:
 			'flex flex-col rounded-xl bg-gray-50 p-6 backdrop-blur-md transition duration-200 dark:bg-gray-900 outline-1 outline-gray-200 shadow-2xs dark:outline-gray-700'
 	},
 	Checkbox: {
-		default:
-			'peer-checked:bg-primary-500 peer-checked:outline-primary-500 peer-focus:outline-primary-500 flex h-6 w-6 items-center justify-center px-0 py-0 peer-focus:outline-2 rounded transition duration-200 outline-current outline'
+		default: ''
 	},
 	Datatable: { default: '' },
 	Dialog: {
@@ -44,8 +45,14 @@ export const defaultTheme: Theme = {
 		default: InputDefault
 	},
 	Label: { default: 'text-sm' },
+	Modal: { default: 'max-w-full max-h-full overflow-auto' },
 	MongooseTable: { default: '' },
-	MultiSelect: { default: 'min-w-[229px] justify-between space-x-2' },
+	MultiSelect: {
+		default:
+			InputDefault +
+			' flex w-full justify-between space-x-2 focus:outline-primary-500 dark:focus:outline-primary-500',
+		isOpen: 'rounded-b-none'
+	},
 	Option: { default: 'bg-gray-100 dark:bg-gray-800' },
 	P: { default: '' },
 	RangeInput: {

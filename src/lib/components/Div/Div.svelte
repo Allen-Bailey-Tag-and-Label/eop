@@ -1,42 +1,39 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
+	import type { Booleanish, HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory } from '$lib/attachments';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
 
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'contenteditable' | 'innerHTML'> & {
 		children?: Snippet;
 		class?: string;
-		contenteditable?: boolean | '';
+		contenteditable?: Booleanish | 'inherit' | 'plaintext-only' | null;
+		element?: HTMLDivElement | null;
 		innerHTML?: string;
-		style?: string;
-	} & any;
+		variants?: string[];
+	};
 	let {
-		attachments = $bindable([]),
 		children,
 		class: className,
 		contenteditable,
+		element = $bindable(null),
 		innerHTML = $bindable(),
-		style,
 		variants = [],
 		...restProps
 	}: Props = $props();
 </script>
 
-{#if contenteditable === '' || contenteditable}
+{#if contenteditable}
 	<div
 		{...restProps}
-		{@attach attachmentFactory(attachments)}
 		bind:innerHTML
+		bind:this={element}
 		class={twMerge(
-			$themeStore.Div.default,
-			...variants.map((variant: string) => $themeStore.Div[variant]),
+			$theme.Div.default,
+			...variants.map((variant: string) => $theme.Div[variant]),
 			className
 		)}
-		contenteditable=""
-		{style}
+		contenteditable="true"
 	>
 		{#if children}
 			{@render children()}
@@ -45,13 +42,12 @@
 {:else}
 	<div
 		{...restProps}
-		{@attach attachmentFactory(attachments)}
+		bind:this={element}
 		class={twMerge(
-			$themeStore.Div.default,
-			...variants.map((variant: string) => $themeStore.Div[variant]),
+			$theme.Div.default,
+			...variants.map((variant: string) => $theme.Div[variant]),
 			className
 		)}
-		{style}
 	>
 		{#if children}
 			{@render children()}

@@ -1,5 +1,5 @@
 import { Route, RouteSettings } from './models';
-import { type Filter, type Settings } from './';
+import { type Settings } from './';
 
 export const getSettings = async <T extends { locals: any; url: URL }>({
 	locals,
@@ -10,7 +10,7 @@ export const getSettings = async <T extends { locals: any; url: URL }>({
 		return {
 			_routeId: '',
 			currentPage: 0,
-			filter: {},
+			filter: [],
 			rowsPerPage: 10,
 			sortDirection: 'asc',
 			sortKey: 'createdAt'
@@ -27,7 +27,7 @@ export const getSettings = async <T extends { locals: any; url: URL }>({
 		JSON.stringify({
 			_routeId: route._id,
 			currentPage: settings?.currentPage ?? 0,
-			filter: settings?.filter ?? {},
+			filter: settings?.filter ?? [],
 			rowsPerPage: settings?.rowsPerPage ?? 10,
 			sortDirection: settings?.sortDirection ?? 'asc',
 			sortKey: settings?.sortKey ?? 'createdAt'

@@ -1,22 +1,19 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory } from '$lib/attachments';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLTableSectionElement>, 'class'> & {
 		children?: Snippet;
 		class?: string;
-		style?: string;
+		element?: HTMLTableSectionElement | null;
 		variants?: string[];
 	};
 	let {
-		attachments = $bindable([]),
 		children,
 		class: className,
-		style,
+		element = $bindable(null),
 		variants = [],
 		...restProps
 	}: Props = $props();
@@ -24,13 +21,12 @@
 
 <thead
 	{...restProps}
-	{@attach attachmentFactory(attachments)}
+	bind:this={element}
 	class={twMerge(
-		$themeStore.Thead.default,
-		...variants.map((variant: string) => $themeStore.Thead[variant]),
+		$theme.Thead.default,
+		...variants.map((variant: string) => $theme.Thead[variant]),
 		className
 	)}
-	{style}
 >
 	{#if children}
 		{@render children()}

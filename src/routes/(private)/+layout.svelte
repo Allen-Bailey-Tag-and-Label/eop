@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { ChevronDown, Menu, X } from '@lucide/svelte';
+	import { untrack } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
+	import { ChevronDown, Menu, X } from '@lucide/svelte';
+	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { A, Button, Card, Div, Header } from '$lib/components';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
 	import { type Navigation, type User } from '$lib/types.js';
-	import { browser } from '$app/environment';
-	import { untrack } from 'svelte';
 
 	let { children, data } = $props();
 	let isNavigationOpen = $state(false);
@@ -29,8 +29,8 @@
 	let user: User = $state({
 		_id: '',
 		isActive: true,
-		profile: { email: '', firstName: '', lastName: '', phone: 0 },
-		settings: { magnification: 16 },
+		profile: { _id: '', email: '', firstName: '', lastName: '', phone: 0 },
+		settings: { _id: '', magnification: 16 },
 		username: ''
 	});
 
@@ -61,9 +61,9 @@
 		<Div class="pointer-events-none top-0 left-0 z-10 h-full w-full">
 			{#if isNavigationOpen}
 				<Button
-					class="pointer-events-auto absolute top-0 left-0 h-full w-full"
+					class="pointer-events-auto absolute top-0 left-0 h-full w-full backdrop-blur-md"
 					onclick={() => (isNavigationOpen = false)}
-					tabIndex="-1"
+					tabindex="-1"
 					variants={['ghost', 'square']}
 				></Button>
 				<Card
@@ -87,7 +87,7 @@
 {#snippet link(href: string, label: string, depth: number = 1)}
 	<A
 		class={twMerge(
-			$themeStore.Button.default,
+			$theme.Button.default,
 			'block rounded-none py-0 text-left outline-solid hover:no-underline focus:no-underline',
 			page.url.pathname !== href ? 'bg-transparent text-current' : undefined
 		)}

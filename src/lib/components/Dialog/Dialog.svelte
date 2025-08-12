@@ -1,70 +1,68 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import type { Attachment } from 'svelte/attachments';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { attachmentFactory, focusTrap } from '$lib/attachments';
-	import { theme as themeStore } from '$lib/theme';
+	import { theme } from '$lib/theme';
+	import { Div } from '../';
 
-	import Div from '../Div/Div.svelte';
-
-	type Props = {
-		attachments?: Attachment[];
+	type Props = Omit<HTMLAttributes<HTMLDialogElement>, 'class'> & {
 		children?: Snippet;
 		class?: string;
-		elem?: HTMLDialogElement;
+		element?: HTMLDialogElement;
 		open?: boolean;
-		style?: string;
 		variants?: string[];
-	} & any;
+	};
 	let {
-		attachments = $bindable([focusTrap]),
 		children,
 		class: className,
-		elem = $bindable(),
+		element = $bindable(),
 		open = $bindable(false),
-		style, 
 		variants = [],
 		...restProps
 	}: Props = $props();
 
 	onMount(() => {
-		if (!elem) return;
+		if (!element) return;
 
-		if (open) elem.showModal();
-		if (!open) elem.close();
+		if (open) element.showModal();
+		if (!open) element.close();
 
-		const eventCancel = elem.addEventListener('cancel', () => (open = false));
-		const eventClose = elem.addEventListener('close', () => (open = false));
+		const eventCancel = element?.addEventListener('cancel', () => (open = false)) ?? (() => {});
+		const eventClose = element?.addEventListener('close', () => (open = false)) ?? (() => {});
 
 		return () => {
-			elem.removeEventListener('cancel', eventCancel);
-			elem.removeEventListener('close', eventClose);
+			if (element) {
+				element.removeEventListener('cancel', eventCancel);
+				element.removeEventListener('close', eventClose);
+			}
 		};
 	});
 
 	$effect(() => {
-		if (open) elem.showModal();
-		if (!open) elem.close();
+		if (element) {
+			if (open) element.showModal();
+			if (!open) element.close();
+		}
 	});
 </script>
 
 <dialog
 	{...restProps}
-	{@attach attachmentFactory(attachments)}
-	bind:this={elem}
+	bind:this={element}
 	class={twMerge(
-		$themeStore.Dialog.default,
-		...variants.map((variant: string) => $themeStore.Dialog[variant]),
+		$theme.Dialog.default,
+		...variants.map((variant: string) => $theme.Dialog[variant]),
 		className
 	)}
 	onclick={(event) => {
-		if (event.target === elem) open = false;
+		if (event.target === element) open = false;
 	}}
-	{style}
 >
 	{#if children}
-		<Div class="flex items-center justify-center w-full h-full pointer-events-none">
-			<Div class="pointer-events-auto">
+		<Div
+			class="pointer-events-none flex h-full max-h-screen w-full max-w-screen items-center justify-center overflow-auto"
+		>
+			<Div class="pointer-events-auto flex max-h-full max-w-full flex-col overflow-auto p-4">
 				{@render children()}
 			</Div>
 		</Div>

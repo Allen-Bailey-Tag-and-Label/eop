@@ -49,3 +49,7 @@
 		@slot;
 	}
 }
+
+* {
+	scrollbar-color: var(--color-primary-500) transparent;
+}
