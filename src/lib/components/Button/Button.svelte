@@ -9,6 +9,7 @@
 		class?: string;
 		disabled?: boolean;
 		element?: HTMLButtonElement | null;
+		formaction?: string;
 		type?: 'button' | 'submit';
 		variants?: string[];
 	};
@@ -17,6 +18,7 @@
 		class: className,
 		disabled,
 		element = $bindable(null),
+		formaction,
 		type = 'button',
 		variants = [],
 		...restProps
@@ -33,6 +35,7 @@
 		className
 	)}
 	{disabled}
+	{formaction}
 	{type}
 >
 	{#if children}
