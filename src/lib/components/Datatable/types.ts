@@ -70,6 +70,8 @@ export type Props = {
 	isFilterModalOpen?: boolean;
 	isPaginateable?: boolean;
 	isSelectable?: boolean;
+	isSettingsVisible?: boolean;
+	isSettingsModalOpen?: boolean;
 	isSortable?: boolean;
 	isToolbarVisible?: boolean;
 	pagination?: Snippet;
@@ -81,6 +83,7 @@ export type Props = {
 	rowsSanitized?: RowSanitized[];
 	rowsSelected?: boolean[];
 	settings?: Partial<Settings>;
+	settingsTemp?: Pick<Settings, 'rowsPerPage'>;
 	tbody?: Snippet;
 	th?: Snippet<[ColumnSanitized]>;
 	thead?: Snippet;

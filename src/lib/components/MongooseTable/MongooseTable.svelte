@@ -8,6 +8,7 @@
 		Funnel,
 		Plus,
 		Save,
+		Settings,
 		Trash,
 		TriangleAlert
 	} from '@lucide/svelte';
@@ -70,6 +71,8 @@
 		isLoading = $bindable(true),
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
+		isSettingsModalOpen = $bindable(false),
+		isSettingsVisible = $bindable(),
 		isSortable = $bindable(true),
 		isToolbarVisible = $bindable(true),
 		modelName = $bindable(),
@@ -96,6 +99,7 @@
 			sortDirection: 'asc',
 			sortKey: ''
 		}),
+		settingsTemp = $bindable({ rowsPerPage: 10 }),
 		tbody: customTbody,
 		th: customTh,
 		thead,
@@ -259,7 +263,10 @@
 			bind:isFilterModalOpen
 			bind:isPaginateable
 			bind:isSelectable
+			bind:isSettingsModalOpen
+			bind:isSettingsVisible
 			bind:isSortable
+			bind:isToolbarVisible
 			bind:paginationSettings
 			bind:rows
 			bind:rowsCheckboxValues
@@ -428,19 +435,21 @@
 {/snippet}
 {#snippet tbody()}
 	<Tbody>
-		{#each rowsSanitized as { index: rowIndex }}
-			<Tr>
-				{#if isSelectable}
-					<Td>
-						{#if rowsCheckboxValues[rowIndex] !== undefined}
-							<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
-						{/if}
-					</Td>
-				{/if}
-				{#each columnsSanitized as { isEditable, key, options, snippet }}
-					{@render snippet({ isEditable, key, object: rows[rowIndex], options })}
-				{/each}
-			</Tr>
+		{#each rowsSanitized as { index: rowIndex }, rowSanitizedIndex}
+			{#if rowSanitizedIndex < settings.rowsPerPage}
+				<Tr>
+					{#if isSelectable}
+						<Td>
+							{#if rowsCheckboxValues[rowIndex] !== undefined}
+								<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+							{/if}
+						</Td>
+					{/if}
+					{#each columnsSanitized as { isEditable, key, options, snippet }}
+						{@render snippet({ isEditable, key, object: rows[rowIndex], options })}
+					{/each}
+				</Tr>
+			{/if}
 		{/each}
 	</Tbody>
 {/snippet}
@@ -554,6 +563,84 @@
 				>
 					<Trash />
 				</Button>
+			{/if}
+			{#if isSettingsVisible}
+				<Button
+					onclick={() => {
+						settingsTemp.rowsPerPage = settings.rowsPerPage ?? 10;
+						isSettingsModalOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Settings />
+				</Button>
+				<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
+					<Form
+						action="/api/mongooseTable?/find"
+						submitFunction={() => {
+							isLoading = true;
+							isSettingsModalOpen = false;
+							return async ({ update }) => {
+								await update();
+								isLoading = false;
+							};
+						}}
+					>
+						{#snippet inputs()}
+							<Input
+								defaultValue={settings._routeId}
+								name="_routeId"
+								type="hidden"
+								value={settings._routeId}
+							/>
+							<Input
+								defaultValue={settings.currentPage.toString()}
+								name="currentPage"
+								type="hidden"
+								value={settings.currentPage.toString()}
+							/>
+							<Input
+								defaultValue={JSON.stringify(settings.filter)}
+								name="filter"
+								type="hidden"
+								value={JSON.stringify(settings.filter)}
+							/>
+							<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
+							<Input
+								defaultValue={settings.sortDirection}
+								name="sortDirection"
+								type="hidden"
+								value={settings.sortDirection}
+							/>
+							<Input
+								defaultValue={settings.sortKey}
+								name="sortKey"
+								type="hidden"
+								value={settings.sortKey}
+							/>
+							<Input
+								bind:value={
+									() => {
+										return settingsTemp.rowsPerPage.toString();
+									},
+									(string) => {
+										settingsTemp.rowsPerPage = +string;
+									}
+								}
+								class="text-right"
+								label="Rows Per Page"
+								name="rowsPerPage"
+								type="number"
+							/>
+						{/snippet}
+						{#snippet buttons()}
+							<Button type="submit">Update</Button>
+							<Button onclick={() => (isSettingsModalOpen = false)} variants={['ghost']}>
+								Cancel
+							</Button>
+						{/snippet}
+					</Form>
+				</Modal>
 			{/if}
 			{#if isFilterable}
 				<Button

@@ -10,6 +10,7 @@
 		Funnel,
 		Key,
 		Plus,
+		Settings,
 		Trash,
 		TriangleAlert
 	} from '$lib/icons';
@@ -20,6 +21,7 @@
 		Card,
 		Checkbox,
 		Div,
+		Form,
 		Input,
 		Modal,
 		MultiSelect,
@@ -56,6 +58,8 @@
 		isFilterModalOpen = $bindable(false),
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
+		isSettingsModalOpen = $bindable(false),
+		isSettingsVisible = $bindable(),
 		isSortable = $bindable(true),
 		isToolbarVisible = $bindable(true),
 		pagination,
@@ -79,6 +83,9 @@
 			rowsPerPage: 10,
 			sortDirection: 'asc',
 			sortKey: ''
+		}),
+		settingsTemp = $bindable({
+			rowsPerPage: 10
 		}),
 		tbody,
 		th,
@@ -182,6 +189,12 @@
 		});
 	});
 	$effect(() => {
+		const isPaginateableValue = isPaginateable;
+		untrack(() => {
+			if (isSettingsVisible === undefined) isSettingsVisible = isPaginateableValue;
+		});
+	});
+	$effect(() => {
 		const isCreatableValue = isCreatable;
 		const isDeletableValue = isDeletable;
 		const isFilterableValue = isFilterable;
@@ -271,6 +284,7 @@
 		if (settings.rowsPerPage === undefined) settings.rowsPerPage = 10;
 		if (settings.sortDirection === undefined) settings.sortDirection = 'asc';
 		if (settings.sortKey === undefined) settings.sortKey = columnsSanitized[0].key;
+		if (settingsTemp.rowsPerPage === undefined) settingsTemp.rowsPerPage = 10;
 	});
 </script>
 
@@ -287,6 +301,49 @@
 				>
 					<Trash />
 				</Button>
+			{/if}
+			{#if isSettingsVisible}
+				<Button
+					onclick={() => {
+						settingsTemp.rowsPerPage = settings.rowsPerPage ?? 10;
+						isSettingsModalOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Settings />
+				</Button>
+				<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
+					<Form
+						method="GET"
+						onsubmit={(e: Event) => {
+							e.preventDefault();
+							settings.rowsPerPage = settingsTemp.rowsPerPage;
+							isSettingsModalOpen = false;
+						}}
+					>
+						{#snippet inputs()}
+							<Input
+								bind:value={
+									() => {
+										return settingsTemp.rowsPerPage.toString();
+									},
+									(string) => {
+										settingsTemp.rowsPerPage = +string;
+									}
+								}
+								class="text-right"
+								label="Rows Per Page"
+								type="number"
+							/>
+						{/snippet}
+						{#snippet buttons()}
+							<Button type="submit">Update</Button>
+							<Button onclick={() => (isSettingsModalOpen = false)} variants={['ghost']}>
+								Cancel
+							</Button>
+						{/snippet}
+					</Form>
+				</Modal>
 			{/if}
 			{#if isFilterable}
 				<Button

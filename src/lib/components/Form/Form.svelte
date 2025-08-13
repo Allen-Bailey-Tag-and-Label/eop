@@ -38,34 +38,67 @@
 	}: Props = $props();
 </script>
 
-<form
-	{...restProps}
-	{action}
-	class={twMerge(
-		$theme.Form.default,
-		...variants.map((variant: string) => $theme.Form[variant]),
-		className
-	)}
-	{method}
-	{style}
-	use:enhance={submitFunction}
->
-	{#if children}
-		{@render children()}
-	{/if}
-	{#if inputs}
-		<Div class="flex flex-col space-y-6">
-			{@render inputs()}
-			{#if error}
-				<Div class="min-h-6 text-red-500">
-					{@render error()}
-				</Div>
-			{/if}
-		</Div>
-	{/if}
-	{#if buttons}
-		<Div class="flex flex-col space-y-4 md:flex-row md:justify-end md:space-y-0 md:space-x-2">
-			{@render buttons()}
-		</Div>
-	{/if}
-</form>
+{#if method === 'GET'}
+	<form
+		{...restProps}
+		{action}
+		class={twMerge(
+			$theme.Form.default,
+			...variants.map((variant: string) => $theme.Form[variant]),
+			className
+		)}
+		{method}
+		{style}
+	>
+		{#if children}
+			{@render children()}
+		{/if}
+		{#if inputs}
+			<Div class="flex flex-col space-y-6">
+				{@render inputs()}
+				{#if error}
+					<Div class="min-h-6 text-red-500">
+						{@render error()}
+					</Div>
+				{/if}
+			</Div>
+		{/if}
+		{#if buttons}
+			<Div class="flex flex-col space-y-4 md:flex-row md:justify-end md:space-y-0 md:space-x-2">
+				{@render buttons()}
+			</Div>
+		{/if}
+	</form>
+{:else}
+	<form
+		{...restProps}
+		{action}
+		class={twMerge(
+			$theme.Form.default,
+			...variants.map((variant: string) => $theme.Form[variant]),
+			className
+		)}
+		{method}
+		{style}
+		use:enhance={submitFunction}
+	>
+		{#if children}
+			{@render children()}
+		{/if}
+		{#if inputs}
+			<Div class="flex flex-col space-y-6">
+				{@render inputs()}
+				{#if error}
+					<Div class="min-h-6 text-red-500">
+						{@render error()}
+					</Div>
+				{/if}
+			</Div>
+		{/if}
+		{#if buttons}
+			<Div class="flex flex-col space-y-4 md:flex-row md:justify-end md:space-y-0 md:space-x-2">
+				{@render buttons()}
+			</Div>
+		{/if}
+	</form>
+{/if}
