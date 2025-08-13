@@ -4,6 +4,7 @@
 	import { untrack } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import zipcodes from 'zipcodes';
+	import { page } from '$app/state';
 	import { Button, Div, Form, H1, H2, Input, Select } from '$lib/components';
 	import { camelCase } from '$lib/formats';
 
@@ -54,18 +55,31 @@
 		},
 		{
 			inputs: [
-				{ label: 'Address', value: '' },
-				{ label: 'ZIP', type: 'number', value: '', zipLookup: true },
-				{ label: 'City', value: '' },
-				{ label: 'State', options: [], value: '' }
+				{ label: 'Address', value: page.url.searchParams.get('address') ?? '' },
+				{
+					label: 'ZIP',
+					type: 'number',
+					value: page.url.searchParams.get('zip') ?? '',
+					zipLookup: true
+				},
+				{ label: 'City', value: page.url.searchParams.get('city') ?? '' },
+				{ label: 'State', options: [], value: page.url.searchParams.get('state') ?? '' }
 			],
 			isOpen: true,
 			title: 'Ship To'
 		},
 		{
 			inputs: [
-				{ label: 'Total Packages', type: 'number', value: '1' },
-				{ label: 'Total Weight', type: 'number', value: '30' }
+				{
+					label: 'Total Packages',
+					type: 'number',
+					value: page.url.searchParams.get('totalPackages') ?? '1'
+				},
+				{
+					label: 'Total Weight',
+					type: 'number',
+					value: page.url.searchParams.get('totalWeight') ?? '30'
+				}
 			],
 			isOpen: true,
 			title: 'Package Info'
