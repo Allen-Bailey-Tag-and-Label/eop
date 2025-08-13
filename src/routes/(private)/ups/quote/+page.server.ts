@@ -8,6 +8,7 @@ export const actions: Actions = {
 		await connect();
 
 		let {
+			branch,
 			shipFromAddress,
 			shipFromZIP,
 			shipFromCity,
@@ -23,6 +24,7 @@ export const actions: Actions = {
 		const packageWeight = Math.ceil(+packageInfoTotalWeight / +packageInfoTotalPackages).toString();
 
 		const rates = await getRates(
+			branch,
 			fetch,
 			shipFromAddress,
 			shipFromCity,
@@ -65,6 +67,7 @@ export const actions: Actions = {
 		await connect();
 
 		let {
+			branch,
 			shipFromAddress,
 			shipFromZIP,
 			shipFromCity,
@@ -93,6 +96,7 @@ export const actions: Actions = {
 		const packageWeight = Math.ceil(+packageInfoTotalWeight / +packageInfoTotalPackages).toString();
 
 		const rates = await getRates(
+			branch,
 			fetch,
 			shipFromAddress,
 			shipFromCity,
@@ -131,6 +135,29 @@ export const actions: Actions = {
 
 		throw redirect(303, `/ups/quote/${quote}`);
 	}
+};
+
+const calculateRate = ({
+	branch,
+	MonetaryValue,
+	packageInfoTotalPackages
+}: {
+	branch: string;
+	MonetaryValue: string;
+	packageInfoTotalPackages: string;
+}) => {
+	let discountPercent = 0;
+	if (branch === '2060') {
+		const phases = [
+			{ discountPercent: 0.25, from: Date.parse('06/01/2025'), to: Date.parse('11/30/2025') },
+			{ discountPercent: 0.125, from: Date.parse('12/01/2025'), to: Date.parse('05/31/2026') }
+		];
+		const now = new Date().getTime();
+		phases.forEach((phase) => {
+			if (now >= phase.from && now <= phase.to) discountPercent = phase.discountPercent;
+		});
+	}
+	return +MonetaryValue * +packageInfoTotalPackages * (1 - discountPercent);
 };
 
 const createQuote = async (
@@ -178,6 +205,7 @@ const createQuote = async (
 };
 
 const getRates = async (
+	branch: string,
 	fetch: any,
 	shipFromAddress: string,
 	shipFromCity: string,
@@ -206,7 +234,10 @@ const getRates = async (
 		body: formData
 	});
 
-	const { data: RatedShipment } = deserialize(await response.text()) || { data: {} };
+	const result = deserialize(await response.text()) || { data: {} };
+	if (result.type !== 'success') throw 'Could not get rate';
+	const { data: RatedShipment } = result;
+	if (!RatedShipment) throw 'Could not get rate';
 
 	const rates = [
 		['03', 'Ground'],
@@ -218,27 +249,20 @@ const getRates = async (
 		['14', 'Next Day Air Early'],
 		['75', 'Heavy Goods']
 	].map(([code, description]) => {
-		const shipment = RatedShipment.find((obj) => obj.Service.Code === code);
+		const shipment = RatedShipment.find((obj: any) => obj.Service.Code === code);
 		if (!shipment) return;
 		const {
 			TotalCharges: { MonetaryValue }
 		} = shipment;
-		return { description, rate: +MonetaryValue * +packageInfoTotalPackages };
+		const rate = calculateRate({ branch, MonetaryValue, packageInfoTotalPackages });
+		return {
+			description,
+			rate
+		};
 	});
 
 	return rates;
 };
-
-const serviceMap = new Map([
-	['03', 'Ground'],
-	['12', '3 Day Select'],
-	['02', '2nd Day Air'],
-	['59', '2nd Day Air A.M.'],
-	['13', 'Next Day Air Saver'],
-	['01', 'Next Day Air'],
-	['14', 'Next Day Air Early'],
-	['75', 'Heavy Goods']
-]);
 
 const validateAddress = async (
 	fetch: any,

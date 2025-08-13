@@ -134,12 +134,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		if (userId === undefined) return redirect('/sign-in');
 		const {
+			_branchIds,
+			_defaultBranchId,
 			_profileId,
 			_roleIds,
 			_settingsId,
 			...rawData
 		}: {
 			_id: string;
+			_branchIds: { _id: string; label: string; number: number }[];
+			_defaultBranchId: { _id: string; label: string; number: number };
 			_profileId: {
 				_id: string;
 				email: string;
@@ -159,6 +163,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 			JSON.stringify(
 				await User.findById(userId)
 					.select('-_createdById -createdAt -updatedAt')
+					.populate({
+						path: '_branchIds',
+						select: '-_createdById -createdAt -updatedAt'
+					})
+					.populate({
+						path: '_defaultBranchId',
+						select: '-_createdById -createdAt -updatedAt'
+					})
 					.populate({
 						path: '_roleIds',
 						populate: {
@@ -184,6 +196,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		const userData = {
 			...rawData,
+			branches: _branchIds,
+			defaultBranch: _defaultBranchId,
 			roles: _roleIds,
 			profile: _profileId,
 			settings: _settingsId

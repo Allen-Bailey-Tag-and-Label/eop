@@ -1,3 +1,4 @@
+export type Branch = { _id: string; label: string; number: number };
 export type Navigation = Route & { children: Navigation[]; isOpen: boolean };
 export type Route = {
 	_id: string;
@@ -9,6 +10,8 @@ export type Route = {
 
 export type User = {
 	_id: string;
+	branches: Branch[];
+	defaultBranch: Branch;
 	isActive: boolean;
 	profile: {
 		_id: string;

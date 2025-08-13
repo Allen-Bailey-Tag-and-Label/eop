@@ -23,8 +23,11 @@
 				options: Option[];
 				value: string;
 		  };
-	type Option = { label: string; value: string };
+	type Option = { label: string; value: number | string };
 
+	let { data } = $props();
+	let branch = $state('');
+	let branchOptions: Option[] = $state([]);
 	let stateOptions: Option[] = $state([{ label: '', value: '' }]);
 	let formData: { className?: string; inputs: Input[]; isOpen: boolean; title: string }[] = $state([
 		{
@@ -70,6 +73,17 @@
 	]);
 
 	$effect(() => {
+		if (branchOptions.length === 0) {
+			branchOptions = [
+				{ label: '', value: '' },
+				...data.locals.user.branches.map(({ number }) => ({
+					label: number.toString(),
+					value: number
+				}))
+			];
+		}
+	});
+	$effect(() => {
 		stateOptions = [
 			{ label: '', value: '' },
 			...states.map((state) => ({
@@ -89,8 +103,15 @@
 </script>
 
 <Div class="flex flex-col space-y-8 p-4">
-	<H1>UPS Freight Estimator</H1>
 	<Form class="lg:max-w-5xl">
+		<Div class="flex items-center justify-between space-x-2">
+			<H1>UPS Freight Estimator</H1>
+			{#if branchOptions.length > 1}
+				<Select bind:value={branch} name="branch" options={branchOptions} required={true} />
+			{:else}
+				<Input class="sr-only absolute h-0 w-0" name="branch" type="hidden" value={branch} />
+			{/if}
+		</Div>
 		<Div
 			class="flex flex-col divide-y divide-gray-200 lg:grid lg:grid-cols-3 lg:gap-4 lg:divide-y-0 dark:divide-gray-700"
 		>
@@ -99,7 +120,7 @@
 					<Button
 						class="justify-between px-0 py-0"
 						onclick={() => (formData[sectionIndex].isOpen = !formData[sectionIndex].isOpen)}
-						tabindex="-1"
+						tabindex={-1}
 						variants={['ghost']}
 					>
 						<H2>{title}</H2>
