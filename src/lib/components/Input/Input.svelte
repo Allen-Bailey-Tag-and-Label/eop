@@ -14,6 +14,7 @@
 		element?: HTMLInputElement | null;
 		label?: string;
 		name?: string;
+		required?: boolean;
 		type?:
 			| 'button'
 			| 'checkbox'
@@ -49,6 +50,7 @@
 		element = $bindable(null),
 		label,
 		name,
+		required,
 		style,
 		type = 'text',
 		value = $bindable(''),
@@ -80,6 +82,7 @@
 			)}
 			{defaultValue}
 			{name}
+			{required}
 			type="checkbox"
 		/>
 	{:else}
@@ -95,6 +98,7 @@
 			)}
 			{defaultValue}
 			{name}
+			{required}
 		/>
 	{/if}
 {/snippet}
