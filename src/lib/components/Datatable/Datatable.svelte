@@ -2,13 +2,13 @@
 	import { untrack, type Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import {
+		ArrowLeft,
 		ChevronDown,
 		ChevronFirst,
 		ChevronLast,
 		ChevronLeft,
 		ChevronRight,
 		Funnel,
-		Key,
 		Plus,
 		Settings,
 		Trash,
@@ -36,7 +36,7 @@
 	} from '../';
 
 	import { compareFn, filterOperatorOptions, getAt, setAt } from './';
-	import type { ColumnType, Props, TdSnippet } from './types';
+	import type { Column, ColumnType, Props, TdSnippet } from './types';
 
 	let {
 		columns = $bindable([]),
@@ -49,6 +49,7 @@
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
+		isColumnsReorderable = $bindable(true),
 		isCreatable = $bindable(true),
 		isCreateModalOpen = $bindable(false),
 		isDeletable = $bindable(true),
@@ -410,68 +411,102 @@
 								/>
 							</Th>
 						{/if}
-						{#each columnsSanitized as { class: className, compareFn, key, label, ...columnSanitized }, index}
+						{#each columnsSanitized as { class: className, compareFn, key, label, ...columnSanitized }, columnIndex}
 							{#if th}
 								{@render th({ class: className, compareFn, key, label, ...columnSanitized })}
 							{:else}
 								<Th class={twMerge('px-0 py-0', className)}>
-									<Button
-										class="flex w-full items-center justify-between space-x-2 text-gray-500"
-										onclick={() => {
-											if (isSortable) {
-												if (settings.sortKey !== key) settings.sortDirection = 'asc';
-												if (settings.sortKey === key)
-													settings.sortDirection =
-														settings.sortDirection === 'asc' ? 'desc' : 'asc';
-												settings.sortKey = key;
+									<Div class="group relative">
+										<Button
+											class="flex w-full items-center justify-between space-x-2 text-gray-500"
+											onclick={() => {
+												if (isSortable) {
+													if (settings.sortKey !== key) settings.sortDirection = 'asc';
+													if (settings.sortKey === key)
+														settings.sortDirection =
+															settings.sortDirection === 'asc' ? 'desc' : 'asc';
+													settings.sortKey = key;
 
-												const indexes = Array.from(rows.keys()).sort((a, b) => {
-													if (settings.sortKey === undefined) return 0;
-													const sortColumn = columnsSanitized.find(
-														(columnSanitized) => columnSanitized.key === settings.sortKey
-													);
-													if (sortColumn === undefined) return 0;
+													const indexes = Array.from(rows.keys()).sort((a, b) => {
+														if (settings.sortKey === undefined) return 0;
+														const sortColumn = columnsSanitized.find(
+															(columnSanitized) => columnSanitized.key === settings.sortKey
+														);
+														if (sortColumn === undefined) return 0;
 
-													let aValue = rows[a][settings.sortKey];
-													let bValue = rows[b][settings.sortKey];
+														let aValue = rows[a][settings.sortKey];
+														let bValue = rows[b][settings.sortKey];
 
-													if (sortColumn.type === 'select') {
-														aValue =
-															sortColumn.options.find(
-																(option: { value: any }) => option.value === aValue
-															)?.label ?? aValue;
-														bValue =
-															sortColumn.options.find(
-																(option: { value: any }) => option.value === bValue
-															)?.label ?? bValue;
-													}
+														if (sortColumn.type === 'select') {
+															aValue =
+																sortColumn.options.find(
+																	(option: { value: any }) => option.value === aValue
+																)?.label ?? aValue;
+															bValue =
+																sortColumn.options.find(
+																	(option: { value: any }) => option.value === bValue
+																)?.label ?? bValue;
+														}
 
-													return sortColumn.compareFn(
-														aValue,
-														bValue,
-														settings.sortDirection === 'asc' ? 1 : -1
-													);
-												});
-												rows = indexes.map((index) => rows[index]);
-												rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
-											}
-										}}
-										variants={['ghost', 'square']}
-									>
-										<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
-											{label}
-										</Div>
-										{#if isSortable}
-											<ChevronDown
-												class={twMerge(
-													'transition duration-200',
-													key === settings.sortKey ? 'scale-100' : 'scale-0',
-													settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
-												)}
-												size={16}
-											/>
+														return sortColumn.compareFn(
+															aValue,
+															bValue,
+															settings.sortDirection === 'asc' ? 1 : -1
+														);
+													});
+													rows = indexes.map((index) => rows[index]);
+													rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
+												}
+											}}
+											variants={['ghost', 'square']}
+										>
+											<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+												{label}
+											</Div>
+											{#if isSortable}
+												<ChevronDown
+													class={twMerge(
+														'transition duration-200',
+														key === settings.sortKey ? 'scale-100' : 'scale-0',
+														settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
+													)}
+													size={16}
+												/>
+											{/if}
+										</Button>
+										{#if isColumnsReorderable}
+											{#if columnIndex > 0}
+												<Button
+													class={twMerge(
+														'absolute top-1/2 left-0 -translate-y-1/2 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100'
+													)}
+													onclick={() => {
+														[columns[columnIndex], columns[columnIndex - 1]] = [
+															columns[columnIndex - 1],
+															columns[columnIndex]
+														];
+													}}
+												>
+													<ArrowLeft size={16} />
+												</Button>
+											{/if}
+											{#if columnIndex < columnsSanitized.length - 1}
+												<Button
+													class={twMerge(
+														'absolute top-1/2 right-0 -translate-y-1/2 rotate-180 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100'
+													)}
+													onclick={() => {
+														[columns[columnIndex], columns[columnIndex + 1]] = [
+															columns[columnIndex + 1],
+															columns[columnIndex]
+														];
+													}}
+												>
+													<ArrowLeft size={16} />
+												</Button>
+											{/if}
 										{/if}
-									</Button>
+									</Div>
 								</Th>
 							{/if}
 						{/each}

@@ -61,6 +61,7 @@ export type Props = {
 		snippet: Snippet<[TdSnippet]>;
 		value: any;
 	}[];
+	isColumnsReorderable?: boolean;
 	isCreatable?: boolean;
 	isCreateModalOpen?: boolean;
 	isDeletable?: boolean;
