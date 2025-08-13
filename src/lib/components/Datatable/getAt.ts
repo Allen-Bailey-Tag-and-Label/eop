@@ -1,4 +1,8 @@
 export const getAt = (obj: any, path: string) => {
-	if (!path.includes('.')) return obj?.[path];
-	return path.split('.').reduce((object, key) => (object === null ? object : object[key]), obj);
+	if (!path || obj == null) return undefined;
+	if (!path.includes('.')) return obj?.[path] ?? undefined;
+	return path.split('.').reduce<any>((cur, key) => {
+		if (cur == null || typeof cur !== 'object') return undefined;
+		return cur[key];
+	}, obj);
 };

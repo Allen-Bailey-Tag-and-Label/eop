@@ -61,6 +61,7 @@
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
+		isColumnsReorderable = $bindable(true),
 		isCreatable = $bindable(true),
 		isCreateModalOpen = $bindable(false),
 		isDeletable = $bindable(true),
@@ -254,6 +255,7 @@
 			bind:filterKeyOptions
 			bind:filtersTemp
 			bind:filtersTempSanitized
+			bind:isColumnsReorderable
 			bind:isCreatable
 			bind:isCreateModalOpen
 			bind:isDeletable
@@ -435,18 +437,23 @@
 {/snippet}
 {#snippet tbody()}
 	<Tbody>
-		{#each rowsSanitized as { index: rowIndex }, rowSanitizedIndex}
+		{#each rowsSanitized as row, rowSanitizedIndex (`${settings.currentPage}:${row._key}`)}
 			{#if rowSanitizedIndex < settings.rowsPerPage}
 				<Tr>
 					{#if isSelectable}
 						<Td>
-							{#if rowsCheckboxValues[rowIndex] !== undefined}
-								<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+							{#if rowsCheckboxValues[row.index] !== undefined}
+								<Checkbox bind:checked={rowsCheckboxValues[row.index]} />
 							{/if}
 						</Td>
 					{/if}
-					{#each columnsSanitized as { isEditable, key, options, snippet }}
-						{@render snippet({ isEditable, key, object: rows[rowIndex], options })}
+					{#each columnsSanitized as column (column.key)}
+						{@render column.snippet({
+							isEditable: column.isEditable,
+							key: column.key,
+							object: rows[row.index],
+							options: column.options
+						})}
 					{/each}
 				</Tr>
 			{/if}

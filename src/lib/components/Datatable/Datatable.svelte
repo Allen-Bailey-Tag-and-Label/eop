@@ -35,7 +35,7 @@
 		Tr
 	} from '../';
 
-	import { compareFn, filterOperatorOptions, getAt, setAt } from './';
+	import { compareFn, deleteAt, filterOperatorOptions, getAt, setAt } from './';
 	import type { Column, ColumnType, Props, TdSnippet } from './types';
 
 	let {
@@ -95,6 +95,17 @@
 		totalRows = $bindable()
 	}: Props = $props();
 	let isAllRowsSelected = $state(false);
+	const getRowKey = (row: object) => {
+		let key = rowKeyMap.get(row);
+		if (!key) {
+			const random = crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+			rowKeyMap.set(row, random);
+			key = random;
+		}
+		return key;
+	};
+	const rowKeyMap = new WeakMap<object, string>();
+
 	const tdSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintTd],
 		['boolean', booleanTd],
@@ -274,7 +285,12 @@
 		});
 	});
 	$effect(() => {
-		rowsSanitized = rows.map((row, index) => ({ index, isSelected: false, row }));
+		rowsSanitized = rows.map((row, index) => ({
+			_key: getRowKey(row),
+			index,
+			isSelected: false,
+			row
+		}));
 	});
 	$effect(() => {
 		rowsSelected = rowsCheckboxValues.filter((rowCheckboxValue) => rowCheckboxValue);
@@ -434,8 +450,8 @@
 														);
 														if (sortColumn === undefined) return 0;
 
-														let aValue = rows[a][settings.sortKey];
-														let bValue = rows[b][settings.sortKey];
+														let aValue = getAt(rows[a], settings.sortKey);
+														let bValue = getAt(rows[b], settings.sortKey);
 
 														if (sortColumn.type === 'select') {
 															aValue =
@@ -448,11 +464,13 @@
 																)?.label ?? bValue;
 														}
 
-														return sortColumn.compareFn(
+														const comparison = sortColumn.compareFn(
 															aValue,
 															bValue,
 															settings.sortDirection === 'asc' ? 1 : -1
 														);
+
+														return comparison || a - b;
 													});
 													rows = indexes.map((index) => rows[index]);
 													rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
@@ -485,6 +503,7 @@
 															columns[columnIndex - 1],
 															columns[columnIndex]
 														];
+														columns = [...columns];
 													}}
 												>
 													<ArrowLeft size={16} />
@@ -500,6 +519,7 @@
 															columns[columnIndex + 1],
 															columns[columnIndex]
 														];
+														columns = [...columns];
 													}}
 												>
 													<ArrowLeft size={16} />
@@ -517,17 +537,22 @@
 				{@render tbody()}
 			{:else}
 				<Tbody>
-					{#each rowsPaginated as { index: rowIndex }}
+					{#each rowsPaginated as row (`${settings.currentPage}:${row._key}`)}
 						<Tr>
 							{#if isSelectable}
 								<Td>
-									{#if rowsCheckboxValues[rowIndex] !== undefined}
-										<Checkbox bind:checked={rowsCheckboxValues[rowIndex]} />
+									{#if rowsCheckboxValues[row.index] !== undefined}
+										<Checkbox bind:checked={rowsCheckboxValues[row.index]} />
 									{/if}
 								</Td>
 							{/if}
-							{#each columnsSanitized as { isEditable, key, options, snippet }}
-								{@render snippet({ isEditable, key, object: rows[rowIndex], options })}
+							{#each columnsSanitized as column (column.key)}
+								{@render column.snippet({
+									isEditable: column.isEditable,
+									key: column.key,
+									object: rows[row.index],
+									options: column.options
+								})}
 							{/each}
 						</Tr>
 					{/each}
@@ -737,7 +762,9 @@
 			<Checkbox
 				bind:checked={
 					() => {
-						return getAt(object, key);
+						const value = getAt(object, key);
+						if (value == undefined) return false;
+						return value;
 					},
 					(value) => {
 						setAt(object, key, value);
@@ -838,48 +865,65 @@
 {#snippet selectTd({ isEditable, key, object, options }: TdSnippet)}
 	{#if isEditable}
 		<Td class="hover:outline-primary-500/0 p-0">
+			{@const rawOptions = options ?? []}
+			{@const hasBlank = rawOptions.some((o: any) => o?.value === '')}
+			{@const dedupedOptions = Array.from(
+				// Map by value to remove duplicates; keeps first occurrence
+				new Map(rawOptions.map((o: any) => [o?.value, o])).values()
+			)}
+			{@const sanitizedOptions = [
+				...(hasBlank ? [] : [{ label: '', value: '' }]),
+				...dedupedOptions
+			]}
 			<Select
 				bind:value={
 					() => {
-						return getAt(object, key);
+						const v = getAt(object, key);
+						return options?.some((o: any) => o?.value === v) ? v : '';
 					},
 					(value) => {
-						setAt(object, key, value);
+						if (value === '' || value === undefined) {
+							deleteAt(object, key);
+						} else {
+							setAt(object, key, value);
+						}
 					}
 				}
 				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
-				{options}
+				options={sanitizedOptions}
 			/>
 		</Td>
 	{:else}
 		<Td class="whitespace-nowrap">
-			{options.find((option: any) => option.value === getAt(object, key))?.label ?? "can't find"}
+			{options.find((o: any) => o?.value === getAt(object, key))?.label ?? "can't find"}
 		</Td>
 	{/if}
 {/snippet}
 {#snippet stringTd({ isEditable, key, object }: TdSnippet)}
-	{#if isEditable}
-		<Td class="hover:outline-primary-500/0 p-0">
-			<Div
-				bind:innerHTML={
-					() => {
-						return getAt(object, key);
-					},
-					(value) => {
-						setAt(object, key, value);
+	{#if object}
+		{#if isEditable}
+			<Td class="hover:outline-primary-500/0 p-0">
+				<Div
+					bind:innerHTML={
+						() => {
+							return getAt(object, key);
+						},
+						(value) => {
+							setAt(object, key, value);
+						}
 					}
-				}
-				class={twMerge(
-					$theme.Input.default,
-					'rounded-none bg-transparent whitespace-nowrap outline-transparent dark:bg-transparent dark:outline-transparent'
-				)}
-				contenteditable={true}
-			>
-				{getAt(object, key)}
-			</Div>
-		</Td>
-	{:else}
-		<Td class="whitespace-nowrap">{getAt(object, key)}</Td>
+					class={twMerge(
+						$theme.Input.default,
+						'rounded-none bg-transparent whitespace-nowrap outline-transparent dark:bg-transparent dark:outline-transparent'
+					)}
+					contenteditable={true}
+				>
+					{getAt(object, key)}
+				</Div>
+			</Td>
+		{:else}
+			<Td class="whitespace-nowrap">{getAt(object, key)}</Td>
+		{/if}
 	{/if}
 {/snippet}
 {#snippet symbolTd(_: TdSnippet)}

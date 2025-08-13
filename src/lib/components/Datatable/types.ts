@@ -77,6 +77,7 @@ export type Props = {
 	isToolbarVisible?: boolean;
 	pagination?: Snippet;
 	paginationSettings?: PaginationSettings;
+	rowKeyMap?: WeakMap<object, string>;
 	rows: Row[];
 	rowsFiltered?: RowSanitized[];
 	rowsCheckboxValues?: boolean[];
@@ -93,6 +94,7 @@ export type Props = {
 };
 export type Row = Record<string, any>;
 export type RowSanitized = {
+	_key: string;
 	index: number;
 	row: Row;
 };
