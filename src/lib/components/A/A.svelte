@@ -8,12 +8,14 @@
 		children?: Snippet;
 		class?: string;
 		element?: HTMLAnchorElement | null;
+		href?: string;
 		variants?: string[];
 	};
 	let {
 		children,
 		class: className,
 		element = $bindable(null),
+		href,
 		variants = [],
 		...restProps
 	}: Props = $props();
@@ -27,6 +29,7 @@
 		...variants.map((variant: string) => $theme.A[variant]),
 		className
 	)}
+	{href}
 >
 	{#if children}
 		{@render children()}
