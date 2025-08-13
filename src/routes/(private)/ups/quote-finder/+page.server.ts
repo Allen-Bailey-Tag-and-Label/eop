@@ -3,5 +3,6 @@ import { serverLoad } from '$lib/server/mongoose/serverLoad';
 
 export const load = serverLoad({
 	labelFunctionMap: new Map([]),
-	model: UpsQuote
+	model: UpsQuote,
+	omitColumns: ['rates', 'shipper', 'shipTo']
 });
