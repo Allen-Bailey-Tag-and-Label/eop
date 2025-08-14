@@ -7,6 +7,7 @@
 		ChevronLast,
 		ChevronLeft,
 		ChevronRight,
+		Download,
 		Funnel,
 		Plus,
 		Save,
@@ -36,7 +37,9 @@
 		Td,
 		Thead,
 		Th,
-		Tr
+		Tr,
+		Label,
+		Radio
 	} from '../';
 
 	import type {
@@ -52,6 +55,7 @@
 		TdSnippet
 	} from './types';
 	import { compareFn, filterOperatorOptions, getAt, isSame } from './';
+	import { exportFunctions, exportOptions } from '../Datatable';
 
 	let {
 		columns = $bindable([]),
@@ -62,6 +66,7 @@
 		createModal: customCreateModal,
 		data,
 		deleteModal: customDeleteModal,
+		exportOption = $bindable('clipboard'),
 		filterModal: customFilterModal,
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
@@ -72,6 +77,8 @@
 		isDeletable = $bindable(true),
 		isDeleteModalOpen = $bindable(false),
 		isEditable = $bindable(true),
+		isExportable = $bindable(true),
+		isExportModalOpen = $bindable(false),
 		isFilterable = $bindable(true),
 		isFilterModalOpen = $bindable(false),
 		isLoading = $bindable(true),
@@ -321,6 +328,9 @@
 			bind:columnInferredTypes
 			bind:columnsSanitized
 			bind:create
+			bind:exportOption
+			bind:isExportable
+			bind:isExportModalOpen
 			bind:filterKeyOptions
 			bind:filtersTemp
 			bind:filtersTempSanitized
@@ -763,6 +773,63 @@
 				>
 					<Trash />
 				</Button>
+			{/if}
+
+			{#if isExportable}
+				<Button onclick={() => (isExportModalOpen = true)} variants={['icon']}>
+					<Download />
+				</Button>
+				<Modal bind:isOpen={isExportModalOpen} class="space-y-6">
+					<Div class="flex flex-col">
+						<Label>Export Type</Label>
+						<Div class="grid grid-cols-3 gap-2">
+							{#each exportOptions as { label, value }}
+								<Radio bind:group={exportOption} {value} variants={['box']}>
+									{label}
+								</Radio>
+							{/each}
+						</Div>
+					</Div>
+					<Div class="flex justify-end space-x-2">
+						<Button
+							onclick={async () => {
+								const headers: string[] = columnsSanitized.map(({ label }) => label);
+								const data: any[][] = rowsSanitized.map((row) =>
+									columnsSanitized.map(({ key, options, type }) => {
+										let value = getAt(rows[row.index], key);
+
+										if (Array.isArray(options)) {
+											if (Array.isArray(value))
+												return value
+													.map((v) => options.find((option) => option.value === v)?.label ?? v)
+													.join(', ');
+											return options.find((option) => option.value === value)?.label ?? value ?? '';
+										}
+
+										if (type === 'boolean') return value ? 'TRUE' : 'FALSE';
+										if (type === 'currency') return currency(value);
+										if (type === 'timestamp') {
+											const date = value instanceof Date ? value : new Date(value);
+											return isNaN(+date) ? '' : date.toISOString();
+										}
+
+										if (value === null || value === undefined) return '';
+										if (typeof value === 'object') return JSON.stringify(value);
+
+										return String(value);
+									})
+								);
+
+								const exportFunction = exportFunctions.get(exportOption);
+								if (exportFunction) await exportFunction({ data, headers });
+								isExportModalOpen = false;
+							}}
+						>
+							Export
+						</Button>
+						<Button onclick={() => (isExportModalOpen = false)} variants={['ghost']}>Cancel</Button>
+					</Div>
+				</Modal>
 			{/if}
 			{#if isSettingsVisible}
 				<Button

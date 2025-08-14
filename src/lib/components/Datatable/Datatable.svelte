@@ -8,6 +8,7 @@
 		ChevronLast,
 		ChevronLeft,
 		ChevronRight,
+		Download,
 		Funnel,
 		Plus,
 		Settings,
@@ -26,6 +27,7 @@
 		Modal,
 		MultiSelect,
 		P,
+		Radio,
 		Select,
 		Table,
 		Tbody,
@@ -35,8 +37,17 @@
 		Tr
 	} from '../';
 
-	import { compareFn, deleteAt, filterOperatorOptions, getAt, setAt } from './';
-	import type { Column, ColumnType, Props, TdSnippet } from './types';
+	import {
+		compareFn,
+		deleteAt,
+		exportFunctions,
+		exportOptions,
+		filterOperatorOptions,
+		getAt,
+		setAt
+	} from './';
+	import type { ColumnType, Props, TdSnippet } from './types';
+	import Label from '../Label/Label.svelte';
 
 	let {
 		columns = $bindable([]),
@@ -45,6 +56,7 @@
 		create = $bindable({}),
 		createModal,
 		deleteModal,
+		exportOption = $bindable('clipboard'),
 		filterModal,
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
@@ -55,6 +67,8 @@
 		isDeletable = $bindable(true),
 		isDeleteModalOpen = $bindable(false),
 		isEditable = $bindable(true),
+		isExportable = $bindable(true),
+		isExportModalOpen = $bindable(false),
 		isFilterable = $bindable(true),
 		isFilterModalOpen = $bindable(false),
 		isPaginateable = $bindable(true),
@@ -94,6 +108,7 @@
 		toolbar,
 		totalRows = $bindable()
 	}: Props = $props();
+
 	let isAllRowsSelected = $state(false);
 	const getRowKey = (row: object) => {
 		let key = rowKeyMap.get(row);
@@ -318,6 +333,62 @@
 				>
 					<Trash />
 				</Button>
+			{/if}
+			{#if isExportable}
+				<Button onclick={() => (isExportModalOpen = true)} variants={['icon']}>
+					<Download />
+				</Button>
+				<Modal bind:isOpen={isExportModalOpen} class="space-y-6">
+					<Div class="flex flex-col">
+						<Label>Export Type</Label>
+						<Div class="grid grid-cols-3 gap-2">
+							{#each exportOptions as { label, value }}
+								<Radio bind:group={exportOption} {value} variants={['box']}>
+									{label}
+								</Radio>
+							{/each}
+						</Div>
+					</Div>
+					<Div class="flex justify-end space-x-2">
+						<Button
+							onclick={async () => {
+								const headers: string[] = columnsSanitized.map(({ label }) => label);
+								const data: any[][] = rowsPaginated.map((row) =>
+									columnsSanitized.map(({ key, options, type }) => {
+										let value = getAt(rows[row.index], key);
+
+										if (Array.isArray(options)) {
+											if (Array.isArray(value))
+												return value
+													.map((v) => options.find((option) => option.value === v)?.label ?? v)
+													.join(', ');
+											return options.find((option) => option.value === value)?.label ?? value ?? '';
+										}
+
+										if (type === 'boolean') return value ? 'TRUE' : 'FALSE';
+										if (type === 'currency') return currency(value);
+										if (type === 'timestamp') {
+											const date = value instanceof Date ? value : new Date(value);
+											return isNaN(+date) ? '' : date.toISOString();
+										}
+
+										if (value === null || value === undefined) return '';
+										if (typeof value === 'object') return JSON.stringify(value);
+
+										return String(value);
+									})
+								);
+
+								const exportFunction = exportFunctions.get(exportOption);
+								if (exportFunction) await exportFunction({ data, headers });
+								isExportModalOpen = false;
+							}}
+						>
+							Export
+						</Button>
+						<Button onclick={() => (isExportModalOpen = false)} variants={['ghost']}>Cancel</Button>
+					</Div>
+				</Modal>
 			{/if}
 			{#if isSettingsVisible}
 				<Button

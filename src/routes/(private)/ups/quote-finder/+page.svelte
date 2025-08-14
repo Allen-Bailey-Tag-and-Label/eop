@@ -19,7 +19,7 @@
 		modelName={'UpsQuote'}
 		virtualColumns={[
 			{ class: 'w-0', key: 'buttons', label: '', snippet: buttonsSnippet },
-			{ key: 'ground', label: 'Ground', snippet: groundSnippet },
+			{ key: 'ground', label: 'Ground', snippet: groundSnippet, type: 'currency' },
 			{ key: 'shipTo.AddressLine', label: 'Street', type: 'string' },
 			{ key: 'shipTo.City', label: 'City', type: 'string' },
 			{ key: 'shipTo.StateProvinceCode', label: 'State', type: 'string' },

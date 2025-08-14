@@ -50,6 +50,7 @@ export type Props = {
 	create?: Record<string, any>;
 	createModal?: Snippet;
 	deleteModal?: Snippet;
+	exportOption?: string;
 	filters?: Filter[];
 	filterModal?: Snippet;
 	filterKeyOptions?: Option[];
@@ -67,6 +68,8 @@ export type Props = {
 	isDeletable?: boolean;
 	isDeleteModalOpen?: boolean;
 	isEditable?: boolean;
+	isExportable?: boolean;
+	isExportModalOpen?: boolean;
 	isFilterable?: boolean;
 	isFilterModalOpen?: boolean;
 	isPaginateable?: boolean;
