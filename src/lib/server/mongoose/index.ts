@@ -1,4 +1,5 @@
 export * as models from './models';
+export { applyColumnsOrder } from './applyColumnsOrder';
 export { attachHooks } from './attachHooks';
 export { buildRefLabelExprBuilder } from './buildRefLabelExprBuilder';
 export { connect } from './connect';

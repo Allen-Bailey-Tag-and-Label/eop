@@ -9,6 +9,7 @@ export const getSettings = async <T extends { locals: any; url: URL }>({
 	if (!route)
 		return {
 			_routeId: '',
+			columnsOrder: [],
 			currentPage: 0,
 			filter: [],
 			rowsPerPage: 10,
@@ -26,6 +27,7 @@ export const getSettings = async <T extends { locals: any; url: URL }>({
 	return JSON.parse(
 		JSON.stringify({
 			_routeId: route._id,
+			columnsOrder: settings?.columnsOrder ?? [],
 			currentPage: settings?.currentPage ?? 0,
 			filter: settings?.filter ?? [],
 			rowsPerPage: settings?.rowsPerPage ?? 10,

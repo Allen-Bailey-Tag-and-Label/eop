@@ -63,6 +63,12 @@ export const getRows = async <T>(params: Params<T>): Promise<T[]> => {
 			];
 
 			rows = await baseModel.aggregate(pipeline).exec();
+		} else {
+			// Fallback: original path (no label-aware sorting)
+			const sort: Sort = sortKey ? { [sortKey]: dir } : {};
+			const query = params.model.find(mongoFilter).sort(sort).skip(skip).limit(rowsPerPage);
+
+			rows = await query.lean().exec();
 		}
 	} else {
 		// Fallback: original path (no label-aware sorting)

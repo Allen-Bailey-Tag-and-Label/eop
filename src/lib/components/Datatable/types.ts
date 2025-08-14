@@ -99,6 +99,7 @@ export type RowSanitized = {
 	row: Row;
 };
 export type Settings = {
+	columnsOrder: string[];
 	currentPage: number;
 	filter: Filter[];
 	rowsPerPage: number;

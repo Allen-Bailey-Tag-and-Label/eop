@@ -429,7 +429,14 @@
 						{/if}
 						{#each columnsSanitized as { class: className, compareFn, key, label, ...columnSanitized }, columnIndex}
 							{#if th}
-								{@render th({ class: className, compareFn, key, label, ...columnSanitized })}
+								{@render th({
+									class: className,
+									columnIndex,
+									compareFn,
+									key,
+									label,
+									...columnSanitized
+								})}
 							{:else}
 								<Th class={twMerge('px-0 py-0', className)}>
 									<Div class="group relative">

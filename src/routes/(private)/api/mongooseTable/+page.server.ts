@@ -59,6 +59,7 @@ export const actions: Actions = {
 	find: async ({ locals, request }) => {
 		const form = await request.formData();
 		const _routeId = String(form.get('_routeId') ?? '');
+		const columnsOrder = JSON.parse(form.get('columnsOrder')?.toString() ?? JSON.stringify([]));
 		const currentPage = Number(form.get('currentPage') ?? 0);
 		const modelName = form.get('modelName') as ModelName | null;
 		const rowsPerPage = Number(form.get('rowsPerPage') ?? 10);
@@ -86,6 +87,7 @@ export const actions: Actions = {
 		const update = {
 			_routeId,
 			_userId: locals.user._id,
+			columnsOrder,
 			currentPage,
 			filter: sanitizedFilters,
 			rowsPerPage,

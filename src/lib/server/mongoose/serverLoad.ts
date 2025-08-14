@@ -1,5 +1,6 @@
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import {
+	applyColumnsOrder,
 	connect,
 	filtersToMongoQuery,
 	getColumns,
@@ -27,7 +28,7 @@ export const serverLoad = <T>(params: Params<T>) => {
 	return async ({ locals, url }: ServerLoadEvent) => {
 		await connect();
 
-		const [columns, settings] = await Promise.all([
+		const [columnsUnsorted, settings] = await Promise.all([
 			params.model
 				? getColumns({
 						labelFunctionMap: params.labelFunctionMap,
@@ -37,6 +38,8 @@ export const serverLoad = <T>(params: Params<T>) => {
 				: [],
 			getSettings({ locals, omitColumns: params.omitColumns ?? [], url })
 		]);
+
+		const columns = applyColumnsOrder(columnsUnsorted, settings.columnsOrder ?? []);
 
 		if (
 			columns.length &&
@@ -60,6 +63,7 @@ export const serverLoad = <T>(params: Params<T>) => {
 						model: params.model,
 						settings: {
 							_routeId: settings._routeId,
+							columnsOrder: settings.columnsOrder,
 							currentPage: settings.currentPage,
 							mongoFilter,
 							rowsPerPage: settings.rowsPerPage,

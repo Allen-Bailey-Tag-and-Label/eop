@@ -1,5 +1,7 @@
 <script lang="ts">
 	import {
+		ArrowLeft,
+		ArrowRight,
 		ChevronDown,
 		ChevronFirst,
 		ChevronLast,
@@ -94,6 +96,7 @@
 		rowsSelected = $bindable([]),
 		settings = $bindable({
 			_routeId: '',
+			columnsOrder: [],
 			currentPage: 0,
 			filter: [],
 			rowsPerPage: 10,
@@ -108,6 +111,29 @@
 		totalRows = $bindable(0),
 		virtualColumns = $bindable([])
 	}: Props = $props();
+	const applyOrder = (merged: any[], order: string[]) => {
+		if (!order?.length) return merged;
+		const byKey = new Map(merged.map((c) => [columnKey(c), c]));
+		const used = new Set<string>();
+		const ordered: any[] = [];
+
+		// place items that exist in 'order'
+		for (const k of order) {
+			const c = byKey.get(k);
+			if (c) {
+				ordered.push(c);
+				used.add(k);
+			}
+		}
+
+		// append any remaining columns in their original relative order
+		for (const c of merged) {
+			const k = columnKey(c);
+			if (!used.has(k)) ordered.push(c);
+		}
+		return ordered;
+	};
+	const columnKey = (c: any) => (typeof c === 'string' ? c : c.key);
 	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintCreate],
 		['boolean', booleanCreate],
@@ -218,7 +244,21 @@
 					(column: Column) => !existingColumns.has(typeof column === 'string' ? column : column.key)
 				)
 			];
-			columns = mergedColumns;
+
+			const desiredOrder: string[] =
+				Array.isArray(settings?.columnsOrder) && settings.columnsOrder.length
+					? settings.columnsOrder
+					: mergedColumns.map(columnKey);
+
+			const next = applyOrder(mergedColumns, desiredOrder);
+
+			// Only assign if actually changed (avoids churn)
+			if (
+				next.length !== columns.length ||
+				next.some((c, i) => columnKey(c) !== columnKey(columns[i]))
+			) {
+				columns = next;
+			}
 		}
 	});
 	$effect(() => {
@@ -334,6 +374,12 @@
 					value={settings._routeId}
 				/>
 				<Input
+					defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+					name="columnsOrder"
+					type="hidden"
+					value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+				/>
+				<Input
 					defaultValue={settings.currentPage.toString()}
 					name="currentPage"
 					type="hidden"
@@ -405,6 +451,12 @@
 			value={settings._routeId}
 		/>
 		<Input
+			defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+			name="columnsOrder"
+			type="hidden"
+			value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+		/>
+		<Input
 			defaultValue={currentPage.toString()}
 			name="currentPage"
 			type="hidden"
@@ -460,75 +512,187 @@
 		{/each}
 	</Tbody>
 {/snippet}
-{#snippet th({ class: className, key, label }: ColumnSanitized)}
+{#snippet th({
+	class: className,
+	columnIndex,
+	key,
+	label
+}: ColumnSanitized & { columnIndex: number })}
 	{#if !isSortable}
 		<Th class={className}>{label}</Th>
 	{:else}
 		<Th class={twMerge('p-0', className)}>
-			<Form
-				action="/api/mongooseTable?/find"
-				submitFunction={() => {
-					isLoading = true;
-					return async ({ update }) => {
-						await update();
-					};
-				}}
-			>
-				<Input
-					defaultValue={settings._routeId}
-					name="_routeId"
-					type="hidden"
-					value={settings._routeId}
-				/>
-				<Input
-					defaultValue={settings.currentPage.toString()}
-					name="currentPage"
-					type="hidden"
-					value={settings.currentPage.toString()}
-				/>
-				<Input
-					defaultValue={JSON.stringify(settings.filter)}
-					name="filter"
-					type="hidden"
-					value={JSON.stringify(settings.filter)}
-				/>
-				<Input
-					defaultValue={settings.rowsPerPage.toString()}
-					name="rowsPerPage"
-					type="hidden"
-					value={settings.rowsPerPage.toString()}
-				/>
-				<Input
-					name="sortDirection"
-					type="hidden"
-					value={key !== settings.sortKey
-						? 'asc'
-						: settings.sortDirection === 'asc'
-							? 'desc'
-							: 'asc'}
-				/>
-				<Input defaultValue={key} name="sortKey" type="hidden" value={key} />
-				<Button
-					class="flex w-full items-center justify-between space-x-2 text-gray-500"
-					type="submit"
-					variants={['ghost', 'square']}
+			<Div class="group relative">
+				<Form
+					action="/api/mongooseTable?/find"
+					submitFunction={() => {
+						isLoading = true;
+						return async ({ update }) => {
+							await update();
+						};
+					}}
 				>
-					<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
-						{label}
-					</Div>
-
-					<ChevronDown
-						class={twMerge(
-							'transition duration-200',
-							key === settings.sortKey ? 'scale-100' : 'scale-0',
-							settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
-						)}
-						size={16}
+					<Input
+						defaultValue={settings._routeId}
+						name="_routeId"
+						type="hidden"
+						value={settings._routeId}
 					/>
-				</Button>
-			</Form>
+					<Input
+						defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+						name="columnsOrder"
+						type="hidden"
+						value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+					/>
+					<Input
+						defaultValue={settings.currentPage.toString()}
+						name="currentPage"
+						type="hidden"
+						value={settings.currentPage.toString()}
+					/>
+					<Input
+						defaultValue={JSON.stringify(settings.filter)}
+						name="filter"
+						type="hidden"
+						value={JSON.stringify(settings.filter)}
+					/>
+					<Input
+						defaultValue={settings.rowsPerPage.toString()}
+						name="rowsPerPage"
+						type="hidden"
+						value={settings.rowsPerPage.toString()}
+					/>
+					<Input
+						name="sortDirection"
+						type="hidden"
+						value={key !== settings.sortKey
+							? 'asc'
+							: settings.sortDirection === 'asc'
+								? 'desc'
+								: 'asc'}
+					/>
+					<Input defaultValue={key} name="sortKey" type="hidden" value={key} />
+					<Button
+						class="flex w-full items-center justify-between space-x-2 text-gray-500"
+						type="submit"
+						variants={['ghost', 'square']}
+					>
+						<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+							{label}
+						</Div>
+
+						<ChevronDown
+							class={twMerge(
+								'transition duration-200',
+								key === settings.sortKey ? 'scale-100' : 'scale-0',
+								settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
+							)}
+							size={16}
+						/>
+					</Button>
+				</Form>
+				{#if isColumnsReorderable}
+					{#if columnIndex > 0}
+						{@render thReorderButton({ class: 'left-0 ', columnIndex, delta: -1, Icon: ArrowLeft })}
+					{/if}
+					{#if columnIndex < columnsSanitized.length - 1}
+						{@render thReorderButton({
+							class: 'right-0 ',
+							columnIndex,
+							delta: 1,
+							Icon: ArrowRight
+						})}
+					{/if}
+				{/if}
+			</Div>
 		</Th>
 	{/if}
+{/snippet}
+{#snippet thReorderButton({
+	class: className,
+	columnIndex,
+	delta,
+	Icon
+}: {
+	class: string;
+	columnIndex: number;
+	delta: 1 | -1;
+	Icon: any;
+})}
+	<Form
+		action="/api/mongooseTable?/find"
+		submitFunction={() => {
+			return async () => {};
+		}}
+	>
+		<Input
+			defaultValue={settings._routeId}
+			name="_routeId"
+			type="hidden"
+			value={settings._routeId}
+		/>
+		<Input
+			defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+			name="columnsOrder"
+			type="hidden"
+			value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+		/>
+		<Input
+			defaultValue={settings.currentPage.toString()}
+			name="currentPage"
+			type="hidden"
+			value={settings.currentPage.toString()}
+		/>
+		<Input
+			defaultValue={JSON.stringify(settings.filter)}
+			name="filter"
+			type="hidden"
+			value={JSON.stringify(settings.filter)}
+		/>
+		<Input
+			defaultValue={settings.rowsPerPage.toString()}
+			name="rowsPerPage"
+			type="hidden"
+			value={settings.rowsPerPage.toString()}
+		/>
+		<Input
+			defaultValue={settings.sortDirection}
+			name="sortDirection"
+			type="hidden"
+			value={settings.sortDirection}
+		/>
+		<Input defaultValue={settings.sortKey} name="sortKey" type="hidden" value={settings.sortKey} />
+		<Button
+			class={twMerge(
+				'absolute top-1/2 -translate-y-1/2 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100',
+				className
+			)}
+			onclick={(e: Event) => {
+				const form = (e.currentTarget as HTMLElement).closest('form') as HTMLFormElement;
+				if (!form) return;
+
+				[columns[columnIndex], columns[columnIndex + delta]] = [
+					columns[columnIndex + delta],
+					columns[columnIndex]
+				];
+				columns = [...columns];
+
+				const columnsOrder = columns.map((column) =>
+					typeof column === 'string' ? column : column.key
+				);
+				settings.columnsOrder = columnsOrder;
+
+				const columnsOrderElement = form.elements.namedItem(
+					'columnsOrder'
+				) as HTMLInputElement | null;
+				if (columnsOrderElement) columnsOrderElement.value = JSON.stringify(columnsOrder);
+
+				form.requestSubmit();
+			}}
+		>
+			<Icon size={16} />
+		</Button>
+	</Form>
 {/snippet}
 {#snippet toolbar()}
 	{#if isToolbarVisible}
@@ -599,6 +763,12 @@
 								name="_routeId"
 								type="hidden"
 								value={settings._routeId}
+							/>
+							<Input
+								defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+								name="columnsOrder"
+								type="hidden"
+								value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
 							/>
 							<Input
 								defaultValue={settings.currentPage.toString()}
@@ -786,6 +956,12 @@
 				name="_routeId"
 				type="hidden"
 				value={settings._routeId}
+			/>
+			<Input
+				defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+				name="columnsOrder"
+				type="hidden"
+				value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
 			/>
 			<Input
 				defaultValue={settings.currentPage.toString()}

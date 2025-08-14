@@ -8,6 +8,7 @@ export type { Model };
 export type { Query };
 export type Settings = {
 	_routeId: string;
+	columnsOrder: string[];
 	currentPage: number;
 	filter: Filter[];
 	rowsPerPage: number;
