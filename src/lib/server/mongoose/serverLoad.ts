@@ -51,10 +51,12 @@ export const serverLoad = <T>(params: Params<T>) => {
 		const rows =
 			'query' in params
 				? getRows({
+						labelFunctionMap: params.labelFunctionMap,
 						query: params.query,
 						settings: { mongoFilter, ...settings }
 					})
 				: getRows({
+						labelFunctionMap: params.labelFunctionMap,
 						model: params.model,
 						settings: {
 							_routeId: settings._routeId,
