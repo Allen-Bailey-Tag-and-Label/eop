@@ -12,6 +12,7 @@
 		class?: string;
 		defaultValue?: string;
 		element?: HTMLInputElement | null;
+		group?: string;
 		label?: string;
 		name?: string;
 		required?: boolean;
@@ -48,6 +49,7 @@
 		class: className,
 		defaultValue,
 		element = $bindable(null),
+		group = $bindable(''),
 		label,
 		name,
 		required,
@@ -84,6 +86,23 @@
 			{name}
 			{required}
 			type="checkbox"
+		/>
+	{:else if type === 'radio'}
+		<input
+			{...restProps}
+			{@attach typeFactory(type)}
+			bind:group
+			bind:this={element}
+			class={twMerge(
+				$theme.Input.default,
+				...variants.map((variant: string) => $theme.Input[variant]),
+				className
+			)}
+			{defaultValue}
+			{name}
+			{required}
+			type="radio"
+			{value}
 		/>
 	{:else}
 		<input

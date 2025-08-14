@@ -16,6 +16,7 @@ export { default as MultiSelect } from './MultiSelect/MultiSelect.svelte';
 export { default as MongooseTable } from './MongooseTable/MongooseTable.svelte';
 export { default as Option } from './Option/Option.svelte';
 export { default as P } from './P/P.svelte';
+export { default as Radio } from './Radio/Radio.svelte';
 export { default as RangeInput } from './RangeInput/RangeInput.svelte';
 export { default as Select } from './Select/Select.svelte';
 export { default as Spinner } from './Spinner/Spinner.svelte';

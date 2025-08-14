@@ -55,6 +55,10 @@ export const defaultTheme: Theme = {
 	},
 	Option: { default: 'bg-gray-100 dark:bg-gray-800' },
 	P: { default: '' },
+	Radio: {
+		box: 'flex w-full items-center justify-start space-x-2 rounded-lg p-3 has-checked:bg-primary-500/10 outline outline-gray-200 dark:outline-gray-700 has-checked:outline-primary-500',
+		default: 'flex w-full items-center space-x-2'
+	},
 	RangeInput: {
 		default:
 			'[&::-webkit-slider-thumb]:bg-primary-500 h-2 w-full appearance-none rounded-full bg-gray-200 p-0 outline-none dark:bg-gray-700 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
