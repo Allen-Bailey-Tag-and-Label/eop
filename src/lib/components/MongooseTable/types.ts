@@ -9,6 +9,8 @@ import type {
 
 export * from '../Datatable/types';
 export type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
+export type ColumnOverride = Partial<Omit<ColumnSanitized, 'key'>>;
+export type ColumnOverrides = Record<string, ColumnOverride>;
 export type ColumnType = DatatableColumnType | 'ref';
 export type ColumnSanitized = Omit<DatatableColumnSanitized, 'type'> & { type: ColumnType };
 export type Data = {
@@ -20,6 +22,7 @@ export type Data = {
 export type Models = keyof typeof models;
 export type Props = Omit<DatatableProps, 'columns' | 'columnsSanitized' | 'rows' | 'settings'> & {
 	columns?: Column[];
+	columnOverrides?: ColumnOverrides;
 	columnsSanitized?: ColumnSanitized[];
 	data: Data;
 	isLoading?: boolean;

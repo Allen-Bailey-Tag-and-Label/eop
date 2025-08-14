@@ -41,6 +41,8 @@
 
 	import type {
 		Column,
+		ColumnOverride,
+		ColumnOverrides,
 		ColumnSanitized,
 		ColumnType,
 		Data,
@@ -54,6 +56,7 @@
 	let {
 		columns = $bindable([]),
 		columnInferredTypes = $bindable([]),
+		columnOverrides = $bindable({}),
 		columnsSanitized = $bindable([]),
 		create = $bindable({}),
 		createModal: customCreateModal,
@@ -133,7 +136,21 @@
 		}
 		return ordered;
 	};
-	const columnKey = (c: any) => (typeof c === 'string' ? c : c.key);
+	const applyOverrides = (
+		column: ColumnOverride,
+		override?: ColumnOverrides['string']
+	): ColumnOverride => {
+		if (!override) return column;
+		if (override.hidden) return null as any;
+		return {
+			...column,
+			...override,
+			key: column.key
+		};
+	};
+	const columnKey = (column: Column) => (typeof column === 'string' ? column : column.key);
+	const columnToObject = (column: Column) =>
+		typeof column === 'string' ? { key: column, label: column, type: 'string' } : column;
 	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintCreate],
 		['boolean', booleanCreate],
@@ -232,32 +249,44 @@
 				label: 'Updated At',
 				type: 'timestamp'
 			});
+		if (_createdByIdExists && !columnOverrides._createdById)
+			columnOverrides._createdById = { label: 'Created By' };
+		if (createdAtExists && !columnOverrides.createdAt)
+			columnOverrides.createdAt = { label: 'Created At' };
+		if (updatedAtExists && !columnOverrides.updatedAt)
+			columnOverrides.updatedAt = { label: 'Updated At' };
 	});
 	$effect(() => {
 		if (virtualColumns?.length) {
-			const existingColumns = new Set(
-				columns.map((column: Column) => (typeof column === 'string' ? column : column.key))
-			);
+			const existingColumns = new Set(columns.map(columnKey));
+
 			const mergedColumns = [
-				...columns,
-				...virtualColumns.filter(
-					(column: Column) => !existingColumns.has(typeof column === 'string' ? column : column.key)
-				)
+				...columns.map(columnToObject),
+				...(virtualColumns
+					.filter((virtualColumn: Column) => !existingColumns.has(columnKey(virtualColumn)))
+					.map(columnToObject) ?? [])
 			];
+			const columnsWithOverrides = mergedColumns
+				.map((column) => {
+					const override = columnOverrides[column.key];
+					return applyOverrides(column, override);
+				})
+				.filter((column): column is ColumnOverride => Boolean(column));
 
-			const desiredOrder: string[] =
-				Array.isArray(settings?.columnsOrder) && settings.columnsOrder.length
-					? settings.columnsOrder
-					: mergedColumns.map(columnKey);
+			const desiredOrder: string[] = settings.columnsOrder?.length
+				? settings.columnsOrder
+				: columnsWithOverrides.map((column) => column.key);
 
-			const next = applyOrder(mergedColumns, desiredOrder);
+			const finalColumns = applyOrder(columnsWithOverrides, desiredOrder);
 
 			// Only assign if actually changed (avoids churn)
 			if (
-				next.length !== columns.length ||
-				next.some((c, i) => columnKey(c) !== columnKey(columns[i]))
+				finalColumns.length !== columns.length ||
+				finalColumns.some(
+					(column, columnIndex) => columnKey(column) !== columnKey(columns[columnIndex])
+				)
 			) {
-				columns = next;
+				columns = finalColumns;
 			}
 		}
 	});
