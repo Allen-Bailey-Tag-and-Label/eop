@@ -18,7 +18,7 @@
 		isEditable={false}
 		modelName={'UpsQuote'}
 		virtualColumns={[
-			{ class: 'w-0', isFilterable: false, key: 'buttons', label: 'asdf', snippet: buttonsSnippet },
+			{ class: 'w-0', isFilterable: false, key: 'buttons', label: '', snippet: buttonsSnippet },
 			{
 				key: 'ground',
 				label: 'Ground',
