@@ -13,7 +13,8 @@ export type ColumnSanitized = {
 	options: Option[];
 	snippet: Snippet<[TdSnippet]>;
 	type: ColumnType;
-} & any;
+	valueFn?: ValueFn;
+};
 export type ColumnType =
 	| 'bigint'
 	| 'boolean'
@@ -62,6 +63,7 @@ export type Props = {
 		snippet: Snippet<[TdSnippet]>;
 		value: any;
 	}[];
+	isAllRowsSelected?: boolean;
 	isColumnsReorderable?: boolean;
 	isCreatable?: boolean;
 	isCreateModalOpen?: boolean;
@@ -90,7 +92,7 @@ export type Props = {
 	settings?: Partial<Settings>;
 	settingsTemp?: Pick<Settings, 'rowsPerPage'>;
 	tbody?: Snippet;
-	th?: Snippet<[ColumnSanitized]>;
+	th?: Snippet<[ColumnSanitized & { columnIndex: number }]>;
 	thead?: Snippet;
 	toolbar?: Snippet;
 	totalRows?: number;
@@ -115,4 +117,6 @@ export type TdSnippet = {
 	key: string;
 	object: any;
 	options: Option[];
-} & any;
+	valueFn?: ValueFn;
+};
+export type ValueFn = ({ key, object }: { key: string; object: any }) => any;

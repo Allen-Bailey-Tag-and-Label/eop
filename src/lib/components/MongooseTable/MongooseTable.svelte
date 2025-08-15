@@ -9,6 +9,7 @@
 		ChevronRight,
 		Download,
 		Funnel,
+		Key,
 		Plus,
 		Save,
 		Settings,
@@ -54,8 +55,17 @@
 		Row,
 		TdSnippet
 	} from './types';
-	import { compareFn, filterOperatorOptions, getAt, isSame } from './';
-	import { exportFunctions, exportOptions } from '../Datatable';
+	import {
+		applyOrder,
+		applyOverrides,
+		columnKey,
+		columnToObject,
+		compareFn,
+		filterOperatorOptions,
+		getAt,
+		isSame
+	} from './';
+	import { exportFunctions, exportOptions, getExportData } from '../Datatable';
 
 	let {
 		columns = $bindable([]),
@@ -121,43 +131,6 @@
 		totalRows = $bindable(0),
 		virtualColumns = $bindable([])
 	}: Props = $props();
-	const applyOrder = (merged: any[], order: string[]) => {
-		if (!order?.length) return merged;
-		const byKey = new Map(merged.map((c) => [columnKey(c), c]));
-		const used = new Set<string>();
-		const ordered: any[] = [];
-
-		// place items that exist in 'order'
-		for (const k of order) {
-			const c = byKey.get(k);
-			if (c) {
-				ordered.push(c);
-				used.add(k);
-			}
-		}
-
-		// append any remaining columns in their original relative order
-		for (const c of merged) {
-			const k = columnKey(c);
-			if (!used.has(k)) ordered.push(c);
-		}
-		return ordered;
-	};
-	const applyOverrides = (
-		column: ColumnOverride,
-		override?: ColumnOverrides['string']
-	): ColumnOverride => {
-		if (!override) return column;
-		if (override.hidden) return null as any;
-		return {
-			...column,
-			...override,
-			key: column.key
-		};
-	};
-	const columnKey = (column: Column) => (typeof column === 'string' ? column : column.key);
-	const columnToObject = (column: Column) =>
-		typeof column === 'string' ? { key: column, label: column, type: 'string' } : column;
 	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintCreate],
 		['boolean', booleanCreate],
@@ -543,7 +516,8 @@
 							isEditable: column.isEditable,
 							key: column.key,
 							object: rows[row.index],
-							options: column.options
+							options: column.options,
+							valueFn: column.valueFn
 						})}
 					{/each}
 				</Tr>
@@ -794,31 +768,7 @@
 						<Button
 							onclick={async () => {
 								const headers: string[] = columnsSanitized.map(({ label }) => label);
-								const data: any[][] = rowsSanitized.map((row) =>
-									columnsSanitized.map(({ key, options, type }) => {
-										let value = getAt(rows[row.index], key);
-
-										if (Array.isArray(options)) {
-											if (Array.isArray(value))
-												return value
-													.map((v) => options.find((option) => option.value === v)?.label ?? v)
-													.join(', ');
-											return options.find((option) => option.value === value)?.label ?? value ?? '';
-										}
-
-										if (type === 'boolean') return value ? 'TRUE' : 'FALSE';
-										if (type === 'currency') return currency(value);
-										if (type === 'timestamp') {
-											const date = value instanceof Date ? value : new Date(value);
-											return isNaN(+date) ? '' : date.toISOString();
-										}
-
-										if (value === null || value === undefined) return '';
-										if (typeof value === 'object') return JSON.stringify(value);
-
-										return String(value);
-									})
-								);
+								const data: any[][] = getExportData({ columnsSanitized, rows: rowsSanitized });
 
 								const exportFunction = exportFunctions.get(exportOption);
 								if (exportFunction) await exportFunction({ data, headers });

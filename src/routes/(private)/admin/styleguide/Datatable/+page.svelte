@@ -9,6 +9,11 @@
 				type: key
 			})),
 			{
+				key: 'function',
+				type: 'function',
+				valueFn: () => Math.random()
+			},
+			{
 				key: 'select',
 				options: Array(100)
 					.fill(0)

@@ -24,6 +24,7 @@
 		Div,
 		Form,
 		Input,
+		Label,
 		Modal,
 		MultiSelect,
 		P,
@@ -44,10 +45,10 @@
 		exportOptions,
 		filterOperatorOptions,
 		getAt,
+		getExportData,
 		setAt
 	} from './';
 	import type { ColumnType, Props, TdSnippet } from './types';
-	import Label from '../Label/Label.svelte';
 
 	let {
 		columns = $bindable([]),
@@ -61,6 +62,7 @@
 		filterKeyOptions = $bindable([]),
 		filtersTemp = $bindable([]),
 		filtersTempSanitized = $bindable([]),
+		isAllRowsSelected = $bindable(false),
 		isColumnsReorderable = $bindable(true),
 		isCreatable = $bindable(true),
 		isCreateModalOpen = $bindable(false),
@@ -108,8 +110,6 @@
 		toolbar,
 		totalRows = $bindable()
 	}: Props = $props();
-
-	let isAllRowsSelected = $state(false);
 	const getRowKey = (row: object) => {
 		let key = rowKeyMap.get(row);
 		if (!key) {
@@ -183,7 +183,8 @@
 				label: columnSanitized.label ?? columnSanitized.key,
 				options: columnSanitized.options ?? [],
 				snippet,
-				type
+				type,
+				valueFn: columnSanitized.valueFn ?? undefined
 			};
 		});
 	});
@@ -224,10 +225,17 @@
 	$effect(() => {
 		const isCreatableValue = isCreatable;
 		const isDeletableValue = isDeletable;
+		const isExportableValue = isExportable;
 		const isFilterableValue = isFilterable;
+		const isPaginateableValue = isPaginateable;
 
 		untrack(() => {
-			isToolbarVisible = isCreatableValue || isDeletableValue || isFilterableValue;
+			isToolbarVisible =
+				isCreatableValue ||
+				isDeletableValue ||
+				isExportableValue ||
+				isFilterableValue ||
+				isPaginateableValue;
 		});
 	});
 	$effect(() => {
@@ -353,31 +361,7 @@
 						<Button
 							onclick={async () => {
 								const headers: string[] = columnsSanitized.map(({ label }) => label);
-								const data: any[][] = rowsPaginated.map((row) =>
-									columnsSanitized.map(({ key, options, type }) => {
-										let value = getAt(rows[row.index], key);
-
-										if (Array.isArray(options)) {
-											if (Array.isArray(value))
-												return value
-													.map((v) => options.find((option) => option.value === v)?.label ?? v)
-													.join(', ');
-											return options.find((option) => option.value === value)?.label ?? value ?? '';
-										}
-
-										if (type === 'boolean') return value ? 'TRUE' : 'FALSE';
-										if (type === 'currency') return currency(value);
-										if (type === 'timestamp') {
-											const date = value instanceof Date ? value : new Date(value);
-											return isNaN(+date) ? '' : date.toISOString();
-										}
-
-										if (value === null || value === undefined) return '';
-										if (typeof value === 'object') return JSON.stringify(value);
-
-										return String(value);
-									})
-								);
+								const data: any[][] = getExportData({ columnsSanitized, rows: rowsPaginated });
 
 								const exportFunction = exportFunctions.get(exportOption);
 								if (exportFunction) await exportFunction({ data, headers });
@@ -615,7 +599,7 @@
 				{@render tbody()}
 			{:else}
 				<Tbody>
-					{#each rowsPaginated as row (`${settings.currentPage}:${row._key}`)}
+					{#each rowsPaginated as row, rowIndex (`${settings.currentPage}:${row._key}`)}
 						<Tr>
 							{#if isSelectable}
 								<Td>
@@ -629,7 +613,8 @@
 									isEditable: column.isEditable,
 									key: column.key,
 									object: rows[row.index],
-									options: column.options
+									options: column.options,
+									valueFn: column?.valueFn
 								})}
 							{/each}
 						</Tr>
@@ -881,8 +866,12 @@
 		</Td>
 	{/if}
 {/snippet}
-{#snippet functionTd(_: TdSnippet)}
-	<Td>Function</Td>
+{#snippet functionTd({ key, object, valueFn }: TdSnippet)}
+	<Td>
+		{#if valueFn}
+			{valueFn({ key, object })}
+		{/if}
+	</Td>
 {/snippet}
 {#snippet multiSelectTd({ isEditable, key, object, options }: TdSnippet)}
 	{#if isEditable}
