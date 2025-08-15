@@ -73,7 +73,7 @@
 			>
 				<Div
 					class={twMerge(
-						'h-1/2 w-1/2 rounded-full bg-gray-50/0 transition duration-200 dark:bg-gray-950/0',
+						'h-2/5 w-2/5 rounded-full bg-gray-50/0 transition duration-200 dark:bg-gray-950/0',
 						group === value ? 'bg-gray-50 dark:bg-gray-950' : undefined
 					)}
 				/>
