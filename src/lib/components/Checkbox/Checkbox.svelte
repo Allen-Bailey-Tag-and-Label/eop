@@ -15,6 +15,7 @@
 		class?: string;
 		element?: HTMLInputElement | null;
 		handle?: Snippet;
+		label?: string;
 		name?: string;
 		style?: string;
 		variants?: string[];
@@ -26,6 +27,7 @@
 		class: className,
 		element = $bindable(null),
 		handle,
+		label,
 		name,
 		style,
 		variants = [],
@@ -33,32 +35,45 @@
 	}: Props = $props();
 </script>
 
-<Label
-	class={twMerge(
-		$theme.Checkbox.default,
-		...variants.map((variant: string) => $theme.Checkbox[variant]),
-		className
-	)}
-	{style}
->
-	<Input
-		{...restProps}
-		{@attach attachmentFactory(attachments)}
-		bind:checked
-		bind:element
-		class="peer sr-only absolute h-0 w-0"
-		{name}
-		type="checkbox"
-	/>
-	{#if handle}
-		{@render handle()}
-	{:else}
-		<Div
-			class="peer-checked:bg-primary-500 peer-checked:outline-primary-500 peer-focus:outline-primary-500 flex h-6 w-6 items-center justify-center rounded px-0 py-0 outline outline-current transition duration-200 peer-focus:outline-2"
-		>
-			<Div class={twMerge('text-white transition duration-200', checked ? 'scale-100' : 'scale-0')}>
-				<Check size={16} />
+{#if label}
+	<Div class="flex w-full flex-col">
+		<Label>{label}</Label>
+		{@render input()}
+	</Div>
+{:else}
+	{@render input()}
+{/if}
+
+{#snippet input()}
+	<Label
+		class={twMerge(
+			$theme.Checkbox.default,
+			...variants.map((variant: string) => $theme.Checkbox[variant]),
+			className
+		)}
+		{style}
+	>
+		<Input
+			{...restProps}
+			{@attach attachmentFactory(attachments)}
+			bind:checked
+			bind:element
+			class="peer sr-only absolute h-0 w-0"
+			{name}
+			type="checkbox"
+		/>
+		{#if handle}
+			{@render handle()}
+		{:else}
+			<Div
+				class="peer-checked:bg-primary-500 peer-checked:outline-primary-500 peer-focus:outline-primary-500 flex h-6 w-6 items-center justify-center rounded px-0 py-0 outline outline-current transition duration-200 peer-focus:outline-2"
+			>
+				<Div
+					class={twMerge('text-white transition duration-200', checked ? 'scale-100' : 'scale-0')}
+				>
+					<Check size={16} />
+				</Div>
 			</Div>
-		</Div>
-	{/if}
-</Label>
+		{/if}
+	</Label>
+{/snippet}
