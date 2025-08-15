@@ -178,7 +178,7 @@
 				compareFn: columnSanitized.compareFn ?? compareFn[type] ?? compareFn[inferredType],
 				isCreatable: columnSanitized.isCreatable ?? isCreatable,
 				isEditable: columnSanitized.isEditable ?? isEditable,
-				isFilterable: columnSanitized.isFilterable ?? isFilterable,
+				isFilterable: columnSanitized.isFilterable ?? (type === 'function' ? false : isFilterable),
 				key: columnSanitized.key,
 				label: columnSanitized.label ?? columnSanitized.key,
 				options: columnSanitized.options ?? [],

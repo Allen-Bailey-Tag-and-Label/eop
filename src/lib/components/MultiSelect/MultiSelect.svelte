@@ -85,7 +85,7 @@
 							}
 						}}
 						role="button"
-						tabindex="-1"
+						tabindex={-1}
 					>
 						<X size="16" />
 					</span>

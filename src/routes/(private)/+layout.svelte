@@ -28,6 +28,8 @@
 	]);
 	let user: User = $state({
 		_id: '',
+		branches: [],
+		defaultBranch: { _id: '', label: '', number: 0 },
 		isActive: true,
 		profile: { _id: '', email: '', firstName: '', lastName: '', phone: 0 },
 		settings: { _id: '', magnification: 16 },
@@ -48,7 +50,7 @@
 </script>
 
 <Div class="flex max-h-screen min-h-screen max-w-screen min-w-screen flex-col overflow-auto">
-	<Header class="sticky top-0 z-10">
+	<Header class="sticky top-0 z-10 flex items-center justify-between">
 		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
 			{#if !isNavigationOpen}
 				<Menu size={(user.settings.magnification * 24) / 16}></Menu>
@@ -56,6 +58,10 @@
 				<X size={(user.settings.magnification * 24) / 16}></X>
 			{/if}
 		</Button>
+		<Div class="px-6">
+			{user.profile.firstName}
+			{user.profile.lastName}
+		</Div>
 	</Header>
 	<Div class="relative flex flex-grow flex-col overflow-auto">
 		<Div class="pointer-events-none top-0 left-0 z-10 h-full w-full">
@@ -63,7 +69,7 @@
 				<Button
 					class="pointer-events-auto absolute top-0 left-0 h-full w-full backdrop-blur-md"
 					onclick={() => (isNavigationOpen = false)}
-					tabindex="-1"
+					tabindex={-1}
 					variants={['ghost', 'square']}
 				></Button>
 				<Card
