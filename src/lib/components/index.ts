@@ -19,6 +19,7 @@ export { default as P } from './P/P.svelte';
 export { default as Radio } from './Radio/Radio.svelte';
 export { default as RangeInput } from './RangeInput/RangeInput.svelte';
 export { default as Select } from './Select/Select.svelte';
+export { default as Slider } from './Slider/Slider.svelte';
 export { default as Spinner } from './Spinner/Spinner.svelte';
 export { default as Table } from './Table/Table.svelte';
 export { default as Tbody } from './Tbody/Tbody.svelte';
