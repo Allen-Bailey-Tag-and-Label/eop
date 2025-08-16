@@ -6,20 +6,24 @@
 
 	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'class'> & {
 		class?: string;
+		defaultValue?: string;
 		element?: HTMLInputElement | null;
 		formatValue?: (v: string) => string;
 		isValueVisible?: boolean;
 		label?: string;
+		name?: string;
 		value?: string;
 		variants?: string[];
 	};
 
 	let {
 		class: className,
+		defaultValue,
 		element = $bindable(null),
 		formatValue = (v: string) => v,
 		isValueVisible = true,
 		label,
+		name,
 		value = $bindable('0'),
 		variants = [],
 		...restProps
@@ -42,6 +46,8 @@
 			bind:element
 			bind:value
 			class={twMerge($theme.RangeInput.default, className)}
+			{defaultValue}
+			{name}
 			type="range"
 		/>
 		{#if isValueVisible}
