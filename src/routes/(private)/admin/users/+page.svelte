@@ -11,10 +11,12 @@
 		MongooseTable,
 		MultiSelect,
 		P,
+		RangeInput,
 		Select,
 		Td
 	} from '$lib/components';
 	import type { ColumnSanitized, TdSnippet } from '$lib/components/MongooseTable/types.js';
+	import { percent } from '$lib/formats/percent.js';
 	import { hashSync } from 'bcryptjs';
 
 	let { data } = $props();
@@ -139,28 +141,24 @@
 						<Div class="flex flex-grow flex-col space-y-4">
 							<Input
 								bind:value={createModalData.formData.profile.firstName}
-								defaultValue={createModalData.formData.profile.firstName}
 								label="First Name"
 								name="firstName"
 								required={true}
 							/>
 							<Input
 								bind:value={createModalData.formData.profile.lastName}
-								defaultValue={createModalData.formData.profile.lastName}
 								label="Last Name"
 								name="lastName"
 								required={true}
 							/>
 							<Input
 								bind:value={createModalData.formData.profile.hireDate}
-								defaultValue={createModalData.formData.profile.hireDate}
 								label="Hire Date"
 								name="hireDate"
 								type="date"
 							/>
 							<Input
 								bind:value={createModalData.formData.profile.ennisId}
-								defaultValue={createModalData.formData.profile.ennisId}
 								class="text-right"
 								label="Ennis ID"
 								name="ennisId"
@@ -169,14 +167,12 @@
 							/>
 							<Input
 								bind:value={createModalData.formData.profile.email}
-								defaultValue={createModalData.formData.profile.email}
 								label="Email"
 								name="email"
 								type="email"
 							/>
 							<Input
 								bind:value={createModalData.formData.profile.phone}
-								defaultValue={createModalData.formData.profile.phone}
 								class="text-right"
 								label="Phone"
 								name="phone"
@@ -218,13 +214,24 @@
 						}}
 					>
 						<Div class="flex flex-grow flex-col space-y-4">
-							<Input
-								bind:value={createModalData.formData.settings.magnification}
-								defaultValue={createModalData.formData.settings.magnification}
-								class="text-right"
+							<RangeInput
+								bind:value={
+									() => {
+										return createModalData.formData.settings.magnification.toString();
+									},
+									(string) => {
+										createModalData.formData.settings.magnification = string;
+									}
+								}
+								formatValue={(v: string | number) =>
+									percent((typeof v === 'number' ? v : +v) / 16, {
+										maximumFractionDigits: 0,
+										minimumFractionDigits: 0
+									})}
 								label="Magnification"
+								max={22}
+								min={10}
 								name="magnification"
-								type="number"
 							/>
 						</Div>
 						<Div class="flex justify-end space-x-2">

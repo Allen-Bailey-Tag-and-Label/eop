@@ -12,6 +12,8 @@
 		isValueVisible?: boolean;
 		label?: string;
 		name?: string;
+		max?: number;
+		min?: number;
 		value?: string;
 		variants?: string[];
 	};
@@ -24,6 +26,8 @@
 		isValueVisible = true,
 		label,
 		name,
+		max,
+		min,
 		value = $bindable('0'),
 		variants = [],
 		...restProps
@@ -48,6 +52,8 @@
 			class={twMerge($theme.RangeInput.default, className)}
 			{defaultValue}
 			{name}
+			{max}
+			{min}
 			type="range"
 		/>
 		{#if isValueVisible}

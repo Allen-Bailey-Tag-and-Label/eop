@@ -4,11 +4,6 @@
 	import { untrack } from 'svelte';
 
 	let { data, form } = $props();
-	const formatValue = (v: string | number) =>
-		percent((typeof v === 'number' ? v : +v) / 16, {
-			maximumFractionDigits: 0,
-			minimumFractionDigits: 0
-		});
 	let value = $state(16);
 
 	$effect(() => {
@@ -23,11 +18,22 @@
 	<Form>
 		{#snippet inputs()}
 			<RangeInput
-				bind:value
-				{formatValue}
+				bind:value={
+					() => {
+						return value.toString();
+					},
+					(string) => {
+						value = +string;
+					}
+				}
+				formatValue={(v: string | number) =>
+					percent((typeof v === 'number' ? v : +v) / 16, {
+						maximumFractionDigits: 0,
+						minimumFractionDigits: 0
+					})}
 				label="Magnification"
-				max="22"
-				min="10"
+				max={22}
+				min={10}
 				name="magnification"
 			/>
 		{/snippet}
