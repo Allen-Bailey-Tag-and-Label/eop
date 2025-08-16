@@ -15,6 +15,7 @@
 		group?: string;
 		label?: string;
 		name?: string;
+		readonly?: boolean;
 		required?: boolean;
 		type?:
 			| 'button'
@@ -52,6 +53,7 @@
 		group = $bindable(''),
 		label,
 		name,
+		readonly,
 		required,
 		style,
 		type = 'text',
@@ -84,6 +86,7 @@
 			)}
 			{defaultValue}
 			{name}
+			{readonly}
 			{required}
 			type="checkbox"
 		/>
@@ -100,6 +103,7 @@
 			)}
 			{defaultValue}
 			{name}
+			{readonly}
 			{required}
 			type="radio"
 			{value}
@@ -117,6 +121,7 @@
 			)}
 			{defaultValue}
 			{name}
+			{readonly}
 			{required}
 		/>
 	{/if}

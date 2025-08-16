@@ -1,9 +1,9 @@
 import { fail, type Actions } from '@sveltejs/kit';
-import { Types } from 'mongoose';
 import { clientInit } from '$lib/server/mongoDB';
 import {
 	Branch,
 	Log,
+	QuoteMarginCalculation,
 	Role,
 	UpsQuote,
 	User,
@@ -47,8 +47,56 @@ const insertDocs = async ({
 };
 const tableMap: Map<string, Update> = new Map([
 	[
+		'quote-margin-calculation',
+		async ({ _createdById, client }) => {
+			const mongoDB = client.db('v3');
+			const collection = mongoDB.collection('QuoteMarginQuote');
+
+			await QuoteMarginCalculation.deleteMany();
+			let docs: {
+				[key: string]: any;
+			}[];
+			docs = await collection.find({ type: 'have-aes-quote' }).toArray();
+			const formattedDocs = docs.map((doc) => {
+				const current = {
+					date: doc.quoteDate.setHours(doc.quoteDate.getHours() + 4),
+					labor: doc.laborAmount,
+					margin: doc.marginAmount,
+					material: doc.materialAmount,
+					number: doc.quoteNumber,
+					sell: doc.sellPrice,
+					totalCost: doc.totalCostAmount
+				};
+				const customerType = doc.customerType;
+				const previous = {
+					date: doc.previousQuoteDate.setHours(doc.quoteDate.getHours() + 4),
+					labor: doc.previousLaborAmount,
+					margin: doc.previousMarginAmount,
+					material: doc.previousMaterialAmount,
+					number: doc.previousQuoteNumber,
+					sell: doc.previousSellPrice,
+					totalCost: doc.previousTotalCostAmount
+				};
+				const productType = doc.productType;
+				const createdAt = current.date;
+				const updatedAt = current.date;
+				return { _createdById, current, customerType, previous, productType, createdAt, updatedAt };
+			});
+
+			await batchInsert({
+				docs: formattedDocs,
+				model: QuoteMarginCalculation,
+				modelName: 'QuoteMarginCalculation'
+			});
+
+			return {
+				message: `Successfully added ${formattedDocs.length} rows to model: QuoteMarginCalculation`
+			};
+		}
+	],
+	[
 		'ups-quotes',
-		async ({ _createdById, client }: UpdateParams) => {
+		async ({ _createdById, client }) => {
 			const mongoDB = client.db('production');
 			const collection = mongoDB.collection('ups-quotes');
 
@@ -188,6 +236,7 @@ export const actions: Actions = {
 export const load = async () => {
 	const tableOptions = [
 		{ label: '', value: '' },
+		{ label: 'quote-margin-calculation', value: 'quote-margin-calculation' },
 		{ label: 'ups-quotes', value: 'ups-quotes' },
 		{ label: 'users', value: 'users' }
 	];

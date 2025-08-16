@@ -1,5 +1,6 @@
 export { Branch } from './Branch';
 export { Log } from './Log';
+export { QuoteMarginCalculation } from './QuoteMarginCalculation';
 export { Role } from './Role';
 export { Route } from './Route';
 export { RouteSettings } from './RouteSettings';
