@@ -1,21 +1,38 @@
-import { MONGODB_URL } from '$env/static/private';
 import mongoose from 'mongoose';
+import { MONGODB_DB, MONGODB_URL } from '$env/static/private';
 
-let connections: Map<string, typeof mongoose> = new Map();
+// Module-scoped cache (no globalThis)
+let connPromise: Promise<typeof mongoose> | null = null;
 
-export const connect = async () => {
-	if (!connections.has(MONGODB_URL)) {
-		const connection = await mongoose.connect(MONGODB_URL, { dbName: 'v4' });
-		connections.set(MONGODB_URL, connection);
-		return connection;
-	}
+function opts() {
+	const dev = import.meta.env.DEV;
+	return {
+		dbName: MONGODB_DB,
+		// Keep pools small so Atlas “connections” stays sane.
+		// Note: the driver may open sockets to multiple replica set members,
+		// so effective sockets ≈ maxPoolSize × replicaMembers.
+		maxPoolSize: dev ? 5 : 10,
+		minPoolSize: 0,
+		maxIdleTimeMS: 30_000, // trim idle sockets quickly
+		serverSelectionTimeoutMS: 5_000,
+		appName: 'sveltekit-app'
+	} as const;
+}
 
-	const connection = connections.get(MONGODB_URL);
+export async function connect() {
+	// Fast path: already connected or connecting
+	const state = mongoose.connection.readyState; // 1=connected, 2=connecting
+	if (state === 1) return mongoose;
+	if (connPromise) return connPromise;
 
-	if (!connection) {
-		console.error(`MongoDB connection error`);
-		throw `MongoDB connection error`;
-	}
+	// Fail fast if not connected yet instead of buffering commands
+	mongoose.set('bufferCommands', false);
 
-	return connection;
-};
+	connPromise = mongoose.connect(MONGODB_URL, opts());
+	// If first connect() fails, clear the cache so the next call can retry
+	connPromise.catch(() => {
+		connPromise = null;
+	});
+
+	return connPromise;
+}
