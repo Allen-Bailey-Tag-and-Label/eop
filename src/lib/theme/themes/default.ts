@@ -39,7 +39,8 @@ export const defaultTheme: Theme = {
 	H1: { default: 'block text-2xl font-bold text-gray-800 sm:text-3xl dark:text-white' },
 	H2: { default: 'block text-xl font-bold text-gray-800 sm:text-2xl dark:text-white' },
 	Header: {
-		default: 'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50'
+		default:
+			'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50 pt-[env(safe-area-inset-top)]'
 	},
 	Input: {
 		default: InputDefault
