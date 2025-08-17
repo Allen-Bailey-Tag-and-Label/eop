@@ -2,7 +2,7 @@ import { twMerge } from 'tailwind-merge';
 import { type Theme } from '../types';
 
 const InputDefault =
-	'bg-gray-50 dark:bg-gray-800 transiton duration-200 outline-1 focus:outline-2 outline-gray-200 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg dark:outline-gray-700';
+	'appearance-none bg-gray-50 dark:bg-gray-800 transiton duration-200 outline-1 focus:outline-2 outline-gray-200 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg dark:outline-gray-700';
 
 export const defaultTheme: Theme = {
 	A: {
