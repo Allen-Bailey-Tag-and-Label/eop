@@ -1,3 +1,4 @@
+import { twMerge } from 'tailwind-merge';
 import { type Theme } from '../types';
 
 const InputDefault =
@@ -64,7 +65,7 @@ export const defaultTheme: Theme = {
 		default:
 			'[&::-webkit-slider-thumb]:bg-primary-500 h-2 w-full appearance-none rounded-full bg-gray-200 p-0 outline-none dark:bg-gray-700 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
 	},
-	Select: { default: InputDefault },
+	Select: { default: twMerge(InputDefault, 'appearance-none') },
 	Slider: { default: 'relative flex flex-col space-y-6 items-center' },
 	Spinner: { default: 'w-6 h-6' },
 	Table: { default: '' },
