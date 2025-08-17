@@ -14,9 +14,12 @@
 		element?: HTMLInputElement | null;
 		group?: string;
 		label?: string;
+		max?: number;
+		min?: number;
 		name?: string;
 		readonly?: boolean;
 		required?: boolean;
+		step?: number;
 		type?:
 			| 'button'
 			| 'checkbox'
@@ -52,9 +55,12 @@
 		element = $bindable(null),
 		group = $bindable(''),
 		label,
+		max,
+		min,
 		name,
 		readonly,
 		required,
+		step,
 		style,
 		type = 'text',
 		value = $bindable(''),
@@ -120,9 +126,12 @@
 				className
 			)}
 			{defaultValue}
+			{max}
+			{min}
 			{name}
 			{readonly}
 			{required}
+			{step}
 		/>
 	{/if}
 {/snippet}

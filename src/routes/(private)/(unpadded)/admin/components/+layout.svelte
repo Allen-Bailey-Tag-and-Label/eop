@@ -9,11 +9,11 @@
 	const breadcrumbs = $derived.by(() => {
 		const [first, ...rest] = page.url
 			.toString()
-			.replace(/.+admin\/styleguide/g, '')
+			.replace(/.+admin\/components/g, '')
 			.split('/')
-			.map((label) => ({ href: `/admin/styleguide/${label}`, label }));
+			.map((label) => ({ href: `/admin/components/${label}`, label }));
 
-		first.label = 'Styleguide';
+		first.label = 'Components';
 		return [first, ...rest];
 	});
 </script>
@@ -30,7 +30,7 @@
 					$theme.Button.square,
 					'justify-start hover:no-underline'
 				)}
-				href="/admin/styleguide/{componentKey}"
+				href="/admin/components/{componentKey}"
 			>
 				{componentKey}
 			</components.A>

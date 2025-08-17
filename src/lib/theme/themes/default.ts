@@ -50,9 +50,10 @@ export const defaultTheme: Theme = {
 	Modal: { default: 'max-w-full max-h-full overflow-auto' },
 	MongooseTable: { default: '' },
 	MultiSelect: {
-		default:
-			InputDefault +
-			' flex w-full justify-between space-x-2 focus:outline-primary-500 dark:focus:outline-primary-500',
+		default: twMerge(
+			InputDefault,
+			' flex w-full justify-between space-x-2 focus:outline-primary-500 dark:focus:outline-primary-500 text-current'
+		),
 		isOpen: 'rounded-b-none'
 	},
 	Option: { default: 'bg-gray-100 dark:bg-gray-800' },
