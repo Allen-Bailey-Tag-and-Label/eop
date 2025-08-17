@@ -4,7 +4,6 @@
 	import Section from './Section.svelte';
 	import Tr from './Tr.svelte';
 	import type { Props } from './types';
-	import { percent } from '$lib/formats';
 
 	let {
 		current = $bindable({
@@ -56,8 +55,8 @@
 </script>
 
 <Div class="flex flex-col items-start">
-	<Form class="flex w-auto max-w-none flex-col">
-		<Div class="flex items-start gap-4">
+	<Form class="flex w-full max-w-none flex-col lg:w-auto">
+		<Div class="flex flex-col gap-4 lg:flex-row lg:items-start">
 			<Section title="Options">
 				<Tr label="Customer Type">
 					<Select
@@ -82,7 +81,7 @@
 				<Tr label="Quote #">
 					<Input
 						bind:value={previous.number}
-						class="text-right"
+						class="w-full text-right"
 						name="previous.number"
 						required={true}
 						type="number"
@@ -100,7 +99,7 @@
 				<Tr label="Material">
 					<Input
 						bind:value={previous.material}
-						class="text-right"
+						class="w-full text-right"
 						name="previous.material"
 						required={true}
 						type="number"
@@ -108,7 +107,7 @@
 				</Tr>
 				<Tr label="Labor">
 					<Input
-						class="bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="previous.labor"
 						readonly={true}
 						tabindex={-1}
@@ -119,7 +118,7 @@
 				<Tr label="Total Cost">
 					<Input
 						bind:value={previous.totalCost}
-						class="text-right"
+						class="w-full text-right"
 						name="previous.totalCost"
 						required={true}
 						type="number"
@@ -130,7 +129,7 @@
 					percent={(Number(previous.sell) - Number(previous.totalCost)) / Number(previous.sell)}
 				>
 					<Input
-						class="bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="previous.margin"
 						readonly={true}
 						tabindex={-1}
@@ -141,7 +140,7 @@
 				<Tr label="Total Sell">
 					<Input
 						bind:value={previous.sell}
-						class="text-right"
+						class="w-full text-right"
 						name="previous.sell"
 						required={true}
 						type="number"
@@ -153,7 +152,7 @@
 					<Input
 						bind:value={current.number}
 						class={twMerge(
-							'text-right',
+							'w-full text-right',
 							isNumberAlreadySet
 								? 'bg-transparent outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent'
 								: undefined
@@ -177,7 +176,7 @@
 				<Tr label="Material">
 					<Input
 						bind:value={current.material}
-						class="text-right"
+						class="w-full text-right"
 						name="current.material"
 						required={true}
 						type="number"
@@ -185,7 +184,7 @@
 				</Tr>
 				<Tr label="Labor">
 					<Input
-						class="bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.labor"
 						readonly={true}
 						tabindex={-1}
@@ -196,7 +195,7 @@
 				<Tr label="Total Cost">
 					<Input
 						bind:value={current.totalCost}
-						class="text-right"
+						class="w-full text-right"
 						name="current.totalCost"
 						required={true}
 						type="number"
@@ -207,7 +206,7 @@
 					percent={(Number(current.sell) - Number(current.totalCost)) / Number(current.sell)}
 				>
 					<Input
-						class="bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.margin"
 						readonly={true}
 						tabindex={-1}
@@ -217,7 +216,7 @@
 				</Tr>
 				<Tr label="Total Sell">
 					<Input
-						class="bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.sell"
 						readonly={true}
 						tabindex={-1}

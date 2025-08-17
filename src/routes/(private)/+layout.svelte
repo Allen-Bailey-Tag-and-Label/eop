@@ -50,7 +50,9 @@
 </script>
 
 <Div class="flex max-h-screen min-h-screen max-w-screen min-w-screen flex-col overflow-auto">
-	<Header class="sticky top-0 z-10 flex items-center justify-between">
+	<Header
+		class="sticky bottom-0 z-10 order-2 flex items-center justify-between lg:top-0 lg:order-1"
+	>
 		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
 			{#if !isNavigationOpen}
 				<Menu size={(user.settings.magnification * 24) / 16}></Menu>
@@ -63,7 +65,7 @@
 			{user.profile.lastName}
 		</Div>
 	</Header>
-	<Div class="relative flex flex-grow flex-col overflow-auto">
+	<Div class="relative order-1 flex flex-grow flex-col overflow-auto lg:order-2">
 		<Div class="pointer-events-none top-0 left-0 z-10 h-full w-full">
 			{#if isNavigationOpen}
 				<Button
@@ -73,7 +75,7 @@
 					variants={['ghost', 'square']}
 				></Button>
 				<Card
-					class="pointer-events-auto absolute top-0 left-0 z-10 min-h-full w-[calc(100vw_-_3rem)] rounded-none p-0 pb-[env(safe-area-inset-bottom)] lg:w-auto lg:min-w-[20rem]"
+					class="pointer-events-auto absolute top-0 left-0 z-10 min-h-full w-[calc(100vw_-_3rem)] rounded-none p-0 pt-[env(safe-area-inset-top)] lg:w-auto lg:min-w-[20rem] lg:pt-0 lg:pb-[env(safe-area-inset-bottom)]"
 				>
 					<Div class="flex flex-grow flex-col">
 						{@render tree(navigation)}
