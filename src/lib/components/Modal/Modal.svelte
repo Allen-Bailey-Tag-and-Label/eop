@@ -29,7 +29,7 @@
 {#if isOpen}
 	<Div
 		{@attach portal()}
-		class="flex h-full w-full items-center justify-center p-4 backdrop-blur-md"
+		class="flex h-full w-full items-center justify-center px-4 pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(1rem_+_env(safe-area-inset-bottom))] backdrop-blur-md"
 		onclick={() => {
 			isOpen = false;
 		}}

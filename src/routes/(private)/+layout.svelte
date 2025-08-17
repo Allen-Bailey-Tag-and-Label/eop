@@ -73,7 +73,7 @@
 					variants={['ghost', 'square']}
 				></Button>
 				<Card
-					class="pointer-events-auto absolute top-0 left-0 z-10 min-h-full w-[calc(100vw_-_3rem)] rounded-none p-0 lg:w-auto lg:min-w-[20rem]"
+					class="pointer-events-auto absolute top-0 left-0 z-10 min-h-full w-[calc(100vw_-_3rem)] rounded-none p-0 pb-[env(safe-area-inset-bottom)] lg:w-auto lg:min-w-[20rem]"
 				>
 					<Div class="flex flex-grow flex-col">
 						{@render tree(navigation)}
