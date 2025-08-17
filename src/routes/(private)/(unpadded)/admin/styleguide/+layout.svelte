@@ -6,12 +6,16 @@
 
 	let { children } = $props();
 
-	const breadcrumbs = $derived.by(() =>
-		(page.route.id ?? '/(private)/admin/styleguide')
-			.replace('/(private)/admin/', '')
-			.replace('[Component]', page.params.Component ?? '')
+	const breadcrumbs = $derived.by(() => {
+		const [first, ...rest] = page.url
+			.toString()
+			.replace(/.+admin\/styleguide/g, '')
 			.split('/')
-	);
+			.map((label) => ({ href: `/admin/styleguide/${label}`, label }));
+
+		first.label = 'Styleguide';
+		return [first, ...rest];
+	});
 </script>
 
 <components.Div class="flex max-h-full min-h-full flex-grow overflow-auto">
@@ -36,13 +40,11 @@
 		<components.Div
 			class="flex items-center space-x-2 border-b border-slate-200 p-4 dark:border-gray-700"
 		>
-			{#each breadcrumbs as breadcrumb, breadcrumbIndex}
+			{#each breadcrumbs as { href, label }, breadcrumbIndex}
 				{#if breadcrumbIndex !== 0}
 					<components.Div>{'/'}</components.Div>
-					<components.A href="/admin/styleguide/{breadcrumb}">{breadcrumb}</components.A>
-				{:else}
-					<components.A href="/admin/styleguide">Styleguide</components.A>
 				{/if}
+				<components.A {href}>{label}</components.A>
 			{/each}
 		</components.Div>
 		{#if children}
