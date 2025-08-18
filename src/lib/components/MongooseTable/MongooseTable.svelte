@@ -249,13 +249,13 @@
 			const columnsWithOverrides = mergedColumns
 				.map((column) => {
 					const override = columnOverrides[column.key];
-					return applyOverrides(column, override);
+					return applyOverrides(column as ColumnOverride, override);
 				})
 				.filter((column): column is ColumnOverride => Boolean(column));
 
 			const desiredOrder: string[] = settings.columnsOrder?.length
 				? settings.columnsOrder
-				: columnsWithOverrides.map((column) => column.key);
+				: columnsWithOverrides.map((column) => (column as ColumnOverride & { key: string }).key);
 
 			const finalColumns = applyOrder(columnsWithOverrides, desiredOrder);
 
@@ -280,8 +280,10 @@
 			if (!originalRow) return;
 			const changes = new Map<string, any>();
 			columnsSanitized.forEach(({ key }) => {
-				if (!isSame(row, originalRow, key)) {
-					changes.set(key, getAt(row, key));
+				if (key) {
+					if (!isSame(row, originalRow, key)) {
+						changes.set(key, getAt(row, key));
+					}
 				}
 			});
 			if (changes.size > 0) {
@@ -569,6 +571,7 @@
 						type="hidden"
 						value={JSON.stringify(settings.filter)}
 					/>
+					<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 					<Input
 						defaultValue={settings.rowsPerPage.toString()}
 						name="rowsPerPage"
@@ -662,6 +665,7 @@
 			type="hidden"
 			value={JSON.stringify(settings.filter)}
 		/>
+		<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 		<Input
 			defaultValue={settings.rowsPerPage.toString()}
 			name="rowsPerPage"

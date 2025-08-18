@@ -1,6 +1,6 @@
 import { getAt, normalizeHtmlToText } from './';
 
-export const isSame = (a: any, b: any, path = null) => {
+export const isSame = (a: any, b: any, path: string | null = null) => {
 	if (path) {
 		a = getAt(a, path);
 		b = getAt(b, path);
