@@ -102,6 +102,7 @@
 						class="w-full text-right"
 						name="previous.material"
 						required={true}
+						step={0.01}
 						type="number"
 					/>
 				</Tr>
@@ -110,6 +111,7 @@
 						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="previous.labor"
 						readonly={true}
+						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={previous.labor}
@@ -121,6 +123,7 @@
 						class="w-full text-right"
 						name="previous.totalCost"
 						required={true}
+						step={0.01}
 						type="number"
 					/>
 				</Tr>
@@ -132,6 +135,7 @@
 						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="previous.margin"
 						readonly={true}
+						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={previous.margin}
@@ -143,6 +147,7 @@
 						class="w-full text-right"
 						name="previous.sell"
 						required={true}
+						step={0.01}
 						type="number"
 					/>
 				</Tr>
@@ -179,6 +184,7 @@
 						class="w-full text-right"
 						name="current.material"
 						required={true}
+						step={0.01}
 						type="number"
 					/>
 				</Tr>
@@ -187,6 +193,7 @@
 						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.labor"
 						readonly={true}
+						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={current.labor}
@@ -198,6 +205,7 @@
 						class="w-full text-right"
 						name="current.totalCost"
 						required={true}
+						step={0.01}
 						type="number"
 					/>
 				</Tr>
@@ -209,6 +217,7 @@
 						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.margin"
 						readonly={true}
+						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={current.margin}
@@ -219,6 +228,7 @@
 						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.sell"
 						readonly={true}
+						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={current.sell}
