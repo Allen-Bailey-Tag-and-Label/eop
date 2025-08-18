@@ -24,8 +24,8 @@
 			type: 'function',
 			valueFn: ({ object }) =>
 				currency(
-					object.rates.find((rate: { description: string }) => rate.description === 'Ground')
-						.rate ?? 0
+					object?.rates?.find((rate: { description: string }) => rate?.description === 'Ground')
+						?.rate ?? 0
 				)
 		},
 		{ key: 'shipTo.AddressLine', label: 'Street', type: 'string' },
@@ -41,19 +41,19 @@
 			<A
 				class={twMerge($theme.Button.default, $theme.Button.small)}
 				href="/ups/quote?{new URLSearchParams({
-					address: object.shipTo.AddressLine,
-					zip: object.shipTo.PostalCode,
-					city: object.shipTo.City,
-					state: object.shipTo.StateProvinceCode,
-					totalPackages: object.packageTotalCount,
-					totalWeight: object.packageTotalWeight
+					address: object?.shipTo?.AddressLine,
+					zip: object?.shipTo?.PostalCode,
+					city: object?.shipTo?.City,
+					state: object?.shipTo?.StateProvinceCode,
+					totalPackages: object?.packageTotalCount,
+					totalWeight: object?.packageTotalWeight
 				}).toString()}"
 			>
 				Duplicate
 			</A>
 			<A
 				class={twMerge($theme.Button.default, $theme.Button.small)}
-				href="/ups/quote/{object.quote}"
+				href="/ups/quote/{object?.quote}"
 			>
 				View
 			</A>

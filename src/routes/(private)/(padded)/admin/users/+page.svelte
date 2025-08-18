@@ -340,7 +340,7 @@
 				class="sr-only absolute h-0 w-0 opacity-0"
 				name="username"
 				type="hidden"
-				value={object.username}
+				value={object?.username}
 			/>
 			<Button type="submit" variants={['small']}>Reset Password</Button>
 		</Form>

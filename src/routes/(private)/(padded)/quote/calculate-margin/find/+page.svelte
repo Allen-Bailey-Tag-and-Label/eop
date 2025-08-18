@@ -7,6 +7,7 @@
 
 	let { data } = $props();
 	const humanDate = (date: Date) => {
+		if (isNaN(date.getTime())) return '';
 		const { format } = new Intl.DateTimeFormat('en-US', {
 			year: 'numeric',
 			month: 'numeric',
@@ -45,7 +46,7 @@
 	<Td class="py-0">
 		<A
 			class={twMerge($theme.Button.default, $theme.Button.small)}
-			href="/quote/calculate-margin/quote/{object.current.number}"
+			href="/quote/calculate-margin/quote/{object?.current?.number}"
 		>
 			View
 		</A>
@@ -54,13 +55,13 @@
 {#snippet dateSnippet({ key, object }: TdSnippet)}
 	{@const virtualKey = key.split('.')[0]}
 	<Td class="text-right">
-		{humanDate(new Date(object[virtualKey].date))}
+		{humanDate(new Date(object?.[virtualKey]?.date))}
 	</Td>
 {/snippet}
 {#snippet percentSnippet({ key, object }: TdSnippet)}
 	{@const virtualKey = key.split('.')[0]}
 	{@const margin =
-		(object[virtualKey].sell - object[virtualKey].totalCost) / object[virtualKey].sell}
+		(object?.[virtualKey]?.sell - object?.[virtualKey]?.totalCost) / object?.[virtualKey]?.sell}
 	<Td class={twMerge('text-right', margin < 0 ? 'bg-red-500 text-white' : undefined)}>
 		{percent(margin)}
 	</Td>

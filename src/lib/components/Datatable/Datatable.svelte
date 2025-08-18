@@ -845,7 +845,7 @@
 			<Div
 				bind:innerHTML={
 					() => {
-						return currency(getAt(object, key));
+						return currency(getAt(object, key) ?? 0);
 					},
 					(string) => {
 						setAt(object, key, parseFloat(string.replace(/[^0-9.-]+/g, '')));
@@ -879,7 +879,7 @@
 			<MultiSelect
 				bind:value={
 					() => {
-						return getAt(object, key);
+						return getAt(object, key) ?? [];
 					},
 					(value) => {
 						setAt(object, key, value);
@@ -903,7 +903,7 @@
 					() => {
 						const value = getAt(object, key);
 						if (typeof value === 'number') return value.toString();
-						return value;
+						return value ?? '0';
 					},
 					(value) => {
 						if (typeof value === 'number') setAt(object, key, value);
@@ -917,12 +917,12 @@
 				)}
 				contenteditable={true}
 			>
-				{getAt(object, key)}
+				{getAt(object, key) ?? '0'}
 			</Div>
 		</Td>
 	{:else}
 		<Td class="text-right whitespace-nowrap">
-			{getAt(object, key)}
+			{getAt(object, key) ?? '0'}
 		</Td>
 	{/if}
 {/snippet}
@@ -973,7 +973,8 @@
 				<Div
 					bind:innerHTML={
 						() => {
-							return getAt(object, key);
+							const value = getAt(object, key);
+							return value ?? '';
 						},
 						(value) => {
 							setAt(object, key, value);
@@ -985,11 +986,11 @@
 					)}
 					contenteditable={true}
 				>
-					{getAt(object, key)}
+					{getAt(object, key) ?? ''}
 				</Div>
 			</Td>
 		{:else}
-			<Td class="whitespace-nowrap">{getAt(object, key)}</Td>
+			<Td class="whitespace-nowrap">{getAt(object, key) ?? ''}</Td>
 		{/if}
 	{/if}
 {/snippet}
@@ -1002,7 +1003,7 @@
 			<Input
 				bind:value={
 					() => {
-						return inputDateTimeLocal(getAt(object, key));
+						return inputDateTimeLocal(getAt(object, key)) ?? '';
 					},
 					(value: string) => {
 						setAt(objectTd, key, new Date(value));
@@ -1013,7 +1014,7 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="text-right whitespace-nowrap">{dateTime(getAt(object, key))}</Td>
+		<Td class="text-right whitespace-nowrap">{dateTime(getAt(object, key)) ?? ''}</Td>
 	{/if}
 {/snippet}
 {#snippet undefinedTd(_: TdSnippet)}
