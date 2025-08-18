@@ -62,6 +62,7 @@ export const _default: Action = async ({ locals, request }) => {
 	let currentMarginPercent = update.current.margin / update.current.sell;
 	let previousMarginPercent = update.previous.margin / update.previous.sell;
 
+	// Make margin at least the previous margin
 	if (currentMarginPercent < previousMarginPercent) {
 		currentMarginPercent = previousMarginPercent;
 		update.current.sell = update.current.totalCost / (1 - currentMarginPercent);
@@ -70,6 +71,7 @@ export const _default: Action = async ({ locals, request }) => {
 
 	const increasePercent = update.current.sell / update.previous.sell - 1;
 
+	// Cap increase percent to 12% / year
 	if (increasePercent > Math.pow(1 + 0.12 / 12, monthDifference)) {
 		update.current.sell = update.previous.sell * Math.pow(1 + 0.12 / 12, monthDifference);
 		update.current.margin = update.current.sell - update.current.totalCost;
@@ -84,6 +86,7 @@ export const _default: Action = async ({ locals, request }) => {
 
 	currentMarginPercent = update.current.margin / update.current.sell;
 
+	// Set minimum margin to 35% for TGM product types
 	if (update.productType === 'TGM' && currentMarginPercent < 0.35) {
 		update.current.sell = update.current.totalCost / (1 - 0.35);
 		update.current.margin = update.current.sell - update.current.totalCost;
@@ -100,8 +103,6 @@ export const _default: Action = async ({ locals, request }) => {
 		new: true,
 		upsert: true
 	}).lean();
-
-	console.log(update);
 
 	redirect(303, `/quote/calculate-margin/quote/${quoteMarginCalculation.current.number}`);
 };
