@@ -3,15 +3,10 @@ export const filterOperators = [
 	'does not contain',
 	'does not equal',
 	'equals',
+	'in',
 	'greater than',
 	'greater than or equals',
 	'less than',
-	'less than or equals'
+	'less than or equals',
+	'not in'
 ] as const;
-export const filterOperatorOptions = [
-	{ label: '', value: '' },
-	...filterOperators.map((operator) => ({
-		label: operator,
-		value: operator
-	}))
-];

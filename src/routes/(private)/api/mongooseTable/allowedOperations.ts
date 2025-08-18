@@ -1,14 +1,14 @@
 export const allowedOperations = new Set([
-	'equals',
+	'contains',
+	'does not contain',
 	'does not equal',
+	'equals',
+	'exists',
+	'in',
 	'greater than',
 	'greater than or equals',
 	'less than',
 	'less than or equals',
-	'contains',
-	'does not contain',
-	'in',
-	'not in',
-	'exists',
-	'not exists'
+	'not exists',
+	'not in'
 ]);

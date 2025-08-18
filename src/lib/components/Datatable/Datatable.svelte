@@ -46,6 +46,7 @@
 		filterOperatorOptions,
 		getAt,
 		getExportData,
+		getFilterOptions,
 		setAt
 	} from './';
 	import type { ColumnType, Props, TdSnippet } from './types';
@@ -286,13 +287,13 @@
 					case 'equals':
 						return cell === value;
 					case 'greater than':
-						return parseFloat(cell) > parseFloat(value);
+						return typeof cell === 'string' ? parseFloat(cell) > parseFloat(value) : cell > value;
 					case 'greater than or equals':
-						return parseFloat(cell) >= parseFloat(value);
+						return typeof cell === 'string' ? parseFloat(cell) >= parseFloat(value) : cell >= value;
 					case 'less than':
-						return parseFloat(cell) < parseFloat(value);
+						return typeof cell === 'string' ? parseFloat(cell) < parseFloat(value) : cell < value;
 					case 'less than or equals':
-						return parseFloat(cell) <= parseFloat(value);
+						return typeof cell === 'string' ? parseFloat(cell) <= parseFloat(value) : cell <= value;
 					default:
 						return true;
 				}
@@ -758,6 +759,10 @@
 						</Tr>
 					{:else}
 						{#each filtersTemp as _, filterTempIndex}
+							{@const column = columnsSanitized.find(
+								(columnSanitized) => columnSanitized.key === filtersTemp[filterTempIndex]?.key
+							)}
+							{@const operatorOptions:{label:string, value:any}[] = getFilterOptions({column})}
 							<Tr>
 								<Td class="px-2 py-0">
 									<Button
@@ -781,7 +786,7 @@
 									<Select
 										bind:value={filtersTemp[filterTempIndex].operator}
 										class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
-										options={filterOperatorOptions}
+										options={operatorOptions}
 									/>
 								</Td>
 								{#if filtersTempSanitized?.[filterTempIndex]?.snippet === undefined}
@@ -1003,10 +1008,13 @@
 			<Input
 				bind:value={
 					() => {
-						return inputDateTimeLocal(getAt(object, key)) ?? '';
+						const value = getAt(object, key);
+						const formattedValue = inputDateTimeLocal(value);
+						return formattedValue;
 					},
 					(value: string) => {
-						setAt(objectTd, key, new Date(value));
+						const date = new Date(value);
+						setAt(object, key, date);
 					}
 				}
 				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"

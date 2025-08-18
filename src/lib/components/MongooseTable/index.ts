@@ -2,9 +2,14 @@ export { applyOrder } from './applyOrder';
 export { applyOverrides } from './applyOverrides';
 export { columnKey } from './columnKey';
 export { columnToObject } from './columnToObject';
-export { compareFn, filterOperatorOptions } from '../Datatable';
-export { exportFunctions } from '../Datatable/exportFunctions';
-export { exportOptions } from '../Datatable/exportOptions';
-export { getAt } from '../Datatable/getAt';
-export { isSame } from '../Datatable/isSame';
-export { setAt } from '../Datatable/setAt';
+export {
+	compareFn,
+	filterOperatorOptions,
+	exportFunctions,
+	exportOptions,
+	getAt,
+	getExportData,
+	getFilterOptions,
+	isSame,
+	setAt
+} from '../Datatable';

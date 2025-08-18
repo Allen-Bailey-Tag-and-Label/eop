@@ -9,7 +9,6 @@
 		ChevronRight,
 		Download,
 		Funnel,
-		Key,
 		Plus,
 		Save,
 		Settings,
@@ -46,7 +45,6 @@
 	import type {
 		Column,
 		ColumnOverride,
-		ColumnOverrides,
 		ColumnSanitized,
 		ColumnType,
 		Data,
@@ -61,11 +59,14 @@
 		columnKey,
 		columnToObject,
 		compareFn,
-		filterOperatorOptions,
+		exportFunctions,
+		exportOptions,
+		getExportData,
+		getFilterOptions,
 		getAt,
 		isSame
 	} from './';
-	import { exportFunctions, exportOptions, getExportData } from '../Datatable';
+	import {} from '../Datatable';
 
 	let {
 		columns = $bindable([]),
@@ -1073,6 +1074,10 @@
 						</Tr>
 					{:else}
 						{#each filtersTemp as _, filterTempIndex}
+							{@const column = columnsSanitized.find(
+								(columnSanitized) => columnSanitized.key === filtersTemp[filterTempIndex]?.key
+							)}
+							{@const operatorOptions:{label:string, value:any}[] = getFilterOptions({column})}
 							<Tr>
 								<Td class="px-2 py-0">
 									<Button
@@ -1095,8 +1100,8 @@
 								<Td class="p-0">
 									<Select
 										bind:value={filtersTemp[filterTempIndex].operator}
-										class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
-										options={filterOperatorOptions}
+										class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+										options={operatorOptions}
 									/>
 								</Td>
 								{#if filtersTempSanitized?.[filterTempIndex]?.snippet === undefined}
