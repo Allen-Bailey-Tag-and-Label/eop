@@ -238,6 +238,25 @@
 			columnOverrides.updatedAt = { label: 'Updated At' };
 	});
 	$effect(() => {
+		const columnOverrideKeys = Object.keys(columnOverrides);
+		if (columnOverrideKeys.length > 0 && columnsSanitized.length > 0) {
+			untrack(() => {
+				columnOverrideKeys.forEach((columnOverrideKey) => {
+					const columnSanitizedIndex = columnsSanitized.findIndex(
+						(columnSanitized) => columnSanitized.key === columnOverrideKey
+					);
+					if (columnSanitizedIndex === -1) return;
+					const columnSanitized = columnsSanitized[columnSanitizedIndex];
+					const columnOverride = columnOverrides[columnOverrideKey];
+					columnsSanitized[columnSanitizedIndex] = {
+						...columnSanitized,
+						...columnOverride
+					};
+				});
+			});
+		}
+	});
+	$effect(() => {
 		if (virtualColumns?.length) {
 			const existingColumns = new Set(columns.map(columnKey));
 
@@ -514,14 +533,16 @@
 							{/if}
 						</Td>
 					{/if}
-					{#each columnsSanitized as column (column.key)}
-						{@render column.snippet({
-							isEditable: column.isEditable,
-							key: column.key,
-							object: rows[row.index],
-							options: column.options,
-							valueFn: column.valueFn
-						})}
+					{#each columnsSanitized as { isEditable, isHidden, key, options, snippet, valueFn } (key)}
+						{#if !isHidden}
+							{@render snippet({
+								isEditable,
+								key,
+								object: rows[row.index],
+								options,
+								valueFn
+							})}
+						{/if}
 					{/each}
 				</Tr>
 			{/if}
@@ -531,14 +552,13 @@
 {#snippet th({
 	class: className,
 	columnIndex,
+	isSortable,
 	key,
 	label
-}: ColumnSanitized & { columnIndex: number })}
-	{#if !isSortable}
-		<Th class={className}>{label}</Th>
-	{:else}
-		<Th class={twMerge('p-0', className)}>
-			<Div class="group relative">
+}: Pick<ColumnSanitized, 'class' | 'isSortable' | 'key' | 'label'> & { columnIndex: number })}
+	<Th class={twMerge('p-0', className)}>
+		<Div class="group relative">
+			{#if isSortable}
 				<Form
 					action="/api/mongooseTable?/find"
 					submitFunction={() => {
@@ -608,22 +628,26 @@
 						/>
 					</Button>
 				</Form>
-				{#if isColumnsReorderable}
-					{#if columnIndex > 0}
-						{@render thReorderButton({ class: 'left-0 ', columnIndex, delta: -1, Icon: ArrowLeft })}
-					{/if}
-					{#if columnIndex < columnsSanitized.length - 1}
-						{@render thReorderButton({
-							class: 'right-0 ',
-							columnIndex,
-							delta: 1,
-							Icon: ArrowRight
-						})}
-					{/if}
+			{:else}
+				<Div class="flex justify-start px-6">
+					{label}
+				</Div>
+			{/if}
+			{#if isColumnsReorderable}
+				{#if columnIndex > 0}
+					{@render thReorderButton({ class: 'left-0 ', columnIndex, delta: -1, Icon: ArrowLeft })}
 				{/if}
-			</Div>
-		</Th>
-	{/if}
+				{#if columnIndex < columnsSanitized.length - 1}
+					{@render thReorderButton({
+						class: 'right-0 ',
+						columnIndex,
+						delta: 1,
+						Icon: ArrowRight
+					})}
+				{/if}
+			{/if}
+		</Div>
+	</Th>
 {/snippet}
 {#snippet thReorderButton({
 	class: className,

@@ -5,7 +5,6 @@ export const applyOverrides = (
 	override?: ColumnOverrides['string']
 ): ColumnOverride => {
 	if (!override) return column;
-	if (override.hidden) return null as any;
 	return {
 		...column,
 		...override,

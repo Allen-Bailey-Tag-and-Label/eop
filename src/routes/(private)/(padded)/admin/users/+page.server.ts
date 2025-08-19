@@ -102,6 +102,6 @@ export const actions: Actions = {
 
 export const load = serverLoad({
 	labelFunctionMap: new Map([['UserProfile', (doc) => `${doc.firstName} ${doc.lastName}`]]),
-	model: User,
-	omitColumns: ['passwordHash']
+	model: User
+	// omitColumns: ['passwordHash']
 });

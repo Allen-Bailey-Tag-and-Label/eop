@@ -16,11 +16,20 @@
 		SubmitButton,
 		Td
 	} from '$lib/components';
-	import type { ColumnSanitized, TdSnippet } from '$lib/components/MongooseTable/types.js';
+	import type {
+		ColumnOverrides,
+		ColumnSanitized,
+		TdSnippet
+	} from '$lib/components/MongooseTable/types.js';
 	import { percent } from '$lib/formats/percent.js';
 	import { slide } from 'svelte/transition';
 
 	let { data } = $props();
+	let columnOverrides: ColumnOverrides = {
+		passwordHash: {
+			isProtected: true
+		}
+	};
 	let columnsSanitized: ColumnSanitized[] = $state([]);
 	let createModalData = $state({
 		formData: {
@@ -63,6 +72,7 @@
 <MongooseTable
 	bind:columnsSanitized
 	bind:isCreateModalOpen
+	{columnOverrides}
 	{createModal}
 	{data}
 	modelName={'User'}

@@ -1,18 +1,23 @@
 import { type Snippet } from 'svelte';
-import { filterOperators } from './filterOperators';
 
-export type Column = string | ({ key: string } & Partial<Omit<ColumnSanitized, 'key'>>);
-export type ColumnSanitized = {
+export type Column<CompareType = any> =
+	| string
+	| ({ key: string } & Partial<Omit<ColumnSanitized<CompareType>, 'key'>>);
+export type ColumnSanitized<CompareType = any> = {
 	class?: string;
-	compareFn: (a: any, b: any, direction: -1 | 1) => any;
+	compareFn: Compare<CompareType>;
 	isCreatable: boolean;
 	isEditable: boolean;
+	isExportable: boolean;
 	isFilterable: boolean;
+	isHidden: boolean;
+	isProtected: boolean;
+	isSortable: boolean;
 	key: string;
 	label: string;
 	options: Option[];
 	snippet: Snippet<[TdSnippet]>;
-	type: ColumnType;
+	type: string;
 	valueFn?: ValueFn;
 };
 export type ColumnType =
@@ -28,13 +33,14 @@ export type ColumnType =
 	| 'symbol'
 	| 'timestamp'
 	| 'undefined';
+export type Compare<CompareType = any> = (a: CompareType, b: CompareType, dir: -1 | 1) => number;
 export type Filter = {
 	key: string;
 	operator: FilterOperator;
 	options: Option[];
 	value: any;
 };
-export type FilterOperator = (typeof filterOperators)[number];
+export type FilterOperator = string;
 export type Option = { label: any; value: any };
 export type PaginationSettings = {
 	indexes: {
@@ -44,10 +50,10 @@ export type PaginationSettings = {
 	options: Option[];
 	totalPages: number;
 };
-export type Props = {
-	columns: Column[];
-	columnInferredTypes?: ColumnType[];
-	columnsSanitized?: ColumnSanitized[];
+export type Props<CompareType = any> = {
+	columns: Column<CompareType>[];
+	columnInferredTypes?: string[];
+	columnsSanitized?: ColumnSanitized<CompareType>[];
 	create?: Record<string, any>;
 	createModal?: Snippet;
 	deleteModal?: Snippet;
@@ -55,7 +61,7 @@ export type Props = {
 	filters?: Filter[];
 	filterModal?: Snippet;
 	filterKeyOptions?: Option[];
-	filtersTemp?: (Omit<Filter, 'operator'> & { operator: FilterOperator | '' })[];
+	filtersTemp?: Filter[];
 	filtersTempSanitized?: {
 		key: string;
 		operator: FilterOperator | '';
@@ -92,7 +98,7 @@ export type Props = {
 	settings?: Partial<Settings>;
 	settingsTemp?: Pick<Settings, 'rowsPerPage'>;
 	tbody?: Snippet;
-	th?: Snippet<[ColumnSanitized & { columnIndex: number }]>;
+	th?: Snippet<[ColumnSanitized<CompareType> & { columnIndex: number }]>;
 	thead?: Snippet;
 	toolbar?: Snippet;
 	totalRows?: number;

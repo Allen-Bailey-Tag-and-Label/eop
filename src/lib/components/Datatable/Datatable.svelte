@@ -43,13 +43,12 @@
 		deleteAt,
 		exportFunctions,
 		exportOptions,
-		filterOperatorOptions,
 		getAt,
 		getExportData,
 		getFilterOptions,
 		setAt
 	} from './';
-	import type { ColumnType, Props, TdSnippet } from './types';
+	import type { Props, TdSnippet } from './types';
 
 	let {
 		columns = $bindable([]),
@@ -110,7 +109,7 @@
 		thead,
 		toolbar,
 		totalRows = $bindable()
-	}: Props = $props();
+	}: Props<any> = $props();
 	const getRowKey = (row: object) => {
 		let key = rowKeyMap.get(row);
 		if (!key) {
@@ -122,7 +121,7 @@
 	};
 	const rowKeyMap = new WeakMap<object, string>();
 
-	const tdSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
+	const tdSnippetMap: Map<string, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintTd],
 		['boolean', booleanTd],
 		['currency', currencyTd],
@@ -143,7 +142,7 @@
 			untrack(() => {
 				columnInferredTypes = columns.map((column) => {
 					const key = typeof column === 'string' ? column : column.key;
-					let type: ColumnType = 'string';
+					let type: string = 'string';
 
 					if (rows.length > 0) {
 						for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -170,7 +169,7 @@
 
 			const snippet =
 				columnSanitized.snippet ??
-				(columnSanitized.type && tdSnippetMap.get(columnSanitized.type)) ??
+				(columnSanitized.type ? tdSnippetMap.get(columnSanitized.type) : undefined) ??
 				inferredSnippet ??
 				stringTd;
 
@@ -179,7 +178,18 @@
 				compareFn: columnSanitized.compareFn ?? compareFn[type] ?? compareFn[inferredType],
 				isCreatable: columnSanitized.isCreatable ?? isCreatable,
 				isEditable: columnSanitized.isEditable ?? isEditable,
+				isExportable:
+					columnSanitized.isExportable ??
+					(columnSanitized?.isProtected !== undefined ? !columnSanitized.isProtected : undefined) ??
+					(columnSanitized?.isHidden !== undefined ? !columnSanitized.isHidden : undefined) ??
+					isExportable,
 				isFilterable: columnSanitized.isFilterable ?? (type === 'function' ? false : isFilterable),
+				isHidden:
+					columnSanitized.isHidden ??
+					(columnSanitized?.isProtected !== undefined ? columnSanitized.isProtected : undefined) ??
+					false,
+				isProtected: columnSanitized.isProtected ?? false,
+				isSortable: columnSanitized.isSortable ?? isSortable,
 				key: columnSanitized.key,
 				label: columnSanitized.label ?? columnSanitized.key,
 				options: columnSanitized.options ?? [],
@@ -421,7 +431,7 @@
 			{#if isFilterable}
 				<Button
 					onclick={() => {
-						filtersTemp = $state.snapshot(settings.filter);
+						filtersTemp = $state.snapshot(settings.filter ?? []);
 						isFilterModalOpen = true;
 					}}
 					variants={['icon']}
@@ -483,114 +493,118 @@
 								/>
 							</Th>
 						{/if}
-						{#each columnsSanitized as { class: className, compareFn, key, label, ...columnSanitized }, columnIndex}
-							{#if th}
-								{@render th({
-									class: className,
-									columnIndex,
-									compareFn,
-									key,
-									label,
-									...columnSanitized
-								})}
-							{:else}
-								<Th class={twMerge('px-0 py-0', className)}>
-									<Div class="group relative">
-										<Button
-											class="flex w-full items-center justify-between space-x-2 text-gray-500"
-											onclick={() => {
-												if (isSortable) {
-													if (settings.sortKey !== key) settings.sortDirection = 'asc';
-													if (settings.sortKey === key)
-														settings.sortDirection =
-															settings.sortDirection === 'asc' ? 'desc' : 'asc';
-													settings.sortKey = key;
+						{#each columnsSanitized as { class: className, compareFn, isHidden, isSortable, key, label, ...columnSanitized }, columnIndex}
+							{#if !isHidden}
+								{#if th}
+									{@render th({
+										class: className,
+										columnIndex,
+										compareFn,
+										isHidden,
+										isSortable,
+										key,
+										label,
+										...columnSanitized
+									})}
+								{:else}
+									<Th class={twMerge('px-0 py-0', className)}>
+										<Div class="group relative">
+											<Button
+												class="flex w-full items-center justify-between space-x-2 text-gray-500"
+												onclick={() => {
+													if (isSortable) {
+														if (settings.sortKey !== key) settings.sortDirection = 'asc';
+														if (settings.sortKey === key)
+															settings.sortDirection =
+																settings.sortDirection === 'asc' ? 'desc' : 'asc';
+														settings.sortKey = key;
 
-													const indexes = Array.from(rows.keys()).sort((a, b) => {
-														if (settings.sortKey === undefined) return 0;
-														const sortColumn = columnsSanitized.find(
-															(columnSanitized) => columnSanitized.key === settings.sortKey
-														);
-														if (sortColumn === undefined) return 0;
+														const indexes = Array.from(rows.keys()).sort((a, b) => {
+															if (settings.sortKey === undefined) return 0;
+															const sortColumn = columnsSanitized.find(
+																(columnSanitized) => columnSanitized.key === settings.sortKey
+															);
+															if (sortColumn === undefined) return 0;
 
-														let aValue = getAt(rows[a], settings.sortKey);
-														let bValue = getAt(rows[b], settings.sortKey);
+															let aValue = getAt(rows[a], settings.sortKey);
+															let bValue = getAt(rows[b], settings.sortKey);
 
-														if (sortColumn.type === 'select') {
-															aValue =
-																sortColumn.options.find(
-																	(option: { value: any }) => option.value === aValue
-																)?.label ?? aValue;
-															bValue =
-																sortColumn.options.find(
-																	(option: { value: any }) => option.value === bValue
-																)?.label ?? bValue;
-														}
+															if (sortColumn.type === 'select') {
+																aValue =
+																	sortColumn.options.find(
+																		(option: { value: any }) => option.value === aValue
+																	)?.label ?? aValue;
+																bValue =
+																	sortColumn.options.find(
+																		(option: { value: any }) => option.value === bValue
+																	)?.label ?? bValue;
+															}
 
-														const comparison = sortColumn.compareFn(
-															aValue,
-															bValue,
-															settings.sortDirection === 'asc' ? 1 : -1
-														);
+															const comparison = sortColumn.compareFn(
+																aValue,
+																bValue,
+																settings.sortDirection === 'asc' ? 1 : -1
+															);
 
-														return comparison || a - b;
-													});
-													rows = indexes.map((index) => rows[index]);
-													rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
-												}
-											}}
-											variants={['ghost', 'square']}
-										>
-											<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
-												{label}
-											</Div>
-											{#if isSortable}
-												<ChevronDown
-													class={twMerge(
-														'transition duration-200',
-														key === settings.sortKey ? 'scale-100' : 'scale-0',
-														settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
-													)}
-													size={16}
-												/>
+															return comparison || a - b;
+														});
+														rows = indexes.map((index) => rows[index]);
+														rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
+													}
+												}}
+												variants={['ghost', 'square']}
+											>
+												<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+													{label}
+												</Div>
+												{#if isSortable}
+													<ChevronDown
+														class={twMerge(
+															'transition duration-200',
+															key === settings.sortKey ? 'scale-100' : 'scale-0',
+															settings.sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
+														)}
+														size={16}
+													/>
+												{/if}
+											</Button>
+											{#if isColumnsReorderable}
+												{#if columnIndex > 0}
+													<Button
+														class={twMerge(
+															'absolute top-1/2 left-0 -translate-y-1/2 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100'
+														)}
+														onclick={() => {
+															[columns[columnIndex], columns[columnIndex - 1]] = [
+																columns[columnIndex - 1],
+																columns[columnIndex]
+															];
+															columns = [...columns];
+														}}
+													>
+														<ArrowLeft size={16} />
+													</Button>
+												{/if}
+												{#if columnIndex < columnsSanitized.length - 1}
+													<Button
+														class={twMerge(
+															'absolute top-1/2 right-0 -translate-y-1/2 rotate-180 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100'
+														)}
+														onclick={() => {
+															[columns[columnIndex], columns[columnIndex + 1]] = [
+																columns[columnIndex + 1],
+																columns[columnIndex]
+															];
+															columns = [...columns];
+														}}
+													>
+														<ArrowLeft size={16} />
+													</Button>
+												{/if}
 											{/if}
-										</Button>
-										{#if isColumnsReorderable}
-											{#if columnIndex > 0}
-												<Button
-													class={twMerge(
-														'absolute top-1/2 left-0 -translate-y-1/2 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100'
-													)}
-													onclick={() => {
-														[columns[columnIndex], columns[columnIndex - 1]] = [
-															columns[columnIndex - 1],
-															columns[columnIndex]
-														];
-														columns = [...columns];
-													}}
-												>
-													<ArrowLeft size={16} />
-												</Button>
-											{/if}
-											{#if columnIndex < columnsSanitized.length - 1}
-												<Button
-													class={twMerge(
-														'absolute top-1/2 right-0 -translate-y-1/2 rotate-180 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100'
-													)}
-													onclick={() => {
-														[columns[columnIndex], columns[columnIndex + 1]] = [
-															columns[columnIndex + 1],
-															columns[columnIndex]
-														];
-														columns = [...columns];
-													}}
-												>
-													<ArrowLeft size={16} />
-												</Button>
-											{/if}
-										{/if}
-									</Div>
-								</Th>
+										</Div>
+									</Th>
+								{/if}
 							{/if}
 						{/each}
 					</Tr>
@@ -609,14 +623,16 @@
 									{/if}
 								</Td>
 							{/if}
-							{#each columnsSanitized as column (column.key)}
-								{@render column.snippet({
-									isEditable: column.isEditable,
-									key: column.key,
-									object: rows[row.index],
-									options: column.options,
-									valueFn: column?.valueFn
-								})}
+							{#each columnsSanitized as { isEditable, isHidden, key, options, snippet, valueFn } (key)}
+								{#if !isHidden}
+									{@render snippet({
+										isEditable,
+										key,
+										object: rows[row.index],
+										options,
+										valueFn
+									})}
+								{/if}
 							{/each}
 						</Tr>
 					{/each}
