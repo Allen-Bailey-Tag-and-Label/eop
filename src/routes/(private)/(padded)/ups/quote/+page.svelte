@@ -6,28 +6,10 @@
 
 	let { data } = $props();
 	let branch = $state(0);
-	let formData = $state({
-		shipFrom: {
-			address: '3177 Lehigh Street',
-			city: 'Caledonia',
-			state: 'NY',
-			zip: '14423'
-		},
-		shipTo: {
-			address: '',
-			city: '',
-			state: '',
-			zip: ''
-		},
-		packageInfo: {
-			totalPackages: '',
-			totalWeight: ''
-		}
-	});
 	let isLoading = $state(false);
 	let isValidationRequired = $state(true);
 	const reset = () => {
-		formData = {
+		data.formData = {
 			shipFrom: {
 				address: '',
 				city: '',
@@ -84,7 +66,7 @@
 				type="hidden"
 				value={branch.toString()}
 			/>
-			<FormSections bind:formData bind:isValidationRequired />
+			<FormSections bind:formData={data.formData} bind:isValidationRequired />
 			<Div class="flex justify-end space-x-2">
 				{#if !isLoading}
 					<div transition:slide={{ axis: 'y' }}>
