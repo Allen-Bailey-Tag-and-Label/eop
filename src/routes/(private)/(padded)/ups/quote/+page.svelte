@@ -1,196 +1,98 @@
 <script lang="ts">
-	import { ChevronDown } from '@lucide/svelte';
-	import states from 'states-us';
-	import { untrack } from 'svelte';
-	import { twMerge } from 'tailwind-merge';
-	import zipcodes from 'zipcodes';
-	import { page } from '$app/state';
-	import { Button, Div, Form, H1, H2, Input, Select, SubmitButton } from '$lib/components';
-	import { camelCase } from '$lib/formats';
 	import type { SubmitFunction } from '@sveltejs/kit';
-
-	type Input =
-		| {
-				label: string;
-				value: string;
-				zipLookup?: true;
-		  }
-		| {
-				label: string;
-				type: 'number';
-				value: string;
-		  }
-		| {
-				label: string;
-				options: Option[];
-				value: string;
-		  };
-	type Option = { label: string; value: number | string };
+	import { Button, Div, Form, H1, Input, Label, Select, SubmitButton } from '$lib/components';
+	import { slide } from 'svelte/transition';
+	import FormSections from './FormSections.svelte';
 
 	let { data } = $props();
-	let branch = $state('');
-	let branchOptions: Option[] = $state([]);
+	let branch = $state(0);
+	let formData = $state({
+		shipFrom: {
+			address: '3177 Lehigh Street',
+			city: 'Caledonia',
+			state: 'NY',
+			zip: '14423'
+		},
+		shipTo: {
+			address: '',
+			city: '',
+			state: '',
+			zip: ''
+		},
+		packageInfo: {
+			totalPackages: '',
+			totalWeight: ''
+		}
+	});
 	let isLoading = $state(false);
-	let stateOptions: Option[] = $state([{ label: '', value: '' }]);
+	let isValidationRequired = $state(true);
+	const reset = () => {
+		formData = {
+			shipFrom: {
+				address: '',
+				city: '',
+				state: '',
+				zip: ''
+			},
+			shipTo: {
+				address: '',
+				city: '',
+				state: '',
+				zip: ''
+			},
+			packageInfo: {
+				totalPackages: '',
+				totalWeight: ''
+			}
+		};
+	};
 	const submitFunction: SubmitFunction = () => {
 		isLoading = true;
-
 		return async ({ update }) => {
-			isLoading = false;
 			await update();
 		};
 	};
-	let formData: { className?: string; inputs: Input[]; isOpen: boolean; title: string }[] = $state([
-		{
-			className: 'hidden lg:flex',
-			inputs: [
-				{ label: 'Address', value: '3177 Lehigh Street' },
-				{ label: 'ZIP', type: 'number', value: '14423', zipLookup: true },
-				{ label: 'City', value: 'Caledonia' },
-				{ label: 'State', options: [], value: 'NY' }
-			],
-			isOpen: true,
-			title: 'Ship From'
-		},
-		{
-			className: 'flex lg:hidden',
-			inputs: [
-				{ label: 'Address', value: '3177 Lehigh Street' },
-				{ label: 'ZIP', type: 'number', value: '14423', zipLookup: true },
-				{ label: 'City', value: 'Caledonia' },
-				{ label: 'State', options: [], value: 'NY' }
-			],
-			isOpen: false,
-			title: 'Ship From'
-		},
-		{
-			inputs: [
-				{ label: 'Address', value: page.url.searchParams.get('address') ?? '' },
-				{
-					label: 'ZIP',
-					type: 'number',
-					value: page.url.searchParams.get('zip') ?? '',
-					zipLookup: true
-				},
-				{ label: 'City', value: page.url.searchParams.get('city') ?? '' },
-				{ label: 'State', options: [], value: page.url.searchParams.get('state') ?? '' }
-			],
-			isOpen: true,
-			title: 'Ship To'
-		},
-		{
-			inputs: [
-				{
-					label: 'Total Packages',
-					type: 'number',
-					value: page.url.searchParams.get('totalPackages') ?? '1'
-				},
-				{
-					label: 'Total Weight',
-					type: 'number',
-					value: page.url.searchParams.get('totalWeight') ?? '30'
-				}
-			],
-			isOpen: true,
-			title: 'Package Info'
-		}
+
+	const action = $derived.by(() => (isValidationRequired ? '?/validated' : '?/nonValidated'));
+	const branchOptions = $derived.by(() => [
+		{ label: '', value: 0 },
+		...data.locals.user.branches.map(({ number }) => ({
+			label: number.toString(),
+			value: number
+		}))
 	]);
 
 	$effect(() => {
-		if (branchOptions.length === 0) {
-			branchOptions = [
-				{ label: '', value: '' },
-				...data.locals.user.branches.map(({ number }) => ({
-					label: number.toString(),
-					value: number
-				}))
-			];
-		}
-	});
-	$effect(() => {
-		stateOptions = [
-			{ label: '', value: '' },
-			...states.map((state) => ({
-				label: state.abbreviation,
-				value: state.abbreviation
-			}))
-		];
-		untrack(() => {
-			formData.forEach(({ inputs }, sectionIndex) => {
-				inputs.forEach(({ options }, inputIndex) => {
-					if (options !== undefined)
-						formData[sectionIndex].inputs[inputIndex].options = stateOptions;
-				});
-			});
-		});
+		if (data.locals.user.branches.length === 1) branch = data.locals.user.branches[0].number;
 	});
 </script>
 
-<Div class="flex flex-col space-y-8">
-	<Form class="lg:max-w-5xl" {submitFunction}>
+<Div class="flex flex-col items-start">
+	<Div class="flex flex-col space-y-6">
 		<Div class="flex items-center justify-between space-x-2">
-			<H1>UPS Freight Estimator</H1>
+			<H1 class="whitespace-nowrap">UPS Freight Estimator</H1>
 			{#if branchOptions.length > 1}
-				<Select bind:value={branch} name="branch" options={branchOptions} required={true} />
-			{:else}
-				<Input class="sr-only absolute h-0 w-0" name="branch" type="hidden" value={branch} />
+				<Div class="flex flex-col">
+					<Label>Branch</Label>
+					<Select bind:value={branch} name="branch" options={branchOptions} required={true} />
+				</Div>
 			{/if}
 		</Div>
-		<Div
-			class="flex flex-col divide-y divide-gray-200 lg:grid lg:grid-cols-3 lg:gap-4 lg:divide-y-0 dark:divide-gray-700"
-		>
-			{#each formData as { className, inputs, isOpen, title }, sectionIndex}
-				<Div class={twMerge('flex flex-col space-y-2 py-3', className)}>
-					<Button
-						class="justify-between px-0 py-0"
-						onclick={() => (formData[sectionIndex].isOpen = !formData[sectionIndex].isOpen)}
-						tabindex={-1}
-						variants={['ghost']}
-					>
-						<H2>{title}</H2>
-						<Div class={twMerge('transition duration-200', isOpen ? undefined : '-rotate-90')}>
-							<ChevronDown />
-						</Div>
-					</Button>
-					{#if isOpen}
-						{#each inputs as { label, options, type, zipLookup }, inputIndex}
-							{@const name = camelCase(title + ' ' + label)}
-							{#if options === undefined}
-								<Input
-									bind:value={formData[sectionIndex].inputs[inputIndex].value}
-									class={type === 'number' ? 'text-right' : undefined}
-									{label}
-									{name}
-									onchange={() => {
-										if (zipLookup === undefined) return;
-										const result = zipcodes.lookup(formData[sectionIndex].inputs[inputIndex].value);
-										if (result === undefined) return;
-										const { city, state } = result;
-										formData[sectionIndex].inputs[2].value = city;
-										formData[sectionIndex].inputs[3].value = state;
-									}}
-									required={true}
-									{type}
-								/>
-							{:else}
-								<Select
-									bind:value={formData[sectionIndex].inputs[inputIndex].value}
-									{label}
-									{name}
-									{options}
-									required={true}
-								/>
-							{/if}
-						{/each}
-					{/if}
-				</Div>
-			{/each}
-		</Div>
-		<Div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end">
-			<SubmitButton bind:isLoading formaction="?/nonValidated" variants={['secondary']}>
-				Non-Validated
-			</SubmitButton>
-			<SubmitButton bind:isLoading formaction="?/validated">Validated</SubmitButton>
-		</Div>
-	</Form>
+		<Form {action} class="flex w-auto max-w-none flex-col items-end" {submitFunction}>
+			<Input
+				class="sr-only absolute top-0 left-0 h-0 w-0"
+				type="hidden"
+				value={branch.toString()}
+			/>
+			<FormSections bind:formData bind:isValidationRequired />
+			<Div class="flex space-x-2">
+				{#if !isLoading}
+					<div transition:slide={{ axis: 'y' }}>
+						<Button onclick={reset} variants={['ghost']}>Reset</Button>
+					</div>
+				{/if}
+				<SubmitButton bind:isLoading>Get Quote</SubmitButton>
+			</Div>
+		</Form>
+	</Div>
 </Div>
