@@ -36,7 +36,7 @@
 <Div class="flex gap-4">
 	{@render section({ key: 'shipFrom', snippet: address, title: 'Ship From' })}
 	{@render section({ key: 'shipTo', snippet: address, title: 'Ship To' })}
-	{@render section({ snippet: packageInfo, title: 'PackageInfo' })}
+	{@render section({ snippet: packageInfo, title: 'Package Info' })}
 </Div>
 
 {#snippet address({ key }: { key: 'shipFrom' | 'shipTo' })}
