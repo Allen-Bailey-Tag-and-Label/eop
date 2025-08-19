@@ -15,7 +15,7 @@
 		[
 			{ name: 'primary', c: 0.25, h: 293.796 },
 			{ name: 'secondary', c: 0.25, h: 236.62 },
-			{ name: 'gray', c: 0.16, h: 293.796 }
+			{ name: 'gray', c: 0.03125, h: 293.796 }
 		].map(({ name, c, h }) => {
 			const shades = [
 				50,

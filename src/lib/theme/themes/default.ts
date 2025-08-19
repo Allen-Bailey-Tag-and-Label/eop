@@ -25,7 +25,7 @@ export const defaultTheme: Theme = {
 	},
 	Card: {
 		default:
-			'flex flex-col rounded-xl bg-gray-50 p-6 backdrop-blur-md transition duration-200 dark:bg-gray-900 outline-1 outline-gray-200 shadow-2xs dark:outline-gray-700'
+			'shadow-gray-950/5 dark:shadow-gray-950/30 flex flex-col rounded-xl bg-white p-6 backdrop-blur-md transition duration-200 shadow-xl dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700'
 	},
 	Checkbox: {
 		default: ''
@@ -37,8 +37,8 @@ export const defaultTheme: Theme = {
 	},
 	Div: { default: '' },
 	Form: { default: 'w-full max-w-sm space-y-12' },
-	H1: { default: 'block text-2xl font-bold text-gray-800 sm:text-3xl dark:text-white' },
-	H2: { default: 'block text-xl font-bold text-gray-800 sm:text-2xl dark:text-white' },
+	H1: { default: 'block text-3xl font-bold text-gray-800 dark:text-white' },
+	H2: { default: 'block text-2xl font-bold text-gray-800 dark:text-white' },
 	Header: {
 		default:
 			'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50 pb-[env(safe-area-inset-bottom)] lg:pb-0 lg:pt-[env(safe-area-inset-top)]'
@@ -78,6 +78,6 @@ export const defaultTheme: Theme = {
 		default: 'dark:bg-gray-800 bg-gray-200'
 	},
 	Tr: {
-		default: 'even:bg-gray-200 dark:even:bg-gray-800'
+		default: 'even:bg-gray-50 dark:even:bg-gray-800'
 	}
 };
