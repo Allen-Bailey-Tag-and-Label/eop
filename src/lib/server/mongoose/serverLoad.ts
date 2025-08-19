@@ -51,8 +51,6 @@ export const serverLoad = <T>(params: Params<T>) => {
 
 		const mongoFilter = filtersToMongoQuery(settings.filter ?? {});
 
-		console.log(JSON.stringify(mongoFilter, null, 2));
-
 		const rows =
 			'query' in params
 				? getRows({

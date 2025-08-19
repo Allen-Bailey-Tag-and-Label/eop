@@ -122,7 +122,6 @@
 									const profileIdColumnIndex =
 										columnsSanitized?.findIndex((column) => column.key === '_profileId') ?? -1;
 									if (profileIdColumnIndex > -1) {
-										console.log(columnsSanitized[profileIdColumnIndex]);
 										const label = `${createModalData.formData.profile.firstName} ${createModalData.formData.profile.lastName}`;
 										const value = createModalData.formData.user._profileId;
 										columnsSanitized[profileIdColumnIndex].options.push({ label, value });
