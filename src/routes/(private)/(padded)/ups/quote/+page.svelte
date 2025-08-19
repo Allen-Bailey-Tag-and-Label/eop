@@ -67,7 +67,7 @@
 	});
 </script>
 
-<Div class="flex flex-col items-start">
+<Div class="flex flex-col lg:items-start">
 	<Div class="flex flex-col space-y-6">
 		<Div class="flex items-center justify-between space-x-2">
 			<H1 class="whitespace-nowrap">UPS Freight Estimator</H1>
@@ -78,14 +78,14 @@
 				</Div>
 			{/if}
 		</Div>
-		<Form {action} class="flex w-auto max-w-none flex-col items-end" {submitFunction}>
+		<Form {action} class="flex w-auto max-w-none flex-col lg:items-end" {submitFunction}>
 			<Input
 				class="sr-only absolute top-0 left-0 h-0 w-0"
 				type="hidden"
 				value={branch.toString()}
 			/>
 			<FormSections bind:formData bind:isValidationRequired />
-			<Div class="flex space-x-2">
+			<Div class="flex justify-end space-x-2">
 				{#if !isLoading}
 					<div transition:slide={{ axis: 'y' }}>
 						<Button onclick={reset} variants={['ghost']}>Reset</Button>

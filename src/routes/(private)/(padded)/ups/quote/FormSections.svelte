@@ -33,7 +33,7 @@
 	]);
 </script>
 
-<Div class="flex gap-4">
+<Div class="flex flex-col gap-4 lg:flex-row">
 	{@render section({ key: 'shipFrom', snippet: address, title: 'Ship From' })}
 	{@render section({ key: 'shipTo', snippet: address, title: 'Ship To' })}
 	{@render section({ snippet: packageInfo, title: 'Package Info' })}

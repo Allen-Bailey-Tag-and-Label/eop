@@ -94,9 +94,9 @@
 	);
 </script>
 
-<Div class="flex flex-col items-start space-y-6">
+<Div class="flex flex-col space-y-6 lg:items-start">
 	{#if rates.length === 0}
-		<Form class="flex w-auto max-w-none flex-col items-end" {submitFunction}>
+		<Form class="flex w-auto max-w-none flex-col lg:items-end" {submitFunction}>
 			<FormSections bind:formData isValidationCheckboxRequired={false} />
 			<Input
 				class="sr-only absolute top-0 left-0 h-0 w-0"
@@ -104,7 +104,7 @@
 				type="hidden"
 				value={packageWeight}
 			/>
-			<Div class="flex space-x-2">
+			<Div class="flex justify-end space-x-2">
 				{#if !isLoading}
 					<div transition:slide={{ axis: 'y' }}>
 						<Button onclick={reset} variants={['ghost']}>Reset</Button>
@@ -114,7 +114,7 @@
 			</Div>
 		</Form>
 	{:else}
-		<Div class="flex flex-col items-start space-y-6">
+		<Div class="flex flex-col space-y-6 lg:items-start">
 			<Div class="grid grid-cols-[fit-content(0px)_fit-content(0px)] gap-x-2">
 				{@render detail('Date', dateTime(date))}
 				{@render detail(
