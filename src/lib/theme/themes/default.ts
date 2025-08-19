@@ -56,7 +56,7 @@ export const defaultTheme: Theme = {
 		),
 		isOpen: 'rounded-b-none'
 	},
-	Option: { default: 'bg-gray-100 dark:bg-gray-800' },
+	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },
 	P: { default: '' },
 	Radio: {
 		box: 'flex w-full items-center justify-start space-x-2 rounded-lg p-3 has-checked:bg-primary-500/10 outline outline-gray-200 dark:outline-gray-700 has-checked:outline-primary-500',
@@ -69,6 +69,7 @@ export const defaultTheme: Theme = {
 	Select: { default: twMerge(InputDefault, 'appearance-none') },
 	Slider: { default: 'relative flex flex-col space-y-6 items-center' },
 	Spinner: { default: 'w-6 h-6' },
+	SubmitButton: { default: '' },
 	Table: { default: '' },
 	Tbody: { default: '' },
 	Td: { default: 'px-6 py-3' },
