@@ -1,8 +1,17 @@
 <script lang="ts">
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { untrack } from 'svelte';
-	import { Button, Form, Select } from '$lib/components';
+	import { Form, Select, SubmitButton } from '$lib/components';
 
 	let { data, form } = $props();
+	let isLoading = $state(false);
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
 	let tableOptions: { label: string; value: string }[] = $state([]);
 
 	$effect(() => {
@@ -10,7 +19,7 @@
 	});
 </script>
 
-<Form>
+<Form {submitFunction}>
 	{#snippet inputs()}
 		<Select label="Table" name="table" options={tableOptions} required={true} />
 	{/snippet}
@@ -20,6 +29,6 @@
 		{/if}
 	{/snippet}
 	{#snippet buttons()}
-		<Button type="submit">Update Table</Button>
+		<SubmitButton bind:isLoading>Update Table</SubmitButton>
 	{/snippet}
 </Form>

@@ -1,9 +1,18 @@
 <script lang="ts">
-	import { Button, Div, Form, RangeInput } from '$lib/components';
-	import { percent } from '$lib/formats';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { untrack } from 'svelte';
+	import { Form, RangeInput, SubmitButton } from '$lib/components';
+	import { percent } from '$lib/formats';
 
 	let { data, form } = $props();
+	let isLoading = $state(false);
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
 	let value = $state(16);
 
 	$effect(() => {
@@ -14,7 +23,7 @@
 	});
 </script>
 
-<Form>
+<Form {submitFunction}>
 	{#snippet inputs()}
 		<RangeInput
 			bind:value={
@@ -40,6 +49,6 @@
 		{form?.error}
 	{/snippet}
 	{#snippet buttons()}
-		<Button type="submit">Update Settings</Button>
+		<SubmitButton bind:isLoading>Update Settings</SubmitButton>
 	{/snippet}
 </Form>

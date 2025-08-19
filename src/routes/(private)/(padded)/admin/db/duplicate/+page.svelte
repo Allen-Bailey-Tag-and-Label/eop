@@ -1,17 +1,26 @@
 <script lang="ts">
-	import { Button, Form, Input } from '$lib/components';
+	import { Form, Input, SubmitButton } from '$lib/components';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
+	let isLoading = $state(false);
 	let sourceDB = $state('v4');
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
 	let targetDB = $state('v4Dev');
 </script>
 
-<Form>
+<Form {submitFunction}>
 	{#snippet inputs()}
 		<Input bind:value={sourceDB} label="Source DB" name="sourceDB" required={true} />
 		<Input bind:value={targetDB} label="Target DB" name="targetDB" required={true} />
 	{/snippet}
 
 	{#snippet buttons()}
-		<Button type="submit">Duplicate</Button>
+		<SubmitButton bind:isLoading>Duplicate</SubmitButton>
 	{/snippet}
 </Form>

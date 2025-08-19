@@ -5,8 +5,9 @@
 	import { twMerge } from 'tailwind-merge';
 	import zipcodes from 'zipcodes';
 	import { page } from '$app/state';
-	import { Button, Div, Form, H1, H2, Input, Select } from '$lib/components';
+	import { Button, Div, Form, H1, H2, Input, Select, SubmitButton } from '$lib/components';
 	import { camelCase } from '$lib/formats';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	type Input =
 		| {
@@ -29,7 +30,16 @@
 	let { data } = $props();
 	let branch = $state('');
 	let branchOptions: Option[] = $state([]);
+	let isLoading = $state(false);
 	let stateOptions: Option[] = $state([{ label: '', value: '' }]);
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
 	let formData: { className?: string; inputs: Input[]; isOpen: boolean; title: string }[] = $state([
 		{
 			className: 'hidden lg:flex',
@@ -117,7 +127,7 @@
 </script>
 
 <Div class="flex flex-col space-y-8">
-	<Form class="lg:max-w-5xl">
+	<Form class="lg:max-w-5xl" {submitFunction}>
 		<Div class="flex items-center justify-between space-x-2">
 			<H1>UPS Freight Estimator</H1>
 			{#if branchOptions.length > 1}
@@ -177,10 +187,10 @@
 			{/each}
 		</Div>
 		<Div class="grid grid-cols-2 gap-4 lg:flex lg:justify-end">
-			<Button formaction="?/nonValidated" type="submit" variants={['secondary']}>
+			<SubmitButton bind:isLoading formaction="?/nonValidated" variants={['secondary']}>
 				Non-Validated
-			</Button>
-			<Button formaction="?/validated" type="submit">Validated</Button>
+			</SubmitButton>
+			<SubmitButton bind:isLoading formaction="?/validated">Validated</SubmitButton>
 		</Div>
 	</Form>
 </Div>

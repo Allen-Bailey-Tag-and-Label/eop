@@ -13,10 +13,12 @@
 		P,
 		RangeInput,
 		Select,
+		SubmitButton,
 		Td
 	} from '$lib/components';
 	import type { ColumnSanitized, TdSnippet } from '$lib/components/MongooseTable/types.js';
 	import { percent } from '$lib/formats/percent.js';
+	import { slide } from 'svelte/transition';
 
 	let { data } = $props();
 	let columnsSanitized: ColumnSanitized[] = $state([]);
@@ -49,8 +51,10 @@
 		stepIndex: 0
 	});
 	let isCreateModalOpen = $state(false);
+	let isLoading = $state(false);
 	let resetModal = $state({
 		code: '',
+		isLoading: false,
 		isOpen: false
 	});
 	let virtualColumns = $state([{ key: 'buttons', label: '', snippet: resetPassword }]);
@@ -114,7 +118,9 @@
 						action="?/create-profile"
 						class="flex flex-grow flex-col"
 						submitFunction={() => {
+							isLoading = true;
 							return async ({ result }) => {
+								isLoading = false;
 								if (result.type === 'success' && result.data) {
 									createModalData.formData.user._profileId = result.data._profileId;
 									createModalData.formData.user.username =
@@ -176,10 +182,14 @@
 							/>
 						</Div>
 						<Div class="flex justify-end space-x-2">
-							<Button type="submit">Create</Button>
-							<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
-								>Cancel</Button
-							>
+							{#if isLoading}
+								<div transition:slide={{ axis: 'y' }}>
+									<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
+										>Cancel</Button
+									>
+								</div>
+							{/if}
+							<SubmitButton bind:isLoading>Create</SubmitButton>
 						</Div>
 					</Form>
 				</Div>
@@ -191,7 +201,9 @@
 						action="?/create-settings"
 						class="flex flex-grow flex-col"
 						submitFunction={() => {
+							isLoading = true;
 							return async ({ result }) => {
+								isLoading = false;
 								if (result.type === 'success' && result.data) {
 									createModalData.formData.user._settingsId = result.data._settingsId;
 									const settingsColumnsIndex =
@@ -231,10 +243,14 @@
 							/>
 						</Div>
 						<Div class="flex justify-end space-x-2">
-							<Button type="submit">Create</Button>
-							<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
-								>Cancel</Button
-							>
+							{#if isLoading}
+								<div transition:slide={{ axis: 'y' }}>
+									<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
+										>Cancel</Button
+									>
+								</div>
+							{/if}
+							<SubmitButton bind:isLoading>Create</SubmitButton>
 						</Div>
 					</Form>
 				</Div>
@@ -246,7 +262,9 @@
 						action="?/create-user"
 						class="flex flex-grow flex-col"
 						submitFunction={() => {
+							isLoading = true;
 							return async ({ update }) => {
+								isLoading = false;
 								await update();
 								isCreateModalOpen = false;
 							};
@@ -310,10 +328,14 @@
 							/>
 						</Div>
 						<Div class="flex justify-end space-x-2">
-							<Button type="submit">Create</Button>
-							<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
-								>Cancel</Button
-							>
+							{#if isLoading}
+								<div transition:slide={{ axis: 'y' }}>
+									<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
+										>Cancel</Button
+									>
+								</div>
+							{/if}
+							<SubmitButton bind:isLoading>Create</SubmitButton>
 						</Div>
 					</Form>
 				</Div>
@@ -327,8 +349,10 @@
 		<Form
 			action="?/reset-password"
 			submitFunction={() => {
+				resetModal.isLoading = true;
 				resetModal.isOpen = true;
 				return async ({ result }) => {
+					resetModal.isLoading = false;
 					if (result.type === 'success' && result.data) {
 						resetModal.code = result.data.code;
 					}
@@ -341,7 +365,9 @@
 				type="hidden"
 				value={object?.username}
 			/>
-			<Button type="submit" variants={['small']}>Reset Password</Button>
+			<SubmitButton bind:isLoading={resetModal.isLoading} variants={['small']}>
+				Reset Password
+			</SubmitButton>
 		</Form>
 	</Td>
 {/snippet}

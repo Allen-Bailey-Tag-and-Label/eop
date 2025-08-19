@@ -95,7 +95,7 @@
 					<Button onclick={reset} variants={['ghost']}>Reset</Button>
 				</div>
 			{/if}
-			<SubmitButton bind:isLoading type="submit">Validate</SubmitButton>
+			<SubmitButton bind:isLoading>Validate</SubmitButton>
 		{/snippet}
 	</Form>
 {:else}

@@ -1,10 +1,19 @@
 <script lang="ts">
-	import { Button, Div, Form, Input } from '$lib/components';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { Form, Input, SubmitButton } from '$lib/components';
 
 	let { form } = $props();
+	let isLoading = $state(false);
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
 </script>
 
-<Form>
+<Form {submitFunction}>
 	{#snippet inputs()}
 		<Input label="Password (Current)" name="passwordCurrent" type="password" />
 		<Input label="Password (New)" name="password" type="password" />
@@ -14,6 +23,6 @@
 		{form?.error}
 	{/snippet}
 	{#snippet buttons()}
-		<Button type="submit">Change Password</Button>
+		<SubmitButton bind:isLoading>Change Password</SubmitButton>
 	{/snippet}
 </Form>

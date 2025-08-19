@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Button, Div, Form, Input, Select } from '$lib/components';
+	import { Button, Div, Form, Input, Select, SubmitButton } from '$lib/components';
 	import { twMerge } from 'tailwind-merge';
 	import Section from './Section.svelte';
 	import Tr from './Tr.svelte';
 	import type { Props } from './types';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let {
 		current = $bindable({
@@ -32,10 +33,19 @@
 		label,
 		value: label
 	}));
+	let isLoading = $state(false);
 	const productTypeOptions = ['', 'LB', 'TG', 'TG2', 'TG3', 'TGM'].map((label) => ({
 		label,
 		value: label
 	}));
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
+
 	$effect(() => {
 		const currentLabor =
 			Math.floor((Number(current.totalCost) - Number(current.material)) * 100) / 100;
@@ -55,7 +65,7 @@
 </script>
 
 <Div class="flex flex-col items-start">
-	<Form class="flex w-full max-w-none flex-col lg:w-auto">
+	<Form class="flex w-full max-w-none flex-col lg:w-auto" {submitFunction}>
 		<Div class="flex flex-col gap-4 lg:flex-row lg:items-start">
 			<Section title="Options">
 				<Tr label="Customer Type">
@@ -237,7 +247,7 @@
 			</Section>
 		</Div>
 		{#snippet buttons()}
-			<Button class="self-end" type="submit">Calculate</Button>
+			<SubmitButton bind:isLoading class="self-end">Calculate</SubmitButton>
 		{/snippet}
 	</Form>
 </Div>

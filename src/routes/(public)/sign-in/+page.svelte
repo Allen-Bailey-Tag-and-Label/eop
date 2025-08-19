@@ -1,10 +1,19 @@
 <script lang="ts">
-	import { A, Button, Card, Div, Form, Input } from '$lib/components';
+	import { A, Card, Div, Form, Input, SubmitButton } from '$lib/components';
 	import { ABTL, PTI } from '$lib/logos';
 	import { Plus } from '@lucide/svelte';
 	import { type PageProps } from './$types';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let { form }: PageProps = $props();
+	let isLoading = $state(false);
+	const submitFunction: SubmitFunction = () => {
+		isLoading = true;
+		return async ({ update }) => {
+			isLoading = false;
+			await update();
+		};
+	};
 </script>
 
 <Div class="flex min-h-screen flex-col items-center justify-center space-y-6 p-4">
@@ -21,23 +30,17 @@
 				<PTI color="currentColor" size={128} />
 			</Div>
 		</Div>
-		<Form {form}>
+		<Form {form} {submitFunction}>
 			{#snippet inputs()}
-				<Input autoFocus={true} label="Username" name="username" required={true} />
-				<Input
-					isPasswordButtonVisible={true}
-					label="Password"
-					name="password"
-					required={true}
-					type="password"
-				/>
+				<Input autofocus={true} label="Username" name="username" required={true} />
+				<Input label="Password" name="password" required={true} type="password" />
 				<A href="forgot-password">Forgot Password</A>
 			{/snippet}
 			{#snippet error()}
 				{form?.error}
 			{/snippet}
 			{#snippet buttons()}
-				<Button type="submit">Sign In</Button>
+				<SubmitButton bind:isLoading>Sign In</SubmitButton>
 			{/snippet}
 		</Form>
 	</Card>
