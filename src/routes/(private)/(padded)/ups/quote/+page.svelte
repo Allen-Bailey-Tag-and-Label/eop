@@ -6,10 +6,28 @@
 
 	let { data } = $props();
 	let branch = $state(0);
+	let formData = $state({
+		shipFrom: {
+			address: '',
+			city: '',
+			state: '',
+			zip: ''
+		},
+		shipTo: {
+			address: '',
+			city: '',
+			state: '',
+			zip: ''
+		},
+		packageInfo: {
+			totalPackages: '',
+			totalWeight: ''
+		}
+	});
 	let isLoading = $state(false);
 	let isValidationRequired = $state(true);
 	const reset = () => {
-		data.formData = {
+		formData = {
 			shipFrom: {
 				address: '',
 				city: '',
@@ -47,6 +65,9 @@
 	$effect(() => {
 		if (data.locals.user.branches.length === 1) branch = data.locals.user.branches[0].number;
 	});
+	$effect(() => {
+		if (data.formData) formData = data.formData;
+	});
 </script>
 
 <Div class="flex flex-col lg:items-start">
@@ -66,7 +87,7 @@
 				type="hidden"
 				value={branch.toString()}
 			/>
-			<FormSections bind:formData={data.formData} bind:isValidationRequired />
+			<FormSections bind:formData bind:isValidationRequired />
 			<Div class="flex justify-end space-x-2">
 				{#if !isLoading}
 					<div transition:slide={{ axis: 'y' }}>
