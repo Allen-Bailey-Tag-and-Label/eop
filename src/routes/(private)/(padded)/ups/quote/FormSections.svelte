@@ -40,7 +40,12 @@
 </Div>
 
 {#snippet address({ key }: { key: 'shipFrom' | 'shipTo' })}
-	<Input bind:value={formData[key].address} label="Address" name="{key}Address" required={true} />
+	<Input
+		bind:value={formData[key].address}
+		label="Address"
+		name="{key}Address"
+		required={isValidationCheckboxRequired && isValidationRequired ? true : undefined}
+	/>
 	<Input
 		bind:value={formData[key].zip}
 		class="text-right"
