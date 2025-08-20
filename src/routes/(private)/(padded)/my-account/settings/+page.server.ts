@@ -4,14 +4,15 @@ import { Types } from 'mongoose';
 
 export const actions: Actions = {
 	default: async ({ locals, request }) => {
-		const { magnification } = <{ magnification: string }>(
+		const { magnification, theme } = <{ magnification: string; theme: string }>(
 			Object.fromEntries(await request.formData())
 		);
 
 		await UserSettings.findOneAndUpdate(
 			{ _id: locals.user.settings._id },
 			{
-				magnification: +magnification
+				magnification: +magnification,
+				theme
 			},
 			{
 				_createdById: new Types.ObjectId(locals.user._id),

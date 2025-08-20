@@ -32,7 +32,7 @@
 		defaultBranch: { _id: '', label: '', number: 0 },
 		isActive: true,
 		profile: { _id: '', email: '', firstName: '', lastName: '', phone: 0 },
-		settings: { _id: '', magnification: 16 },
+		settings: { _id: '', magnification: 16, theme: 'elegant-midnight' },
 		username: ''
 	});
 
@@ -44,6 +44,7 @@
 			if (browser) {
 				const magnification = magnificationMap.get(user.settings.magnification);
 				if (magnification) document.documentElement.className = magnification;
+				document.documentElement.setAttribute('theme', user.settings.theme);
 			}
 		});
 	});

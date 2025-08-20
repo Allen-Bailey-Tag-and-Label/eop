@@ -23,6 +23,7 @@ export type User = {
 	settings: {
 		_id: string;
 		magnification: number;
+		theme: string;
 	};
 	username: string;
 };
