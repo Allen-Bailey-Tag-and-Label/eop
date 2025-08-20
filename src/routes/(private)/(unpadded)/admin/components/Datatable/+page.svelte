@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { generate } from 'random-words';
-	import { Datatable, Div } from '$lib/components';
+	import { Button, Checkbox, Datatable, Div, Modal } from '$lib/components';
+	import { Settings } from '@lucide/svelte';
 
 	let columns = $state(
 		[
@@ -15,6 +16,11 @@
 			},
 			{
 				key: 'select',
+				compareFn: (a: string, b: string, dir: -1 | 1) => {
+					const aNumber = Number(a.replace(/\D/g, ''));
+					const bNumber = Number(b.replace(/\D/g, ''));
+					return (aNumber - bNumber) * dir;
+				},
 				options: Array(100)
 					.fill(0)
 					.map((_, i) => ({ label: `Option ${i + 1}`, value: i })),
@@ -22,6 +28,9 @@
 			},
 			{
 				key: 'multiSelect',
+				compareFn: (a: number[], b: number[], dir: -1 | 1) => {
+					return (a.length - b.length) * dir;
+				},
 				options: Array(100)
 					.fill(0)
 					.map((_, i) => ({ label: `Option ${i + 1}`, value: i })),
@@ -29,6 +38,15 @@
 			}
 		].sort((a, b) => a.key.localeCompare(b.key))
 	);
+	let isColumnsReorderable = $state(false);
+	let isCreatable = $state(false);
+	let isDeletable = $state(true);
+	let isEditable = $state(false);
+	let isExportable = $state(false);
+	let isFilterable = $state(false);
+	let isPaginateable = $state(false);
+	let isSelectable = $state(false);
+	let isSortable = $state(false);
 	let rows = $state(
 		Array(50)
 			.fill(0)
@@ -48,8 +66,39 @@
 				return { boolean, currency, multiSelect, number, select, string, timestamp };
 			})
 	);
+	let settingsModal = $state({
+		isOpen: false,
+		open: () => (settingsModal.isOpen = true)
+	});
 </script>
 
-<Div class="flex flex-col items-start p-4">
-	<Datatable bind:columns bind:rows />
+<Div class="flex flex-col items-start space-y-6 overflow-auto p-4">
+	<Button onclick={settingsModal.open} variants={['icon']}>
+		<Settings />
+	</Button>
+	<Datatable
+		bind:columns
+		bind:isColumnsReorderable
+		bind:isCreatable
+		bind:isDeletable
+		bind:isEditable
+		bind:isExportable
+		bind:isFilterable
+		bind:isPaginateable
+		bind:isSelectable
+		bind:isSortable
+		bind:rows
+	/>
 </Div>
+
+<Modal bind:isOpen={settingsModal.isOpen}>
+	<Checkbox bind:checked={isColumnsReorderable} label="isColumnsReorderable" />
+	<Checkbox bind:checked={isCreatable} label="isCreatable" />
+	<Checkbox bind:checked={isDeletable} label="isDeletable" />
+	<Checkbox bind:checked={isEditable} label="isEditable" />
+	<Checkbox bind:checked={isExportable} label="isExportable" />
+	<Checkbox bind:checked={isFilterable} label="isFilterable" />
+	<Checkbox bind:checked={isPaginateable} label="isPaginateable" />
+	<Checkbox bind:checked={isSelectable} label="isSelectable" />
+	<Checkbox bind:checked={isSortable} label="isSortable" />
+</Modal>

@@ -70,7 +70,14 @@
 		isOpen: false
 	});
 	let virtualColumns = $state([
-		{ isExportable: false, key: 'buttons', label: '', snippet: resetPassword }
+		{
+			isExportable: false,
+			isSortable: false,
+			isFilterable: false,
+			key: 'buttons',
+			label: 'Reset Password',
+			snippet: resetPassword
+		}
 	]);
 </script>
 
@@ -380,9 +387,7 @@
 				type="hidden"
 				value={object?.username}
 			/>
-			<SubmitButton bind:isLoading={resetModal.isLoading} variants={['small']}>
-				Reset Password
-			</SubmitButton>
+			<Button variants={['small']}>Reset Password</Button>
 		</Form>
 	</Td>
 {/snippet}

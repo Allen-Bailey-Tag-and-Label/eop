@@ -183,7 +183,10 @@
 					(columnSanitized?.isProtected !== undefined ? !columnSanitized.isProtected : undefined) ??
 					(columnSanitized?.isHidden !== undefined ? !columnSanitized.isHidden : undefined) ??
 					isExportable,
-				isFilterable: columnSanitized.isFilterable ?? (type === 'function' ? false : isFilterable),
+				isFilterable:
+					columnSanitized.isFilterable ??
+					(columnSanitized?.isProtected !== undefined ? !columnSanitized.isProtected : undefined) ??
+					(type === 'function' ? false : isFilterable),
 				isHidden:
 					columnSanitized.isHidden ??
 					(columnSanitized?.isProtected !== undefined ? columnSanitized.isProtected : undefined) ??
@@ -230,7 +233,7 @@
 	$effect(() => {
 		const isPaginateableValue = isPaginateable;
 		untrack(() => {
-			if (isSettingsVisible === undefined) isSettingsVisible = isPaginateableValue;
+			isSettingsVisible = isPaginateableValue;
 		});
 	});
 	$effect(() => {
@@ -339,7 +342,7 @@
 	});
 </script>
 
-<Card class="flex flex-col overflow-auto p-0">
+<Card class="flex max-h-full max-w-full flex-col overflow-auto p-0">
 	{#if toolbar}
 		{@render toolbar()}
 	{:else if isToolbarVisible}
@@ -511,55 +514,57 @@
 								{:else}
 									<Th class={twMerge('px-0 py-0', className)}>
 										<Div class="group relative">
-											<Button
-												class="flex w-full items-center justify-between space-x-2 text-gray-500"
-												onclick={() => {
-													if (isSortable) {
-														if (settings.sortKey !== key) settings.sortDirection = 'asc';
-														if (settings.sortKey === key)
-															settings.sortDirection =
-																settings.sortDirection === 'asc' ? 'desc' : 'asc';
-														settings.sortKey = key;
+											{#if isSortable}
+												<Button
+													class="flex w-full items-center justify-between space-x-2 text-gray-500"
+													onclick={() => {
+														if (isSortable) {
+															if (settings.sortKey !== key) settings.sortDirection = 'asc';
+															if (settings.sortKey === key)
+																settings.sortDirection =
+																	settings.sortDirection === 'asc' ? 'desc' : 'asc';
+															settings.sortKey = key;
 
-														const indexes = Array.from(rows.keys()).sort((a, b) => {
-															if (settings.sortKey === undefined) return 0;
-															const sortColumn = columnsSanitized.find(
-																(columnSanitized) => columnSanitized.key === settings.sortKey
+															const indexes = Array.from(rows.keys()).sort((a, b) => {
+																if (settings.sortKey === undefined) return 0;
+																const sortColumn = columnsSanitized.find(
+																	(columnSanitized) => columnSanitized.key === settings.sortKey
+																);
+																if (sortColumn === undefined) return 0;
+
+																let aValue = getAt(rows[a], settings.sortKey);
+																let bValue = getAt(rows[b], settings.sortKey);
+
+																if (sortColumn.type === 'select') {
+																	aValue =
+																		sortColumn.options.find(
+																			(option: { value: any }) => option.value === aValue
+																		)?.label ?? aValue;
+																	bValue =
+																		sortColumn.options.find(
+																			(option: { value: any }) => option.value === bValue
+																		)?.label ?? bValue;
+																}
+
+																const comparison = sortColumn.compareFn(
+																	aValue,
+																	bValue,
+																	settings.sortDirection === 'asc' ? 1 : -1
+																);
+
+																return comparison || a - b;
+															});
+															rows = indexes.map((index) => rows[index]);
+															rowsCheckboxValues = indexes.map(
+																(index) => rowsCheckboxValues[index]
 															);
-															if (sortColumn === undefined) return 0;
-
-															let aValue = getAt(rows[a], settings.sortKey);
-															let bValue = getAt(rows[b], settings.sortKey);
-
-															if (sortColumn.type === 'select') {
-																aValue =
-																	sortColumn.options.find(
-																		(option: { value: any }) => option.value === aValue
-																	)?.label ?? aValue;
-																bValue =
-																	sortColumn.options.find(
-																		(option: { value: any }) => option.value === bValue
-																	)?.label ?? bValue;
-															}
-
-															const comparison = sortColumn.compareFn(
-																aValue,
-																bValue,
-																settings.sortDirection === 'asc' ? 1 : -1
-															);
-
-															return comparison || a - b;
-														});
-														rows = indexes.map((index) => rows[index]);
-														rowsCheckboxValues = indexes.map((index) => rowsCheckboxValues[index]);
-													}
-												}}
-												variants={['ghost', 'square']}
-											>
-												<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
-													{label}
-												</Div>
-												{#if isSortable}
+														}
+													}}
+													variants={['ghost', 'square']}
+												>
+													<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
+														{label}
+													</Div>
 													<ChevronDown
 														class={twMerge(
 															'transition duration-200',
@@ -568,8 +573,17 @@
 														)}
 														size={16}
 													/>
-												{/if}
-											</Button>
+												</Button>
+											{:else}
+												<Div
+													class={twMerge(
+														$theme.Th.default,
+														'flex w-full justify-start px-6 py-3 whitespace-nowrap'
+													)}
+												>
+													{label}
+												</Div>
+											{/if}
 											{#if isColumnsReorderable}
 												{#if columnIndex > 0}
 													<Button
@@ -876,7 +890,7 @@
 				}
 				class={twMerge(
 					$theme.Input.default,
-					'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
+					'rounded-none bg-transparent text-right shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
@@ -908,7 +922,7 @@
 						setAt(object, key, value);
 					}
 				}
-				class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 				{options}
 			/>
 		</Td>
@@ -936,7 +950,7 @@
 				}
 				class={twMerge(
 					$theme.Input.default,
-					'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
+					'rounded-none bg-transparent text-right shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
@@ -979,7 +993,7 @@
 						}
 					}
 				}
-				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="w-full rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 				options={sanitizedOptions}
 			/>
 		</Td>
@@ -1005,7 +1019,7 @@
 					}
 					class={twMerge(
 						$theme.Input.default,
-						'rounded-none bg-transparent whitespace-nowrap outline-transparent dark:bg-transparent dark:outline-transparent'
+						'rounded-none bg-transparent whitespace-nowrap shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
 					)}
 					contenteditable={true}
 				>
@@ -1035,7 +1049,7 @@
 						setAt(object, key, date);
 					}
 				}
-				class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="w-full rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 				type="datetime-local"
 			/>
 		</Td>

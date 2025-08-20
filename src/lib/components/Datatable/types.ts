@@ -3,6 +3,8 @@ import { type Snippet } from 'svelte';
 export type Column<CompareType = any> =
 	| string
 	| ({ key: string } & Partial<Omit<ColumnSanitized<CompareType>, 'key'>>);
+export type ColumnOverride = Partial<ColumnSanitized>;
+export type ColumnOverrides = Record<string, ColumnOverride>;
 export type ColumnSanitized<CompareType = any> = {
 	class?: string;
 	compareFn: Compare<CompareType>;
@@ -53,6 +55,7 @@ export type PaginationSettings = {
 export type Props<CompareType = any> = {
 	columns: Column<CompareType>[];
 	columnInferredTypes?: string[];
+	columnOverrides?: ColumnOverrides;
 	columnsSanitized?: ColumnSanitized<CompareType>[];
 	create?: Record<string, any>;
 	createModal?: Snippet;

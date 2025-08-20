@@ -3,7 +3,7 @@
 	import { componentData, componentKeys } from './index';
 </script>
 
-<components.Div class="flex flex-col items-start space-y-16 p-4">
+<components.Div class="flex flex-col items-start space-y-16 overflow-auto p-4">
 	{#each componentKeys as componentKey}
 		{@const Component = components[componentKey]}
 		<components.Div class="flex flex-col">

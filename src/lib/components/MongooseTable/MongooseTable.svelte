@@ -318,58 +318,56 @@
 </script>
 
 {#if initialized}
-	<Div class="relative">
-		<Datatable
-			bind:columns
-			bind:columnInferredTypes
-			bind:columnsSanitized
-			bind:create
-			bind:exportOption
-			bind:isExportable
-			bind:isExportModalOpen
-			bind:filterKeyOptions
-			bind:filtersTemp
-			bind:filtersTempSanitized
-			bind:isColumnsReorderable
-			bind:isCreatable
-			bind:isCreateModalOpen
-			bind:isDeletable
-			bind:isDeleteModalOpen
-			bind:isEditable
-			bind:isFilterable
-			bind:isFilterModalOpen
-			bind:isPaginateable
-			bind:isSelectable
-			bind:isSettingsModalOpen
-			bind:isSettingsVisible
-			bind:isSortable
-			bind:isToolbarVisible
-			bind:paginationSettings
-			bind:rows
-			bind:rowsCheckboxValues
-			bind:rowsFiltered
-			bind:rowsPaginated
-			bind:rowsSanitized
-			bind:rowsSelected
-			bind:settings
-			createModal={customCreateModal !== undefined ? customCreateModal : createModal}
-			deleteModal={customDeleteModal !== undefined ? customDeleteModal : deleteModal}
-			filterModal={customFilterModal !== undefined ? customFilterModal : filterModal}
-			pagination={customPagination !== undefined ? customPagination : pagination}
-			tbody={customTbody !== undefined ? customTbody : tbody}
-			th={customTh !== undefined ? customTh : th}
-			{thead}
-			toolbar={customToolbar !== undefined ? customToolbar : toolbar}
-			{totalRows}
-		/>
-		{#if isLoading}
-			<Div
-				class="text-primary-500 absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-xl backdrop-blur-md"
-			>
-				<Spinner class="h-16 w-16" strokeWidth="2" />
-			</Div>
-		{/if}
-	</Div>
+	<Datatable
+		bind:columns
+		bind:columnInferredTypes
+		bind:columnsSanitized
+		bind:create
+		bind:exportOption
+		bind:isExportable
+		bind:isExportModalOpen
+		bind:filterKeyOptions
+		bind:filtersTemp
+		bind:filtersTempSanitized
+		bind:isColumnsReorderable
+		bind:isCreatable
+		bind:isCreateModalOpen
+		bind:isDeletable
+		bind:isDeleteModalOpen
+		bind:isEditable
+		bind:isFilterable
+		bind:isFilterModalOpen
+		bind:isPaginateable
+		bind:isSelectable
+		bind:isSettingsModalOpen
+		bind:isSettingsVisible
+		bind:isSortable
+		bind:isToolbarVisible
+		bind:paginationSettings
+		bind:rows
+		bind:rowsCheckboxValues
+		bind:rowsFiltered
+		bind:rowsPaginated
+		bind:rowsSanitized
+		bind:rowsSelected
+		bind:settings
+		createModal={customCreateModal !== undefined ? customCreateModal : createModal}
+		deleteModal={customDeleteModal !== undefined ? customDeleteModal : deleteModal}
+		filterModal={customFilterModal !== undefined ? customFilterModal : filterModal}
+		pagination={customPagination !== undefined ? customPagination : pagination}
+		tbody={customTbody !== undefined ? customTbody : tbody}
+		th={customTh !== undefined ? customTh : th}
+		{thead}
+		toolbar={customToolbar !== undefined ? customToolbar : toolbar}
+		{totalRows}
+	/>
+	{#if isLoading}
+		<Div
+			class="text-primary-500 absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-xl backdrop-blur-md"
+		>
+			<Spinner class="h-16 w-16" strokeWidth="2" />
+		</Div>
+	{/if}
 {:else}
 	Loading...
 {/if}
