@@ -1,4 +1,4 @@
-import { currency } from '$lib/formats';
+import { currency, excelDate } from '$lib/formats';
 import { getAt } from './';
 import type { ColumnSanitized, RowSanitized } from './types';
 
@@ -27,7 +27,7 @@ export const getExportData = ({
 					return options.find((option) => option.value === value)?.label ?? value ?? '';
 				if (type === 'timestamp') {
 					const date = value instanceof Date ? value : new Date(value);
-					return isNaN(+date) ? '' : date.toISOString();
+					return isNaN(date.getTime()) ? '' : excelDate(date);
 				}
 
 				if (value === null || value === undefined) return '';

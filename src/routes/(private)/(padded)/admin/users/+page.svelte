@@ -26,6 +26,9 @@
 
 	let { data } = $props();
 	let columnOverrides: ColumnOverrides = {
+		_branchIds: { isSortable: false },
+		_roleIds: { isSortable: false },
+		_settingsId: { isSortable: false },
 		passwordHash: {
 			isProtected: true
 		}
@@ -66,7 +69,9 @@
 		isLoading: false,
 		isOpen: false
 	});
-	let virtualColumns = $state([{ key: 'buttons', label: '', snippet: resetPassword }]);
+	let virtualColumns = $state([
+		{ isExportable: false, key: 'buttons', label: '', snippet: resetPassword }
+	]);
 </script>
 
 <MongooseTable

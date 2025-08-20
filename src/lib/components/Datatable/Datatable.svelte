@@ -371,7 +371,9 @@
 					<Div class="flex justify-end space-x-2">
 						<Button
 							onclick={async () => {
-								const headers: string[] = columnsSanitized.map(({ label }) => label);
+								const headers: string[] = columnsSanitized
+									.filter(({ isExportable }) => isExportable)
+									.map(({ label }) => label);
 								const data: any[][] = getExportData({ columnsSanitized, rows: rowsPaginated });
 
 								const exportFunction = exportFunctions.get(exportOption);

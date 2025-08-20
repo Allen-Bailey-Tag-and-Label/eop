@@ -2,7 +2,7 @@ import { twMerge } from 'tailwind-merge';
 import { type Theme } from '../types';
 
 const InputDefault =
-	'appearance-none bg-gray-50 dark:bg-gray-800 transiton duration-200 outline-1 focus:outline-2 outline-gray-200 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg dark:outline-gray-700';
+	'shadow-gray-950/5 dark:shadow-gray-950/30 shadow-xl bg-white dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 appearance-none transiton duration-200 focus:outline-2 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg';
 
 export const defaultTheme: Theme = {
 	A: {
@@ -25,10 +25,11 @@ export const defaultTheme: Theme = {
 	},
 	Card: {
 		default:
-			'shadow-gray-950/5 dark:shadow-gray-950/30 flex flex-col rounded-xl bg-white p-6 backdrop-blur-md transition duration-200 shadow-xl dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700'
+			'shadow-gray-950/5 dark:shadow-gray-950/30 shadow-xl bg-white dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 flex flex-col rounded-xl p-6 backdrop-blur-md transition duration-200'
 	},
 	Checkbox: {
-		default: ''
+		default:
+			'peer-checked:bg-primary-500 peer-checked:outline-primary-500 peer-focus:outline-primary-500 hover:outline-primary-500 flex h-6 w-6 items-center justify-center rounded bg-white px-0 py-0 shadow-xl outline outline-gray-200 transition duration-200 peer-focus:outline-2 dark:bg-gray-900 dark:outline-gray-700'
 	},
 	Datatable: { default: '' },
 	Dialog: {
@@ -64,7 +65,7 @@ export const defaultTheme: Theme = {
 	},
 	RangeInput: {
 		default:
-			'[&::-webkit-slider-thumb]:bg-primary-500 h-2 w-full appearance-none rounded-full bg-gray-200 p-0 outline-none dark:bg-gray-700 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
+			'ring ring-gray-200 dark:ring-gray-700 shadow-2xl shadow-gray-950 [&::-webkit-slider-thumb]:bg-primary-500 hover:ring-primary-500 focus:ring-2 focus:ring-primary-500 h-2 w-full appearance-none rounded-full bg-white p-0 outline-none dark:bg-gray-900 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
 	},
 	Select: { default: twMerge(InputDefault, 'appearance-none') },
 	Slider: { default: 'relative flex flex-col space-y-6 items-center' },

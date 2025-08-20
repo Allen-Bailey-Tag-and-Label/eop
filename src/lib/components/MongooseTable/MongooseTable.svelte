@@ -206,6 +206,7 @@
 				isCreatable: false,
 				isEditable: false,
 				isFilterable: true,
+				isSortable: false,
 				key: '_createdById',
 				label: 'Created By',
 				type: 'ref'
@@ -796,7 +797,9 @@
 					<Div class="flex justify-end space-x-2">
 						<Button
 							onclick={async () => {
-								const headers: string[] = columnsSanitized.map(({ label }) => label);
+								const headers: string[] = columnsSanitized
+									.filter(({ isExportable }) => isExportable)
+									.map(({ label }) => label);
 								const data: any[][] = getExportData({ columnsSanitized, rows: rowsSanitized });
 
 								const exportFunction = exportFunctions.get(exportOption);
