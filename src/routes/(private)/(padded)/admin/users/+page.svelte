@@ -387,7 +387,7 @@
 				type="hidden"
 				value={object?.username}
 			/>
-			<Button variants={['small']}>Reset Password</Button>
+			<Button type="submit" variants={['small']}>Reset Password</Button>
 		</Form>
 	</Td>
 {/snippet}
