@@ -7,6 +7,7 @@
 	import { attachmentFactory } from '$lib/attachments';
 	import { theme } from '$lib/theme';
 	import { Div, Label, Input } from '../';
+	import { scale } from 'svelte/transition';
 
 	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'checked' | 'class' | 'style'> & {
 		attachments?: Attachment[];
@@ -64,10 +65,12 @@
 					...variants.map((variant: string) => $theme.Checkbox[variant])
 				)}
 			>
-				<Div
-					class={twMerge('text-white transition duration-200', checked ? 'scale-100' : 'scale-0')}
-				>
-					<Check size={16} />
+				<Div class={twMerge('text-white transition duration-200')}>
+					{#if checked}
+						<div transition:scale={{ duration: 200 }}>
+							<Check size={16} />
+						</div>
+					{/if}
 				</Div>
 			</Div>
 		{/if}
