@@ -83,6 +83,6 @@ export const defaultTheme: Theme = {
 		default: 'dark:bg-gray-800 bg-gray-200'
 	},
 	Tr: {
-		default: 'even:bg-gray-50 dark:even:bg-gray-800'
+		default: 'even:bg-gray-100 dark:even:bg-gray-800'
 	}
 };

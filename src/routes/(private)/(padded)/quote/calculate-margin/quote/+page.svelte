@@ -118,7 +118,7 @@
 				</Tr>
 				<Tr label="Labor">
 					<Input
-						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="previous.labor"
 						readonly={true}
 						step={0.01}
@@ -142,7 +142,7 @@
 					percent={(Number(previous.sell) - Number(previous.totalCost)) / Number(previous.sell)}
 				>
 					<Input
-						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="previous.margin"
 						readonly={true}
 						step={0.01}
@@ -169,7 +169,7 @@
 						class={twMerge(
 							'w-full text-right',
 							isNumberAlreadySet
-								? 'bg-transparent outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent'
+								? 'bg-transparent shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent'
 								: undefined
 						)}
 						name="current.number"
@@ -200,7 +200,7 @@
 				</Tr>
 				<Tr label="Labor">
 					<Input
-						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.labor"
 						readonly={true}
 						step={0.01}
@@ -224,7 +224,7 @@
 					percent={(Number(current.sell) - Number(current.totalCost)) / Number(current.sell)}
 				>
 					<Input
-						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.margin"
 						readonly={true}
 						step={0.01}
@@ -235,7 +235,7 @@
 				</Tr>
 				<Tr label="Total Sell">
 					<Input
-						class="w-full bg-transparent text-right outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
 						name="current.sell"
 						readonly={true}
 						step={0.01}

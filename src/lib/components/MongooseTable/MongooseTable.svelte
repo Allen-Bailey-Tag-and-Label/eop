@@ -1121,14 +1121,14 @@
 								<Td class="p-0">
 									<Select
 										bind:value={filtersTemp[filterTempIndex].key}
-										class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+										class="rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 										options={filterKeyOptions}
 									/>
 								</Td>
 								<Td class="p-0">
 									<Select
 										bind:value={filtersTemp[filterTempIndex].operator}
-										class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+										class="w-full rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 										options={operatorOptions}
 									/>
 								</Td>
