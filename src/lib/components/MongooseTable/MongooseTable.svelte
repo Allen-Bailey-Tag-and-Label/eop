@@ -527,7 +527,11 @@
 	<Tbody>
 		{#each rowsSanitized as row, rowSanitizedIndex (`${settings.currentPage}:${row._key}`)}
 			{#if rowSanitizedIndex < settings.rowsPerPage}
-				<Tr>
+				<Tr
+					class={isSelectable && rowsCheckboxValues[row.index]
+						? 'bg-primary-500/10 even:bg-primary-600/10 dark:even:bg-primary-400/10 hover:bg-primary-500/20 even:hover:bg-primary-600/20 dark:even:hover:bg-primary-400/20'
+						: undefined}
+				>
 					{#if isSelectable}
 						<Td>
 							{#if rowsCheckboxValues[row.index] !== undefined}

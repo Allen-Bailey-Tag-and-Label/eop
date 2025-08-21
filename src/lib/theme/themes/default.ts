@@ -83,6 +83,7 @@ export const defaultTheme: Theme = {
 		default: 'dark:bg-gray-800 bg-gray-200'
 	},
 	Tr: {
-		default: 'even:bg-gray-100 dark:even:bg-gray-800'
+		default:
+			'even:bg-gray-100 dark:even:bg-gray-800 hover:bg-primary-500/10 transition duration-200 bg-primary-500/0 even:hover:bg-primary-500/10 dark:even:hover:bg-primary-500/10'
 	}
 };
