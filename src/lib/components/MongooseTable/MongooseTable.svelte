@@ -39,7 +39,8 @@
 		Th,
 		Tr,
 		Label,
-		Radio
+		Radio,
+		Card
 	} from '../';
 
 	import type {
@@ -318,7 +319,7 @@
 </script>
 
 {#if initialized}
-	<Div class="relative flex max-h-full max-w-full flex-col overflow-auto">
+	<Card class="relative flex max-h-full max-w-full flex-col overflow-auto p-0">
 		<Datatable
 			bind:columns
 			bind:columnInferredTypes
@@ -369,7 +370,7 @@
 				<Spinner class="h-16 w-16" strokeWidth="2" />
 			</Div>
 		{/if}
-	</Div>
+	</Card>
 {:else}
 	Loading...
 {/if}
