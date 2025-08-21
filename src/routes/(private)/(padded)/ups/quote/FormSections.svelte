@@ -57,7 +57,7 @@
 		min={1}
 		name="{key}ZIP"
 		onchange={() => {
-			const result = zipcodes.lookup(formData[key].zip);
+			const result = zipcodes.lookup(formData[key].zip.toString().padStart(5, '0'));
 			if (result === undefined) return;
 			formData[key].city = result.city;
 			formData[key].state = result.state;
