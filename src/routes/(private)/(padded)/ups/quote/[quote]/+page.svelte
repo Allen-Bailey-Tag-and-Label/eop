@@ -61,7 +61,9 @@
 				<A
 					class={twMerge($theme.Button.default)}
 					href="/ups/quote?{new URLSearchParams({
+						_branchId: quote?._branchId,
 						address: quote?.shipTo?.AddressLine,
+						isValidated: quote?.isValidated,
 						zip: quote?.shipTo?.PostalCode,
 						city: quote?.shipTo?.City,
 						state: quote?.shipTo?.StateProvinceCode,

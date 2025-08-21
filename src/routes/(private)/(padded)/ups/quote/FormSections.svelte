@@ -2,9 +2,11 @@
 	import { states } from 'states-us';
 	import type { Snippet } from 'svelte';
 	import zipcodes from 'zipcodes';
-	import { Checkbox, Div, H2, Input, Select } from '$lib/components';
+	import { Div, H2, Input, Label, Radio, Select } from '$lib/components';
 
 	let {
+		_branchId = $bindable(''),
+		_branchIdOptions = $bindable([]),
 		formData = $bindable({
 			shipFrom: {
 				address: '3177 Lehigh Street',
@@ -37,6 +39,7 @@
 	{@render section({ key: 'shipFrom', snippet: address, title: 'Ship From' })}
 	{@render section({ key: 'shipTo', snippet: address, title: 'Ship To' })}
 	{@render section({ snippet: packageInfo, title: 'Package Info' })}
+	{@render section({ snippet: extraInfo, title: 'Extras' })}
 </Div>
 
 {#snippet address({ key }: { key: 'shipFrom' | 'shipTo' })}
@@ -71,6 +74,31 @@
 		required={true}
 	/>
 {/snippet}
+{#snippet extraInfo()}
+	{#if isValidationCheckboxRequired}
+		<Div class="flex flex-col">
+			<Label>Validation</Label>
+			<Div class="flex space-x-2">
+				{#each [{ label: 'No', value: false }, { label: 'Yes', value: true }] as { label, value }}
+					<Radio bind:group={isValidationRequired} name="isValidated" {value} variants={['box']}>
+						{label}
+					</Radio>
+				{/each}
+			</Div>
+		</Div>
+		{#if _branchIdOptions.length > 2}
+			<Div class="flex flex-col">
+				<Label>Branch</Label>
+				<Select
+					bind:value={_branchId}
+					name="_branchId"
+					options={_branchIdOptions}
+					required={true}
+				/>
+			</Div>
+		{/if}
+	{/if}
+{/snippet}
 {#snippet packageInfo()}
 	<Input
 		bind:value={formData.packageInfo.totalPackages}
@@ -88,9 +116,6 @@
 		required={true}
 		type="number"
 	/>
-	{#if isValidationCheckboxRequired}
-		<Checkbox bind:checked={isValidationRequired} label="Validate?" />
-	{/if}
 {/snippet}
 
 {#snippet section({ snippet, title, ...restProps }: { snippet: Snippet; title: string } & any)}

@@ -15,6 +15,7 @@
 		handle?: Snippet;
 		group?: any;
 		label?: string;
+		name?: string;
 		style?: string;
 		value?: any;
 		variants?: string[];
@@ -27,6 +28,7 @@
 		handle,
 		group = $bindable(''),
 		label,
+		name,
 		style,
 		value,
 		variants = [],
@@ -57,6 +59,7 @@
 			bind:element
 			bind:group
 			class="peer sr-only absolute h-0 w-0"
+			{name}
 			{value}
 			type="radio"
 		/>

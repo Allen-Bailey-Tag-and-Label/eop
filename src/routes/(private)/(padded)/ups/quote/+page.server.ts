@@ -1,14 +1,15 @@
 import { redirect, type Actions } from '@sveltejs/kit';
 import { deserialize } from '$app/forms';
-import { UpsQuote } from '$lib/server/mongoose/models';
+import { Branch, UpsQuote } from '$lib/server/mongoose/models';
 import { connect } from '$lib/server/mongoose';
 
 export const actions: Actions = {
-	nonValidated: async ({ fetch, locals, request }) => {
+	default: async ({ fetch, locals, request }) => {
 		await connect();
 
 		let {
-			branch,
+			_branchId,
+			isValidated,
 			shipFromAddress,
 			shipFromZIP,
 			shipFromCity,
@@ -21,10 +22,26 @@ export const actions: Actions = {
 			packageInfoTotalWeight
 		} = <Record<string, string>>Object.fromEntries(await request.formData());
 
+		let AddressClassification = { Description: 'Unknown' };
+		if (isValidated === 'true') {
+			const validatedAddress = await validateAddress(
+				fetch,
+				shipToAddress,
+				shipToCity,
+				shipToState,
+				shipToZIP
+			);
+			AddressClassification = validatedAddress?.AddressClassification;
+			shipToAddress = validatedAddress?.shipToAddress || shipToAddress;
+			shipToCity = validatedAddress?.shipToCity || shipToCity;
+			shipToState = validatedAddress?.shipToState || shipToState;
+			shipToZIP = validatedAddress?.shipToZIP || shipToZIP;
+		}
+
 		const packageWeight = Math.ceil(+packageInfoTotalWeight / +packageInfoTotalPackages).toString();
 
 		const rates = await getRates(
-			branch,
+			_branchId,
 			fetch,
 			shipFromAddress,
 			shipFromCity,
@@ -38,116 +55,47 @@ export const actions: Actions = {
 			packageInfoTotalPackages
 		);
 
-		const quote = await createQuote(
-			locals.user._id,
-			{ Description: 'Unknown' },
-			packageInfoTotalPackages,
-			packageInfoTotalWeight,
-			packageWeight,
-			rates,
-			{
-				AddressLine: shipFromAddress,
-				City: shipFromCity,
-				StateProvinceCode: shipFromState,
-				PostalCode: shipFromZIP,
-				CountryCode: 'US'
-			},
-			{
-				AddressLine: shipToAddress,
-				City: shipToCity,
-				StateProvinceCode: shipToState,
-				PostalCode: shipToZIP,
-				CountryCode: 'US'
-			}
-		);
-
-		throw redirect(303, `/ups/quote/${quote}`);
-	},
-	validated: async ({ fetch, locals, request }) => {
-		await connect();
-
-		let {
-			branch,
-			shipFromAddress,
-			shipFromZIP,
-			shipFromCity,
-			shipFromState,
-			shipToAddress,
-			shipToZIP,
-			shipToCity,
-			shipToState,
-			packageInfoTotalPackages,
-			packageInfoTotalWeight
-		} = <Record<string, string>>Object.fromEntries(await request.formData());
-
-		const validatedAddress = await validateAddress(
-			fetch,
-			shipToAddress,
-			shipToCity,
-			shipToState,
-			shipToZIP
-		);
-		const AddressClassification = validatedAddress?.AddressClassification;
-		shipToAddress = validatedAddress?.shipToAddress || shipToAddress;
-		shipToCity = validatedAddress?.shipToCity || shipToCity;
-		shipToState = validatedAddress?.shipToState || shipToState;
-		shipToZIP = validatedAddress?.shipToZIP || shipToZIP;
-
-		const packageWeight = Math.ceil(+packageInfoTotalWeight / +packageInfoTotalPackages).toString();
-
-		const rates = await getRates(
-			branch,
-			fetch,
-			shipFromAddress,
-			shipFromCity,
-			shipFromState,
-			shipFromZIP,
-			shipToAddress,
-			shipToCity,
-			shipToState,
-			shipToZIP,
-			packageWeight,
-			packageInfoTotalPackages
-		);
-
-		const quote = await createQuote(
-			locals.user._id,
+		const quote = await createQuote({
+			_branchId,
+			_createdById: locals.user._id,
 			AddressClassification,
+			isValidated: isValidated === 'true',
 			packageInfoTotalPackages,
 			packageInfoTotalWeight,
 			packageWeight,
 			rates,
-			{
+			shipper: {
 				AddressLine: shipFromAddress,
 				City: shipFromCity,
 				StateProvinceCode: shipFromState,
 				PostalCode: shipFromZIP,
 				CountryCode: 'US'
 			},
-			{
+			shipTo: {
 				AddressLine: shipToAddress,
 				City: shipToCity,
 				StateProvinceCode: shipToState,
 				PostalCode: shipToZIP,
 				CountryCode: 'US'
 			}
-		);
+		});
 
 		throw redirect(303, `/ups/quote/${quote}`);
 	}
 };
 
-const calculateRate = ({
-	branch,
+const calculateRate = async ({
+	_branchId,
 	MonetaryValue,
 	packageInfoTotalPackages
 }: {
-	branch: string;
+	_branchId: string;
 	MonetaryValue: string;
 	packageInfoTotalPackages: string;
 }) => {
+	const branch = (await Branch.find({ _id: _branchId })) ?? { number: 2046 };
 	let discountPercent = 0;
-	if (branch === '2060') {
+	if (branch.number === 2060) {
 		const phases = [
 			{ discountPercent: 0.25, from: Date.parse('06/01/2025'), to: Date.parse('11/30/2025') },
 			{ discountPercent: 0.125, from: Date.parse('12/01/2025'), to: Date.parse('05/31/2026') }
@@ -160,36 +108,51 @@ const calculateRate = ({
 	return +MonetaryValue * +packageInfoTotalPackages * (1 - discountPercent);
 };
 
-const createQuote = async (
-	_createdById: string,
-	AddressClassification: any,
-	packageInfoTotalPackages: string,
-	packageInfoTotalWeight: string,
-	packageWeight: string,
-	rates: { description: string; rate: number }[],
+const createQuote = async ({
+	_branchId,
+	_createdById,
+	AddressClassification,
+	isValidated,
+	packageInfoTotalPackages,
+	packageInfoTotalWeight,
+	packageWeight,
+	rates,
+	shipper,
+	shipTo
+}: {
+	_branchId: string;
+	_createdById: string;
+	AddressClassification: any;
+	isValidated: boolean;
+	packageInfoTotalPackages: string;
+	packageInfoTotalWeight: string;
+	packageWeight: string;
+	rates: { description: string; rate: number }[];
 	shipper: {
 		AddressLine: string;
 		City: string;
 		StateProvinceCode: string;
 		PostalCode: string;
 		CountryCode: string;
-	},
+	};
 	shipTo: {
 		AddressLine: string;
 		City: string;
 		StateProvinceCode: string;
 		PostalCode: string;
 		CountryCode: string;
-	}
-) => {
+	};
+}) => {
 	const lastQuote = await UpsQuote.findOne().sort({ quote: -1 });
 	if (!lastQuote) return {};
 	const quote = lastQuote.quote + 1;
 
 	const quoteData = {
+		_branchId,
 		_createdById,
 		classification: AddressClassification.Description,
 		date: new Date(),
+		isValidated,
 		packageTotalCount: +packageInfoTotalPackages,
 		packageTotalWeight: +packageInfoTotalWeight,
 		packageWeight: +packageWeight,
@@ -205,7 +168,7 @@ const createQuote = async (
 };
 
 const getRates = async (
-	branch: string,
+	_branchId: string,
 	fetch: any,
 	shipFromAddress: string,
 	shipFromCity: string,
@@ -239,27 +202,29 @@ const getRates = async (
 	const { data: RatedShipment } = result;
 	if (!RatedShipment) throw 'Could not get rate';
 
-	const rates = [
-		['03', 'Ground'],
-		['12', '3 Day Select'],
-		['02', '2nd Day Air'],
-		['59', '2nd Day Air A.M.'],
-		['13', 'Next Day Air Saver'],
-		['01', 'Next Day Air'],
-		['14', 'Next Day Air Early'],
-		['75', 'Heavy Goods']
-	].map(([code, description]) => {
-		const shipment = RatedShipment.find((obj: any) => obj.Service.Code === code);
-		if (!shipment) return;
-		const {
-			TotalCharges: { MonetaryValue }
-		} = shipment;
-		const rate = calculateRate({ branch, MonetaryValue, packageInfoTotalPackages });
-		return {
-			description,
-			rate
-		};
-	});
+	const rates = await Promise.all(
+		[
+			['03', 'Ground'],
+			['12', '3 Day Select'],
+			['02', '2nd Day Air'],
+			['59', '2nd Day Air A.M.'],
+			['13', 'Next Day Air Saver'],
+			['01', 'Next Day Air'],
+			['14', 'Next Day Air Early'],
+			['75', 'Heavy Goods']
+		].map(async ([code, description]) => {
+			const shipment = RatedShipment.find((obj: any) => obj.Service.Code === code);
+			if (!shipment) return;
+			const {
+				TotalCharges: { MonetaryValue }
+			} = shipment;
+			const rate = await calculateRate({ _branchId, MonetaryValue, packageInfoTotalPackages });
+			return {
+				description,
+				rate
+			};
+		})
+	);
 
 	return rates;
 };
@@ -267,6 +232,8 @@ const getRates = async (
 export const load = async ({ url }) => {
 	const searchParams = Object.fromEntries(url.searchParams);
 	return {
+		_branchId: searchParams._branchId ?? '',
+		isValidated: searchParams.isValidated ?? 'true',
 		formData: {
 			shipFrom: {
 				address: '3177 Lehigh Street',
