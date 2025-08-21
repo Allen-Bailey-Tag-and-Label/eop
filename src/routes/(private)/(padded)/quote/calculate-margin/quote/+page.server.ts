@@ -54,43 +54,27 @@ export const _default: Action = async ({ locals, request }) => {
 	monthDifference -= update.previous.date.getMonth();
 	monthDifference += update.current.date.getMonth();
 
-	const increasePercentBasedOnDates = Math.pow(1 + 0.05 / 12, monthDifference);
+	const previousMarginPercent =
+		(update.previous.sell - update.previous.totalCost) / update.previous.sell;
+	const defaultCustomerTypeMarginPercent = update.customerType === 'direct' ? 0.45 : 0.35;
+	const idealNewMarginPercent =
+		previousMarginPercent > defaultCustomerTypeMarginPercent
+			? previousMarginPercent
+			: Math.min(
+					defaultCustomerTypeMarginPercent,
+					(previousMarginPercent + defaultCustomerTypeMarginPercent + 0.1) / 2
+				);
+	const idealNewSell = update.current.totalCost / (1 - idealNewMarginPercent);
 
-	update.current.sell = update.previous.sell * increasePercentBasedOnDates;
+	const maxSells = [
+		update.previous.sell *
+			Math.pow(1 + (update.productType === 'TGM' ? 0.25 : 0.12) / 12, monthDifference),
+		idealNewSell
+	];
+	const minSells = [update.previous.sell];
+
+	update.current.sell = Math.max(Math.min(...maxSells), ...minSells);
 	update.current.margin = update.current.sell - update.current.totalCost;
-
-	let currentMarginPercent = update.current.margin / update.current.sell;
-	let previousMarginPercent = update.previous.margin / update.previous.sell;
-
-	// Make margin at least the previous margin
-	if (currentMarginPercent < previousMarginPercent) {
-		currentMarginPercent = previousMarginPercent;
-		update.current.sell = update.current.totalCost / (1 - currentMarginPercent);
-		update.current.margin = update.current.sell - update.current.totalCost;
-	}
-
-	const increasePercent = update.current.sell / update.previous.sell - 1;
-
-	// Cap increase percent to 12% / year
-	if (increasePercent > Math.pow(1 + 0.12 / 12, monthDifference)) {
-		update.current.sell = update.previous.sell * Math.pow(1 + 0.12 / 12, monthDifference);
-		update.current.margin = update.current.sell - update.current.totalCost;
-	}
-
-	// currentMarginPercent = update.current.margin / update.current.sell;
-
-	// if (currentMarginPercent < 0.1) {
-	// 	update.current.sell = update.current.totalCost / (1 - 0.1);
-	// 	update.current.margin = update.current.sell - update.current.totalCost;
-	// }
-
-	currentMarginPercent = update.current.margin / update.current.sell;
-
-	// Set minimum margin to 35% for TGM product types
-	if (update.productType === 'TGM' && currentMarginPercent < 0.35) {
-		update.current.sell = update.current.totalCost / (1 - 0.35);
-		update.current.margin = update.current.sell - update.current.totalCost;
-	}
 
 	for (const groupKey of ['current', 'previous'] as const) {
 		for (const key of ['labor', 'margin', 'material', 'sell', 'totalCost'] as const) {
