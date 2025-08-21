@@ -54,7 +54,7 @@
 		class="text-right"
 		label="ZIP"
 		max={99999}
-		min={10000}
+		min={1}
 		name="{key}ZIP"
 		onchange={() => {
 			const result = zipcodes.lookup(formData[key].zip);
