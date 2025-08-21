@@ -6,6 +6,7 @@
 
 	let { data } = $props();
 	let _branchId = $state('');
+	let error = $state('');
 	let formData = $state({
 		shipFrom: {
 			address: '',
@@ -47,9 +48,16 @@
 		};
 	};
 	const submitFunction: SubmitFunction = () => {
+		error = '';
 		isLoading = true;
-		return async ({ update }) => {
-			await update();
+		return async ({ result, update }) => {
+			isLoading = false;
+			if (result.type === 'failure') {
+				error = result?.data?.error ?? '';
+			}
+			if (result.type === 'redirect') {
+				await update();
+			}
 		};
 	};
 
@@ -84,6 +92,9 @@
 				value={_branchId}
 			/>
 			<FormSections {_branchIdOptions} bind:_branchId bind:formData bind:isValidationRequired />
+			<Div class="min-h-6 w-full text-red-500">
+				{error}
+			</Div>
 			<Div class="flex justify-end space-x-2">
 				{#if !isLoading}
 					<div transition:slide={{ axis: 'y' }}>

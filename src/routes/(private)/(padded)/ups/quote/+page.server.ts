@@ -1,4 +1,4 @@
-import { redirect, type Actions } from '@sveltejs/kit';
+import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { deserialize } from '$app/forms';
 import { Branch, UpsQuote } from '$lib/server/mongoose/models';
 import { connect } from '$lib/server/mongoose';
@@ -23,6 +23,7 @@ export const actions: Actions = {
 		} = <Record<string, string>>Object.fromEntries(await request.formData());
 
 		let AddressClassification = { Description: 'Unknown' };
+
 		if (isValidated === 'true') {
 			const validatedAddress = await validateAddress(
 				fetch,
@@ -31,6 +32,10 @@ export const actions: Actions = {
 				shipToState,
 				shipToZIP
 			);
+			if (!validatedAddress) {
+				return fail(400, { error: 'Could not validate address' });
+			}
+
 			AddressClassification = validatedAddress?.AddressClassification;
 			shipToAddress = validatedAddress?.shipToAddress || shipToAddress;
 			shipToCity = validatedAddress?.shipToCity || shipToCity;
@@ -275,10 +280,10 @@ const validateAddress = async (
 
 	const result = deserialize(await response.text()) || { data: {} };
 
-	if (result.type !== 'success') return {};
+	if (result.type !== 'success') return;
 	const { data: candidates } = result;
 
-	if (candidates === undefined || candidates.length !== 1) return {};
+	if (candidates === undefined || candidates.length !== 1) return;
 
 	const [candidate] = candidates;
 	const {
