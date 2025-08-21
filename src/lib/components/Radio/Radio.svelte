@@ -13,10 +13,10 @@
 		class?: string;
 		element?: HTMLInputElement | null;
 		handle?: Snippet;
-		group?: string;
+		group?: any;
 		label?: string;
 		style?: string;
-		value?: string;
+		value?: any;
 		variants?: string[];
 	};
 	let {
@@ -69,7 +69,7 @@
 			{/if}
 		{:else}
 			<Div
-				class="bg-primary-500/0 peer-checked:bg-primary-500 peer-checked:outline-primary-500 relative flex h-6 w-6 items-center justify-center rounded-full outline outline-slate-200 transition duration-200 dark:outline-slate-700"
+				class="bg-primary-500/0 peer-checked:bg-primary-500 peer-checked:outline-primary-500 relative flex h-6 w-6 items-center justify-center rounded-full outline outline-gray-200 transition duration-200 dark:outline-gray-700"
 			>
 				<Div
 					class={twMerge(

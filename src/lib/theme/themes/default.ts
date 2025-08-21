@@ -60,8 +60,12 @@ export const defaultTheme: Theme = {
 	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },
 	P: { default: '' },
 	Radio: {
-		box: 'flex w-full items-center justify-start space-x-2 rounded-lg p-3 has-checked:bg-primary-500/10 outline outline-gray-200 dark:outline-gray-700 has-checked:outline-primary-500',
-		default: 'flex w-full items-center space-x-2'
+		box: twMerge(
+			InputDefault,
+			'has-checked:bg-primary-500/10 has-checked:outline-primary-500'
+			// 'flex w-full items-center justify-start space-x-2 rounded-lg p-3 has-checked:bg-primary-500/10 outline outline-gray-200 dark:outline-gray-700 has-checked:outline-primary-500'
+		),
+		default: twMerge('flex w-full items-center space-x-2')
 	},
 	RangeInput: {
 		default:
