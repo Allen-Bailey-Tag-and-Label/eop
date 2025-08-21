@@ -74,7 +74,7 @@
 	<Div class="flex flex-col space-y-6">
 		<Div class="flex items-center justify-between space-x-2">
 			<H1 class="whitespace-nowrap">UPS Freight Estimator</H1>
-			{#if branchOptions.length > 1}
+			{#if branchOptions.length > 2}
 				<Div class="flex flex-col">
 					<Label>Branch</Label>
 					<Select bind:value={branch} name="branch" options={branchOptions} required={true} />
