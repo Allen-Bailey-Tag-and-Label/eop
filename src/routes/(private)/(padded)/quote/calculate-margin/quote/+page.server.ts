@@ -62,7 +62,7 @@ export const _default: Action = async ({ locals, request }) => {
 			? previousMarginPercent
 			: Math.min(
 					defaultCustomerTypeMarginPercent,
-					(previousMarginPercent + defaultCustomerTypeMarginPercent + 0.1) / 2
+					previousMarginPercent * 0.5 + defaultCustomerTypeMarginPercent * 0.5
 				);
 	const idealNewSell = update.current.totalCost / (1 - idealNewMarginPercent);
 
