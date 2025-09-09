@@ -271,7 +271,7 @@ const validateAddress = async (
 	formData.append('address', shipToAddress);
 	formData.append('city', shipToCity);
 	formData.append('state', shipToState);
-	formData.append('zip', shipToZIP);
+	formData.append('zip', shipToZIP.padStart(5, '0'));
 
 	const response = await fetch('/ups/address-validation', {
 		method: 'POST',

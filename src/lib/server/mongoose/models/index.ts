@@ -1,6 +1,11 @@
 export { Branch } from './Branch';
 export { Log } from './Log';
+export { QuoteFeature } from './QuoteFeature';
 export { QuoteMarginCalculation } from './QuoteMarginCalculation';
+export { QuoteOperation } from './QuoteOperation';
+export { QuoteProductType } from './QuoteProductType';
+export { QuoteSetupLabor } from './QuoteSetupLabor';
+export { QuoteWorkCenter } from './QuoteWorkCenter';
 export { Role } from './Role';
 export { Route } from './Route';
 export { RouteSettings } from './RouteSettings';

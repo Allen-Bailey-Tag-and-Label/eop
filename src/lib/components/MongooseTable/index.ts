@@ -5,6 +5,7 @@ export { columnToObject } from './columnToObject';
 export {
 	compareFn,
 	filterOperatorOptions,
+	deleteAt,
 	exportFunctions,
 	exportOptions,
 	getAt,

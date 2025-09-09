@@ -60,14 +60,15 @@
 		columnKey,
 		columnToObject,
 		compareFn,
+		deleteAt,
 		exportFunctions,
 		exportOptions,
 		getExportData,
 		getFilterOptions,
 		getAt,
-		isSame
+		isSame,
+		setAt
 	} from './';
-	import {} from '../Datatable';
 
 	let {
 		columns = $bindable([]),
@@ -1164,7 +1165,24 @@
 {/snippet}
 {#snippet booleanCreate({ key, object }: TdSnippet)}
 	<Td>
-		<Checkbox bind:checked={object[key]} name={key} />
+		<Checkbox
+			bind:checked={
+				() => {
+					const value = getAt(object, key);
+					if (value == undefined) return false;
+					return value;
+				},
+				(value) => {
+					setAt(object, key, value);
+				}
+			}
+		/>
+		<Input
+			class="sr-only absolute h-0 w-0 opacity-0"
+			name={key}
+			type="hidden"
+			value={getAt(object, key) ?? false}
+		/>
 	</Td>
 {/snippet}
 {#snippet currencyCreate({ key, object }: TdSnippet)}
@@ -1172,17 +1190,21 @@
 		<Input
 			bind:value={
 				() => {
-					return currency(object[key]);
+					return currency(getAt(object, key) ?? 0);
 				},
 				(string) => {
-					const value = parseFloat(string.replace(/[^0-9.-]+/g, ''));
-					object[key] = value;
+					setAt(object, key, parseFloat(string.replace(/[^0-9.-]+/g, '')));
 				}
 			}
 			class={twMerge(
-				'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
+				'rounded-none bg-transparent text-right shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
 			)}
+		/>
+		<Input
+			class="sr-only absolute h-0 w-0 opacity-0"
 			name={key}
+			type="hidden"
+			value={getAt(object, key) ?? 0}
 		/>
 	</Td>
 {/snippet}
@@ -1192,8 +1214,15 @@
 {#snippet multiSelectCreate({ key, object, options }: TdSnippet)}
 	<Td class="hover:outline-primary-500/0 p-0">
 		<MultiSelect
-			bind:value={object[key]}
-			class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+			bind:value={
+				() => {
+					return getAt(object, key) ?? [];
+				},
+				(value) => {
+					setAt(object, key, value);
+				}
+			}
+			class="rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 			name={key}
 			{options}
 		/>
@@ -1204,18 +1233,26 @@
 		<Input
 			bind:value={
 				() => {
-					return typeof object[key] === 'number' ? object[key].toString() : object[key];
+					const value = getAt(object, key);
+					if (typeof value === 'number') return value.toString();
+					return value ?? '0';
 				},
 				(value) => {
-					value = typeof value === 'number' ? value : parseFloat(value.replace(/[^0-9.-]+/g, ''));
-					object[key] = value;
+					if (typeof value === 'number') setAt(object, key, value);
+					if (typeof value === 'string')
+						setAt(object, key, parseFloat(value.replace(/[^0-9.-]+/g, '')));
 				}
 			}
 			class={twMerge(
-				'rounded-none bg-transparent text-right outline-transparent dark:bg-transparent dark:outline-transparent'
+				'rounded-none bg-transparent text-right shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
 			)}
-			name={key}
 			type="number"
+		/>
+		<Input
+			class="sr-only absolute h-0 w-0 opacity-0"
+			name={key}
+			type="hidden"
+			value={getAt(object, key) ?? 0}
 		/>
 	</Td>
 {/snippet}
@@ -1224,22 +1261,54 @@
 {/snippet}
 {#snippet selectCreate({ key, object, options }: TdSnippet)}
 	<Td class="hover:outline-primary-500/0 p-0">
+		{@const rawOptions = options ?? []}
+		{@const hasBlank = rawOptions.some((o: any) => o?.value === '')}
+		{@const dedupedOptions = Array.from(
+			// Map by value to remove duplicates; keeps first occurrence
+			new Map(rawOptions.map((o: any) => [o?.value, o])).values()
+		)}
+		{@const sanitizedOptions = [...(hasBlank ? [] : [{ label: '', value: '' }]), ...dedupedOptions]}
 		<Select
-			bind:value={object[key]}
-			class="rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
+			bind:value={
+				() => {
+					const v = getAt(object, key);
+					return options?.some((o: any) => o?.value === v) ? v : '';
+				},
+				(value) => {
+					if (value === '' || value === undefined) {
+						deleteAt(object, key);
+					} else {
+						setAt(object, key, value);
+					}
+				}
+			}
+			class="rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 			name={key}
-			{options}
+			options={sanitizedOptions}
 		/>
 	</Td>
 {/snippet}
 {#snippet stringCreate({ key, object }: TdSnippet)}
 	<Td class="hover:outline-primary-500/0 p-0">
 		<Input
-			bind:value={object[key]}
+			bind:value={
+				() => {
+					const value = getAt(object, key);
+					return value ?? '';
+				},
+				(value) => {
+					setAt(object, key, value);
+				}
+			}
 			class={twMerge(
-				'rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent'
+				'rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
 			)}
+		/>
+		<Input
+			class="sr-only absolute h-0 w-0 opacity-0"
 			name={key}
+			type="hidden"
+			value={getAt(object, key) ?? ''}
 		/>
 	</Td>
 {/snippet}
@@ -1251,15 +1320,23 @@
 		<Input
 			bind:value={
 				() => {
-					return inputDateTimeLocal(object[key]);
+					const value = getAt(object, key);
+					const formattedValue = inputDateTimeLocal(value);
+					return formattedValue;
 				},
 				(value: string) => {
-					object[key] = new Date(value);
+					const date = new Date(value);
+					setAt(object, key, date);
 				}
 			}
 			class="w-full rounded-none bg-transparent outline-transparent dark:bg-transparent dark:outline-transparent"
-			name={key}
 			type="datetime-local"
+		/>
+		<Input
+			class="sr-only absolute h-0 w-0 opacity-0"
+			name={key}
+			type="hidden"
+			value={getAt(object, key) ?? new Date()}
 		/>
 	</Td>
 {/snippet}

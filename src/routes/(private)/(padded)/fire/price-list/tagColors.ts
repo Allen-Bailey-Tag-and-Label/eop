@@ -1,0 +1,23 @@
+export const tagColors = [
+	'Blue (Dark)',
+	'Blue (Light)',
+	'Brown',
+	'Buff',
+	'Gray',
+	'Green (Dark)',
+	'Green (Light)',
+	'Ivory',
+	'Lilac',
+	'Manila',
+	'Orange',
+	'Pink',
+	'Red',
+	'Salmon',
+	'White',
+	'Yellow',
+	'Fluorescent Green',
+	'Fluorescent Orange',
+	'Fluorescent Pink',
+	'Fluorescent Red',
+	'Fluorescent Yellow'
+];
