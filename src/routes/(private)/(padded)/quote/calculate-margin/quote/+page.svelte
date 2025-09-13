@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Div, Form, Input, Select, SubmitButton } from '$lib/components';
+	import { Div, Form, Input, Select, SubmitButton } from '$lib/components';
 	import { twMerge } from 'tailwind-merge';
 	import Section from './Section.svelte';
 	import Tr from './Tr.svelte';
@@ -7,6 +7,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let {
+		_branchId = $bindable(''),
 		current = $bindable({
 			date: new Date().toISOString().split('T')[0],
 			labor: '',
@@ -17,6 +18,7 @@
 			totalCost: ''
 		}),
 		customerType = $bindable(''),
+		data,
 		isNumberAlreadySet = $bindable(false),
 		previous = $bindable({
 			date: '',
@@ -46,6 +48,10 @@
 		};
 	};
 
+	const _branchIdOptions = $derived.by(() =>
+		data._branchIds.map((_branchId: any) => ({ label: _branchId.number, value: _branchId._id }))
+	);
+
 	$effect(() => {
 		const currentLabor =
 			Math.floor((Number(current.totalCost) - Number(current.material)) * 100) / 100;
@@ -62,12 +68,24 @@
 		if (isNaN(previousLabor)) previous.labor = '';
 		if (isNaN(previousMargin)) previous.margin = '';
 	});
+	$effect(() => {
+		if (data.locals.user.branches.length === 1) _branchId = data.locals.user.branches[0]._id;
+	});
 </script>
 
 <Div class="flex flex-col items-start">
 	<Form class="flex w-full max-w-none flex-col lg:w-auto" {submitFunction}>
 		<Div class="flex flex-col gap-4 lg:flex-row lg:items-start">
 			<Section title="Options">
+				<Tr label="Branch">
+					<Select
+						bind:value={_branchId}
+						class="w-full"
+						name="_branchId"
+						options={_branchIdOptions}
+						required={true}
+					/>
+				</Tr>
 				<Tr label="Customer Type">
 					<Select
 						bind:value={customerType}

@@ -1,3 +1,5 @@
+import type { PageData } from './$types';
+
 export type Quote = {
 	date: string;
 	labor: string;
@@ -8,8 +10,10 @@ export type Quote = {
 	totalCost: string;
 };
 export type Props = {
+	_branchId?: string;
 	current?: Quote;
 	customerType?: string;
+	data: PageData;
 	isNumberAlreadySet?: boolean;
 	previous?: Quote;
 	productType?: string;

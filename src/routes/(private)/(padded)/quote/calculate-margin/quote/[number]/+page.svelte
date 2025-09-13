@@ -5,6 +5,7 @@
 	let { data } = $props();
 
 	let quote: Required<Props> = $state({
+		_branchId: '',
 		current: {
 			date: new Date().toISOString().split('T')[0],
 			labor: '',
@@ -15,6 +16,7 @@
 			totalCost: ''
 		},
 		customerType: '',
+		data,
 		isNumberAlreadySet: true,
 		previous: {
 			date: '',
@@ -31,6 +33,7 @@
 		quote = data.quote;
 		untrack(() => {
 			quote.current.date = new Date(quote.current.date).toISOString().split('T')[0];
+			quote.data = { _branchIds: data._branchIds, locals: data.locals };
 			quote.isNumberAlreadySet = true;
 			quote.previous.date = new Date(quote.previous.date).toISOString().split('T')[0];
 		});

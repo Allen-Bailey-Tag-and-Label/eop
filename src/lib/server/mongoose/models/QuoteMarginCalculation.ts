@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Schema, Types } from 'mongoose';
 import { defineModel } from '../defineModel';
 
 const QuoteSchema = new Schema(
@@ -15,6 +15,7 @@ const QuoteSchema = new Schema(
 );
 
 export const QuoteMarginCalculation = defineModel('QuoteMarginCalculation', {
+	_branchId: { type: Types.ObjectId, ref: 'Branch' },
 	current: { type: QuoteSchema, required: true },
 	customerType: { enum: ['direct', 'distributor'], type: String, required: true },
 	previous: { type: QuoteSchema, required: true },

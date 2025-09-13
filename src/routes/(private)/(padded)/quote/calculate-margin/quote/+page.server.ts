@@ -1,4 +1,4 @@
-import { QuoteMarginCalculation } from '$lib/server/mongoose/models';
+import { Branch, QuoteMarginCalculation } from '$lib/server/mongoose/models';
 import { redirect, type Action } from '@sveltejs/kit';
 
 type QuoteFormData = {
@@ -93,4 +93,11 @@ export const _default: Action = async ({ locals, request }) => {
 
 export const actions = {
 	default: _default
+};
+
+export const load = async () => {
+	const _branchIds = JSON.parse(JSON.stringify(await Branch.find().lean()));
+	return {
+		_branchIds
+	};
 };
