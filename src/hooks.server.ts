@@ -7,45 +7,35 @@ import { setSkipLogging } from '$lib/server/mongoose/middleware';
 import { Log, Role, Route, UpsQuote, User } from '$lib/server/mongoose/models';
 import { type Navigation, type Route as RouteType } from '$lib/types';
 
-const buildNavigation = (flatRoutes: RouteType[]): Navigation[] => {
-	const routeMap = new Map<string | null, Navigation[]>();
+type NavigationMap = Map<string, NavigationMap>;
+type Role = { label: string; routes: RouteType[] };
 
-	// Group routes by _parentId
-	for (const route of flatRoutes) {
-		const node: Navigation = { ...route, children: [], isOpen: false };
-		const parentKey = route._parentId ?? null;
+const buildNavigationMap = (roles: Role[]): NavigationMap => {
+	const set = (route: RouteType) => {
+		const hrefSegments = route.href === '/' ? [] : route.href.slice(1).split('/');
 
-		if (!routeMap.has(parentKey)) {
-			routeMap.set(parentKey, []);
-		}
+		let node = navigationMap;
 
-		routeMap.get(parentKey)!.push(node);
-	}
-
-	// Recursively attach and sort children
-	const attachChildren = (parent: Navigation) => {
-		const children = routeMap.get(parent._id) || [];
-
-		// Sort by label
-		children.sort((a, b) => a.label.localeCompare(b.label));
-
-		parent.children = children;
-
-		for (const child of children) {
-			attachChildren(child);
+		for (const hrefSegment of hrefSegments) {
+			node = upsert({ hrefSegment, node });
 		}
 	};
+	const upsert = ({ hrefSegment, node }: { hrefSegment: string; node: NavigationMap }) => {
+		let childNode = node.get(hrefSegment);
+		if (!childNode) {
+			childNode = new Map();
+			node.set(hrefSegment, childNode);
+		}
+		return childNode;
+	};
 
-	const rootRoutes = routeMap.get(null) || [];
+	const navigationMap: NavigationMap = new Map();
 
-	// Sort root routes as well
-	rootRoutes.sort((a, b) => a.label.localeCompare(b.label));
-
-	for (const root of rootRoutes) {
-		attachChildren(root);
+	for (const role of roles) {
+		for (const route of role.routes) set(route);
 	}
 
-	return rootRoutes;
+	return navigationMap;
 };
 
 const initDB = async () => {
@@ -151,10 +141,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 				lastName: string;
 				phone: number;
 			};
-			_roleIds: { label: string; routes: RouteType[] }[];
+			_roleIds: Role[];
 			_settingsId: {
 				_id: string;
 				magnification: number;
+				theme: string;
 			};
 			isActive: boolean;
 			passwordHash: string;
@@ -206,18 +197,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Exclude sensitive data and separate user info from roles
 		const { passwordHash, roles, ...user } = userData;
 
-		// Flatten and deduplicate routes by _id
-		const routeMap = new Map<string, RouteType>();
-		for (const role of roles) {
-			for (const route of role.routes || []) {
-				if (route && route._id) {
-					routeMap.set(route._id.toString(), route);
-				}
-			}
-		}
-		const flatRoutes = Array.from(routeMap.values());
+		const navigationMap = buildNavigationMap(roles);
+		const navigation = navigationMapToArray({ currentPath: event.url.pathname, navigationMap });
 
-		const isMatch = flatRoutes.some((route) => {
+		const isMatch = navigation.some((route) => {
 			const routeHref = route.href;
 			const pathname = event.url.pathname;
 
@@ -231,16 +214,60 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Redirect if event.url.pathname is not in flatRoutes
 		if (!isMatch && !event.url.pathname.startsWith('/api')) return redirect('/dashboard');
 
-		// Build navigation hierarchy using your custom function
-		const navigation = buildNavigation(flatRoutes);
-
-		// Store in locals or send response as required by your app
-		event.locals.user = user;
 		event.locals.navigation = navigation;
+		event.locals.user = user;
 	}
 
 	const response = await resolve(event);
 	return response;
+};
+
+const navigationMapToArray = ({
+	currentPath,
+	navigationMap
+}: {
+	currentPath: string;
+	navigationMap: NavigationMap;
+}): Navigation[] => {
+	const walk = ({
+		baseHref,
+		navigationMap
+	}: {
+		baseHref: string;
+		navigationMap: NavigationMap;
+	}): Navigation[] => {
+		const navigation: Navigation[] = [];
+
+		for (const [hrefSegment, childMap] of navigationMap) {
+			const href = baseHref === '/' ? `/${hrefSegment}` : `${baseHref}/${hrefSegment}`;
+			const label = hrefSegment
+				.split('-')
+				.map((word) => word[0].toUpperCase() + word.slice(1))
+				.join(' ');
+
+			const children = walk({ baseHref: href, navigationMap: childMap });
+
+			let isOpen = href === currentPath;
+			if (!isOpen) {
+				isOpen = children.some((child) => child.isOpen);
+			}
+
+			navigation.push({
+				label,
+				href,
+				children,
+				isOpen
+			});
+		}
+
+		navigation.sort((a, b) => a.label.localeCompare(b.label));
+
+		return navigation;
+	};
+
+	const navigation = walk({ baseHref: '/', navigationMap });
+
+	return navigation;
 };
 
 const redirect = (location: string) =>

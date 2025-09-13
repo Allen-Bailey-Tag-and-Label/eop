@@ -1,11 +1,13 @@
 export type Branch = { _id: string; label: string; number: number };
-export type Navigation = Route & { children: Navigation[]; isOpen: boolean };
+export type Navigation = Omit<Route, '_id' | 'label'> & {
+	children: Navigation[];
+	isOpen: boolean;
+	label: string;
+};
 export type Route = {
 	_id: string;
-	_parentId: string | null;
-	label: string;
-	href: string | null;
-	isDirectory: boolean;
+	label: string | null;
+	href: string;
 };
 
 export type User = {

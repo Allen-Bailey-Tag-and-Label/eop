@@ -97,37 +97,32 @@
 	<A
 		class={twMerge(
 			$theme.Button.default,
-			'block rounded-none py-0 text-left outline-solid hover:no-underline focus:no-underline',
+			'block rounded-none text-left outline-solid hover:no-underline focus:no-underline',
 			page.url.pathname !== href ? 'bg-transparent text-current' : undefined
 		)}
 		{href}
 		onclick={() => {
 			isNavigationOpen = false;
 		}}
-		style="padding-left:{(depth - 1) * 1.5}rem;"
 	>
-		<Div
-			class={twMerge(
-				'border-l py-3 pl-6',
-				depth > 1 ? 'border-gray-950/30 dark:border-gray-50/30' : 'border-gray-950/0'
-			)}
-		>
+		<Div>
 			{label}
 		</Div>
 	</A>
 {/snippet}
 
-{#snippet tree(items: Navigation[], depth: number = 1)}
-	<Div class="flex flex-col">
+{#snippet tree(items: Navigation[], depth: number = 0)}
+	<Div
+		class={twMerge(
+			'flex flex-col',
+			depth > 0 ? 'border-l border-gray-300 dark:border-gray-600' : undefined
+		)}
+	>
 		{#each items as item}
-			{#if item.isDirectory}
+			{#if item.children.length > 0}
 				<Button
-					class={twMerge(
-						'flex items-center justify-between border-l',
-						depth > 1 ? 'border-gray-950/30 dark:border-gray-50/30' : 'border-gray-950/0'
-					)}
+					class={twMerge('flex items-center justify-between')}
 					onclick={() => (item.isOpen = !item.isOpen)}
-					style="padding-left:{depth * 1.5}rem;"
 					variants={['ghost', 'square']}
 				>
 					<Div>
@@ -138,10 +133,12 @@
 					</Div>
 				</Button>
 				{#if item.isOpen && item.children.length > 0}
-					{@render tree(item.children, depth + 1)}
+					<Div class={twMerge('flex flex-col pl-6')}>
+						{@render tree(item.children, depth + 1)}
+					</Div>
 				{/if}
 			{/if}
-			{#if !item.isDirectory && item.href}
+			{#if item.children.length === 0 && item.href}
 				{@render link(item.href, item.label, depth)}
 			{/if}
 		{/each}
