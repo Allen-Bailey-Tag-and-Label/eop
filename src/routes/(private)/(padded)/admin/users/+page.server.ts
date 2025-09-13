@@ -101,7 +101,9 @@ export const actions: Actions = {
 };
 
 export const load = serverLoad({
-	labelFunctionMap: new Map([['UserProfile', (doc) => `${doc.firstName} ${doc.lastName}`]]),
+	labelFunctionMap: new Map([
+		['Branch', (doc) => `${doc.number}`],
+		['UserProfile', (doc) => `${doc.firstName} ${doc.lastName}`]
+	]),
 	model: User
-	// omitColumns: ['passwordHash']
 });

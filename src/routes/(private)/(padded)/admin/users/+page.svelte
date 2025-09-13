@@ -26,9 +26,11 @@
 
 	let { data } = $props();
 	let columnOverrides: ColumnOverrides = {
-		_branchIds: { isSortable: false },
-		_roleIds: { isSortable: false },
-		_settingsId: { isSortable: false },
+		_branchIds: { label: 'Branches', isSortable: false },
+		_defaultBranchId: { label: 'Default Branch' },
+		_profileId: { label: 'Profile' },
+		_roleIds: { label: 'Roles', isSortable: false },
+		_settingsId: { label: 'Settings', isSortable: false },
 		passwordHash: {
 			isProtected: true
 		}
@@ -75,7 +77,7 @@
 			isSortable: false,
 			isFilterable: false,
 			key: 'buttons',
-			label: 'Reset Password',
+			label: '',
 			snippet: resetPassword
 		}
 	]);
@@ -387,7 +389,7 @@
 				type="hidden"
 				value={object?.username}
 			/>
-			<Button type="submit" variants={['small']}>Reset Password</Button>
+			<Button type="submit" variants={['small']}>Generate OTP</Button>
 		</Form>
 	</Td>
 {/snippet}

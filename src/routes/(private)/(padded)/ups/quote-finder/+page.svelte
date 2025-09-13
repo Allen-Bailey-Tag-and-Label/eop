@@ -6,18 +6,29 @@
 	import { twMerge } from 'tailwind-merge';
 
 	let { data } = $props();
+	const columnOverrides = $state({
+		_branchId: { label: 'Branch' }
+	});
 	let rows = $state([]);
 </script>
 
 <MongooseTable
 	bind:rows
+	{columnOverrides}
 	{data}
 	isCreatable={false}
 	isDeletable={false}
 	isEditable={false}
 	modelName={'UpsQuote'}
 	virtualColumns={[
-		{ class: 'w-0', isFilterable: false, key: 'buttons', label: '', snippet: buttonsSnippet },
+		{
+			class: 'w-0',
+			isFilterable: false,
+			isSortable: false,
+			key: 'buttons',
+			label: '',
+			snippet: buttonsSnippet
+		},
 		{
 			key: 'ground',
 			label: 'Ground',

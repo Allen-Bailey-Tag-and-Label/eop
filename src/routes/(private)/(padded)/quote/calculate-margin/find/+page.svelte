@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { twMerge } from 'tailwind-merge';
 	import { A, MongooseTable, Td } from '$lib/components';
-	import type { TdSnippet } from '$lib/components/Datatable/types.js';
+	import type { TdSnippet } from '$lib/components/MongooseTable/types.js';
 	import { percent } from '$lib/formats';
 	import { theme } from '$lib/theme';
 
 	let { data } = $props();
+	const columnOverrides = {
+		_branchId: { label: 'Branch' }
+	};
 	const humanDate = (date: Date) => {
 		if (isNaN(date.getTime())) return '';
 		const { format } = new Intl.DateTimeFormat('en-US', {
@@ -20,6 +23,7 @@
 
 <MongooseTable
 	{data}
+	{columnOverrides}
 	isCreatable={false}
 	isDeletable={false}
 	isEditable={false}
