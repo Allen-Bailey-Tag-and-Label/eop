@@ -2,6 +2,7 @@ import { Branch, QuoteMarginCalculation } from '$lib/server/mongoose/models';
 import { redirect, type Action } from '@sveltejs/kit';
 
 type QuoteFormData = {
+	_branchId: string;
 	'current.date': string;
 	'current.labor': string;
 	'current.margin': string;
@@ -26,6 +27,7 @@ export const _default: Action = async ({ locals, request }) => {
 	const _createdById = locals.user._id;
 
 	const update = {
+		_branchId: formData._branchId,
 		_createdById,
 		current: {
 			date: new Date(formData['current.date']),
