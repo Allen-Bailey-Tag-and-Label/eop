@@ -490,7 +490,9 @@
 
 {#snippet pagination()}
 	{#if isPaginateable !== false}
-		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
+		<Div
+			class="flex items-center justify-center space-x-2 border-t border-white/[.5] px-6 py-3 lg:space-x-4 dark:border-white/[.025]"
+		>
 			{@render paginationButton({
 				currentPage: 0,
 				disabled: settings.currentPage === 0,
@@ -659,7 +661,7 @@
 				style="height: {virtualization.rowPx}px;"
 			>
 				{#if isSelectable}
-					<Td>
+					<Td class="py-0">
 						{#if rowsCheckboxValues[row.index] !== undefined}
 							<Checkbox bind:checked={rowsCheckboxValues[row.index]} />
 						{/if}
@@ -723,6 +725,12 @@
 						name="filter"
 						type="hidden"
 						value={JSON.stringify(settings.filter)}
+					/>
+					<Input
+						defaultValue={isPaginateable ? 'on' : undefined}
+						name="isPaginateable"
+						type="hidden"
+						value={isPaginateable ? 'on' : undefined}
 					/>
 					<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 					<Input
@@ -821,6 +829,13 @@
 			name="filter"
 			type="hidden"
 			value={JSON.stringify(settings.filter)}
+		/>
+
+		<Input
+			defaultValue={isPaginateable ? 'on' : undefined}
+			name="isPaginateable"
+			type="hidden"
+			value={isPaginateable ? 'on' : undefined}
 		/>
 		<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 		<Input
@@ -990,6 +1005,13 @@
 							name="filter"
 							type="hidden"
 							value={JSON.stringify(settings.filter)}
+						/>
+
+						<Input
+							defaultValue={isPaginateable ? 'on' : undefined}
+							name="isPaginateable"
+							type="hidden"
+							value={isPaginateable ? 'on' : undefined}
 						/>
 						<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 						<Input
@@ -1197,6 +1219,13 @@
 				name="filter"
 				type="hidden"
 				value={JSON.stringify(filtersTemp)}
+			/>
+
+			<Input
+				defaultValue={isPaginateable ? 'on' : undefined}
+				name="isPaginateable"
+				type="hidden"
+				value={isPaginateable ? 'on' : undefined}
 			/>
 			<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 			<Input

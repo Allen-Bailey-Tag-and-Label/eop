@@ -595,7 +595,7 @@
 				<Thead class="sticky top-0">
 					<Tr>
 						{#if isSelectable}
-							<Th class={twMerge($theme.Button.glass, 'relative z-10 w-6')}>
+							<Th class={twMerge($theme.Button.glass, 'relative z-10 w-6 py-0')}>
 								<Checkbox
 									bind:checked={isAllRowsSelected}
 									onchange={() => {
@@ -749,7 +749,7 @@
 					{#each rowsPaginated?.slice(virtualization.startIndex, virtualization.endIndex) as row, _ (`${settings.currentPage}:${row._key}`)}
 						<Tr style="height: {virtualization.rowPx}px;">
 							{#if isSelectable}
-								<Td>
+								<Td class="py-0">
 									{#if rowsCheckboxValues[row.index] !== undefined}
 										<Checkbox bind:checked={rowsCheckboxValues[row.index]} />
 									{/if}
@@ -977,7 +977,7 @@
 {/snippet}
 {#snippet booleanTd({ isEditable, key, object }: TdSnippet)}
 	{#if isEditable}
-		<Td>
+		<Td class="py-0">
 			<Checkbox
 				bind:checked={
 					() => {
@@ -992,7 +992,7 @@
 			/>
 		</Td>
 	{:else}
-		<Td class="uppercase">{getAt(object, key)}</Td>
+		<Td class="py-0 uppercase">{getAt(object, key)}</Td>
 	{/if}
 {/snippet}
 {#snippet currencyTd({ isEditable, key, object }: TdSnippet)}

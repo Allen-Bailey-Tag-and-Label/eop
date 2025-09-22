@@ -43,7 +43,7 @@ export const defaultTheme: Theme = {
 	Checkbox: {
 		default: twMerge(
 			InputDefault,
-			'flex h-6 w-6 px-0 py-0 items-center justify-center peer-checked:bg-primary-500/90 dark:peer-checked:bg-primary-500/70 backdrop-blur-none outline-2 outline-transparent peer-focus:outline-gray-950 dark:peer-focus:outline-white'
+			'my-3 flex h-6 w-6 px-0 py-0 items-center justify-center peer-checked:bg-primary-500/90 dark:peer-checked:bg-primary-500/70 backdrop-blur-none outline-2 outline-transparent peer-focus:outline-gray-950 dark:peer-focus:outline-white'
 		)
 	},
 	Datatable: { default: '' },
