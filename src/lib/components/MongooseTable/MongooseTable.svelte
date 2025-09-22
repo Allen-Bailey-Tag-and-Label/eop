@@ -541,10 +541,10 @@
 					value={JSON.stringify(settings.filter)}
 				/>
 				<Input
-					defaultValue={JSON.stringify(isPaginateable)}
+					defaultValue={isPaginateable ? 'on' : undefined}
 					name="isPaginateable"
 					type="hidden"
-					value={JSON.stringify(isPaginateable)}
+					value={isPaginateable ? 'on' : undefined}
 				/>
 				<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 				<Input
