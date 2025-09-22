@@ -56,7 +56,7 @@
 	<Header
 		class="sticky bottom-0 z-10 order-2 flex items-center justify-between lg:top-0 lg:order-1"
 	>
-		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['glass', 'icon']}>
+		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
 			{#if !isNavigationOpen}
 				<Menu size={(user.settings.magnification * 24) / 16}></Menu>
 			{:else}

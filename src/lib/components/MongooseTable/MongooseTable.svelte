@@ -1006,13 +1006,6 @@
 							type="hidden"
 							value={JSON.stringify(settings.filter)}
 						/>
-
-						<Input
-							defaultValue={isPaginateable ? 'on' : undefined}
-							name="isPaginateable"
-							type="hidden"
-							value={isPaginateable ? 'on' : undefined}
-						/>
 						<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 						<Input
 							defaultValue={settings.sortDirection}
