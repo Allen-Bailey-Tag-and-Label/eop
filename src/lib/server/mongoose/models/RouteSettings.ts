@@ -7,6 +7,7 @@ export const RouteSettings = defineModel('RouteSettings', {
 	columnsOrder: { type: [String], default: [] },
 	currentPage: { type: Number, default: 0 },
 	filter: { type: Schema.Types.Mixed, default: {} },
+	isPaginateable: { type: Boolean, required: true },
 	rowsPerPage: { type: Number, default: 10 },
 	sortDirection: { type: String, enum: ['asc', 'desc'], default: 'asc' },
 	sortKey: { type: String, default: 'createdAt' }

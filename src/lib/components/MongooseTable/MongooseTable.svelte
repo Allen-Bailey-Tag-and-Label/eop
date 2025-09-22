@@ -98,7 +98,6 @@
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
 		isSettingsModalOpen = $bindable(false),
-		isSettingsVisible = $bindable(),
 		isSortable = $bindable(true),
 		isToolbarVisible = $bindable(true),
 		modelName = $bindable(),
@@ -117,6 +116,13 @@
 		rowsPaginated = $bindable([]),
 		rowsSanitized = $bindable([]),
 		rowsSelected = $bindable([]),
+		scrollContainer = $bindable(null),
+		scrollHandler = $bindable((e?: Event) => {
+			const target = scrollContainer ?? (e?.target as HTMLElement) ?? null;
+			if (!target) return;
+			scrollTop = target.scrollTop;
+		}),
+		scrollTop = $bindable(0),
 		settings = $bindable({
 			_routeId: '',
 			columnsOrder: [],
@@ -126,14 +132,17 @@
 			sortDirection: 'asc',
 			sortKey: ''
 		}),
-		settingsTemp = $bindable({ rowsPerPage: 10 }),
+		settingsTemp = $bindable({ isPaginateable: true, rowsPerPage: 10 }),
 		tbody: customTbody,
 		th: customTh,
 		thead,
 		toolbar: customToolbar,
 		totalRows = $bindable(0),
-		virtualColumns = $bindable([])
+		virtualColumns = $bindable([]),
+		virtualOverscan = $bindable(5),
+		virtualRowHeight = $bindable('h-10')
 	}: Props = $props();
+	let containerHeight = $state(0);
 	const createSnippetMap: Map<ColumnType, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintCreate],
 		['boolean', booleanCreate],
@@ -152,10 +161,40 @@
 	let initialized = $state(false);
 	let originalRows = $state(new Map<string, Row>());
 	let modifiedRows = $state(new Map<string, Map<string, any>>());
+	let resizeObserver: ResizeObserver | null = null;
+	const tailwindHeights: Record<string, number> = {
+		'h-1': 4,
+		'h-2': 8,
+		'h-3': 12,
+		'h-4': 16,
+		'h-5': 20,
+		'h-6': 24,
+		'h-7': 28,
+		'h-8': 32,
+		'h-9': 36,
+		'h-10': 40,
+		'h-11': 44,
+		'h-12': 48,
+		'h-14': 56,
+		'h-16': 64,
+		'h-20': 80,
+		'h-24': 96,
+		'h-28': 112,
+		'h-32': 128,
+		'h-36': 144,
+		'h-40': 160,
+		'h-44': 176,
+		'h-48': 192,
+		'h-52': 208,
+		'h-56': 224,
+		'h-60': 240,
+		'h-64': 256
+	};
 	const updateData = async (data: Data) => {
 		isLoading = true;
 		const [resolvedRows, resolvedTotalRows] = await Promise.all([data.rows, data.totalRows]);
 		columns = data.columns;
+		isPaginateable = data?.settings?.isPaginateable ?? true;
 		modifiedRows = new Map();
 		originalRows = new Map(
 			(resolvedRows as Row[]).map((row: Row) => [row._id, structuredClone(row)])
@@ -166,10 +205,40 @@
 		isLoading = false;
 		initialized = true;
 	};
-
 	const updatedData = $derived.by(() =>
 		Array.from(modifiedRows).map(([_id, fields]) => ({ _id, $set: Object.fromEntries(fields) }))
 	);
+
+	// $derives
+	const virtualization = $derived.by(() => {
+		const length = (rowsSanitized ?? []).length;
+		// virtualization OFF or variable-height placeholder -> full range
+		if (isPaginateable || virtualRowHeight === 'auto') {
+			return {
+				startIndex: 0,
+				endIndex: settings.rowsPerPage,
+				topSpacerHeight: 0,
+				bottomSpacerHeight: 0,
+				rowPx: 0
+			};
+		}
+
+		// Convert Tailwind class to px (fallback 40px)
+		const rh = tailwindHeights[String(virtualRowHeight)] ?? 40;
+		const containerHpx = containerHeight || 0;
+		const visibleCount = Math.max(0, Math.ceil(containerHpx / rh));
+		const rawStart = Math.floor((scrollTop || 0) / rh);
+		const start = Math.max(0, rawStart - (virtualOverscan ?? 0));
+		const end = Math.min(length, start + visibleCount + (virtualOverscan ?? 0) * 2);
+
+		return {
+			startIndex: start,
+			endIndex: end,
+			topSpacerHeight: start * rh,
+			bottomSpacerHeight: Math.max(0, (length - end) * rh),
+			rowPx: rh
+		};
+	});
 
 	$effect(() => {
 		if (data)
@@ -317,10 +386,49 @@
 			}
 		});
 	});
+
+	$effect(() => {
+		// only observe while virtualization is enabled
+		if (isPaginateable) {
+			if (resizeObserver) {
+				resizeObserver.disconnect();
+				resizeObserver = null;
+			}
+			return;
+		}
+
+		if (scrollContainer && typeof ResizeObserver !== 'undefined') {
+			// cleanup previous observer if any
+			if (resizeObserver) resizeObserver.disconnect();
+
+			resizeObserver = new ResizeObserver(() => {
+				containerHeight = scrollContainer?.clientHeight ?? 0;
+			});
+			resizeObserver.observe(scrollContainer);
+
+			// init measurement immediately
+			containerHeight = scrollContainer?.clientHeight ?? 0;
+		}
+	});
+	$effect(() => {
+		if (!scrollContainer) return;
+
+		const resizeObserver = new ResizeObserver(() => {
+			untrack(() => {
+				if (scrollContainer) containerHeight = scrollContainer.clientHeight;
+			});
+		});
+
+		resizeObserver.observe(scrollContainer);
+
+		return () => resizeObserver.disconnect();
+	});
 </script>
 
 {#if initialized}
-	<Card class="relative flex max-h-full max-w-full flex-col overflow-auto p-0">
+	<Card
+		class="relative flex max-h-full max-w-full flex-col overflow-auto bg-transparent p-0 backdrop-blur-none dark:bg-transparent"
+	>
 		<Datatable
 			bind:columns
 			bind:columnInferredTypes
@@ -343,7 +451,6 @@
 			bind:isPaginateable
 			bind:isSelectable
 			bind:isSettingsModalOpen
-			bind:isSettingsVisible
 			bind:isSortable
 			bind:isToolbarVisible
 			bind:paginationSettings
@@ -353,7 +460,12 @@
 			bind:rowsPaginated
 			bind:rowsSanitized
 			bind:rowsSelected
+			bind:scrollContainer
+			bind:scrollHandler
+			bind:scrollTop
 			bind:settings
+			bind:virtualOverscan
+			bind:virtualRowHeight
 			createModal={customCreateModal !== undefined ? customCreateModal : createModal}
 			deleteModal={customDeleteModal !== undefined ? customDeleteModal : deleteModal}
 			filterModal={customFilterModal !== undefined ? customFilterModal : filterModal}
@@ -427,6 +539,12 @@
 					name="filter"
 					type="hidden"
 					value={JSON.stringify(settings.filter)}
+				/>
+				<Input
+					defaultValue={JSON.stringify(isPaginateable)}
+					name="isPaginateable"
+					type="hidden"
+					value={JSON.stringify(isPaginateable)}
 				/>
 				<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 				<Input
@@ -505,6 +623,12 @@
 			type="hidden"
 			value={JSON.stringify(settings.filter)}
 		/>
+		<Input
+			defaultValue={isPaginateable ? 'on' : undefined}
+			name="isPaginateable"
+			type="hidden"
+			value={isPaginateable ? 'on' : undefined}
+		/>
 		<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
 		<Input
 			defaultValue={settings.rowsPerPage.toString()}
@@ -526,34 +650,35 @@
 {/snippet}
 {#snippet tbody()}
 	<Tbody>
-		{#each rowsSanitized as row, rowSanitizedIndex (`${settings.currentPage}:${row._key}`)}
-			{#if rowSanitizedIndex < settings.rowsPerPage}
-				<Tr
-					class={isSelectable && rowsCheckboxValues[row.index]
-						? 'bg-primary-500/10 even:bg-primary-600/10 dark:even:bg-primary-400/10 hover:bg-primary-500/20 even:hover:bg-primary-600/20 dark:even:hover:bg-primary-400/20'
-						: undefined}
-				>
-					{#if isSelectable}
-						<Td>
-							{#if rowsCheckboxValues[row.index] !== undefined}
-								<Checkbox bind:checked={rowsCheckboxValues[row.index]} />
-							{/if}
-						</Td>
-					{/if}
-					{#each columnsSanitized as { isEditable, isHidden, key, options, snippet, valueFn } (key)}
-						{#if !isHidden}
-							{@render snippet({
-								isEditable,
-								key,
-								object: rows[row.index],
-								options,
-								valueFn
-							})}
+		<Tr style="height: {virtualization.topSpacerHeight}px;" />
+		{#each rowsSanitized?.slice(virtualization.startIndex, virtualization.endIndex) as row, _ (`${row._key}`)}
+			<Tr
+				class={isSelectable && rowsCheckboxValues[row.index]
+					? 'bg-primary-500/10 even:bg-primary-600/10 dark:even:bg-primary-400/10 hover:bg-primary-500/20 even:hover:bg-primary-600/20 dark:even:hover:bg-primary-400/20'
+					: undefined}
+				style="height: {virtualization.rowPx}px;"
+			>
+				{#if isSelectable}
+					<Td>
+						{#if rowsCheckboxValues[row.index] !== undefined}
+							<Checkbox bind:checked={rowsCheckboxValues[row.index]} />
 						{/if}
-					{/each}
-				</Tr>
-			{/if}
+					</Td>
+				{/if}
+				{#each columnsSanitized as { isEditable, isHidden, key, options, snippet, valueFn } (key)}
+					{#if !isHidden}
+						{@render snippet({
+							isEditable,
+							key,
+							object: rows[row.index],
+							options,
+							valueFn
+						})}
+					{/if}
+				{/each}
+			</Tr>
 		{/each}
+		<Tr style="height: {virtualization.bottomSpacerHeight}px;" />
 	</Tbody>
 {/snippet}
 {#snippet th({
@@ -619,7 +744,7 @@
 					<Button
 						class="flex w-full items-center justify-between space-x-2 text-gray-500"
 						type="submit"
-						variants={['ghost', 'square']}
+						variants={['glass', 'square']}
 					>
 						<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
 							{label}
@@ -815,94 +940,108 @@
 						>
 							Export
 						</Button>
-						<Button onclick={() => (isExportModalOpen = false)} variants={['ghost']}>Cancel</Button>
+						<Button onclick={() => (isExportModalOpen = false)} variants={['glass']}>Cancel</Button>
 					</Div>
 				</Modal>
 			{/if}
-			{#if isSettingsVisible}
-				<Button
-					onclick={() => {
-						settingsTemp.rowsPerPage = settings.rowsPerPage ?? 10;
-						isSettingsModalOpen = true;
+			<Button
+				onclick={() => {
+					settingsTemp.isPaginateable = isPaginateable ?? true;
+					settingsTemp.rowsPerPage = settings.rowsPerPage ?? 10;
+					isSettingsModalOpen = true;
+				}}
+				variants={['icon']}
+			>
+				<Settings />
+			</Button>
+			<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
+				<Form
+					action="/api/mongooseTable?/find"
+					submitFunction={() => {
+						isLoading = true;
+						isSettingsModalOpen = false;
+						return async ({ update }) => {
+							await update();
+							isLoading = false;
+						};
 					}}
-					variants={['icon']}
 				>
-					<Settings />
-				</Button>
-				<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
-					<Form
-						action="/api/mongooseTable?/find"
-						submitFunction={() => {
-							isLoading = true;
-							isSettingsModalOpen = false;
-							return async ({ update }) => {
-								await update();
-								isLoading = false;
-							};
-						}}
-					>
-						{#snippet inputs()}
-							<Input
-								defaultValue={settings._routeId}
-								name="_routeId"
-								type="hidden"
-								value={settings._routeId}
+					{#snippet inputs()}
+						<Input
+							defaultValue={settings._routeId}
+							name="_routeId"
+							type="hidden"
+							value={settings._routeId}
+						/>
+						<Input
+							defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+							name="columnsOrder"
+							type="hidden"
+							value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
+						/>
+						<Input
+							defaultValue={settings.currentPage.toString()}
+							name="currentPage"
+							type="hidden"
+							value={settings.currentPage.toString()}
+						/>
+						<Input
+							defaultValue={JSON.stringify(settings.filter)}
+							name="filter"
+							type="hidden"
+							value={JSON.stringify(settings.filter)}
+						/>
+						<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
+						<Input
+							defaultValue={settings.sortDirection}
+							name="sortDirection"
+							type="hidden"
+							value={settings.sortDirection}
+						/>
+						<Input
+							defaultValue={settings.sortKey}
+							name="sortKey"
+							type="hidden"
+							value={settings.sortKey}
+						/>
+						<Div class="flex space-x-4">
+							<Checkbox
+								bind:checked={settingsTemp.isPaginateable}
+								label="Paginate"
+								name="isPaginateable"
 							/>
-							<Input
-								defaultValue={JSON.stringify(columnsSanitized.map(({ key }) => key))}
-								name="columnsOrder"
-								type="hidden"
-								value={JSON.stringify(columnsSanitized.map(({ key }) => key))}
-							/>
-							<Input
-								defaultValue={settings.currentPage.toString()}
-								name="currentPage"
-								type="hidden"
-								value={settings.currentPage.toString()}
-							/>
-							<Input
-								defaultValue={JSON.stringify(settings.filter)}
-								name="filter"
-								type="hidden"
-								value={JSON.stringify(settings.filter)}
-							/>
-							<Input defaultValue={modelName} name="modelName" type="hidden" value={modelName} />
-							<Input
-								defaultValue={settings.sortDirection}
-								name="sortDirection"
-								type="hidden"
-								value={settings.sortDirection}
-							/>
-							<Input
-								defaultValue={settings.sortKey}
-								name="sortKey"
-								type="hidden"
-								value={settings.sortKey}
-							/>
-							<Input
-								bind:value={
-									() => {
-										return settingsTemp.rowsPerPage.toString();
-									},
-									(string) => {
-										settingsTemp.rowsPerPage = +string;
+							<Div
+								class={twMerge(
+									'transition duration-200',
+									settingsTemp.isPaginateable ? 'opacity-100' : 'opacity-0'
+								)}
+							>
+								<Input
+									bind:value={
+										() => {
+											return settingsTemp.rowsPerPage.toString();
+										},
+										(string) => {
+											settingsTemp.rowsPerPage = +string;
+										}
 									}
-								}
-								class="text-right"
-								label="Rows Per Page"
-								name="rowsPerPage"
-								type="number"
-							/>
-						{/snippet}
-						{#snippet buttons()}
-							<Button type="submit">Update</Button>
-							<Button onclick={() => (isSettingsModalOpen = false)} variants={['ghost']}>
-								Cancel
-							</Button>
-						{/snippet}
-					</Form>
-				</Modal>
-			{/if}
+									class="text-right"
+									label="Rows Per Page"
+									name="rowsPerPage"
+									readonly={settingsTemp.isPaginateable ? undefined : true}
+									type="number"
+								/>
+							</Div>
+						</Div>
+					{/snippet}
+					{#snippet buttons()}
+						<Button type="submit">Update</Button>
+						<Button onclick={() => (isSettingsModalOpen = false)} variants={['glass']}>
+							Cancel
+						</Button>
+					{/snippet}
+				</Form>
+			</Modal>
 			{#if isFilterable}
 				<Button
 					onclick={() => {
@@ -978,7 +1117,7 @@
 				</Table>
 				<Div class="flex justify-end space-x-2">
 					<Button type="submit">Add</Button>
-					<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}>Cancel</Button>
+					<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}>Cancel</Button>
 				</Div>
 			</Form>
 		</Modal>
@@ -1089,7 +1228,7 @@
 						<Div>Add Filter</Div>
 					</Div>
 				</Button>
-				<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
+				<Button onclick={() => (filtersTemp = [])} variants={['glass']}>Clear Filters</Button>
 			</Div>
 			<Table>
 				<Thead>
@@ -1154,7 +1293,7 @@
 			</Table>
 			<Div class="flex justify-end space-x-2">
 				<Button type="submit">Apply</Button>
-				<Button onclick={() => (isFilterModalOpen = false)} variants={['ghost']}>Cancel</Button>
+				<Button onclick={() => (isFilterModalOpen = false)} variants={['glass']}>Cancel</Button>
 			</Div>
 		</Form>
 	</Modal>

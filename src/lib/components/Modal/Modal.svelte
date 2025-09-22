@@ -26,30 +26,40 @@
 	}: Props = $props();
 </script>
 
-{#if isOpen}
-	<Div
-		{@attach portal()}
-		class="flex h-full w-full items-center justify-center px-4 pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(1rem_+_env(safe-area-inset-bottom))] backdrop-blur-md"
-		onclick={() => {
-			isOpen = false;
-		}}
+<!-- {#if isOpen} -->
+<Div
+	{@attach portal()}
+	class={twMerge(
+		isOpen ? undefined : 'pointer-events-none',
+		'flex h-full w-full items-center justify-center px-4 pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(1rem_+_env(safe-area-inset-bottom))] transition duration-200',
+		isOpen ? 'bg-black/30 dark:bg-black/70' : 'bg-black/0'
+	)}
+	inert={isOpen ? undefined : true}
+	onclick={() => {
+		isOpen = false;
+	}}
+>
+	<Card
+		{...restProps}
+		{@attach attachmentFactory(attachments)}
+		{@attach focusFirst()}
+		{@attach focusTrap}
+		class={twMerge(
+			'transition duration-200',
+			isOpen ? undefined : 'pointer-events-none',
+			isOpen ? 'opacity-100' : 'opacity-0',
+			isOpen ? 'scale-100' : 'scale-[.98]',
+			$theme.Modal.default,
+			...variants.map((variant: string) => $theme.Modal[variant]),
+			className
+		)}
+		inert={isOpen ? undefined : true}
+		onclick={(e: Event) => e.stopPropagation()}
+		{style}
 	>
-		<Card
-			{...restProps}
-			{@attach attachmentFactory(attachments)}
-			{@attach focusFirst()}
-			{@attach focusTrap}
-			class={twMerge(
-				$theme.Modal.default,
-				...variants.map((variant: string) => $theme.Modal[variant]),
-				className
-			)}
-			onclick={(e: Event) => e.stopPropagation()}
-			{style}
-		>
-			{#if children}
-				{@render children()}
-			{/if}
-		</Card>
-	</Div>
-{/if}
+		{#if children}
+			{@render children()}
+		{/if}
+	</Card>
+</Div>
+<!-- {/if} -->

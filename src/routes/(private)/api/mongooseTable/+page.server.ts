@@ -61,6 +61,7 @@ export const actions: Actions = {
 		const _routeId = String(form.get('_routeId') ?? '');
 		const columnsOrder = JSON.parse(form.get('columnsOrder')?.toString() ?? JSON.stringify([]));
 		const currentPage = Number(form.get('currentPage') ?? 0);
+		const isPaginateable = (form.get('isPaginateable') ?? 'off') === 'on';
 		const modelName = form.get('modelName') as ModelName | null;
 		const rowsPerPage = Number(form.get('rowsPerPage') ?? 10);
 		const sortDirection = String(form.get('sortDirection') ?? 'asc');
@@ -90,6 +91,7 @@ export const actions: Actions = {
 			columnsOrder,
 			currentPage,
 			filter: sanitizedFilters,
+			isPaginateable,
 			rowsPerPage,
 			sortDirection,
 			sortKey

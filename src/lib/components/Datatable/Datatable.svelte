@@ -76,7 +76,6 @@
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
 		isSettingsModalOpen = $bindable(false),
-		isSettingsVisible = $bindable(),
 		isSortable = $bindable(true),
 		isToolbarVisible = $bindable(true),
 		pagination,
@@ -94,6 +93,13 @@
 		rowsPaginated = $bindable([]),
 		rowsSanitized = $bindable([]),
 		rowsSelected = $bindable([]),
+		scrollContainer = $bindable(null),
+		scrollHandler = $bindable((e?: Event) => {
+			const target = scrollContainer ?? (e?.target as HTMLElement) ?? null;
+			if (!target) return;
+			scrollTop = target.scrollTop;
+		}),
+		scrollTop = $bindable(0),
 		settings = $bindable({
 			currentPage: 0,
 			filter: [],
@@ -102,14 +108,18 @@
 			sortKey: ''
 		}),
 		settingsTemp = $bindable({
+			isPaginateable: true,
 			rowsPerPage: 10
 		}),
 		tbody,
 		th,
 		thead,
 		toolbar,
-		totalRows = $bindable()
+		totalRows = $bindable(),
+		virtualOverscan = $bindable(5),
+		virtualRowHeight = $bindable('h-10')
 	}: Props<any> = $props();
+	let containerHeight = $state(0);
 	const getRowKey = (row: object) => {
 		let key = rowKeyMap.get(row);
 		if (!key) {
@@ -119,8 +129,36 @@
 		}
 		return key;
 	};
+	let resizeObserver: ResizeObserver | null = null;
 	const rowKeyMap = new WeakMap<object, string>();
-
+	const tailwindHeights: Record<string, number> = {
+		'h-1': 4,
+		'h-2': 8,
+		'h-3': 12,
+		'h-4': 16,
+		'h-5': 20,
+		'h-6': 24,
+		'h-7': 28,
+		'h-8': 32,
+		'h-9': 36,
+		'h-10': 40,
+		'h-11': 44,
+		'h-12': 48,
+		'h-14': 56,
+		'h-16': 64,
+		'h-20': 80,
+		'h-24': 96,
+		'h-28': 112,
+		'h-32': 128,
+		'h-36': 144,
+		'h-40': 160,
+		'h-44': 176,
+		'h-48': 192,
+		'h-52': 208,
+		'h-56': 224,
+		'h-60': 240,
+		'h-64': 256
+	};
 	const tdSnippetMap: Map<string, Snippet<[TdSnippet]>> = new Map([
 		['bigint', bigintTd],
 		['boolean', booleanTd],
@@ -135,6 +173,38 @@
 		['timestamp', timestampTd],
 		['undefined', undefinedTd]
 	]);
+
+	// $derives
+	const virtualization = $derived.by(() => {
+		const length = (rowsPaginated ?? []).length;
+
+		// virtualization OFF or variable-height placeholder -> full range
+		if (isPaginateable || virtualRowHeight === 'auto') {
+			return {
+				startIndex: 0,
+				endIndex: length,
+				topSpacerHeight: 0,
+				bottomSpacerHeight: 0,
+				rowPx: 0
+			};
+		}
+
+		// Convert Tailwind class to px (fallback 40px)
+		const rh = tailwindHeights[String(virtualRowHeight)] ?? 40;
+		const containerHpx = containerHeight || 0;
+		const visibleCount = Math.max(0, Math.ceil(containerHpx / rh));
+		const rawStart = Math.floor((scrollTop || 0) / rh);
+		const start = Math.max(0, rawStart - (virtualOverscan ?? 0));
+		const end = Math.min(length, start + visibleCount + (virtualOverscan ?? 0) * 2);
+
+		return {
+			startIndex: start,
+			endIndex: end,
+			topSpacerHeight: start * rh,
+			bottomSpacerHeight: Math.max(0, (length - end) * rh),
+			rowPx: rh
+		};
+	});
 
 	// $effects
 	$effect(() => {
@@ -228,12 +298,6 @@
 
 		untrack(() => {
 			isSelectable = isDeletableValue;
-		});
-	});
-	$effect(() => {
-		const isPaginateableValue = isPaginateable;
-		untrack(() => {
-			isSettingsVisible = isPaginateableValue;
 		});
 	});
 	$effect(() => {
@@ -340,6 +404,42 @@
 		if (settings.sortKey === undefined) settings.sortKey = columnsSanitized[0].key;
 		if (settingsTemp.rowsPerPage === undefined) settingsTemp.rowsPerPage = 10;
 	});
+	$effect(() => {
+		// only observe while virtualization is enabled
+		if (isPaginateable) {
+			if (resizeObserver) {
+				resizeObserver.disconnect();
+				resizeObserver = null;
+			}
+			return;
+		}
+
+		if (scrollContainer && typeof ResizeObserver !== 'undefined') {
+			// cleanup previous observer if any
+			if (resizeObserver) resizeObserver.disconnect();
+
+			resizeObserver = new ResizeObserver(() => {
+				containerHeight = scrollContainer?.clientHeight ?? 0;
+			});
+			resizeObserver.observe(scrollContainer);
+
+			// init measurement immediately
+			containerHeight = scrollContainer?.clientHeight ?? 0;
+		}
+	});
+	$effect(() => {
+		if (!scrollContainer) return;
+
+		const resizeObserver = new ResizeObserver(() => {
+			untrack(() => {
+				if (scrollContainer) containerHeight = scrollContainer.clientHeight;
+			});
+		});
+
+		resizeObserver.observe(scrollContainer);
+
+		return () => resizeObserver.disconnect();
+	});
 </script>
 
 <Card class="flex max-h-full max-w-full flex-col overflow-auto p-0">
@@ -386,53 +486,64 @@
 						>
 							Export
 						</Button>
-						<Button onclick={() => (isExportModalOpen = false)} variants={['ghost']}>Cancel</Button>
+						<Button onclick={() => (isExportModalOpen = false)} variants={['glass']}>Cancel</Button>
 					</Div>
 				</Modal>
 			{/if}
-			{#if isSettingsVisible}
-				<Button
-					onclick={() => {
-						settingsTemp.rowsPerPage = settings.rowsPerPage ?? 10;
-						isSettingsModalOpen = true;
+			<Button
+				onclick={() => {
+					settingsTemp.isPaginateable = isPaginateable ?? true;
+					settingsTemp.rowsPerPage = settings.rowsPerPage ?? 10;
+					isSettingsModalOpen = true;
+				}}
+				variants={['icon']}
+			>
+				<Settings />
+			</Button>
+			<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
+				<Form
+					method="GET"
+					onsubmit={(e: Event) => {
+						e.preventDefault();
+						isPaginateable = settingsTemp.isPaginateable;
+						settings.rowsPerPage = settingsTemp.rowsPerPage;
+						isSettingsModalOpen = false;
 					}}
-					variants={['icon']}
 				>
-					<Settings />
-				</Button>
-				<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
-					<Form
-						method="GET"
-						onsubmit={(e: Event) => {
-							e.preventDefault();
-							settings.rowsPerPage = settingsTemp.rowsPerPage;
-							isSettingsModalOpen = false;
-						}}
-					>
-						{#snippet inputs()}
-							<Input
-								bind:value={
-									() => {
-										return settingsTemp.rowsPerPage.toString();
-									},
-									(string) => {
-										settingsTemp.rowsPerPage = +string;
+					{#snippet inputs()}
+						<Div class="flex space-x-4">
+							<Checkbox bind:checked={settingsTemp.isPaginateable} label="Paginate" />
+							<Div
+								class={twMerge(
+									'transition duration-200',
+									settingsTemp.isPaginateable ? 'opacity-100' : 'opacity-0'
+								)}
+							>
+								<Input
+									bind:value={
+										() => {
+											return settingsTemp.rowsPerPage.toString();
+										},
+										(string) => {
+											settingsTemp.rowsPerPage = +string;
+										}
 									}
-								}
-								class="text-right"
-								label="Rows Per Page"
-								type="number"
-							/>
-						{/snippet}
-						{#snippet buttons()}
-							<Button type="submit">Update</Button>
-							<Button onclick={() => (isSettingsModalOpen = false)} variants={['ghost']}>
-								Cancel
-							</Button>
-						{/snippet}
-					</Form>
-				</Modal>
-			{/if}
+									class="text-right"
+									label="Rows Per Page"
+									readonly={settingsTemp.isPaginateable ? undefined : true}
+									type="number"
+								/>
+							</Div>
+						</Div>
+					{/snippet}
+					{#snippet buttons()}
+						<Button type="submit">Update</Button>
+						<Button onclick={() => (isSettingsModalOpen = false)} variants={['glass']}>
+							Cancel
+						</Button>
+					{/snippet}
+				</Form>
+			</Modal>
 			{#if isFilterable}
 				<Button
 					onclick={() => {
@@ -472,7 +583,11 @@
 			{/if}
 		</Div>
 	{/if}
-	<Div class="relative flex flex-col overflow-auto">
+	<Div
+		bind:element={scrollContainer}
+		class="relative flex flex-col overflow-auto"
+		onscroll={scrollHandler}
+	>
 		<Table class="bg-transparent dark:bg-transparent">
 			{#if thead}
 				{@render thead()}
@@ -480,7 +595,7 @@
 				<Thead class="sticky top-0">
 					<Tr>
 						{#if isSelectable}
-							<Th class="relative z-10 w-6">
+							<Th class={twMerge($theme.Button.glass, 'relative z-10 w-6')}>
 								<Checkbox
 									bind:checked={isAllRowsSelected}
 									onchange={() => {
@@ -512,11 +627,11 @@
 										...columnSanitized
 									})}
 								{:else}
-									<Th class={twMerge('px-0 py-0', className)}>
+									<Th class={twMerge('bg-gray-100 px-0 py-0 dark:bg-gray-800', className)}>
 										<Div class="group relative">
 											{#if isSortable}
 												<Button
-													class="flex w-full items-center justify-between space-x-2 text-gray-500"
+													class="flex w-full items-center justify-between space-x-2 text-gray-500 backdrop-blur-none"
 													onclick={() => {
 														if (isSortable) {
 															if (settings.sortKey !== key) settings.sortDirection = 'asc';
@@ -560,7 +675,7 @@
 															);
 														}
 													}}
-													variants={['ghost', 'square']}
+													variants={['glass', 'square']}
 												>
 													<Div class={twMerge($theme.Th.default, 'px-0 py-0 whitespace-nowrap')}>
 														{label}
@@ -630,8 +745,9 @@
 				{@render tbody()}
 			{:else}
 				<Tbody>
-					{#each rowsPaginated as row, rowIndex (`${settings.currentPage}:${row._key}`)}
-						<Tr>
+					<Tr style="height: {virtualization.topSpacerHeight}px;" />
+					{#each rowsPaginated?.slice(virtualization.startIndex, virtualization.endIndex) as row, _ (`${settings.currentPage}:${row._key}`)}
+						<Tr style="height: {virtualization.rowPx}px;">
 							{#if isSelectable}
 								<Td>
 									{#if rowsCheckboxValues[row.index] !== undefined}
@@ -652,6 +768,7 @@
 							{/each}
 						</Tr>
 					{/each}
+					<Tr style="height: {virtualization.bottomSpacerHeight}px;" />
 				</Tbody>
 			{/if}
 		</Table>
@@ -659,7 +776,9 @@
 	{#if pagination}
 		{@render pagination()}
 	{:else if isPaginateable !== false}
-		<Div class="flex items-center justify-center space-x-2 px-6 py-3 lg:space-x-4">
+		<Div
+			class="flex items-center justify-center space-x-2 border-t border-white/[.5] px-6 py-3 lg:space-x-4 dark:border-white/[.025]"
+		>
 			<Button
 				disabled={settings.currentPage === 0 ? true : undefined}
 				onclick={() => (settings.currentPage = 0)}
@@ -722,7 +841,7 @@
 			>
 				Add
 			</Button>
-			<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}>Cancel</Button>
+			<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}>Cancel</Button>
 		</Div>
 	</Modal>
 {/if}
@@ -772,7 +891,7 @@
 					<Div>Add Filter</Div>
 				</Div>
 			</Button>
-			<Button onclick={() => (filtersTemp = [])} variants={['ghost']}>Clear Filters</Button>
+			<Button onclick={() => (filtersTemp = [])} variants={['glass']}>Clear Filters</Button>
 		</Div>
 		<Div class="relative flex flex-col overflow-auto">
 			<Table>
@@ -848,7 +967,7 @@
 			>
 				Apply
 			</Button>
-			<Button onclick={() => (isFilterModalOpen = false)} variants={['ghost']}>Cancel</Button>
+			<Button onclick={() => (isFilterModalOpen = false)} variants={['glass']}>Cancel</Button>
 		</Div>
 	</Modal>
 {/if}
@@ -890,7 +1009,7 @@
 				}
 				class={twMerge(
 					$theme.Input.default,
-					'rounded-none bg-transparent text-right shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
+					'rounded-none bg-transparent text-right shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
@@ -922,13 +1041,13 @@
 						setAt(object, key, value);
 					}
 				}
-				class="rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="rounded-none bg-transparent shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent"
 				{options}
 			/>
 		</Td>
 	{:else}
 		<Td class="whitespace-nowrap">
-			{options.find((option: any) => option.value === getAt(object, key))?.label ?? "can't find"}
+			{(getAt(object, key) ?? []).length} item{(getAt(object, key) ?? []).length === 1 ? '' : 's'}
 		</Td>
 	{/if}
 {/snippet}
@@ -950,7 +1069,7 @@
 				}
 				class={twMerge(
 					$theme.Input.default,
-					'rounded-none bg-transparent text-right shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
+					'rounded-none bg-transparent text-right shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent'
 				)}
 				contenteditable={true}
 			>
@@ -993,7 +1112,7 @@
 						}
 					}
 				}
-				class="w-full rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="w-full rounded-none bg-transparent shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent"
 				options={sanitizedOptions}
 			/>
 		</Td>
@@ -1019,7 +1138,7 @@
 					}
 					class={twMerge(
 						$theme.Input.default,
-						'rounded-none bg-transparent whitespace-nowrap shadow-none outline-transparent dark:bg-transparent dark:outline-transparent'
+						'rounded-none bg-transparent whitespace-nowrap shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent'
 					)}
 					contenteditable={true}
 				>
@@ -1049,7 +1168,7 @@
 						setAt(object, key, date);
 					}
 				}
-				class="w-full rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
+				class="w-full rounded-none bg-transparent shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent"
 				type="datetime-local"
 			/>
 		</Td>

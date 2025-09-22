@@ -65,6 +65,7 @@ export const serverLoad = <T>(params: Params<T>) => {
 							_routeId: settings._routeId,
 							columnsOrder: settings.columnsOrder,
 							currentPage: settings.currentPage,
+							isPaginateable: settings.isPaginateable,
 							mongoFilter,
 							rowsPerPage: settings.rowsPerPage,
 							sortDirection: settings.sortDirection,

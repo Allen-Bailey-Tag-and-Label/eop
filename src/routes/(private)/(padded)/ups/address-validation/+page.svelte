@@ -92,7 +92,7 @@
 		{#snippet buttons()}
 			{#if !isLoading}
 				<div transition:slide={{ axis: 'y' }}>
-					<Button onclick={reset} variants={['ghost']}>Reset</Button>
+					<Button onclick={reset} variants={['glass']}>Reset</Button>
 				</div>
 			{/if}
 			<SubmitButton bind:isLoading>Validate</SubmitButton>

@@ -98,7 +98,7 @@
 			<Div class="flex justify-end space-x-2">
 				{#if !isLoading}
 					<div transition:slide={{ axis: 'y' }}>
-						<Button onclick={reset} variants={['ghost']}>Reset</Button>
+						<Button onclick={reset} variants={['glass']}>Reset</Button>
 					</div>
 				{/if}
 				<SubmitButton bind:isLoading>Get Quote</SubmitButton>

@@ -1,8 +1,19 @@
 import { twMerge } from 'tailwind-merge';
 import { type Theme } from '../types';
 
-const InputDefault =
-	'shadow-gray-950/5 dark:shadow-gray-950/30 shadow-xl bg-white dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 appearance-none transiton duration-200 focus:outline-2 hover:outline-primary-500 focus:outline-primary-500 px-6 py-3 rounded-lg';
+const glassDark =
+	'dark:bg-white/[.025] dark:shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,.1),_inset_0px_-1px_0px_0px_rgba(0,0,0,.3),_0_1.25rem_1.5625rem_-0.3125rem_rgba(0,0,0,.3),_0_.5rem_.625rem_-.375rem_rgba(0,0,0,.3)]';
+const glassGreen = 'bg-green-500/90 dark:bg-green-500/70';
+const glassLight =
+	'bg-white/[.5] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,.7),_inset_0px_-1px_0px_0px_rgba(0,0,0,.3),_0_1.25rem_1.5625rem_-0.3125rem_rgba(0,0,0,.1),_0_.5rem_.625rem_-.375rem_rgba(0,0,0,.1)]';
+const glassPrimary = 'bg-primary-500/90 dark:bg-primary-500/70';
+const glassRed = 'bg-red-500/90 dark:bg-red-500/70';
+const glassSecondary = 'bg-secondary-500/90 dark:bg-secondary-500/70';
+const glass = twMerge('backdrop-blur-lg text-current', glassDark, glassLight);
+const InputDefault = twMerge(
+	glass,
+	'appearance-none cursor-pointer transition duration-200 px-6 py-3 rounded-lg outline-2 outline-transparent hover:outline-gray-950 focus::outline-gray-950 dark:hover:outline-white dark:focus:outline-white'
+);
 
 export const defaultTheme: Theme = {
 	A: {
@@ -10,26 +21,30 @@ export const defaultTheme: Theme = {
 			'text-primary-500 font-semibold decoration-2 hover:underline outline-hidden focus:underline'
 	},
 	Button: {
-		default:
-			'whitespace-nowrap bg-primary-500 outline-primary-500/0 flex justify-center px-6 py-3 text-white outline-1 transition duration-200 hover:outline-gray-400 focus:outline-2 focus:outline-gray-950 dark:focus:outline-gray-50 rounded-lg',
+		default: twMerge(
+			glass,
+			glassPrimary,
+			'cursor-pointer whitespace-nowrap flex justify-center px-6 py-3 text-white transition duration-200 rounded-lg outline-2 outline-primary-500/0 hover:outline-gray-950 focus:outline-gray-950 dark:hover:outline-white dark:focus:outline-white'
+		),
 		disabled: 'opacity-50 outline-none',
-		error: 'bg-red-500',
+		error: twMerge(glassRed, ''),
 		icon: 'aspect-square w-12 items-center justify-center p-0',
-		ghost:
-			'bg-gray-950/0 text-gray-950 hover:bg-gray-950/10 focus:bg-gray-950/10 dark:bg-gray-50/0 dark:text-gray-50 dark:hover:bg-gray-50/10 dark:focus:bg-gray-50/10',
-		secondary: 'bg-secondary-500 outline-secondary-500/0',
+		ghost: twMerge('bg-transparent dark:bg-transparent shadow-none dark:shadow-none text-current'),
+		glass: twMerge(glass, ''),
+		secondary: twMerge(glassSecondary, ''),
 		small: 'px-4 py-2',
 		square: 'rounded-none',
-		success: 'bg-green-500',
+		success: twMerge(glassGreen, ''),
 		xSmall: 'px-2 py-1'
 	},
 	Card: {
-		default:
-			'shadow-gray-950/5 dark:shadow-gray-950/30 shadow-xl bg-white dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 flex flex-col rounded-xl p-6 backdrop-blur-md transition duration-200'
+		default: twMerge(glass, 'p-6 rounded-xl')
 	},
 	Checkbox: {
-		default:
-			'peer-checked:bg-primary-500 peer-checked:outline-primary-500 peer-focus:outline-primary-500 hover:outline-primary-500 flex h-6 w-6 items-center justify-center rounded bg-white px-0 py-0 shadow-xl outline outline-gray-200 transition duration-200 peer-focus:outline-2 dark:bg-gray-900 dark:outline-gray-700'
+		default: twMerge(
+			InputDefault,
+			'flex h-6 w-6 px-0 py-0 items-center justify-center peer-checked:bg-primary-500/90 dark:peer-checked:bg-primary-500/70 backdrop-blur-none outline-2 outline-transparent peer-focus:outline-gray-950 dark:peer-focus:outline-white'
+		)
 	},
 	Datatable: { default: '' },
 	Dialog: {
@@ -45,7 +60,9 @@ export const defaultTheme: Theme = {
 			'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50 pb-[env(safe-area-inset-bottom)] lg:pb-0 lg:pt-[env(safe-area-inset-top)]'
 	},
 	Input: {
-		default: InputDefault
+		default: twMerge(InputDefault),
+		readonly:
+			'bg-transparent dark:bg-transparent shadow-none dark:shadow-none backdrop-blur-none outline-0 cursor-default'
 	},
 	Label: { default: 'text-sm' },
 	Modal: { default: 'max-w-full max-h-full overflow-auto' },
@@ -60,18 +77,18 @@ export const defaultTheme: Theme = {
 	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },
 	P: { default: '' },
 	Radio: {
-		box: twMerge(
-			InputDefault,
-			'has-checked:bg-primary-500/10 has-checked:outline-primary-500'
-			// 'flex w-full items-center justify-start space-x-2 rounded-lg p-3 has-checked:bg-primary-500/10 outline outline-gray-200 dark:outline-gray-700 has-checked:outline-primary-500'
-		),
+		box: twMerge(InputDefault, 'has-checked:bg-primary-500/10 has-checked:outline-primary-500'),
 		default: twMerge('flex w-full items-center space-x-2')
 	},
 	RangeInput: {
-		default:
-			'ring ring-gray-200 dark:ring-gray-700 shadow-2xl shadow-gray-950 [&::-webkit-slider-thumb]:bg-primary-500 hover:ring-primary-500 focus:ring-2 focus:ring-primary-500 h-2 w-full appearance-none rounded-full bg-white p-0 outline-none dark:bg-gray-900 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:outline [&::-webkit-slider-thumb]:outline-transparent focus:[&::-webkit-slider-thumb]:outline-2 focus:[&::-webkit-slider-thumb]:outline-primary-500 hover:[&::-webkit-slider-thumb]:outline-gray-200 dark:hover:[&::-webkit-slider-thumb]:outline-gray-700 [&::-webkit-slider-thumb]:transition [&::-webkit-slider-thumb]:duration-200'
+		default: twMerge(
+			InputDefault,
+			'py-5',
+			'[&::-webkit-slider-thumb]:-mt-1 [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:block [&::-webkit-slider-thumb]:rounded-full',
+			'[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:w-full [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:bg-white/[.5] dark:[&::-webkit-slider-runnable-track]:bg-white/[.025] [&::-webkit-slider-runnable-track]:rounded-full'
+		)
 	},
-	Select: { default: twMerge(InputDefault, 'appearance-none') },
+	Select: { default: twMerge(InputDefault, '') },
 	Slider: { default: 'relative flex flex-col space-y-6 items-center' },
 	Spinner: { default: 'w-6 h-6' },
 	SubmitButton: { default: '' },
@@ -84,6 +101,6 @@ export const defaultTheme: Theme = {
 	},
 	Tr: {
 		default:
-			'even:bg-gray-100 dark:even:bg-gray-800 hover:bg-primary-500/10 transition duration-200 bg-primary-500/0 even:hover:bg-primary-500/10 dark:even:hover:bg-primary-500/10'
+			'even:bg-white/[.5] even:dark:bg-white/[.025] hover:bg-primary-500/10 transition duration-200 even:hover:bg-primary-500/10'
 	}
 };

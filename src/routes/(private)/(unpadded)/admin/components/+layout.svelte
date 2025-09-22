@@ -35,7 +35,10 @@
 					$theme.Button.default,
 					$theme.Button.ghost,
 					$theme.Button.square,
-					'justify-start hover:no-underline'
+					page.url.pathname === `/admin/components/${componentKey}`
+						? $theme.Button.default
+						: 'rounded-none hover:bg-white/[.5] focus:bg-white/[.5] dark:hover:bg-white/[.025] dark:focus:bg-white/[.025]',
+					'justify-start rounded-none hover:no-underline'
 				)}
 				href="/admin/components/{componentKey}"
 			>
@@ -48,7 +51,7 @@
 			{@attach portal()}
 			class="fixed top-0 left-0 min-h-full min-w-full backdrop-blur-md"
 			onclick={modal.close}
-			variants={['ghost']}
+			variants={['glass']}
 		/>
 		<components.Card
 			{@attach portal()}

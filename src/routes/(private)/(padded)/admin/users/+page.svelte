@@ -108,7 +108,7 @@
 			onclick={() => {
 				resetModal.isOpen = false;
 			}}
-			variants={['ghost']}>Cancel</Button
+			variants={['glass']}>Cancel</Button
 		>
 	</Div>
 </Modal>
@@ -208,7 +208,7 @@
 						<Div class="flex justify-end space-x-2">
 							{#if isLoading}
 								<div transition:slide={{ axis: 'y' }}>
-									<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
+									<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
 										>Cancel</Button
 									>
 								</div>
@@ -269,7 +269,7 @@
 						<Div class="flex justify-end space-x-2">
 							{#if isLoading}
 								<div transition:slide={{ axis: 'y' }}>
-									<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
+									<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
 										>Cancel</Button
 									>
 								</div>
@@ -354,7 +354,7 @@
 						<Div class="flex justify-end space-x-2">
 							{#if isLoading}
 								<div transition:slide={{ axis: 'y' }}>
-									<Button onclick={() => (isCreateModalOpen = false)} variants={['ghost']}
+									<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
 										>Cancel</Button
 									>
 								</div>

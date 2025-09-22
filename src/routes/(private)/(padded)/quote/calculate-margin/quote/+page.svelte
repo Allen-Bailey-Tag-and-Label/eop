@@ -136,13 +136,14 @@
 				</Tr>
 				<Tr label="Labor">
 					<Input
-						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full text-right"
 						name="previous.labor"
 						readonly={true}
 						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={previous.labor}
+						variants={['readonly']}
 					/>
 				</Tr>
 				<Tr label="Total Cost">
@@ -160,13 +161,14 @@
 					percent={(Number(previous.sell) - Number(previous.totalCost)) / Number(previous.sell)}
 				>
 					<Input
-						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full text-right"
 						name="previous.margin"
 						readonly={true}
 						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={previous.margin}
+						variants={['readonly']}
 					/>
 				</Tr>
 				<Tr label="Total Sell">
@@ -218,13 +220,14 @@
 				</Tr>
 				<Tr label="Labor">
 					<Input
-						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full text-right"
 						name="current.labor"
 						readonly={true}
 						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={current.labor}
+						variants={['readonly']}
 					/>
 				</Tr>
 				<Tr label="Total Cost">
@@ -242,24 +245,26 @@
 					percent={(Number(current.sell) - Number(current.totalCost)) / Number(current.sell)}
 				>
 					<Input
-						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full text-right"
 						name="current.margin"
 						readonly={true}
 						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={current.margin}
+						variants={['readonly']}
 					/>
 				</Tr>
 				<Tr label="Total Sell">
 					<Input
-						class="w-full bg-transparent text-right shadow-none outline-0 hover:outline-0 focus:outline-0 dark:bg-transparent"
+						class="w-full text-right"
 						name="current.sell"
 						readonly={true}
 						step={0.01}
 						tabindex={-1}
 						type="number"
 						value={current.sell}
+						variants={['readonly']}
 					/>
 				</Tr>
 			</Section>

@@ -12,6 +12,7 @@ export const getSettings = async <T extends { locals: any; url: URL }>({
 			columnsOrder: [],
 			currentPage: 0,
 			filter: [],
+			isPaginateable: true,
 			rowsPerPage: 10,
 			sortDirection: 'asc',
 			sortKey: 'createdAt'
@@ -29,6 +30,7 @@ export const getSettings = async <T extends { locals: any; url: URL }>({
 			_routeId: route._id,
 			columnsOrder: settings?.columnsOrder ?? [],
 			currentPage: settings?.currentPage ?? 0,
+			isPaginateable: settings?.isPaginateable ?? true,
 			filter: settings?.filter ?? [],
 			rowsPerPage: settings?.rowsPerPage ?? 10,
 			sortDirection: settings?.sortDirection ?? 'asc',

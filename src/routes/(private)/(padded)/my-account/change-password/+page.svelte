@@ -15,9 +15,9 @@
 
 <Form {submitFunction}>
 	{#snippet inputs()}
-		<Input label="Password (Current)" name="passwordCurrent" type="password" />
-		<Input label="Password (New)" name="password" type="password" />
-		<Input label="Password (New Confirm)" name="passwordConfirm" type="password" />
+		<Input label="Password (Current)" name="passwordCurrent" required={true} type="password" />
+		<Input label="Password (New)" name="password" required={true} type="password" />
+		<Input label="Password (New Confirm)" name="passwordConfirm" required={true} type="password" />
 	{/snippet}
 	{#snippet error()}
 		{form?.error}

@@ -7,6 +7,8 @@
 	import { A, Button, Card, Div, Header } from '$lib/components';
 	import { theme } from '$lib/theme';
 	import { type Navigation, type User } from '$lib/types.js';
+	import { slide } from 'svelte/transition';
+	import { cubicInOut } from 'svelte/easing';
 
 	let { children, data } = $props();
 	let isNavigationOpen = $state(false);
@@ -54,7 +56,7 @@
 	<Header
 		class="sticky bottom-0 z-10 order-2 flex items-center justify-between lg:top-0 lg:order-1"
 	>
-		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
+		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['glass', 'icon']}>
 			{#if !isNavigationOpen}
 				<Menu size={(user.settings.magnification * 24) / 16}></Menu>
 			{:else}
@@ -70,20 +72,26 @@
 		<Div class="pointer-events-none top-0 left-0 z-10 h-full w-full">
 			{#if isNavigationOpen}
 				<Button
-					class="pointer-events-auto absolute top-0 left-0 h-full w-full backdrop-blur-md"
+					class={twMerge(
+						'pointer-events-auto absolute top-0 left-0 h-full w-full backdrop-blur-none'
+					)}
 					onclick={() => (isNavigationOpen = false)}
 					tabindex={-1}
 					variants={['ghost', 'square']}
-				></Button>
-				<Card
-					class="pointer-events-auto absolute top-0 left-0 z-10 min-h-full w-[calc(100vw_-_3rem)] rounded-none p-0 pt-[env(safe-area-inset-top)] lg:w-auto lg:min-w-[20rem] lg:pt-0 lg:pb-[env(safe-area-inset-bottom)]"
-				>
-					<Div class="flex flex-grow flex-col">
-						{@render tree(navigation)}
-					</Div>
-					{@render link('/sign-out', 'Sign Out')}
-				</Card>
+				/>
 			{/if}
+			<Card
+				class={twMerge(
+					'pointer-events-auto absolute top-0 left-0 z-10 max-h-full min-h-full w-[calc(100vw_-_3rem)] overflow-auto rounded-none p-0 pt-[env(safe-area-inset-top)] transition duration-200 lg:w-auto lg:min-w-[20rem] lg:pt-0 lg:pb-[env(safe-area-inset-bottom)]',
+					isNavigationOpen ? 'translate-x-0' : '-translate-x-full'
+				)}
+				inert={isNavigationOpen ? undefined : true}
+			>
+				<Div class="flex flex-grow flex-col">
+					{@render tree(navigation)}
+				</Div>
+				{@render link('/sign-out', 'Sign Out')}
+			</Card>
 		</Div>
 		<Div class="flex flex-grow flex-col overflow-auto">
 			{#if children}
@@ -97,8 +105,8 @@
 	<A
 		class={twMerge(
 			$theme.Button.default,
-			'block rounded-none text-left outline-solid hover:no-underline focus:no-underline',
-			page.url.pathname !== href ? 'bg-transparent text-current' : undefined
+			'block rounded-none text-left backdrop-blur-none outline-solid hover:no-underline focus:no-underline',
+			page.url.pathname !== href ? $theme.Button.ghost : undefined
 		)}
 		{href}
 		onclick={() => {
@@ -115,13 +123,13 @@
 	<Div
 		class={twMerge(
 			'flex flex-col',
-			depth > 0 ? 'border-l border-gray-300 dark:border-gray-600' : undefined
+			depth > 0 ? 'border-l border-white/[.5] dark:border-white/[0.25]' : undefined
 		)}
 	>
 		{#each items as item}
 			{#if item.children.length > 0}
 				<Button
-					class={twMerge('flex items-center justify-between')}
+					class={twMerge('flex items-center justify-between backdrop-blur-none')}
 					onclick={() => (item.isOpen = !item.isOpen)}
 					variants={['ghost', 'square']}
 				>

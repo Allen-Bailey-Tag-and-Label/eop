@@ -25,7 +25,8 @@ type Params<T> = ModelParams<T> | QueryParams<T>;
 export const getRows = async <T>(params: Params<T>): Promise<T[]> => {
 	await connect();
 
-	const { currentPage, mongoFilter, rowsPerPage, sortDirection, sortKey } = params.settings;
+	const { currentPage, isPaginateable, mongoFilter, rowsPerPage, sortDirection, sortKey } =
+		params.settings;
 	const skip = currentPage * rowsPerPage;
 	const dir: 1 | -1 = sortDirection === 'asc' ? 1 : -1;
 
@@ -44,7 +45,7 @@ export const getRows = async <T>(params: Params<T>): Promise<T[]> => {
 			const labelExprBuilder = buildRefLabelExprBuilder(refModel, labelFn);
 			const as = `__${sortKey}_pop`;
 
-			const pipeline: any[] = [
+			let pipeline: any[] = [
 				{ $match: mongoFilter },
 				{
 					$lookup: {
@@ -57,16 +58,22 @@ export const getRows = async <T>(params: Params<T>): Promise<T[]> => {
 				{ $unwind: { path: `$${as}`, preserveNullAndEmptyArrays: true } },
 				{ $addFields: { __sortKey: labelExprBuilder(as) } },
 				{ $sort: { __sortKey: dir } },
-				{ $project: { __sortKey: 0, [as]: 0 } },
-				{ $skip: skip },
-				{ $limit: rowsPerPage }
+				{ $project: { __sortKey: 0, [as]: 0 } }
 			];
+			if (isPaginateable) {
+				pipeline.push({ $skip: skip });
+				pipeline.push({ $limit: rowsPerPage });
+			}
 
 			rows = await baseModel.aggregate(pipeline).exec();
 		} else {
 			// Fallback: original path (no label-aware sorting)
 			const sort: Sort = sortKey ? { [sortKey]: dir } : {};
-			const query = params.model.find(mongoFilter).sort(sort).skip(skip).limit(rowsPerPage);
+			let query: Query<T[], T> = params.model.find(mongoFilter).sort(sort);
+
+			if (isPaginateable) {
+				query = query.skip(skip).limit(rowsPerPage);
+			}
 
 			rows = await query.lean().exec();
 		}
@@ -75,12 +82,17 @@ export const getRows = async <T>(params: Params<T>): Promise<T[]> => {
 		const sort: Sort = sortKey ? { [sortKey]: dir } : {};
 		let query: Query<T[], T>;
 		if ('query' in params) {
-			query = params.query().find(mongoFilter).sort(sort).skip(skip).limit(rowsPerPage);
+			query = params.query().find(mongoFilter).sort(sort);
 		} else {
-			query = params.model.find(mongoFilter).sort(sort).skip(skip).limit(rowsPerPage);
+			query = params.model.find(mongoFilter).sort(sort);
+		}
+
+		if (isPaginateable) {
+			query = query.skip(skip).limit(rowsPerPage);
 		}
 
 		rows = await query.lean().exec();
 	}
+
 	return JSON.parse(JSON.stringify(rows));
 };

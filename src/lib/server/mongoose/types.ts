@@ -11,6 +11,7 @@ export type Settings = {
 	columnsOrder: string[];
 	currentPage: number;
 	filter: Filter[];
+	isPaginateable: boolean;
 	rowsPerPage: number;
 	sortDirection: 'asc' | 'desc';
 	sortKey: string;

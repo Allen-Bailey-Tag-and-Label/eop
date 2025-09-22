@@ -98,13 +98,18 @@ export type Props<CompareType = any> = {
 	rowsPaginated?: RowSanitized[];
 	rowsSanitized?: RowSanitized[];
 	rowsSelected?: boolean[];
+	scrollContainer?: HTMLDivElement | null;
+	scrollHandler?: (e: Event) => void;
+	scrollTop?: number;
 	settings?: Partial<Settings>;
-	settingsTemp?: Pick<Settings, 'rowsPerPage'>;
+	settingsTemp?: Pick<Settings, 'rowsPerPage'> & { isPaginateable: boolean };
 	tbody?: Snippet;
 	th?: Snippet<[ColumnSanitized<CompareType> & { columnIndex: number }]>;
 	thead?: Snippet;
 	toolbar?: Snippet;
 	totalRows?: number;
+	virtualOverscan?: number;
+	virtualRowHeight?: string;
 };
 export type Row = Record<string, any>;
 export type RowSanitized = {

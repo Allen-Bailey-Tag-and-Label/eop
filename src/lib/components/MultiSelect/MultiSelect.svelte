@@ -70,7 +70,13 @@
 				{placeholder}
 			</Div>
 			{#if value.length > 0}
-				<Div class={twMerge($theme.Button.default, $theme.Button.error, 'items-center px-2 py-0')}>
+				<Div
+					class={twMerge(
+						$theme.Button.default,
+						$theme.Button.error,
+						'items-center px-2 py-0 backdrop-blur-none'
+					)}
+				>
 					<Div>{value.length}</Div>
 					<span
 						onclick={(e: Event) => {
@@ -119,7 +125,7 @@
 			>
 				{#each [...options].sort((a, b) => a.label.localeCompare(b.label)) as option}
 					<Button
-						class="flex items-center space-x-2 px-6"
+						class="flex w-full items-center space-x-2 px-6 backdrop-blur-none"
 						onclick={() => {
 							if (value.includes(option.value)) {
 								value = value.filter((v) => v !== option.value);
@@ -127,9 +133,13 @@
 								value.push(option.value);
 							}
 						}}
-						variants={['ghost']}
+						variants={['glass']}
 					>
-						<Checkbox checked={value.includes(option.value)} tabindex={-1} />
+						<Checkbox
+							checked={value.includes(option.value)}
+							class="pointer-events-none"
+							tabindex={-1}
+						/>
 						<Div class="flex flex-grow">{option.label}</Div>
 					</Button>
 				{/each}
