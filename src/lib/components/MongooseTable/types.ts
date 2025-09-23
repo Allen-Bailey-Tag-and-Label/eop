@@ -15,7 +15,7 @@ export type ColumnType = DatatableColumnType | 'ref';
 export type ColumnSanitized = Omit<DatatableColumnSanitized, 'type'> & { type: ColumnType };
 export type Data = {
 	columns: Column[];
-	isPaginatable: boolean;
+	isPaginateable: boolean;
 	rows: Promise<unknown[]>;
 	settings: Settings & { isPaginateable: true };
 	totalRows: Promise<number>;

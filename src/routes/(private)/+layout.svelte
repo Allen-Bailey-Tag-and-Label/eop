@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
-	import { ChevronDown, Menu, X } from '@lucide/svelte';
+	import { ChevronDown, Menu, PanelLeft, X } from '@lucide/svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { A, Button, Card, Div, Header } from '$lib/components';
@@ -57,11 +57,7 @@
 		class="sticky bottom-0 z-10 order-2 flex items-center justify-between lg:top-0 lg:order-1"
 	>
 		<Button onclick={() => (isNavigationOpen = !isNavigationOpen)} variants={['ghost', 'icon']}>
-			{#if !isNavigationOpen}
-				<Menu size={(user.settings.magnification * 24) / 16}></Menu>
-			{:else}
-				<X size={(user.settings.magnification * 24) / 16}></X>
-			{/if}
+			<PanelLeft size={(user.settings.magnification * 24) / 16} />
 		</Button>
 		<Div class="px-6">
 			{user.profile.firstName}

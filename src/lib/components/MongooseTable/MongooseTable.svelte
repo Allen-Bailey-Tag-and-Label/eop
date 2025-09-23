@@ -691,10 +691,11 @@
 	label
 }: Pick<ColumnSanitized, 'class' | 'isSortable' | 'key' | 'label'> & { columnIndex: number })}
 	<Th class={twMerge('p-0', className)}>
-		<Div class="group relative">
+		<Div class="group relative flex w-full">
 			{#if isSortable}
 				<Form
 					action="/api/mongooseTable?/find"
+					class="flex w-full max-w-none"
 					submitFunction={() => {
 						isLoading = true;
 						return async ({ update }) => {
@@ -750,7 +751,7 @@
 					/>
 					<Input defaultValue={key} name="sortKey" type="hidden" value={key} />
 					<Button
-						class="flex w-full items-center justify-between space-x-2 text-gray-500"
+						class="flex w-full items-center justify-between space-x-2 backdrop-blur-none"
 						type="submit"
 						variants={['glass', 'square']}
 					>
@@ -769,7 +770,13 @@
 					</Button>
 				</Form>
 			{:else}
-				<Div class="flex justify-start px-6">
+				<Div
+					class={twMerge(
+						$theme.Button.default,
+						$theme.Button.glass,
+						'min-h-12 w-full cursor-default items-center justify-between rounded-none outline-0 backdrop-blur-none'
+					)}
+				>
 					{label}
 				</Div>
 			{/if}
@@ -802,6 +809,7 @@
 })}
 	<Form
 		action="/api/mongooseTable?/find"
+		class="pointer-events-none absolute h-full w-full max-w-none"
 		submitFunction={() => {
 			return async () => {};
 		}}
@@ -853,7 +861,7 @@
 		<Input defaultValue={settings.sortKey} name="sortKey" type="hidden" value={settings.sortKey} />
 		<Button
 			class={twMerge(
-				'absolute top-1/2 -translate-y-1/2 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100',
+				'pointer-events-auto absolute top-1/2 -translate-y-1/2 px-2 py-2 opacity-0 transition duration-200 group-hover:opacity-100',
 				className
 			)}
 			onclick={(e: Event) => {

@@ -29,7 +29,7 @@
 	isEditable={false}
 	modelName="QuoteMarginCalculation"
 	virtualColumns={[
-		{ key: 'buttons', label: '', snippet: buttonsSnippet },
+		{ isSortable: false, key: 'buttons', label: '', snippet: buttonsSnippet },
 		{ key: 'previous.number', label: 'Previous Quote #', type: 'number' },
 		{ key: 'previous.date', label: 'Previous Date', snippet: dateSnippet, type: 'timestamp' },
 		{
