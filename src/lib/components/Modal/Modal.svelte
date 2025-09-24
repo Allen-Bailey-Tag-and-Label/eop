@@ -48,7 +48,7 @@
 			'transition duration-200',
 			isOpen ? undefined : 'pointer-events-none',
 			isOpen ? 'opacity-100' : 'opacity-0',
-			isOpen ? 'scale-100' : 'scale-[.98]',
+			isOpen ? 'scale-100' : 'scale-[.90]',
 			$theme.Modal.default,
 			...variants.map((variant: string) => $theme.Modal[variant]),
 			className
