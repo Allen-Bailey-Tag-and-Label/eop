@@ -595,7 +595,7 @@
 				<Thead class="sticky top-0">
 					<Tr>
 						{#if isSelectable}
-							<Th class={twMerge($theme.Button.glass, 'relative z-10 w-6 py-0')}>
+							<Th class={twMerge($theme.Button.glass, 'relative z-10 w-6 py-0 backdrop-blur-none')}>
 								<Checkbox
 									bind:checked={isAllRowsSelected}
 									onchange={() => {
@@ -627,14 +627,7 @@
 										...columnSanitized
 									})}
 								{:else}
-									<Th
-										class={twMerge(
-											$theme.Button.default,
-											$theme.Button.ghost,
-											'table-cell items-center justify-between rounded-none p-0 backdrop-blur-none',
-											className
-										)}
-									>
+									<Th class={twMerge('p-0', className)}>
 										<Div class="group relative">
 											{#if isSortable}
 												<Button
@@ -700,7 +693,9 @@
 												<Div
 													class={twMerge(
 														$theme.Th.default,
-														'flex w-full justify-start px-6 py-3 whitespace-nowrap'
+														$theme.Button.default,
+														$theme.Button.glass,
+														'flex w-full cursor-default justify-start rounded-none px-6 py-3 whitespace-nowrap outline-0 backdrop-blur-none'
 													)}
 												>
 													{label}
