@@ -50,7 +50,7 @@
 	<Td class="py-0">
 		<Div class="flex space-x-2">
 			<A
-				class={twMerge($theme.Button.default, $theme.Button.small)}
+				class={twMerge($theme.Button.default, $theme.Button.small, 'backdrop-blur-none')}
 				href="/ups/quote?{new URLSearchParams({
 					_branchId: object?._branchId,
 					address: object?.shipTo?.AddressLine,
@@ -65,7 +65,7 @@
 				Duplicate
 			</A>
 			<A
-				class={twMerge($theme.Button.default, $theme.Button.small)}
+				class={twMerge($theme.Button.default, $theme.Button.small, 'backdrop-blur-none')}
 				href="/ups/quote/{object?.quote}"
 			>
 				View
