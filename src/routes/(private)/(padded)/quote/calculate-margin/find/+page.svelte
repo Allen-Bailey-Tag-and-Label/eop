@@ -49,7 +49,7 @@
 {#snippet buttonsSnippet({ object }: TdSnippet)}
 	<Td class="py-0">
 		<A
-			class={twMerge($theme.Button.default, $theme.Button.small)}
+			class={twMerge($theme.Button.default, $theme.Button.small, 'backdrop-blur-none')}
 			href="/quote/calculate-margin/quote/{object?.current?.number}"
 		>
 			View
