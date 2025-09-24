@@ -389,7 +389,7 @@
 				type="hidden"
 				value={object?.username}
 			/>
-			<Button type="submit" variants={['small']}>Generate OTP</Button>
+			<Button class="backdrop-blur-none" type="submit" variants={['small']}>Generate OTP</Button>
 		</Form>
 	</Td>
 {/snippet}
