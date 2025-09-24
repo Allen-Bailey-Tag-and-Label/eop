@@ -125,7 +125,7 @@
 			>
 				{#each [...options].sort((a, b) => a.label.localeCompare(b.label)) as option}
 					<Button
-						class="flex w-full items-center space-x-2 px-6 backdrop-blur-none"
+						class="flex w-full items-center space-x-2 px-6 py-0 backdrop-blur-none"
 						onclick={() => {
 							if (value.includes(option.value)) {
 								value = value.filter((v) => v !== option.value);
