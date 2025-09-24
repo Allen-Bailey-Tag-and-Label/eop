@@ -627,11 +627,18 @@
 										...columnSanitized
 									})}
 								{:else}
-									<Th class={twMerge('bg-gray-100 px-0 py-0 dark:bg-gray-800', className)}>
+									<Th
+										class={twMerge(
+											$theme.Button.default,
+											$theme.Button.ghost,
+											'table-cell items-center justify-between rounded-none p-0 backdrop-blur-none',
+											className
+										)}
+									>
 										<Div class="group relative">
 											{#if isSortable}
 												<Button
-													class="flex w-full items-center justify-between space-x-2 text-gray-500 backdrop-blur-none"
+													class="flex w-full items-center justify-between space-x-2 backdrop-blur-none"
 													onclick={() => {
 														if (isSortable) {
 															if (settings.sortKey !== key) settings.sortDirection = 'asc';
