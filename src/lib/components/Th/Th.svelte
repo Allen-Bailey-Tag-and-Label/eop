@@ -7,12 +7,14 @@
 	type Props = Omit<HTMLAttributes<HTMLTableCellElement>, 'class'> & {
 		children?: Snippet;
 		class?: string;
+		colspan?: number;
 		element?: HTMLTableCellElement | null;
 		variants?: string[];
 	};
 	let {
 		children,
 		class: className,
+		colspan,
 		element = $bindable(null),
 		variants = [],
 		...restProps
@@ -27,6 +29,7 @@
 		...variants.map((variant: string) => $theme.Th[variant]),
 		className
 	)}
+	{colspan}
 >
 	{#if children}
 		{@render children()}
