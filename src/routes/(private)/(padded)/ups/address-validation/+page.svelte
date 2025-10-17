@@ -46,7 +46,7 @@
 			if (result.type === 'success') {
 				const { data } = result;
 				console.log(data);
-				if (data) candidates = data;
+				if (data) candidates = [data];
 				if (!data) errorMessage = 'Could not find any possible candidates';
 			}
 		};

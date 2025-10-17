@@ -281,9 +281,10 @@ const validateAddress = async (
 	const result = deserialize(await response.text()) || { data: {} };
 
 	if (result.type !== 'success') return;
-	const { data: candidates } = result;
+	let { data: candidates } = result;
 
-	if (candidates === undefined || candidates.length !== 1) return;
+	if (candidates === undefined) return;
+	if (!Array.isArray(candidates)) candidates = [candidates];
 
 	const [candidate] = candidates;
 	const {
