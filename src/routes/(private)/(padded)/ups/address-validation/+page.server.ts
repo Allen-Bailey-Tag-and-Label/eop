@@ -32,7 +32,7 @@ export const actions: Actions = {
 			}
 		});
 
-		const response = await proxyFetch('https://wwwcie.ups.com/addressvalidation/v1/3', {
+		const response = await proxyFetch('https://onlinetools.ups.com/addressvalidation/v1/3', {
 			method: 'POST',
 			headers: upsHeaders,
 			body: upsBody

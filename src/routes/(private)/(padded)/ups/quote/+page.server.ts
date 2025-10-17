@@ -291,7 +291,7 @@ const validateAddress = async (
 		AddressClassification,
 		AddressKeyFormat: { AddressLine, PoliticalDivision2, PoliticalDivision1, PostcodePrimaryLow }
 	} = candidate;
-	shipToAddress = AddressLine[0];
+	if (Array.isArray(AddressLine)) shipToAddress = AddressLine[0];
 	shipToCity = PoliticalDivision2;
 	shipToState = PoliticalDivision1;
 	shipToZIP = PostcodePrimaryLow;
