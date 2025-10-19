@@ -1,4 +1,8 @@
 export type Branch = { _id: string; label: string; number: number };
+export type Locals = {
+	navigation: Navigation[];
+	user: User;
+};
 export type Navigation = Omit<Route, '_id' | 'label'> & {
 	children: Navigation[];
 	isOpen: boolean;

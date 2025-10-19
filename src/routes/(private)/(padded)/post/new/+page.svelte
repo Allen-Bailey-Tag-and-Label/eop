@@ -1,14 +1,33 @@
 <script lang="ts">
 	import { Div, Form, Input, Label, Post, Select, SubmitButton, Textarea } from '$lib/components';
-	import { inputDate, inputDateTimeLocal } from '$lib/formats';
+	import { inputDateTimeLocal } from '$lib/formats';
+	import type { Locals } from '$lib/types';
 
-	let category = $state('news');
+	type Props = {
+		_id?: string;
+		category: string;
+		data: {
+			locals: Locals;
+		};
+		date: Date;
+		md: string;
+		slug: string;
+		title: string;
+	};
+
+	let {
+		_id,
+		category = $bindable('news'),
+		date = $bindable(new Date()),
+		data,
+		md = $bindable(''),
+		slug = $bindable(''),
+		title = $bindable(''),
+		...props
+	}: Props = $props();
+
 	const categoryOptions = ['News'].map((label) => ({ label, value: label.toLowerCase() }));
-	let date = $state(new Date());
 	let isLoading = $state(false);
-	let md = $state(``);
-	let slug = $state('');
-	let title = $state('');
 
 	// $effects
 	$effect(() => {
@@ -18,6 +37,9 @@
 
 <Div class="grid flex-grow grid-cols-2 gap-4">
 	<Form bind:isLoading class="max-w-auto flex flex-grow flex-col">
+		{#if _id}
+			<Input class="sr-only" name="_id" value={_id} />
+		{/if}
 		<Div class="flex flex-grow flex-col items-start space-y-6">
 			<Div class="flex flex-wrap space-x-4">
 				<Div class="flex flex-col">
@@ -57,5 +79,11 @@
 			<SubmitButton bind:isLoading class="ml-auto">Post</SubmitButton>
 		</Div>
 	</Form>
-	<Post {date} {md} {title} />
+	<Post
+		{date}
+		firstName={data.locals.user.profile.firstName}
+		lastName={data.locals.user.profile.lastName}
+		{md}
+		{title}
+	/>
 </Div>

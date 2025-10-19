@@ -9,6 +9,7 @@
 		class?: string;
 		element?: HTMLAnchorElement | null;
 		href?: string;
+		target?: '_blank' | '_parent' | '_self' | '_top' | '_unfencedTop';
 		variants?: string[];
 	};
 	let {
@@ -16,6 +17,7 @@
 		class: className,
 		element = $bindable(null),
 		href,
+		target,
 		variants = [],
 		...restProps
 	}: Props = $props();
@@ -30,6 +32,7 @@
 		className
 	)}
 	{href}
+	{target}
 >
 	{#if children}
 		{@render children()}
