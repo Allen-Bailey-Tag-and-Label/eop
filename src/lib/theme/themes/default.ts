@@ -60,6 +60,7 @@ export const defaultTheme: Theme = {
 		default:
 			'dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700 bg-gray-50 pb-[env(safe-area-inset-bottom)] lg:pb-0 lg:pt-[env(safe-area-inset-top)]'
 	},
+	Hr: { default: '' },
 	Input: {
 		default: twMerge(InputDefault),
 		readonly:

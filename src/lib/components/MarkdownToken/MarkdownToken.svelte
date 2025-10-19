@@ -16,6 +16,10 @@
 		tokens: Token[];
 		type: 'heading';
 	};
+	type HrToken = {
+		raw: string;
+		type: 'hr';
+	};
 	type HtmlToken = {
 		block: boolean;
 		pre: boolean;
@@ -60,6 +64,7 @@
 	type Token =
 		| EmToken
 		| HeadingToken
+		| HrToken
 		| HtmlToken
 		| ListItemToken
 		| ListToken
@@ -72,36 +77,35 @@
 
 	let { tokens = $bindable([]) }: Props = $props();
 
-	const coerce = (v: string) => {
-		if (v === 'true') return true;
-		if (v === 'false') return false;
-		const n = Number(v);
-		return Number.isNaN(n) ? v : n;
+	const coerce = (value: string) => {
+		if (value === 'true') return true;
+		if (value === 'false') return false;
+		const number = Number(value);
+		return Number.isNaN(number) ? value : number;
 	};
 	const componentMap: Record<string, Component<any>> = UI;
-
 	const parseAttrs = (s: string): Record<string, unknown> => {
 		const attrs: Record<string, unknown> = {};
-		const re = /([:@\w-]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
-		let m: RegExpExecArray | null;
-		while ((m = re.exec(s))) {
-			const key = m[1];
-			const val = m[2] ?? m[3] ?? m[4];
-			attrs[key] = val === undefined ? true : coerce(val);
+		const regExp = /([:@\w-]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
+		let match: RegExpExecArray | null;
+		while ((match = regExp.exec(s))) {
+			const key = match[1];
+			const value = match[2] ?? match[3] ?? match[4];
+			attrs[key] = value === undefined ? true : coerce(value);
 		}
 		return attrs;
 	};
 	const parseComponentTag = (src: string) => {
 		// Try paired first
-		let m = src.match(/^<([A-Z][\w]*)\s*([^>]*)>([\s\S]*?)<\/\1>\s*$/);
-		if (m) {
-			const [, name, rawAttrs, inner] = m;
+		let match = src.match(/^<([A-Z][\w]*)\s*([^>]*)>([\s\S]*?)<\/\1>\s*$/);
+		if (match) {
+			const [, name, rawAttrs, inner] = match;
 			return { name, attrs: parseAttrs(rawAttrs), inner };
 		}
 		// Then self-closing
-		m = src.match(/^<([A-Z][\w]*)\s*([^/>]*?)\/>\s*$/);
-		if (m) {
-			const [, name, rawAttrs] = m;
+		match = src.match(/^<([A-Z][\w]*)\s*([^/>]*?)\/>\s*$/);
+		if (match) {
+			const [, name, rawAttrs] = match;
 			return { name, attrs: parseAttrs(rawAttrs), inner: '' };
 		}
 		return null;
@@ -113,25 +117,25 @@
 		> = [];
 
 		// Global regex that matches either a paired or self-closing PascalCase tag
-		const re = /<([A-Z][\w]*)\s*([^/>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;
+		const regExp = /<([A-Z][\w]*)\s*([^/>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;
 
 		let lastIndex = 0;
-		let m: RegExpExecArray | null;
+		let match: RegExpExecArray | null;
 
-		while ((m = re.exec(src))) {
+		while ((match = regExp.exec(src))) {
 			// push any non-matched html between components
-			if (m.index > lastIndex) {
-				nodes.push({ kind: 'html', html: src.slice(lastIndex, m.index) });
+			if (match.index > lastIndex) {
+				nodes.push({ kind: 'html', html: src.slice(lastIndex, match.index) });
 			}
 
-			const [, name, rawAttrs, inner = ''] = m;
+			const [_, name, rawAttrs, inner = ''] = match;
 			nodes.push({
 				kind: 'component',
 				name,
 				attrs: parseAttrs(rawAttrs),
 				inner
 			});
-			lastIndex = re.lastIndex;
+			lastIndex = regExp.lastIndex;
 		}
 
 		// trailing html
@@ -142,6 +146,8 @@
 		// If nothing was parsed as component, return null so caller can fall back
 		return nodes.some((n) => n.kind === 'component') ? nodes : null;
 	};
+
+	$inspect(tokens);
 </script>
 
 {@render tokensSnippet(tokens)}
@@ -159,6 +165,9 @@
 			{@render tokensSnippet(token.tokens)}
 		</H2>
 	{/if}
+{/snippet}
+{#snippet hrSnippet(token: HrToken)}
+	<hr />
 {/snippet}
 {#snippet htmlSnippet(token: HtmlToken)}
 	{#key token.text}
@@ -223,6 +232,8 @@
 			{@render headingSnippet(token)}
 		{:else if token.type === 'html'}
 			{@render htmlSnippet(token)}
+		{:else if token.type === 'hr'}
+			{@render hrSnippet(token)}
 		{:else if token.type === 'list'}
 			{@render listSnippet(token)}
 		{:else if token.type === 'list_item'}

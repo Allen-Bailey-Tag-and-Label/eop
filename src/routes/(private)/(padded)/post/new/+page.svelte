@@ -22,8 +22,7 @@
 		data,
 		md = $bindable(''),
 		slug = $bindable(''),
-		title = $bindable(''),
-		...props
+		title = $bindable('')
 	}: Props = $props();
 
 	const categoryOptions = ['News'].map((label) => ({ label, value: label.toLowerCase() }));
@@ -35,7 +34,7 @@
 	});
 </script>
 
-<Div class="grid flex-grow grid-cols-2 gap-4">
+<Div class="grid max-h-full flex-grow grid-cols-2 gap-4 overflow-auto">
 	<Form bind:isLoading class="max-w-auto flex flex-grow flex-col">
 		{#if _id}
 			<Input class="sr-only" name="_id" value={_id} />
