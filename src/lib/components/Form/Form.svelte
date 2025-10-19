@@ -15,6 +15,7 @@
 		error?: Snippet;
 		form?: any;
 		inputs?: Snippet;
+		isLoading?: boolean;
 		method?: 'GET' | 'POST';
 		submitFunction?: SubmitFunction;
 		style?: string;
@@ -28,9 +29,14 @@
 		error,
 		form,
 		inputs,
+		isLoading = $bindable(false),
 		method = 'POST',
 		submitFunction = () => {
-			return async ({ update }) => await update();
+			isLoading = true;
+			return async ({ update }) => {
+				await update();
+				isLoading = false;
+			};
 		},
 		style,
 		variants = [],

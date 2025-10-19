@@ -14,15 +14,15 @@ export const sanitize = async (html: string) => {
 		});
 	}
 
-	// server side (SSR)
-	const { JSDOM } = await import('jsdom');
-	const window = new JSDOM('').window as unknown as Window;
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
-	const createDOMPurify = require('dompurify');
-	const DOMPurify = createDOMPurify(window as any);
-	return DOMPurify.sanitize(html, {
-		ADD_TAGS: ['callout-box', 'youtube-embed'],
-		ADD_ATTR: ['type', 'videoid'],
-		USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true }
-	});
+	// // server side (SSR)
+	// const { JSDOM } = await import('jsdom');
+	// const window = new JSDOM('').window as unknown as Window;
+	// // eslint-disable-next-line @typescript-eslint/no-var-requires
+	// const createDOMPurify = require('dompurify');
+	// const DOMPurify = createDOMPurify(window as any);
+	// return DOMPurify.sanitize(html, {
+	// 	ADD_TAGS: ['callout-box', 'youtube-embed'],
+	// 	ADD_ATTR: ['type', 'videoid'],
+	// 	USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true }
+	// });
 };

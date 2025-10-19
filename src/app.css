@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin "@tailwindcss/typography";
 @theme {
 	--color-primary-50: oklch(1.028823163801254 0.015534242079833713 290);
 	--color-primary-100: oklch(0.9814466233786885 0.029986898506779654 290);

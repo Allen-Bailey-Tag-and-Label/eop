@@ -52,6 +52,7 @@ export const defaultTheme: Theme = {
 			'max-w-screen bg-transparent h-full max-h-screen w-full bg-transparent text-current transition duration-200 backdrop-blur-md backdrop:bg-transparent px-4'
 	},
 	Div: { default: '' },
+	Em: { default: '' },
 	Form: { default: 'w-full max-w-sm space-y-12' },
 	H1: { default: 'block text-3xl font-bold text-gray-800 dark:text-white' },
 	H2: { default: 'block text-2xl font-bold text-gray-800 dark:text-white' },
@@ -65,6 +66,8 @@ export const defaultTheme: Theme = {
 			'bg-transparent dark:bg-transparent shadow-none dark:shadow-none backdrop-blur-none outline-0 cursor-default'
 	},
 	Label: { default: 'text-sm' },
+	Li: { default: '' },
+	MarkdownToken: { default: '' },
 	Modal: { default: 'max-w-full max-h-full overflow-auto' },
 	MongooseTable: { default: '' },
 	MultiSelect: {
@@ -74,8 +77,10 @@ export const defaultTheme: Theme = {
 		),
 		isOpen: 'rounded-b-none'
 	},
+	Ol: { default: 'list-decimal list-inside' },
 	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },
 	P: { default: '' },
+	Post: { default: '' },
 	Radio: {
 		box: twMerge(InputDefault, 'has-checked:bg-primary-500/10 has-checked:outline-primary-500'),
 		default: twMerge('flex w-full items-center space-x-2')
@@ -91,10 +96,12 @@ export const defaultTheme: Theme = {
 	Select: { default: twMerge(InputDefault, '') },
 	Slider: { default: 'relative flex flex-col space-y-6 items-center' },
 	Spinner: { default: 'w-6 h-6' },
+	Strong: { default: '' },
 	SubmitButton: { default: '' },
 	Table: { default: '' },
 	Tbody: { default: '' },
 	Td: { default: 'px-6 py-3' },
+	Textarea: { default: twMerge(InputDefault, 'cursor-text') },
 	Th: { default: 'uppercase px-6 py-3' },
 	Thead: {
 		default: 'dark:bg-gray-800 bg-gray-200'
@@ -102,5 +109,8 @@ export const defaultTheme: Theme = {
 	Tr: {
 		default:
 			'even:bg-white/[.5] even:dark:bg-white/[.025] hover:bg-primary-500/10 transition duration-200 even:hover:bg-primary-500/10'
+	},
+	Ul: {
+		default: 'list-disc list-inside'
 	}
 };

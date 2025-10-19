@@ -15,9 +15,12 @@ export const actions: Actions = {
 		const { modelName, ...data } = formData as { modelName: ModelName } & Record<string, string>;
 
 		const model = modelCache.get(modelName);
+		console.log({ model });
 		if (!model) return fail(400, { error: `Unknown model: ${modelName}` });
 
 		const sanitizedData = sanitizeDataFromSchema(model, data);
+
+		console.log(sanitizedData);
 
 		const row = await model
 			.create({ _createdById: new Types.ObjectId(locals.user._id), ...sanitizedData })
