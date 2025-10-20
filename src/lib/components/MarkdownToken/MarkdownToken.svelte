@@ -146,8 +146,6 @@
 		// If nothing was parsed as component, return null so caller can fall back
 		return nodes.some((n) => n.kind === 'component') ? nodes : null;
 	};
-
-	$inspect(tokens);
 </script>
 
 {@render tokensSnippet(tokens)}

@@ -3,10 +3,8 @@ import { redirect } from '@sveltejs/kit';
 
 export const load = async ({ params }) => {
 	const { year, month, day, slug } = <Record<string, string>>params;
-	const date = new Date(`${year}-${month}-${day}`);
-	date.setUTCHours(4, 0, 0, 0);
 
-	const post = await Post.findOne({ date, slug }).populate({
+	const post = await Post.findOne({ day: +day, month: +month, slug, year: +year }).populate({
 		path: '_createdById',
 		populate: { path: '_profileId' }
 	});

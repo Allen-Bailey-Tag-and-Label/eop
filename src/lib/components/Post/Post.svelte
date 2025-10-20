@@ -16,7 +16,7 @@
 	const tokens = $derived.by(() => mdToTokens(md));
 </script>
 
-<Div class="flex max-h-full flex-col space-y-6 overflow-auto">
+<Div class="flex max-h-full flex-col space-y-6">
 	<H1 class="lg:text-6xl">{title}</H1>
 	<Div class="flex space-x-2 opacity-50">
 		<Div>By - {firstName} {lastName}</Div>

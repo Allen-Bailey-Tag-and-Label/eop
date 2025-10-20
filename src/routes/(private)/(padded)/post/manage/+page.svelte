@@ -3,7 +3,6 @@
 	import { A, Div, MongooseTable, Td } from '$lib/components';
 	import type { ColumnOverrides, TdSnippet } from '$lib/components/MongooseTable/types.js';
 	import { theme } from '$lib/theme';
-	import { inputDate } from '$lib/formats';
 
 	let { data } = $props();
 	const columnOverrides: ColumnOverrides = $state({
@@ -28,8 +27,6 @@
 />
 
 {#snippet editSnippet({ object }: TdSnippet)}
-	{@const dateString = inputDate(object.date)}
-	{@const dateArray = dateString.split('-')}
 	<Td class="py-0">
 		<Div class="flex space-x-2">
 			<A
@@ -40,7 +37,7 @@
 			</A>
 			<A
 				class={twMerge($theme.Button.default, $theme.Button.small, 'hover:no-underline')}
-				href="/{object.category}/{dateArray[0]}/{dateArray[1]}/{dateArray[2]}/{object.slug}"
+				href="/{object.category}/{object.year}/{object.month}/{object.day}/{object.slug}"
 				target="_blank"
 			>
 				View
