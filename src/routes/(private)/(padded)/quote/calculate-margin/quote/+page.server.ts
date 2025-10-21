@@ -69,8 +69,7 @@ export const _default: Action = async ({ locals, request }) => {
 	const idealNewSell = update.current.totalCost / (1 - idealNewMarginPercent);
 
 	const maxSells = [
-		update.previous.sell *
-			Math.pow(1 + (update.productType === 'TGM' ? 0.12 : 0.12) / 12, monthDifference),
+		update.previous.sell * Math.pow(Math.pow(1.12, 1 / 12), monthDifference),
 		idealNewSell
 	];
 	const minSells = [update.previous.sell];
