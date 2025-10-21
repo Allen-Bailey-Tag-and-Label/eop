@@ -70,7 +70,7 @@ export const _default: Action = async ({ locals, request }) => {
 
 	const maxSells = [
 		update.previous.sell *
-			Math.pow(1 + (update.productType === 'TGM' ? 0.25 : 0.12) / 12, monthDifference),
+			Math.pow(1 + (update.productType === 'TGM' ? 0.12 : 0.12) / 12, monthDifference),
 		idealNewSell
 	];
 	const minSells = [update.previous.sell];
@@ -90,6 +90,7 @@ export const _default: Action = async ({ locals, request }) => {
 		upsert: true
 	}).lean();
 
+	// @ts-ignore
 	redirect(303, `/quote/calculate-margin/quote/${quoteMarginCalculation.current.number}`);
 };
 
