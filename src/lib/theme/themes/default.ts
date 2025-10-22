@@ -112,6 +112,6 @@ export const defaultTheme: Theme = {
 			'even:bg-white/[.5] even:dark:bg-white/[.025] hover:bg-primary-500/10 transition duration-200 even:hover:bg-primary-500/10'
 	},
 	Ul: {
-		default: 'list-disc list-inside'
+		default: 'list-disc p-4'
 	}
 };
