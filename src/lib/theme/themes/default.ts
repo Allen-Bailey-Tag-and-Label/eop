@@ -78,7 +78,7 @@ export const defaultTheme: Theme = {
 		),
 		isOpen: 'rounded-b-none'
 	},
-	Ol: { default: 'list-decimal list-inside' },
+	Ol: { default: 'list-decimal pl-4' },
 	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },
 	P: { default: '' },
 	Post: { default: '' },
