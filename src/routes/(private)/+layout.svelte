@@ -1,14 +1,12 @@
 <script lang="ts">
+	import { ChevronDown, PanelLeft } from '@lucide/svelte';
 	import { untrack } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
-	import { ChevronDown, Menu, PanelLeft, X } from '@lucide/svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { A, Button, Card, Div, Header } from '$lib/components';
 	import { theme } from '$lib/theme';
 	import { type Navigation, type User } from '$lib/types.js';
-	import { slide } from 'svelte/transition';
-	import { cubicInOut } from 'svelte/easing';
 
 	let { children, data } = $props();
 	let isNavigationOpen = $state(false);
@@ -34,7 +32,11 @@
 		defaultBranch: { _id: '', label: '', number: 0 },
 		isActive: true,
 		profile: { _id: '', email: '', firstName: '', lastName: '', phone: 0 },
-		settings: { _id: '', magnification: 16, theme: 'elegant-midnight' },
+		settings: {
+			_id: '',
+			magnification: 16,
+			theme: 'elegant-midnight'
+		},
 		username: ''
 	});
 

@@ -1,12 +1,18 @@
-export const localState = (key: string, initial: any) => {
-	const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
-	let value = stored ? JSON.parse(stored) : initial;
+import { browser } from '$app/environment';
 
-	const state = $state(value);
+export const localState = <T>(key: string, initialValue: T) => {
+	let state = $state(initialValue);
+	if (browser && typeof localStorage !== 'undefined') {
+		const saved = localStorage.getItem(key);
+		const value = saved ? JSON.parse(saved) : initialValue;
 
-	$effect(() => {
-		if (typeof localStorage !== 'undefined') localStorage.setItem(key, JSON.stringify(state));
-	});
+		const state = $state(value);
 
+		$effect.root(() => {
+			$effect(() => {
+				localStorage.setItem(key, JSON.stringify(state));
+			});
+		});
+	}
 	return state;
 };

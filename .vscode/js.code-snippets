@@ -1,0 +1,16 @@
+{
+	"Mongoose Model": {
+		"prefix": "Mongoose model",
+		"body": [
+			"import { defineModel } from '../defineModel';",
+			"import { hooks } from '../hooks';",
+			"",
+			"export const $1 = defineModel(",
+			"\t'$1',",
+			"\t{",
+			"\t\t$2: { type: $3 },",
+			"\t},",
+			");"
+		]
+	}
+}

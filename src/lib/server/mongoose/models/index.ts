@@ -2,6 +2,7 @@ export { Barcode } from './Barcode';
 export { Branch } from './Branch';
 export { Log } from './Log';
 export { Post } from './Post';
+export { Push } from './Push';
 export { QuoteFeature } from './QuoteFeature';
 export { QuoteMarginCalculation } from './QuoteMarginCalculation';
 export { QuoteOperation } from './QuoteOperation';

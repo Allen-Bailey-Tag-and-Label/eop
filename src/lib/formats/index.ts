@@ -1,3 +1,4 @@
+export { base64Url } from './base64Url';
 export { camelCase } from './camelCase';
 export { currency } from './currency';
 export { dateTime } from './dateTime';

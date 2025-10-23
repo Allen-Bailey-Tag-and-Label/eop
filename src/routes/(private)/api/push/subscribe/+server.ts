@@ -1,0 +1,15 @@
+import { UserSettings } from '$lib/server/mongoose/models';
+import type { RequestHandler } from '@sveltejs/kit';
+
+export const POST: RequestHandler = async ({ locals, request }) => {
+	const subscription = await request.json();
+
+	await UserSettings.findByIdAndUpdate(locals.user.settings._id, {
+		notification: {
+			isPermissionSet: true,
+			subscription
+		}
+	});
+
+	return new Response(null, { status: 201 });
+};

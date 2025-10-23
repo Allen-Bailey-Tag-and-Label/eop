@@ -11,6 +11,7 @@
 		attachments?: Attachment[];
 		children?: Snippet;
 		class?: string;
+		isCloseable?: boolean;
 		isOpen?: boolean;
 		style?: string;
 		variants?: string[];
@@ -19,6 +20,7 @@
 		attachments = $bindable([]),
 		children,
 		class: className,
+		isCloseable = $bindable(true),
 		isOpen = $bindable(false),
 		style,
 		variants = [],
@@ -26,7 +28,6 @@
 	}: Props = $props();
 </script>
 
-<!-- {#if isOpen} -->
 <Div
 	{@attach portal()}
 	class={twMerge(
@@ -36,7 +37,7 @@
 	)}
 	inert={isOpen ? undefined : true}
 	onclick={() => {
-		isOpen = false;
+		if (isCloseable) isOpen = false;
 	}}
 >
 	<Card
@@ -62,4 +63,3 @@
 		{/if}
 	</Card>
 </Div>
-<!-- {/if} -->

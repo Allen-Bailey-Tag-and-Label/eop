@@ -3,8 +3,13 @@
 	import { untrack } from 'svelte';
 	import { Form, RangeInput, Select, SubmitButton } from '$lib/components';
 	import { percent } from '$lib/formats';
+	import type { PageData } from './$types';
 
-	let { data, form } = $props();
+	type Props = {
+		data: PageData;
+		form: any;
+	};
+	let { data, form }: Props = $props();
 	let isLoading = $state(false);
 	let magnification = $state(16);
 	const submitFunction: SubmitFunction = () => {
@@ -16,25 +21,28 @@
 	};
 	let theme = $state('elegant-midnight');
 	const themeOptions = [
-		{ label: 'Castlevania Heart', value: 'castlevania-heart' },
-		{ label: 'Red Pentacle', value: 'red-pentacle' },
-		{ label: 'Cacodemon Red', value: 'cacodemon-red' },
-		{ label: 'Scab Red', value: 'scab-red' },
-		{ label: 'Bay Brown', value: 'bay-brown' },
-		{ label: 'Sugarloaf Brown', value: 'sugarloaf-brown' },
-		{ label: 'Duck Hunt', value: 'duck-hunt' },
-		{ label: 'Cucumber', value: 'cucumber' },
-		{ label: 'Ireland Green', value: 'ireland-green' },
-		{ label: 'Barbados Bay', value: 'barbados-bay' },
-		{ label: 'Mamala Bay', value: 'mamala-bay' },
-		{ label: 'Soulstone Blue', value: 'soulstone-blue' },
-		{ label: 'Blue Screen of Death', value: 'blue-screen-of-death' },
-		{ label: 'Interdimensional Blue', value: 'interdimensional-blue' },
-		{ label: 'Elegant Midnight', value: 'elegant-midnight' },
-		{ label: 'Indigo Purple', value: 'indigo-purple' },
-		{ label: 'Mardi Gras', value: 'mardi-gras' },
-		{ label: 'Strong Cerise', value: 'strong-cerise' }
-	];
+		'Castlevania Heart',
+		'Red Pentacle',
+		'Cacodemon Red',
+		'Scab Red',
+		'Bay Brown',
+		'Sugarloaf Brown',
+		'Duck Hunt',
+		'Cucumber',
+		'Ireland Green',
+		'Barbados Bay',
+		'Mamala Bay',
+		'Soulstone Blue',
+		'Blue Screen of Death',
+		'Interdimensional Blue',
+		'Elegant Midnight',
+		'Indigo Purple',
+		'Mardi Gras',
+		'Strong Cerise'
+	].map((label) => {
+		const value = label.toLowerCase().split(' ').join('-');
+		return { label, value };
+	});
 
 	$effect(() => {
 		if (data.locals.user.settings)
