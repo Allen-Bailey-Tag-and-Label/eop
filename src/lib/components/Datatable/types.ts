@@ -13,6 +13,7 @@ export type ColumnSanitized<CompareType = any> = {
 	isExportable: boolean;
 	isFilterable: boolean;
 	isHidden: boolean;
+	isImportable: boolean;
 	isProtected: boolean;
 	isSortable: boolean;
 	key: string;

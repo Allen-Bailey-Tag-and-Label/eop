@@ -181,6 +181,9 @@
 	]);
 
 	// $derives
+	const importColumns = $derived.by(() =>
+		columnsSanitized.map(({ key, label, options, type }) => ({ key, label, options, type }))
+	);
 	const importData = $derived.by(() => {
 		if (importText === '') return [];
 		const rows = importText
@@ -188,31 +191,42 @@
 			.split('\n')
 			.map((row) => row.split('\t'));
 		let data: Row[];
-		if (rows[0].join(',') === columnsSanitized.map(({ label }) => label).join(',')) {
+		if (
+			rows[0].join(',') ===
+			columnsSanitized
+				.filter((columnSanitized) => columnSanitized.isImportable)
+				.map(({ label }) => label)
+				.join(',')
+		) {
 			data = rows.slice(1);
 		} else {
 			data = rows;
 		}
 		data = data
 			.filter((row) => row.length === columnsSanitized.length)
-			.map((row) =>
-				row.reduce((obj: Row, value: string, index: number) => {
-					const { key, options, type } = columnsSanitized[index];
+			.map((row) => {
+				let sanitizedRow: Row = {};
+				columnsSanitized.forEach((columnSanitized, columnIndex) => {
+					const { key, options, type } = columnSanitized;
+					const value = row?.[columnIndex] ?? '';
 					let sanitizedValue: any = value;
 					if (type === 'boolean') sanitizedValue = /true|yes|on/i.test(value);
 					if (type === 'currency') sanitizedValue = parseFloat(value.replace(/[^\d|\.]/g, ''));
 					if (type === 'multiSelect')
 						sanitizedValue = value
 							.split(/,\s?/g)
-							.map((v) => (options.find((option) => option.label === v) ?? { value: '' }).value);
+							.map(
+								(v: any) => (options.find((option) => option.label === v) ?? { value: '' }).value
+							);
 					if (type === 'number') sanitizedValue = parseFloat(value.replace(/[^\d|\.]/g, ''));
 					if (type === 'select')
 						sanitizedValue = (options.find((option) => option.label === value) ?? { value: '' })
 							.value;
-					obj[key] = sanitizedValue;
-					return obj;
-				}, {})
-			);
+					if (type === 'timestamp') sanitizedValue = value === '' ? new Date() : value;
+					sanitizedRow[key] = sanitizedValue;
+				});
+				return sanitizedRow;
+			});
 		return data;
 	});
 	const virtualization = $derived.by(() => {
@@ -301,6 +315,11 @@
 					columnSanitized.isHidden ??
 					(columnSanitized?.isProtected !== undefined ? columnSanitized.isProtected : undefined) ??
 					false,
+				isImportable:
+					columnSanitized.isImportable ??
+					(columnSanitized?.isProtected !== undefined ? !columnSanitized.isProtected : undefined) ??
+					(columnSanitized?.isHidden !== undefined ? !columnSanitized.isHidden : undefined) ??
+					isImportable,
 				isProtected: columnSanitized.isProtected ?? false,
 				isSortable: columnSanitized.isSortable ?? isSortable,
 				key: columnSanitized.key,
@@ -555,7 +574,9 @@
 						</Button>
 						<Button
 							onclick={async () => {
-								const headers: string[] = columnsSanitized.map(({ label }) => label);
+								const headers: string[] = columnsSanitized
+									.filter((columnSanitized) => columnSanitized.isImportable)
+									.map(({ label }) => label);
 								const data: any[][] = [];
 
 								const exportFunction = exportFunctions.get('xlsx');
@@ -583,11 +604,11 @@
 						</Div>
 					{:else}
 						<Self
-							columns={columnsSanitized}
+							columns={importColumns}
 							isColumnsReorderable={false}
 							isCreatable={false}
 							isDeletable={false}
-							isEditable={true}
+							isEditable={false}
 							isExportable={false}
 							isFilterable={false}
 							isPaginateable={false}
