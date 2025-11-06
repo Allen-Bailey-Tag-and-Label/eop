@@ -111,6 +111,23 @@ export const actions: Actions = {
 		return {};
 	},
 
+	insertMany: async ({ locals, request }) => {
+		const formData = Object.fromEntries(await request.formData());
+		const { data, modelName } = formData as { data: string; modelName: ModelName };
+
+		const model = modelCache.get(modelName);
+		if (!model) return fail(400, { error: `Unknown model: ${modelName}` });
+
+		const sanitizedData = JSON.parse(data).map((doc: Record<string, string>) => {
+			const sanitizedData = sanitizeDataFromSchema(model, doc);
+			return { _createdById: new Types.ObjectId(locals.user._id), ...sanitizedData };
+		});
+
+		const rows = await model.insertMany(sanitizedData);
+
+		return { rows: JSON.parse(JSON.stringify(rows)) };
+	},
+
 	update: async ({ locals, request }) => {
 		const formData = await request.formData();
 

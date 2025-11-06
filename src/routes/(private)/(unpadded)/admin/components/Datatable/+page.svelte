@@ -44,6 +44,7 @@
 	let isEditable = $state(false);
 	let isExportable = $state(false);
 	let isFilterable = $state(false);
+	let isImportable = $state(false);
 	let isPaginateable = $state(false);
 	let isSelectable = $state(false);
 	let isSortable = $state(false);
@@ -84,6 +85,7 @@
 		bind:isEditable
 		bind:isExportable
 		bind:isFilterable
+		bind:isImportable
 		bind:isPaginateable
 		bind:isSelectable
 		bind:isSortable
@@ -98,6 +100,7 @@
 	<Checkbox bind:checked={isEditable} label="isEditable" />
 	<Checkbox bind:checked={isExportable} label="isExportable" />
 	<Checkbox bind:checked={isFilterable} label="isFilterable" />
+	<Checkbox bind:checked={isImportable} label="isImportable" />
 	<Checkbox bind:checked={isPaginateable} label="isPaginateable" />
 	<Checkbox bind:checked={isSelectable} label="isSelectable" />
 	<Checkbox bind:checked={isSortable} label="isSortable" />
