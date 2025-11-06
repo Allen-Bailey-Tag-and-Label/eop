@@ -12,5 +12,24 @@
 			"\t},",
 			");"
 		]
+	},
+	"MongooseTable +page.server.ts": {
+		"prefix": "Mongoosetable +page.server.ts",
+		"body": [
+			"import { $1 } from '\\$lib/server/mongoose/models';",
+			"import { serverLoad } from '\\$lib/server/mongoose/serverLoad';",
+			"",
+			"export const load = serverLoad({",
+			"\tlabelFunctionMap: new Map([",
+			"\t\t[",
+			"\t\t\t'User',",
+			"\t\t\t(doc) => {",
+			"\t\t\t\treturn doc.username;",
+			"\t\t\t}",
+			"\t\t]",
+			"\t]),",
+			"\tmodel: $1",
+			"});"
+		]
 	}
 }
