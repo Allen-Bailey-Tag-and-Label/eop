@@ -83,6 +83,8 @@ export type Props<CompareType = any> = {
 	isExportModalOpen?: boolean;
 	isFilterable?: boolean;
 	isFilterModalOpen?: boolean;
+	isImportable?: boolean;
+	isImportModalOpen?: boolean;
 	isPaginateable?: boolean;
 	isSelectable?: boolean;
 	isSettingsVisible?: boolean;

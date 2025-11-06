@@ -13,7 +13,8 @@
 		Plus,
 		Settings,
 		Trash,
-		TriangleAlert
+		TriangleAlert,
+		Upload
 	} from '$lib/icons';
 	import { currency, dateTime, inputDateTimeLocal } from '$lib/formats';
 	import { theme } from '$lib/theme';
@@ -33,10 +34,12 @@
 		Table,
 		Tbody,
 		Td,
+		Textarea,
 		Th,
 		Thead,
 		Tr
 	} from '../';
+	import Self from './Datatable.svelte';
 
 	import {
 		compareFn,
@@ -48,7 +51,7 @@
 		getFilterOptions,
 		setAt
 	} from './';
-	import type { Props, TdSnippet } from './types';
+	import type { Props, Row, TdSnippet } from './types';
 
 	let {
 		columns = $bindable([]),
@@ -73,6 +76,8 @@
 		isExportModalOpen = $bindable(false),
 		isFilterable = $bindable(true),
 		isFilterModalOpen = $bindable(false),
+		isImportable = $bindable(false),
+		isImportModalOpen = $bindable(false),
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
 		isSettingsModalOpen = $bindable(false),
@@ -129,6 +134,7 @@
 		}
 		return key;
 	};
+	let importText = $state('');
 	let resizeObserver: ResizeObserver | null = null;
 	const rowKeyMap = new WeakMap<object, string>();
 	const tailwindHeights: Record<string, number> = {
@@ -175,6 +181,40 @@
 	]);
 
 	// $derives
+	const importData = $derived.by(() => {
+		if (importText === '') return [];
+		const rows = importText
+			.trim()
+			.split('\n')
+			.map((row) => row.split('\t'));
+		let data: Row[];
+		if (rows[0].join(',') === columnsSanitized.map(({ label }) => label).join(',')) {
+			data = rows.slice(1);
+		} else {
+			data = rows;
+		}
+		data = data
+			.filter((row) => row.length === columnsSanitized.length)
+			.map((row) =>
+				row.reduce((obj: Row, value: string, index: number) => {
+					const { key, options, type } = columnsSanitized[index];
+					let sanitizedValue: any = value;
+					if (type === 'boolean') sanitizedValue = /true|yes|on/i.test(value);
+					if (type === 'currency') sanitizedValue = parseFloat(value.replace(/[^\d|\.]/g, ''));
+					if (type === 'multiSelect')
+						sanitizedValue = value
+							.split(/,\s?/g)
+							.map((v) => (options.find((option) => option.label === v) ?? { value: '' }).value);
+					if (type === 'number') sanitizedValue = parseFloat(value.replace(/[^\d|\.]/g, ''));
+					if (type === 'select')
+						sanitizedValue = (options.find((option) => option.label === value) ?? { value: '' })
+							.value;
+					obj[key] = sanitizedValue;
+					return obj;
+				}, {})
+			);
+		return data;
+	});
 	const virtualization = $derived.by(() => {
 		const length = (rowsPaginated ?? []).length;
 
@@ -305,6 +345,7 @@
 		const isDeletableValue = isDeletable;
 		const isExportableValue = isExportable;
 		const isFilterableValue = isFilterable;
+		const isImportableValue = isImportable;
 		const isPaginateableValue = isPaginateable;
 
 		untrack(() => {
@@ -313,6 +354,7 @@
 				isDeletableValue ||
 				isExportableValue ||
 				isFilterableValue ||
+				isImportableValue ||
 				isPaginateableValue;
 		});
 	});
@@ -488,6 +530,70 @@
 						</Button>
 						<Button onclick={() => (isExportModalOpen = false)} variants={['glass']}>Cancel</Button>
 					</Div>
+				</Modal>
+			{/if}
+			{#if isImportable}
+				<Button
+					onclick={() => {
+						importText = '';
+						isImportModalOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Upload />
+				</Button>
+				<Modal bind:isOpen={isImportModalOpen} class="space-y-6">
+					<Div class="flex justify-end space-x-2">
+						<Button
+							disabled={importText === ''}
+							onclick={() => {
+								importText = '';
+							}}
+							variants={['error', 'icon']}
+						>
+							<Trash />
+						</Button>
+						<Button
+							onclick={async () => {
+								const headers: string[] = columnsSanitized.map(({ label }) => label);
+								const data: any[][] = [];
+
+								const exportFunction = exportFunctions.get('xlsx');
+								if (exportFunction) await exportFunction({ data, headers });
+							}}
+							variants={['icon']}
+						>
+							<Download />
+						</Button>
+						<Button
+							disabled={importData.length === 0}
+							onclick={() => {
+								rows = [...rows, ...importData];
+								importText = '';
+							}}
+							variants={['icon']}
+						>
+							<Upload />
+						</Button>
+					</Div>
+					{#if importText === ''}
+						<Div class="flex flex-col">
+							<Label>Paste CSV</Label>
+							<Textarea bind:value={importText}></Textarea>
+						</Div>
+					{:else}
+						<Self
+							columns={columnsSanitized}
+							isColumnsReorderable={false}
+							isCreatable={false}
+							isDeletable={false}
+							isEditable={true}
+							isExportable={false}
+							isFilterable={false}
+							isPaginateable={false}
+							rows={importData}
+						/>
+					{/if}
 				</Modal>
 			{/if}
 			<Button
