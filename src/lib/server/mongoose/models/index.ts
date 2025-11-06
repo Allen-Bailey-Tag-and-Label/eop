@@ -1,5 +1,10 @@
 export { Barcode } from './Barcode';
 export { Branch } from './Branch';
+export { InventoryItem } from './InventoryItem';
+export { InventoryItemGroupType } from './InventoryItemGroupType';
+export { InventoryItemLineType } from './InventoryItemLineType';
+export { InventoryItemStockingType } from './InventoryItemStockingType';
+export { InventoryItemUOM } from './InventoryItemUOM';
 export { Log } from './Log';
 export { Post } from './Post';
 export { Push } from './Push';
