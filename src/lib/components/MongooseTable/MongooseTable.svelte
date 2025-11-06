@@ -13,7 +13,8 @@
 		Save,
 		Settings,
 		Trash,
-		TriangleAlert
+		TriangleAlert,
+		Upload
 	} from '@lucide/svelte';
 	import { untrack, type Component, type Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
@@ -40,7 +41,8 @@
 		Tr,
 		Label,
 		Radio,
-		Card
+		Card,
+		Textarea
 	} from '../';
 
 	import type {
@@ -94,6 +96,8 @@
 		isExportModalOpen = $bindable(false),
 		isFilterable = $bindable(true),
 		isFilterModalOpen = $bindable(false),
+		isImportable = $bindable(false),
+		isImportModalOpen = $bindable(false),
 		isLoading = $bindable(true),
 		isPaginateable = $bindable(true),
 		isSelectable = $bindable(true),
@@ -158,6 +162,7 @@
 		['timestamp', timestampCreate],
 		['undefined', undefinedCreate]
 	]);
+	let importText = $state('');
 	let initialized = $state(false);
 	let originalRows = $state(new Map<string, Row>());
 	let modifiedRows = $state(new Map<string, Map<string, any>>());
@@ -210,6 +215,62 @@
 	);
 
 	// $derives
+	const importColumns = $derived.by(() =>
+		[...columnsSanitized]
+			.filter(({ key }) => key !== '_id')
+			.map(({ key, label, options, type }) => ({
+				isEditable: true,
+				key,
+				label,
+				options,
+				type
+			}))
+	);
+	const importData = $derived.by(() => {
+		if (importText === '') return [];
+		const rows = importText
+			.trim()
+			.split('\n')
+			.map((row) => row.split('\t'));
+		let data: Row[];
+		if (
+			rows[0].join(',') ===
+			columnsSanitized
+				.filter((columnSanitized) => columnSanitized.isImportable && columnSanitized.key !== '_id')
+				.map(({ label }) => label)
+				.join(',')
+		) {
+			data = rows.slice(1);
+		} else {
+			data = rows;
+		}
+		data = data.map((row) => {
+			let sanitizedRow: Row = {};
+			columnsSanitized
+				.filter((columnSanitized) => columnSanitized.isImportable && columnSanitized.key !== '_id')
+				.forEach((columnSanitized, columnIndex) => {
+					const { key, options, type } = columnSanitized;
+					const value = row?.[columnIndex] ?? '';
+					let sanitizedValue: any = value;
+					if (type === 'boolean') sanitizedValue = /true|yes|on/i.test(value);
+					if (type === 'currency') sanitizedValue = parseFloat(value.replace(/[^\d|\.]/g, ''));
+					if (type === 'multiSelect')
+						sanitizedValue = value
+							.split(/,\s?/g)
+							.map(
+								(v: any) => (options.find((option) => option.label === v) ?? { value: '' }).value
+							);
+					if (type === 'number') sanitizedValue = parseFloat(value.replace(/[^\d|\.]/g, ''));
+					if (type === 'select')
+						sanitizedValue = (options.find((option) => option.label === value) ?? { value: '' })
+							.value;
+					if (type === 'timestamp') sanitizedValue = value === '' ? new Date() : value;
+					sanitizedRow[key] = sanitizedValue;
+				});
+			return sanitizedRow;
+		});
+		return data;
+	});
 	const virtualization = $derived.by(() => {
 		const length = (rowsSanitized ?? []).length;
 		// virtualization OFF or variable-height placeholder -> full range
@@ -277,6 +338,7 @@
 				isCreatable: false,
 				isEditable: false,
 				isFilterable: true,
+				isImportable: false,
 				isSortable: false,
 				key: '_createdById',
 				label: 'Created By',
@@ -288,6 +350,7 @@
 				isCreatable: false,
 				isEditable: false,
 				isFilterable: true,
+				isImportable: false,
 				key: 'createdAt',
 				label: 'Created At',
 				type: 'timestamp'
@@ -298,6 +361,7 @@
 				isCreatable: false,
 				isEditable: false,
 				isFilterable: true,
+				isImportable: false,
 				key: 'updatedAt',
 				label: 'Updated At',
 				type: 'timestamp'
@@ -448,6 +512,8 @@
 			bind:isEditable
 			bind:isFilterable
 			bind:isFilterModalOpen
+			bind:isImportable
+			bind:isImportModalOpen
 			bind:isPaginateable
 			bind:isSelectable
 			bind:isSettingsModalOpen
@@ -965,6 +1031,84 @@
 						</Button>
 						<Button onclick={() => (isExportModalOpen = false)} variants={['glass']}>Cancel</Button>
 					</Div>
+				</Modal>
+			{/if}
+
+			{#if isImportable}
+				<Button
+					onclick={() => {
+						importText = '';
+						isImportModalOpen = true;
+					}}
+					variants={['icon']}
+				>
+					<Upload />
+				</Button>
+				<Modal bind:isOpen={isImportModalOpen} class="space-y-6">
+					<Div class="flex justify-end space-x-2">
+						<Button
+							disabled={importText === ''}
+							onclick={() => {
+								importText = '';
+							}}
+							variants={['error', 'icon']}
+						>
+							<Trash />
+						</Button>
+						<Button
+							onclick={async () => {
+								const headers: string[] = columnsSanitized
+									.filter(
+										(columnSanitized) =>
+											columnSanitized.isImportable && columnSanitized.key !== '_id'
+									)
+									.map(({ label }) => label);
+								const data: any[][] = [];
+
+								const exportFunction = exportFunctions.get('xlsx');
+								if (exportFunction) await exportFunction({ data, headers });
+							}}
+							variants={['icon']}
+						>
+							<Download />
+						</Button>
+						<Form
+							action="/api/mongooseTable?/insertMany"
+							class="w-auto max-w-full"
+							submitFunction={() => {
+								isLoading = true;
+								isImportModalOpen = false;
+								return async ({ update }) => {
+									await update();
+									isLoading = false;
+								};
+							}}
+						>
+							<Input class="sr-only" name="data" type="hidden" value={JSON.stringify(importData)} />
+							<Input class="sr-only" name="modelName" type="hidden" value={modelName} />
+							<Button disabled={importData.length === 0} type="submit" variants={['icon']}>
+								<Upload />
+							</Button>
+						</Form>
+					</Div>
+					{#if importText === ''}
+						<Div class="flex flex-col">
+							<Label>Paste CSV</Label>
+							<Textarea bind:value={importText}></Textarea>
+						</Div>
+					{:else}
+						<Datatable
+							columns={importColumns}
+							isColumnsReorderable={false}
+							isCreatable={false}
+							isDeletable={false}
+							isEditable={false}
+							isExportable={false}
+							isFilterable={false}
+							isPaginateable={false}
+							rows={importData}
+						/>
+					{/if}
 				</Modal>
 			{/if}
 			<Button
