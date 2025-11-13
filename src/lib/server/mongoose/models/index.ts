@@ -1,5 +1,6 @@
 export { Barcode } from './Barcode';
 export { Branch } from './Branch';
+export { Holiday } from './Holiday';
 export { InventoryItem } from './InventoryItem';
 export { InventoryItemGroupType } from './InventoryItemGroupType';
 export { InventoryItemLineType } from './InventoryItemLineType';
