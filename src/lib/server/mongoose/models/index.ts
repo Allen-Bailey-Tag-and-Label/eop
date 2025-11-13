@@ -18,6 +18,7 @@ export { QuoteWorkCenter } from './QuoteWorkCenter';
 export { Role } from './Role';
 export { Route } from './Route';
 export { RouteSettings } from './RouteSettings';
+export { SchedulingProductType } from './SchedulingProductType';
 export { SignUp } from './SignUp';
 export { UpsQuote } from './UpsQuote';
 export { User } from './User';
