@@ -13,6 +13,7 @@ export { InventoryItemStockingType } from './InventoryItemStockingType';
 export { InventoryItemUOM } from './InventoryItemUOM';
 export { KeyValue } from './KeyValue';
 export { Log } from './Log';
+export { PhysicalInventoryItem } from './PhysicalInventoryItem';
 export { Post } from './Post';
 export { Push } from './Push';
 export { QuoteFeature } from './QuoteFeature';
