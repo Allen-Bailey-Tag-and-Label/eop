@@ -2,6 +2,7 @@
 	import { Form, Select, SubmitButton } from '$lib/components';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageData } from './$types';
+	import { browser } from '$app/environment';
 
 	// types
 	type Props = {
@@ -31,6 +32,13 @@
 			value: _id
 		}))
 	);
+
+	// $effects
+	$effect(() => {
+		if (browser) {
+			localStorage.getItem('physicalInventoryBranchId', data.physicalInventoryBranchId.value);
+		}
+	});
 </script>
 
 <Form {submitFunction}>
