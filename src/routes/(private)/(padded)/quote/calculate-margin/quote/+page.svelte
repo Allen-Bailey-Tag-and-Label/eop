@@ -36,7 +36,7 @@
 		value: label
 	}));
 	let isLoading = $state(false);
-	const productTypeOptions = ['', 'LB', 'TG', 'TG2', 'TG3', 'TGM'].map((label) => ({
+	const productTypeOptions = ['', 'CF', 'LB', 'LB2', 'TG', 'TG2', 'TG3', 'TGM'].map((label) => ({
 		label,
 		value: label
 	}));
