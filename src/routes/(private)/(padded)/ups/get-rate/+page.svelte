@@ -73,9 +73,8 @@
 	]);
 	const submitFunction: SubmitFunction = () => {
 		isLoading = true;
-		return async ({ result, update }) => {
+		return async ({ result }) => {
 			isLoading = false;
-			console.log(result);
 			if (result.type === 'success') {
 				date = new Date();
 				rates = result.data.sort(

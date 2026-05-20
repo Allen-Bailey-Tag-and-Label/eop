@@ -41,12 +41,12 @@
 		candidates = [];
 		errorMessage = '';
 		isLoading = true;
-		return async ({ result, update }) => {
+		return async ({ result }) => {
 			isLoading = false;
 			if (result.type === 'success') {
 				const { data } = result;
 				console.log(data);
-				if (data) candidates = [data];
+				if (data) candidates = data;
 				if (!data) errorMessage = 'Could not find any possible candidates';
 			}
 		};
@@ -116,7 +116,7 @@
 					<Tbody>
 						{#each candidates as { AddressClassification, AddressKeyFormat }}
 							<Tr>
-								<Td>{AddressClassification.Description}</Td>
+								<Td>{AddressClassification?.Description}</Td>
 								<Td>{AddressKeyFormat.AddressLine[0]}</Td>
 								<Td>{AddressKeyFormat.PoliticalDivision2}</Td>
 								<Td>{AddressKeyFormat.PoliticalDivision1}</Td>
