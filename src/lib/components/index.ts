@@ -9,6 +9,7 @@ export { default as Em } from './Em/Em.svelte';
 export { default as Form } from './Form/Form.svelte';
 export { default as H1 } from './H1/H1.svelte';
 export { default as H2 } from './H2/H2.svelte';
+export { default as H3 } from './H3/H3.svelte';
 export { default as Header } from './Header/Header.svelte';
 export { default as Hr } from './Hr/Hr.svelte';
 export { default as Input } from './Input/Input.svelte';

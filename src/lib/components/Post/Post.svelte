@@ -14,6 +14,7 @@
 
 	// $derives
 	const tokens = $derived.by(() => mdToTokens(md));
+	$inspect(tokens);
 </script>
 
 <Div class="flex max-h-full flex-col space-y-6">

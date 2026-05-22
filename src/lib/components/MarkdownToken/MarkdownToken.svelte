@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { marked } from 'marked';
 	import type { Component } from 'svelte';
-	import { Em, H1, H2, Li, Ol, P, Strong, Ul } from '$lib/components';
+	import { Em, H1, H2, H3, Li, Ol, P, Strong, Ul } from '$lib/components';
 	import * as UI from '$lib/components';
 
 	type EmToken = {
@@ -162,6 +162,10 @@
 		<H2>
 			{@render tokensSnippet(token.tokens)}
 		</H2>
+	{:else if token.depth === 3}
+		<H3>
+			{@render tokensSnippet(token.tokens)}
+		</H3>
 	{/if}
 {/snippet}
 {#snippet hrSnippet(token: HrToken)}
