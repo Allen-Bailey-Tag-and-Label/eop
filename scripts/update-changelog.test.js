@@ -40,7 +40,9 @@ test('replaces uncommitted proposals without staging or committing', () => {
 	assert.equal(run('Current proposal').status, 0);
 	assert.ok(read().includes('Current proposal'));
 	assert.ok(!read().includes('Rejected proposal'));
-	assert.equal(read().split('## Pending').length, 2);
+	assert.ok(!read().includes('Pending'));
+	assert.match(read(), /^# Changelog\s+## \d{4}-\d{2}-\d{2}T/);
+	assert.equal(read().split('\n## ').length, 2);
 	assert.equal(git('log', '-1', '--format=%s').trim(), 'Before changelog');
 	assert.equal(git('diff', '--cached', '--name-only'), '');
 });
@@ -66,7 +68,7 @@ test('uses actual messages, includes intervening commits, and preserves repeated
 	assert.equal(read().split('Repeated message').length, 3);
 	const contents = read();
 	assert.equal(run('Next proposal').status, 0);
-	assert.equal(read(), contents);
+	assert.equal(read().replace(/^## .*$/gm, '## Date'), contents.replace(/^## .*$/gm, '## Date'));
 });
 
 test('rejects an empty message without modifying files', () => {

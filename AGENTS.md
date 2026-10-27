@@ -29,6 +29,10 @@ permission checks. Follow the existing centralized enforcement pattern.
 - If a suitable component is not available there, use `sveltewind/components`
   from the npm package.
 - Follow existing component usage and styling patterns.
+- Keep `export * from 'sveltewind/components';` in `src/lib/components/index.ts`
+  so new library exports are available automatically. Explicit local exports
+  override matching names. Consumers that enumerate components must exclude
+  noncomponent helpers exported by the library.
 
 ## Database changes
 
@@ -64,12 +68,15 @@ locally before committing or publishing.
   The helper rebuilds committed entries from first-parent history starting with
   the commit that introduced the changelog. Git's actual commit messages and
   dates are authoritative, including when the user changes the proposed message.
-- Keep exactly one Pending entry for all current uncommitted changes. Replace
+- Present the latest message under a normal date heading, assuming the user will
+  commit the presented changes. Never use a Pending heading or status label.
+- Keep exactly one dated entry for all current uncommitted changes. Replace
   prior uncommitted proposals instead of accumulating them. Remove stale or
   rejected messages that do not correspond to committed history; do not treat
   approval assumptions as evidence that a commit happened.
-- The Pending entry becomes confirmed history on the next reconciliation after
-  the user commits. No hooks, automatic commits, or history rewriting are used.
+- After the user commits, reconcile the entry's date and message with the actual
+  commit on the next update. No hooks, automatic commits, or history rewriting
+  are used.
 
 ## Current technical conventions
 

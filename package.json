@@ -65,6 +65,7 @@
 		"states-us": "^1.1.1",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
+		"sveltewind": "^4.15.0",
 		"svg-to-pdfkit": "^0.1.8",
 		"tailwind-merge": "^3.3.1",
 		"tailwindcss": "^4.0.0",

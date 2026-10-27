@@ -32,15 +32,12 @@ try {
 		}
 	}
 	const path = resolve(root, 'changelog.md');
-	const contents = [
-		'# Changelog',
-		'Pending describes the current proposed commit. Dated entries reflect actual Git history since this changelog was introduced.',
-		`## Pending\n\n${message}`,
-		...entries
-	].join('\n\n');
+	const contents = ['# Changelog', `## ${new Date().toISOString()}\n\n${message}`, ...entries].join(
+		'\n\n'
+	);
 	writeFileSync(path, await format(contents, { ...(await resolveConfig(path)), filepath: path }));
 	console.log(
-		'Changelog reconciled with Git history and the pending proposal updated. No commit made.'
+		'Changelog reconciled with Git history and the latest dated entry updated. No commit made.'
 	);
 } catch (error) {
 	console.error(error instanceof Error ? error.message : String(error));

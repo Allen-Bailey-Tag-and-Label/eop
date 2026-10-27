@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { theme as sveltewindTheme } from 'sveltewind/theme';
+	import { classic } from 'sveltewind/themes';
 	import '../app.css';
 
 	let { children } = $props();
+
+	sveltewindTheme.set.theme(structuredClone(classic));
 
 	const title = $derived.by(() => {
 		return [

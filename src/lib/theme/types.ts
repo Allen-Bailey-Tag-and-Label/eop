@@ -1,10 +1,11 @@
-import * as components from '$lib/components';
+import type { defaultTheme } from './themes/default';
 
 export type Component = {
 	default: string;
 	[variant: string]: string;
 };
-export type ComponentKey = keyof typeof components;
+// Sveltewind components use their own theme; this registry styles local components.
+export type ComponentKey = keyof typeof defaultTheme;
 export type Theme = {
 	[key in ComponentKey]: Component;
 };

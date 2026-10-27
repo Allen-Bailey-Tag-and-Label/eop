@@ -83,7 +83,10 @@
 		const number = Number(value);
 		return Number.isNaN(number) ? value : number;
 	};
-	const componentMap: Record<string, Component<any>> = UI;
+	// Component names start with an uppercase letter; helpers such as noopTransition do not.
+	const componentMap = Object.fromEntries(
+		Object.entries(UI).filter(([name]) => /^[A-Z]/.test(name))
+	) as Record<string, Component<any>>;
 	const parseAttrs = (s: string): Record<string, unknown> => {
 		const attrs: Record<string, unknown> = {};
 		const regExp = /([:@\w-]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;

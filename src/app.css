@@ -1,4 +1,8 @@
 @import 'tailwindcss';
+@import 'sveltewind/themes/palettes.css';
+
+@source '../node_modules/sveltewind/dist';
+
 @plugin "@tailwindcss/typography";
 @theme {
 	--color-primary-50: oklch(1.028823163801254 0.015534242079833713 290);

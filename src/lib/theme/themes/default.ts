@@ -1,5 +1,5 @@
 import { twMerge } from 'tailwind-merge';
-import { type Theme } from '../types';
+import { type Component } from '../types';
 
 const glassDark =
 	'dark:bg-white/[.025] dark:shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,.1),_inset_0px_-1px_0px_0px_rgba(0,0,0,.3),_0_1.25rem_1.5625rem_-0.3125rem_rgba(0,0,0,.3),_0_.5rem_.625rem_-.375rem_rgba(0,0,0,.3)]';
@@ -15,7 +15,7 @@ const InputDefault = twMerge(
 	'appearance-none cursor-pointer transition duration-200 px-6 py-3 rounded-lg outline-2 outline-transparent hover:outline-gray-950 focus::outline-gray-950 dark:hover:outline-white dark:focus:outline-white'
 );
 
-export const defaultTheme: Theme = {
+export const defaultTheme = {
 	A: {
 		default:
 			'text-primary-500 font-semibold decoration-2 hover:underline outline-hidden focus:underline'
@@ -115,4 +115,4 @@ export const defaultTheme: Theme = {
 	Ul: {
 		default: 'list-disc pl-4'
 	}
-};
+} satisfies Record<string, Component>;

@@ -6,16 +6,17 @@ Keep using VS Code Source Control: review the staged changes, enter the suggeste
 commit message, and click **Commit**. Include the staged `changelog.md` file.
 No task or terminal command is required from the user.
 
-At the end of a task, the agent prepares and stages one Pending changelog entry
-covering all current changes. If more work happens before committing, the agent
+At the end of a task, the agent prepares and stages one dated changelog entry
+covering all current changes, assuming they will be committed as presented. There
+is no Pending heading. If more work happens before committing, the agent
 replaces that proposal with the updated message rather than adding another entry.
 
 Before each update, the agent reconciles the changelog with Git's first-parent
 history, starting with the commit that introduced the changelog. Actual commit
 messages and dates replace stale proposals, including when the user edits the
 message before committing. Commits made without updating the changelog are also
-included on the next reconciliation. A committed Pending entry is converted into
-a dated historical entry during the next task.
+included on the next reconciliation. The latest entry's date and message are
+reconciled with the actual commit during the next task.
 
 The agent's helper is `npm run changelog -- "Proposed commit message"`. It only
 writes the changelog; it never stages files, commits, or rewrites Git history.
