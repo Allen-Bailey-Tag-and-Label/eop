@@ -2,37 +2,27 @@
 
 ## Committing changes
 
-To use VS Code's Source Control Commit button, stage your intended files and run:
+Keep using VS Code Source Control: review the staged changes, enter the suggested
+commit message, and click **Commit**. Include the staged `changelog.md` file.
+No task or terminal command is required from the user.
 
-```bash
-npm run changelog -- "Describe the changes"
-```
+At the end of a task, the agent prepares and stages one Pending changelog entry
+covering all current changes. If more work happens before committing, the agent
+replaces that proposal with the updated message rather than adding another entry.
 
-This records the message and stages `changelog.md` without committing. Enter
-the same message in Source Control and click Commit.
+Before each update, the agent reconciles the changelog with Git's first-parent
+history, starting with the commit that introduced the changelog. Actual commit
+messages and dates replace stale proposals, including when the user edits the
+message before committing. Commits made without updating the changelog are also
+included on the next reconciliation. A committed Pending entry is converted into
+a dated historical entry during the next task.
 
-To avoid typing a terminal command or entering the message twice, stage files
-in Source Control, open the Command Palette, choose **Tasks: Run Task**, and
-select **Commit staged changes with changelog**. Enter your message once when
-prompted. The task updates the changelog and commits all staged changes.
+The agent's helper is `npm run changelog -- "Proposed commit message"`. It only
+writes the changelog; it never stages files, commits, or rewrites Git history.
+Agents stage the result as part of their normal handoff. Reconciliation requires
+the local Git history; shallow clones can only reflect the history available.
 
-You can also run the complete workflow directly:
-
-```bash
-npm run commit -- "Describe the changes"
-```
-
-This command prepends a UTC timestamp and the complete commit message to
-`changelog.md`, stages the changelog, and commits it with your already staged
-files. Other unstaged files remain outside the commit. Use a single quoted
-argument for the message; it can include multiple lines.
-
-If a commit fails, the changelog entry remains staged for review. Retry with the
-same message to reuse that entry. Review and stage any manual changelog edits
-before using the command.
-
-Test the commit workflow in temporary repositories with
-`node --test scripts/commit.test.js`.
+Test reconciliation with `node --test scripts/update-changelog.test.js`.
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 

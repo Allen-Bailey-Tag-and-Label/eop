@@ -51,18 +51,25 @@ locally before committing or publishing.
 
 ## Changelog and commits
 
-- Maintain `changelog.md` as the commit message history, newest entries first.
-- To use the VS Code Source Control Commit button, first run
-  `npm run changelog -- "Commit message"`. It records the message and stages
-  `changelog.md` without committing. Use that same message in Source Control.
-- Alternatively, run the VS Code task `Commit staged changes with changelog`
-  and enter the message once. It runs `npm run commit -- "Commit message"`,
-  which updates the changelog and commits the staged files together.
-- Stage all intended changes before running the command; it does not stage
-  unrelated files automatically. Multiline commit messages are supported as a
-  single argument.
-- Agents set up and maintain this workflow but do not run the commit command
-  unless the user explicitly requests a commit.
+- The user keeps using VS Code Source Control: enter the supplied message and
+  click Commit. Do not require a terminal command or VS Code task from the user.
+- At the end of each task with file changes, assume the current changes will be
+  approved for purposes of preparing `changelog.md`. This does not authorize
+  agents to commit, push, or publish.
+- Inspect all staged and unstaged changes and prepare one commit message covering
+  the complete current diff. Run `npm run changelog -- "Commit message"` on the
+  user's behalf and stage `changelog.md` with the task changes. Supply the same
+  message in the final response.
+- Before preparing the entry, reconcile the changelog with actual Git history.
+  The helper rebuilds committed entries from first-parent history starting with
+  the commit that introduced the changelog. Git's actual commit messages and
+  dates are authoritative, including when the user changes the proposed message.
+- Keep exactly one Pending entry for all current uncommitted changes. Replace
+  prior uncommitted proposals instead of accumulating them. Remove stale or
+  rejected messages that do not correspond to committed history; do not treat
+  approval assumptions as evidence that a commit happened.
+- The Pending entry becomes confirmed history on the next reconciliation after
+  the user commits. No hooks, automatic commits, or history rewriting are used.
 
 ## Current technical conventions
 
