@@ -5,6 +5,8 @@ export { CustomerActivity } from './CustomerActivity';
 export { CustomerActivityDirection } from './CustomerActivityDirection';
 export { CustomerActivityType } from './CustomerActivityType';
 export { CustomerContact } from './CustomerContact';
+export { DataTableDefinition } from './DataTableDefinition';
+export { DataTableRow } from './DataTableRow';
 export { Holiday } from './Holiday';
 export { InventoryItem } from './InventoryItem';
 export { InventoryItemGroupType } from './InventoryItemGroupType';

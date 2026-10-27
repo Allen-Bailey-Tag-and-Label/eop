@@ -4,6 +4,8 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
+		"changelog": "node scripts/commit.js --changelog",
+		"commit": "node scripts/commit.js",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
