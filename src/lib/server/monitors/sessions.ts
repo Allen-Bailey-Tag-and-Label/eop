@@ -4,7 +4,6 @@ import { MonitorPairingLimit, MonitorSession } from './model';
 
 export const MONITOR_COOKIE = 'monitorSession';
 export const PAIRING_DURATION_MS = 10 * 60 * 1000;
-export const SESSION_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const PAIRING_LIMIT = 30;
 
@@ -52,8 +51,7 @@ export async function getMonitorSession(token: string | undefined, now = new Dat
 	if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
 	return MonitorSession.findOne({
 		tokenHash: hashToken(token),
-		status: { $in: ['pending', 'approved'] },
-		expiresAt: { $gt: now }
+		$or: [{ status: 'approved' }, { status: 'pending', expiresAt: { $gt: now } }]
 	})
 		.select('+pairingCode')
 		.lean();
@@ -100,10 +98,9 @@ export async function approveMonitor(
 				status: 'approved',
 				location,
 				approvedAt: now,
-				approvedById: new Types.ObjectId(userId),
-				expiresAt: new Date(now.getTime() + SESSION_DURATION_MS)
+				approvedById: new Types.ObjectId(userId)
 			},
-			$unset: { pairingCode: 1 }
+			$unset: { pairingCode: 1, expiresAt: 1 }
 		},
 		{ new: true, runValidators: true }
 	).lean();
@@ -123,9 +120,9 @@ export async function touchMonitor(id: Types.ObjectId, now = new Date()) {
 	);
 }
 
-export async function listMonitors(now = new Date()) {
-	const sessions = await MonitorSession.find({ status: 'approved', expiresAt: { $gt: now } })
-		.select('location approvedAt lastSeenAt expiresAt')
+export async function listMonitors() {
+	const sessions = await MonitorSession.find({ status: 'approved' })
+		.select('location approvedAt lastSeenAt')
 		.sort({ approvedAt: -1 })
 		.limit(200)
 		.lean();
@@ -133,8 +130,7 @@ export async function listMonitors(now = new Date()) {
 		id: session._id.toString(),
 		location: session.location,
 		approvedAt: session.approvedAt?.toISOString() ?? null,
-		lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
-		expiresAt: session.expiresAt.toISOString()
+		lastSeenAt: session.lastSeenAt?.toISOString() ?? null
 	}));
 }
 

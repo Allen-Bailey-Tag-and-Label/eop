@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handle } from './hooks.server';
 import { getMonitorSession } from '$lib/server/monitors/sessions';
+import { preserveMonitorApprovals } from '$lib/server/monitors/migrate';
 import { User } from '$lib/server/mongoose/models';
 
 vi.mock('$env/static/private', () => ({
@@ -20,6 +21,7 @@ vi.mock('$lib/server/monitors/sessions', () => ({
 	getMonitorSession: vi.fn(),
 	MONITOR_COOKIE: 'monitorSession'
 }));
+vi.mock('$lib/server/monitors/migrate', () => ({ preserveMonitorApprovals: vi.fn() }));
 
 const userModel = User as unknown as {
 	find: ReturnType<typeof vi.fn>;
@@ -76,12 +78,13 @@ describe('central monitor authentication', () => {
 			const input = context(`/(monitors)/monitors/${path}`, `/monitors/${path}`);
 			expect((await invoke(input)).status).toBe(200);
 			expect(input.resolve).toHaveBeenCalled();
+			expect(preserveMonitorApprovals).toHaveBeenCalled();
 			expect(input.event.setHeaders).toHaveBeenCalledWith({ 'cache-control': 'private, no-store' });
 		}
 		expect(userModel.find).not.toHaveBeenCalled();
 	});
 
-	it('denies display access to missing, expired, revoked, and pending sessions', async () => {
+	it('denies display access to missing, revoked, and pending sessions', async () => {
 		for (const session of [null, { status: 'pending' }, { status: 'revoked' }]) {
 			vi.mocked(getMonitorSession).mockResolvedValue(
 				session as Awaited<ReturnType<typeof getMonitorSession>>
@@ -98,15 +101,13 @@ describe('central monitor authentication', () => {
 		vi.mocked(getMonitorSession).mockResolvedValue({
 			_id: { toString: () => 'monitor-id' },
 			status: 'approved',
-			location: 'Break room',
-			expiresAt: new Date('2027-01-01T00:00:00Z')
+			location: 'Break room'
 		} as unknown as NonNullable<Awaited<ReturnType<typeof getMonitorSession>>>);
 		const display = context('/(monitors)/monitors/(approved)/display', '/monitors/display');
 		expect((await invoke(display)).status).toBe(200);
 		expect(display.event.locals.monitor).toEqual({
 			id: 'monitor-id',
-			location: 'Break room',
-			expiresAt: '2027-01-01T00:00:00.000Z'
+			location: 'Break room'
 		});
 		expect(display.event.locals.user).toBeUndefined();
 		for (const page of ['approval', 'management']) {

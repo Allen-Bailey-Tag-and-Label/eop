@@ -7,7 +7,7 @@ export type MonitorRecord = {
 	pairingCode?: string;
 	status: 'pending' | 'approved' | 'revoked';
 	location: string;
-	expiresAt: Date;
+	expiresAt?: Date;
 	approvedAt?: Date;
 	approvedById?: Types.ObjectId;
 	lastSeenAt?: Date;
@@ -22,7 +22,8 @@ export const MonitorSession = defineModel<MonitorRecord>(
 		pairingCode: { type: String, unique: true, sparse: true, select: false },
 		status: { type: String, enum: ['pending', 'approved', 'revoked'], required: true },
 		location: { type: String, default: '', maxlength: 160 },
-		expiresAt: { type: Date, required: true, index: { expires: 0 } },
+		// Only pending and revoked records expire. Approved records omit this field.
+		expiresAt: { type: Date, index: { expires: 0 } },
 		approvedAt: Date,
 		approvedById: { type: Schema.Types.ObjectId, ref: 'User' },
 		lastSeenAt: Date

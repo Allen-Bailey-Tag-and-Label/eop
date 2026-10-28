@@ -5,7 +5,7 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			monitor: { id: string; location: string; expiresAt: string };
+			monitor: { id: string; location: string };
 			navigation: Navigation[];
 			user: User;
 		}

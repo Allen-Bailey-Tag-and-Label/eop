@@ -22,9 +22,18 @@ pages appear in navigation. Existing `/admin/monitors` bookmarks redirect to app
 Codes expire after 10 minutes, can be approved once, and are replaced automatically
 when an online monitor notices expiry. Approval does not create an employee login:
 the browser gets a separate random, HttpOnly credential restricted to `/monitors`.
-Only its SHA-256 hash is stored. Approved sessions last 90 days; expiry and
-revocation are checked in MongoDB, independently of TTL cleanup. Use HTTPS in
-production and keep the kiosk browser's profile/cookies across Pi reboots.
+Only its SHA-256 hash is stored. Approved sessions never expire and remain valid
+until revoked. Pending codes still expire after 10 minutes, independently of TTL
+cleanup. Existing approved records have their old expiry removed automatically
+on the first request handled by each server process; records already deleted by
+TTL cleanup cannot be recovered. The existing TTL index continues cleaning up
+pending and revoked records while approved records have no expiry field.
+
+Browser cookies use a rolling 400-day lifetime, renewed by each successful approved
+status check. Keep the kiosk browser's profile/cookies across Pi reboots and use
+HTTPS in production. Clearing cookies, replacing the profile, or leaving the
+monitor disconnected beyond the cookie lifetime requires pairing again. Revoke
+removed devices promptly: a copied credential also remains valid until revoked.
 
 New pairing requests are limited to 30 per client IP per 10-minute window using
 shared MongoDB counters. Refreshing a live code reuses the existing request.

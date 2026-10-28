@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	if (!session) return json({ state: 'unpaired' });
 	if (session.status === 'approved') {
 		await touchMonitor(session._id);
-		setMonitorCookie(cookies, token!, session.expiresAt);
+		setMonitorCookie(cookies, token!);
 	}
 	return json({ state: session.status });
 };

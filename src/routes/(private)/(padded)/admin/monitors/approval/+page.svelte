@@ -47,7 +47,8 @@
 			{/snippet}
 		</Form>
 		<P class="text-sm"
-			>Codes work once and expire after 10 minutes. Approved sessions last 90 days.</P
+			>Codes work once and expire after 10 minutes. Approved monitors stay connected until access is
+			revoked.</P
 		>
 	</Card>
 </Div>

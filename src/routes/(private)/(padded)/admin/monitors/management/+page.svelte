@@ -39,10 +39,7 @@
 		{:else}
 			<Div class="overflow-x-auto">
 				<Table class="w-full text-left">
-					<Thead
-						><Tr><Th>Location</Th><Th>Last connected</Th><Th>Session expires</Th><Th>Access</Th></Tr
-						></Thead
-					>
+					<Thead><Tr><Th>Location</Th><Th>Last connected</Th><Th>Access</Th></Tr></Thead>
 					<Tbody>
 						{#each data.monitors as monitor (monitor.id)}
 							<Tr>
@@ -52,7 +49,6 @@
 										? new Date(monitor.lastSeenAt).toLocaleString()
 										: 'Waiting for monitor'}</Td
 								>
-								<Td>{new Date(monitor.expiresAt).toLocaleDateString()}</Td>
 								<Td>
 									<Button
 										type="button"

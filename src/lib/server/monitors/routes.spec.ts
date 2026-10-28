@@ -80,8 +80,7 @@ describe('monitor route wiring', () => {
 				id: session._id.toString(),
 				location: 'Break room',
 				approvedAt: null,
-				lastSeenAt: null,
-				expiresAt: session.expiresAt.toISOString()
+				lastSeenAt: null
 			}
 		];
 		vi.mocked(listMonitors).mockResolvedValue(monitors);
@@ -121,12 +120,16 @@ describe('monitor route wiring', () => {
 	});
 
 	it('polls only the requesting browser and returns state without session data', async () => {
-		vi.mocked(getMonitorSession).mockResolvedValue({ ...session, status: 'approved' });
+		vi.mocked(getMonitorSession).mockResolvedValue({
+			...session,
+			status: 'approved',
+			expiresAt: undefined
+		});
 		const input = event();
 		const response = await status(input as unknown as Parameters<typeof status>[0]);
 		expect(getMonitorSession).toHaveBeenCalledWith(token);
 		expect(await response.json()).toEqual({ state: 'approved' });
-		expect(setMonitorCookie).toHaveBeenCalledWith(input.cookies, token, session.expiresAt);
+		expect(setMonitorCookie).toHaveBeenCalledWith(input.cookies, token);
 	});
 
 	it('returns an unpaired state for an expired or revoked credential', async () => {

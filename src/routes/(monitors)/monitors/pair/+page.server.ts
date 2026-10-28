@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ cookies, getClientAddress, setHeade
 	const code = pairing.session.pairingCode!;
 	return {
 		code: `${code.slice(0, 4)}-${code.slice(4)}`,
-		expiresAt: pairing.session.expiresAt.toISOString(),
+		expiresAt: pairing.session.expiresAt!.toISOString(),
 		approvalUrl: `${url.origin}/admin/monitors/approval`
 	};
 };

@@ -7,6 +7,7 @@ import { setSkipLogging } from '$lib/server/mongoose/middleware';
 import { Log, Role, Route, UpsQuote, User } from '$lib/server/mongoose/models';
 import { type Navigation, type Route as RouteType } from '$lib/types';
 import { getMonitorSession, MONITOR_COOKIE } from '$lib/server/monitors/sessions';
+import { preserveMonitorApprovals } from '$lib/server/monitors/migrate';
 
 type NavigationMap = Map<string, NavigationMap>;
 type Role = { label: string; routes: RouteType[] };
@@ -117,6 +118,7 @@ const initDB = async () => {
 
 export const handle: Handle = async ({ event, resolve }) => {
 	await connect();
+	await preserveMonitorApprovals();
 
 	// Device credentials are independent of employees and only authorize monitor displays.
 	if (event.route.id?.startsWith('/(monitors)/')) {
@@ -126,8 +128,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (session?.status !== 'approved') return redirect('/monitors/pair');
 			event.locals.monitor = {
 				id: session._id.toString(),
-				location: session.location,
-				expiresAt: session.expiresAt.toISOString()
+				location: session.location
 			};
 		}
 		return resolve(event);

@@ -10,8 +10,7 @@ import {
 	PAIRING_DURATION_MS,
 	PairingLimitError,
 	requestPairing,
-	revokeMonitor,
-	SESSION_DURATION_MS
+	revokeMonitor
 } from './sessions';
 
 vi.mock('./model', () => ({
@@ -40,15 +39,17 @@ type Filter = {
 	_id?: Types.ObjectId;
 	status?: string | { $in: string[] };
 	expiresAt?: { $gt: Date };
+	$or?: Filter[];
 };
 type Update = { $set?: Partial<MonitorRecord>; $unset?: Record<string, unknown> };
 
-function matches(record: MonitorRecord, filter: Filter) {
+function matches(record: MonitorRecord, filter: Filter): boolean {
 	return (
 		(!filter.tokenHash || record.tokenHash === filter.tokenHash) &&
 		(!filter.pairingCode || record.pairingCode === filter.pairingCode) &&
 		(!filter._id || record._id.toString() === filter._id.toString()) &&
-		(!filter.expiresAt || record.expiresAt > filter.expiresAt.$gt) &&
+		(!filter.expiresAt || (!!record.expiresAt && record.expiresAt > filter.expiresAt.$gt)) &&
+		(!filter.$or || filter.$or.some((branch) => matches(record, branch))) &&
 		(!filter.status ||
 			(typeof filter.status === 'string'
 				? record.status === filter.status
@@ -70,6 +71,7 @@ function updateRecord(filter: Filter, update: Update) {
 	if (!record) return null;
 	Object.assign(record, update.$set);
 	if (update.$unset?.pairingCode) delete record.pairingCode;
+	if (update.$unset?.expiresAt) delete record.expiresAt;
 	return { ...record };
 }
 
@@ -105,7 +107,7 @@ describe('monitor pairing', () => {
 		expect(pairing.session.pairingCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
 		expect(records[0].tokenHash).toBe(hashToken(pairing.token));
 		expect(records[0].tokenHash).not.toBe(pairing.token);
-		expect(pairing.session.expiresAt.getTime() - now.getTime()).toBe(PAIRING_DURATION_MS);
+		expect(pairing.session.expiresAt!.getTime() - now.getTime()).toBe(PAIRING_DURATION_MS);
 		expect(await getMonitorSession(pairing.session.pairingCode, now)).toBeNull();
 		expect(await getMonitorSession('f'.repeat(64), now)).toBeNull();
 	});
@@ -133,7 +135,7 @@ describe('monitor pairing', () => {
 		expect(session?.location).toBe('Break room');
 		expect(session?.pairingCode).toBeUndefined();
 		expect(session?.approvedById?.toString()).toBe(userId);
-		expect(session!.expiresAt.getTime() - now.getTime()).toBe(SESSION_DURATION_MS);
+		expect(session).not.toHaveProperty('expiresAt');
 	});
 
 	it('rejects expired codes even when MongoDB has not deleted the document yet', async () => {
@@ -172,21 +174,23 @@ describe('monitor pairing', () => {
 	it('revokes a session and excludes credentials from the admin list', async () => {
 		const pairing = await requestPairing(undefined, '192.0.2.1', now);
 		const approved = await approveMonitor(pairing.session.pairingCode, 'Break room', userId, now);
-		const list = await listMonitors(now);
+		const list = await listMonitors();
 		expect(list).toHaveLength(1);
 		expect(list[0]).not.toHaveProperty('tokenHash');
 		expect(list[0]).not.toHaveProperty('pairingCode');
 		expect(await revokeMonitor(approved!._id.toString(), now)).toBe(true);
 		expect(await getMonitorSession(pairing.token, now)).toBeNull();
-		expect(await listMonitors(now)).toEqual([]);
+		expect(await listMonitors()).toEqual([]);
 		expect(await revokeMonitor({ $ne: null }, now)).toBe(false);
 	});
 
-	it('expires approved sessions without relying on cookie expiry or TTL cleanup', async () => {
+	it('keeps approved sessions valid years later and still allows revocation', async () => {
 		const pairing = await requestPairing(undefined, '192.0.2.1', now);
-		await approveMonitor(pairing.session.pairingCode, 'Break room', userId, now);
-		expect(
-			await getMonitorSession(pairing.token, new Date(now.getTime() + SESSION_DURATION_MS))
-		).toBeNull();
+		const approved = await approveMonitor(pairing.session.pairingCode, 'Break room', userId, now);
+		const later = new Date('2046-10-28T12:00:00Z');
+		expect(await getMonitorSession(pairing.token, later)).toMatchObject({ status: 'approved' });
+		expect(await listMonitors()).toHaveLength(1);
+		expect(await revokeMonitor(approved!._id.toString(), later)).toBe(true);
+		expect(await getMonitorSession(pairing.token, later)).toBeNull();
 	});
 });

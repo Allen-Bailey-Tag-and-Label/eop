@@ -1,8 +1,12 @@
 # Changelog
 
-## 2026-10-28T12:55:35.941Z
+## 2026-10-28T13:03:05.695Z
 
-refactor: Split monitor approval and management into separate admin routes
+feat: Keep approved monitor sessions valid until revoked
+
+## 2026-10-28T08:59:24-04:00
+
+Commit message: refactor: Split monitor approval and management into separate admin routes
 
 ## 2026-10-28T08:51:57-04:00
 
