@@ -50,17 +50,26 @@ For an existing database, add `/admin/monitors/slides` and
 `/admin/monitors/playlists` in **Admin → Routes**, then assign the routes to the
 appropriate roles. New databases include both in the initial admin seed.
 
-1. Open **Admin → Monitors → Slides**, create a slide, and enter its title and
-   unique slug. The default canvas is 1920 × 1080 and scales to fit the monitor.
-2. Add text, images, SVG assets, rectangles, ellipses, or lines. Edit coordinates,
-   dimensions, colors, typography, and layer order in the property panel. Upload
+1. Open **Admin → Monitors → Slides** and create a slide. The editor fills the
+   available application height without page scrolling. Use **Settings** in the
+   top toolbar for title, unique slug, canvas dimensions, background, and duration.
+   The default canvas is 1920 × 1080 and scales to fit the monitor.
+2. Use **Add** or the left tool rail for text, images, SVG assets, rectangles,
+   ellipses, or lines. Select and drag elements to move them; arrow keys nudge by
+   one pixel (Shift for ten). The resize tool provides a corner handle. Moving an
+   animated element shifts its complete animation path. Use the hand tool to pan
+   the view, and the bottom zoom/fit controls to navigate without changing the slide.
+   The right inspector has Properties, Layers, and Animation tabs and scrolls
+   independently. It can be hidden for more canvas space. Upload assets through
+   **Upload asset** in the top toolbar:
    PNG/JPEG/WebP images under 3 MB or SVGs under 300 KB. SVG scripts, external
    references, embedded HTML, and styles are removed; use element timelines for
    animation. Assets are immutable and stored separately in MongoDB, with IDs
    referenced by slides. No extra hosting service or environment secrets are needed.
 3. Use an animation preset or edit keyframes. Each keyframe specifies a complete
    pose (x, y, opacity, scale, rotation), time in milliseconds, and easing into
-   that frame. Scrub or play the preview. Set the slide duration (1–600 seconds).
+   that frame. Playback, scrubbing, and clickable keyframe markers remain at the
+   bottom of the editor. Set the slide duration (1–600 seconds) in Settings.
    Later elements render in front. The final pose is held until the slide ends.
 4. Save a draft or publish the current editor content. Draft changes do not affect
    monitors. Publishing updates the saved draft and published snapshot together;
@@ -84,8 +93,9 @@ does not break playback. Only approved monitor routes can fetch playback or
 published media. Versioned slides, playlists, and binary assets are kept outside
 generic database CRUD exports so writes follow validation and publication rules.
 
-For programmatic creation, use **Export to JSON** for a complete example, generate
-the same structure, and use **Import from JSON** before saving or publishing.
+For programmatic creation, use **Export** in the top toolbar to view or download
+a complete JSON example. Generate the same structure and use **Import** to upload
+a JSON file or paste a definition before saving or publishing.
 The shared types and validation live in `src/lib/slides`. For example:
 
 ```ts
@@ -104,9 +114,8 @@ console.log(JSON.stringify(slide));
 
 V1 supports up to 100 elements (20 media elements) per slide, 100 keyframes per
 element, 100 entries per playlist, and 250 KB slide/playlist definitions. Scheduling
-by date/time, slide-to-slide transitions, custom live-data templates, drag handles,
-asset deletion, and slide/playlist deletion are future work. The current editor
-positions elements through numeric properties.
+by date/time, slide-to-slide transitions, custom live-data templates, asset deletion,
+and slide/playlist deletion are future work.
 
 ## Component implementations
 

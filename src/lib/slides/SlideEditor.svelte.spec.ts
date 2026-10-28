@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/svelte';
 import SlideEditor from './SlideEditor.svelte';
-import { blankSlide } from './types';
+import { blankSlide, newElement } from './types';
 
 vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
 beforeEach(() => {
@@ -20,6 +20,63 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('keeps document settings in a dialog and submits them through the top save form', async () => {
+		const { container, getByRole, queryByRole } = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		expect(getByRole('toolbar', { name: 'Document actions' })).toBeInTheDocument();
+		expect(getByRole('region', { name: 'Animation timeline controls' })).toBeInTheDocument();
+		expect(queryByRole('textbox', { name: 'Slide title' })).not.toBeInTheDocument();
+		await fireEvent.click(getByRole('button', { name: 'Settings' }));
+		await fireEvent.input(getByRole('textbox', { name: 'Slide title' }), {
+			target: { value: 'Safety first' }
+		});
+		await fireEvent.input(getByRole('textbox', { name: 'Slide slug' }), {
+			target: { value: 'safety-first' }
+		});
+		await fireEvent.click(getByRole('button', { name: 'Done' }));
+		expect(container.querySelector('input[name="title"]')).toHaveValue('Safety first');
+		expect(container.querySelector('input[name="slug"]')).toHaveValue('safety-first');
+	});
+	it('nudges the entire animation and resizes from the canvas using keyboard controls', async () => {
+		const element = newElement('text', 'headline');
+		element.keyframes = [{ ...element, x: 200, atMs: 1000, easing: 'linear' }];
+		const { container, getByRole } = render(SlideEditor, {
+			data: {
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: { ...blankSlide(), elements: [element] }
+				},
+				assets: []
+			}
+		});
+		await fireEvent.click(getByRole('button', { name: 'Select element 1: text' }));
+		await fireEvent.keyDown(getByRole('button', { name: 'Select element 1: text' }), {
+			key: 'ArrowRight',
+			shiftKey: true
+		});
+		let saved = JSON.parse(
+			(container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(saved.elements[0].x).toBe(170);
+		expect(saved.elements[0].keyframes[0].x).toBe(210);
+		await fireEvent.click(getByRole('button', { name: 'Resize tool' }));
+		await fireEvent.keyDown(getByRole('button', { name: 'Resize selected element' }), {
+			key: 'ArrowRight',
+			shiftKey: true
+		});
+		saved = JSON.parse(
+			(container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(saved.elements[0].width).toBe(810);
+	});
 	it('builds an animated text definition and exports the same data used by the save form', async () => {
 		const { container, getByRole } = render(SlideEditor, {
 			data: {
@@ -27,9 +84,10 @@ describe('slide authoring', () => {
 				assets: []
 			}
 		});
-		await fireEvent.click(getByRole('button', { name: 'Add element' }));
+		await fireEvent.click(getByRole('button', { name: 'Add text' }));
+		await fireEvent.click(getByRole('button', { name: 'animation' }));
 		await fireEvent.click(getByRole('button', { name: 'Fade in' }));
-		await fireEvent.click(getByRole('button', { name: 'Export to JSON' }));
+		await fireEvent.click(getByRole('button', { name: 'Export' }));
 		const exported = JSON.parse(
 			(getByRole('textbox', { name: 'Slide JSON' }) as HTMLTextAreaElement).value
 		);
@@ -40,6 +98,7 @@ describe('slide authoring', () => {
 		expect(
 			JSON.parse((container.querySelector('input[name="definition"]') as HTMLInputElement).value)
 		).toEqual(exported);
+		await fireEvent.click(getByRole('button', { name: 'Close dialog' }));
 		expect(getByRole('button', { name: 'Publish slide' })).toHaveAttribute('name', 'intent');
 		expect(getByRole('button', { name: 'Publish slide' })).toHaveAttribute('value', 'publish');
 	});
@@ -50,6 +109,7 @@ describe('slide authoring', () => {
 				assets: []
 			}
 		});
+		await fireEvent.click(getByRole('button', { name: 'Import' }));
 		await fireEvent.input(getByRole('textbox', { name: 'Slide JSON' }), {
 			target: { value: '{"schemaVersion":999}' }
 		});

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T13:44:54.524Z
+## 2026-10-28T14:26:47.921Z
+
+feat: Add a full-height slide editor with toolbars and canvas controls
+
+## 2026-10-28T10:05:19-04:00
 
 feat: Add slide authoring, publishing, playlists, and monitor playback
 
