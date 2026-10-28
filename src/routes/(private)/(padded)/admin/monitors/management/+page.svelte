@@ -59,10 +59,14 @@
 										: 'Waiting for monitor'}</Td
 								>
 								<Td>
-									<Form action="?/assign" class="flex min-w-64 items-end gap-2">
+									<Form
+										action="?/assign"
+										class="flex max-w-none min-w-64 flex-nowrap items-center gap-2 space-y-0"
+									>
 										<Input type="hidden" name="sessionId" value={monitor.id} />
 										<Select
 											name="playlistId"
+											class="min-w-0 flex-1"
 											aria-label={`Playlist for ${monitor.location}`}
 											value={monitor.playlistId}
 											options={[
@@ -73,14 +77,18 @@
 												}))
 											]}
 										/>
-										<Button type="submit">Assign</Button>
+										<Button type="submit" class="shrink-0">Assign</Button>
 									</Form>
 								</Td>
 								<Td>
-									<Form action="?/colorMode" class="flex min-w-56 items-end gap-2">
+									<Form
+										action="?/colorMode"
+										class="flex max-w-none min-w-56 flex-nowrap items-center gap-2 space-y-0"
+									>
 										<Input type="hidden" name="sessionId" value={monitor.id} />
 										<Select
 											name="colorMode"
+											class="min-w-0 flex-1"
 											aria-label={`Color mode for ${monitor.location}`}
 											value={monitor.colorMode}
 											options={[
@@ -89,7 +97,7 @@
 												{ value: 'system', label: 'System' }
 											]}
 										/>
-										<Button type="submit">Save</Button>
+										<Button type="submit" class="shrink-0">Save</Button>
 									</Form>
 								</Td>
 								<Td>

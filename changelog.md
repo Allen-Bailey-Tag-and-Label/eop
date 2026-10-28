@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T17:06:35.177Z
+## 2026-10-28T17:22:46.685Z
+
+fix: Correct monitor and playlist layouts and footer styling
+
+## 2026-10-28T13:14:12-04:00
 
 feat: Add theme-aware slide colors and per-monitor display modes
 

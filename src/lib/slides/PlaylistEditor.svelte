@@ -38,7 +38,7 @@
 			duration. A shorter override clips its animation. Publish the playlist, then assign it in
 			Monitor management.</P
 		>
-		<Form action="?/save" bind:isLoading={saving}>
+		<Form action="?/save" class="max-w-none" bind:isLoading={saving}>
 			<Input type="hidden" name="id" value={data.playlist.id} /><Input
 				type="hidden"
 				name="version"
@@ -57,32 +57,36 @@
 					>With looping off, the last slide remains on screen. Published changes are still received.</P
 				>
 				{#each draft.items as item, index (item)}
-					<Div
-						class="grid items-end gap-4 rounded border border-gray-500 p-4 md:grid-cols-[minmax(0,1fr)_12rem_auto]"
-					>
-						<Select
-							label={`Slide ${index + 1}`}
-							bind:value={item.slideId}
-							options={[
-								{ value: '', label: 'Choose a slide' },
-								...data.slides.map((slide) => ({
-									value: slide.id,
-									label: `${slide.title}${slide.publishedAt ? '' : ' (unpublished)'}`
-								}))
-							]}
-						/>
-						<Input
-							label="Override (seconds)"
-							type="number"
-							min={1}
-							max={600}
-							step={0.1}
-							value={item.durationMs === null ? '' : String(item.durationMs / 1000)}
-							oninput={(e) =>
-								(item.durationMs =
-									e.currentTarget.value === '' ? null : Number(e.currentTarget.value) * 1000)}
-						/>
-						<Div class="flex gap-2"
+					<Div class="flex flex-wrap items-end gap-4 rounded border border-gray-500 p-4">
+						<Div class="min-w-0 grow basis-64">
+							<Select
+								label={`Slide ${index + 1}`}
+								class="w-full min-w-0"
+								bind:value={item.slideId}
+								options={[
+									{ value: '', label: 'Choose a slide' },
+									...data.slides.map((slide) => ({
+										value: slide.id,
+										label: `${slide.title}${slide.publishedAt ? '' : ' (unpublished)'}`
+									}))
+								]}
+							/>
+						</Div>
+						<Div class="min-w-0 grow basis-48">
+							<Input
+								label="Override (seconds)"
+								class="w-full min-w-0"
+								type="number"
+								min={1}
+								max={600}
+								step={0.1}
+								value={item.durationMs === null ? '' : String(item.durationMs / 1000)}
+								oninput={(e) =>
+									(item.durationMs =
+										e.currentTarget.value === '' ? null : Number(e.currentTarget.value) * 1000)}
+							/>
+						</Div>
+						<Div class="flex flex-wrap gap-2"
 							><Button
 								aria-label={`Move slide ${index + 1} up`}
 								disabled={index === 0}

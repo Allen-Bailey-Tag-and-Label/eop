@@ -212,8 +212,7 @@
 	</div>
 	{#if shown}
 		<Div
-			class="flex shrink-0 items-center justify-between gap-4 border-t px-4 py-3 md:px-6"
-			style={`background:${scheme === 'dark' ? '#030712' : '#f3f4f6'};border-color:${scheme === 'dark' ? '#ffffff26' : '#00000026'};`}
+			class={`flex shrink-0 items-center justify-between gap-4 border-t px-4 py-3 md:px-6 ${scheme === 'dark' ? 'border-white/15 bg-gray-950' : 'border-black/15 bg-gray-100'}`}
 			role="region"
 			aria-label="Playback information"
 		>
