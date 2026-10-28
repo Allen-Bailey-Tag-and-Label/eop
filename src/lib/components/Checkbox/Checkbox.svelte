@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Input as SveltewindInput } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import type { HTMLAttributes } from 'svelte/elements';
@@ -6,7 +8,7 @@
 	import { Check } from '$lib/icons';
 	import { attachmentFactory } from '$lib/attachments';
 	import { theme } from '$lib/theme';
-	import { Div, Label, Input } from '../';
+	import { Div, Label } from '../';
 	import { scale } from 'svelte/transition';
 
 	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'checked' | 'class' | 'style'> & {
@@ -47,12 +49,13 @@
 
 {#snippet input()}
 	<Label class={twMerge(className)} {style}>
-		<Input
+		<SveltewindInput
+			theme={unstyledTheme}
 			{...restProps}
 			{@attach attachmentFactory(attachments)}
 			bind:checked
 			bind:element
-			class="peer sr-only absolute h-0 w-0"
+			class={twMerge($theme.Input.default, 'peer sr-only absolute h-0 w-0')}
 			{name}
 			type="checkbox"
 		/>

@@ -4,7 +4,7 @@ export type Component = {
 	default: string;
 	[variant: string]: string;
 };
-// Sveltewind components use their own theme; this registry styles local components.
+// The application theme styles local components and their migrated Sveltewind counterparts.
 export type ComponentKey = keyof typeof defaultTheme;
 export type Theme = {
 	[key in ComponentKey]: Component;

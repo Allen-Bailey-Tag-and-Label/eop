@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Hr as SveltewindHr } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
@@ -25,10 +27,11 @@
 	}: Props = $props();
 </script>
 
-<hr
+<SveltewindHr
+	theme={unstyledTheme}
 	{...restProps}
 	{@attach attachmentFactory(attachments)}
-	bind:this={element}
+	bind:element
 	class={twMerge(
 		$theme.Hr.default,
 		...variants.map((variant: string) => $theme.Hr[variant]),

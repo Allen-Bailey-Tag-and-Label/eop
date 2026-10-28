@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Svg as SveltewindSpinner } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { theme } from '$lib/theme';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
@@ -6,7 +8,7 @@
 	type Props = Omit<HTMLAttributes<SVGElement>, 'class'> & {
 		class?: string;
 		dur?: [string | number | null | undefined, string | number | null | undefined];
-		element?: SVGElement | null;
+		element?: SVGSVGElement | null;
 		strokeWidth?: string;
 		variants?: string[];
 	};
@@ -21,9 +23,10 @@
 	}: Props = $props();
 </script>
 
-<svg
+<SveltewindSpinner
+	theme={unstyledTheme}
 	{...restProps}
-	bind:this={element}
+	bind:element
 	class={twMerge(
 		$theme.Spinner.default,
 		...variants.map((variant: string) => $theme.Spinner[variant]),
@@ -61,4 +64,4 @@
 			repeatCount="indefinite"
 		/>
 	</g>
-</svg>
+</SveltewindSpinner>

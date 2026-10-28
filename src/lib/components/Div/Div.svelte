@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Div as SveltewindDiv } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import type { Snippet } from 'svelte';
 	import type { Booleanish, HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
@@ -40,9 +42,10 @@
 		{/if}
 	</div>
 {:else}
-	<div
+	<SveltewindDiv
+		theme={unstyledTheme}
 		{...restProps}
-		bind:this={element}
+		bind:element
 		class={twMerge(
 			$theme.Div.default,
 			...variants.map((variant: string) => $theme.Div[variant]),
@@ -52,5 +55,5 @@
 		{#if children}
 			{@render children()}
 		{/if}
-	</div>
+	</SveltewindDiv>
 {/if}

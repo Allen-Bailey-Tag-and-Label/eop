@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Ol as SveltewindOl } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
@@ -25,10 +27,11 @@
 	}: Props = $props();
 </script>
 
-<ol
+<SveltewindOl
+	theme={unstyledTheme}
 	{...restProps}
 	{@attach attachmentFactory(attachments)}
-	bind:this={element}
+	bind:element
 	class={twMerge(
 		$theme.Ol.default,
 		...variants.map((variant: string) => $theme.Ol[variant]),
@@ -39,4 +42,4 @@
 	{#if children}
 		{@render children()}
 	{/if}
-</ol>
+</SveltewindOl>

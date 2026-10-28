@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Strong as SveltewindStrong } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
@@ -25,10 +27,11 @@
 	}: Props = $props();
 </script>
 
-<strong
+<SveltewindStrong
+	theme={unstyledTheme}
 	{...restProps}
 	{@attach attachmentFactory(attachments)}
-	bind:this={element}
+	bind:element
 	class={twMerge(
 		$theme.Strong.default,
 		...variants.map((variant: string) => $theme.Strong[variant]),
@@ -39,4 +42,4 @@
 	{#if children}
 		{@render children()}
 	{/if}
-</strong>
+</SveltewindStrong>

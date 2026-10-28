@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-27T17:31:21.731Z
+## 2026-10-27T18:02:46.356Z
+
+Replace local UI implementations with Sveltewind components and compatibility adapters
+
+## 2026-10-27T13:33:16-04:00
 
 Install and configure Sveltewind with wildcard component exports and dated changelog entries
 

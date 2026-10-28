@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Select as SveltewindSelect } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
@@ -36,9 +38,10 @@
 {/if}
 
 {#snippet select()}
-	<select
+	<SveltewindSelect
+		theme={unstyledTheme}
 		{...restProps}
-		bind:this={element}
+		bind:element
 		bind:value
 		class={twMerge(
 			$theme.Select.default,
@@ -55,5 +58,5 @@
 				</Option>
 			{/each}
 		{/if}
-	</select>
+	</SveltewindSelect>
 {/snippet}

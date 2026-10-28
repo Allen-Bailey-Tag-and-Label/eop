@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { Radio as SveltewindRadio } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory } from '$lib/attachments';
 	import { theme } from '$lib/theme';
-	import { Div, Input, Label } from '..';
+	import { Div, Label } from '..';
 
 	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'class' | 'group' | 'style' | 'value'> & {
 		attachments?: Attachment[];
@@ -53,15 +55,15 @@
 			className
 		)}
 	>
-		<Input
+		<SveltewindRadio
+			theme={unstyledTheme}
 			{...restProps}
 			{@attach attachmentFactory(attachments)}
 			bind:element
 			bind:group
-			class="peer sr-only absolute h-0 w-0"
+			class={twMerge($theme.Input.default, 'peer sr-only absolute h-0 w-0')}
 			{name}
 			{value}
-			type="radio"
 		/>
 		{#if handle}
 			{@render handle()}

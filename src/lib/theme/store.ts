@@ -2,8 +2,12 @@ import { writable } from 'svelte/store';
 import { twMerge } from 'tailwind-merge';
 import { type Component, type ComponentKey, type Theme } from './types';
 import { defaultTheme } from './themes';
+import { syncSveltewindTheme } from './sveltewind';
 
 const { subscribe, ...store } = writable<Theme>(defaultTheme);
+
+// Both component implementations follow the same application theme updates.
+subscribe(syncSveltewindTheme);
 
 const set = {
 	component: (componentKey: ComponentKey, value: Component) =>

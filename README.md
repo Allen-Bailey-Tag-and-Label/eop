@@ -1,5 +1,29 @@
 # sv
 
+## Component implementations
+
+Import components through `$lib/components`. Standard primitives come directly
+from Sveltewind. Local adapters reuse Sveltewind components while preserving the
+application's defaults, styles, bindings, and custom snippets.
+
+The application theme bridge preserves styles for direct library exports.
+Adapters pass `unstyledTheme` when supplying their existing application classes,
+so package preset classes do not change the portal's appearance.
+
+| Components                                                                  | Sveltewind reuse and application behavior                                                                                                                 |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Button                                                                      | Wraps Button with `type="button"` by default and automatic disabled styling.                                                                              |
+| Em, Hr, Li, Ol, Strong, Ul                                                  | Wrap their counterparts and forward attachment arrays to the native element.                                                                              |
+| Form                                                                        | Wraps Form; forwards SvelteKit enhancement as an attachment and retains loading/input/button/error snippets.                                              |
+| Input, Select, Textarea                                                     | Wrap their counterparts while retaining labels, option generation, and bindings.                                                                          |
+| Dialog                                                                      | Wraps Dialog, maps `open` to `isVisible`, and retains backdrop dismissal and centered scrolling content.                                                  |
+| Div                                                                         | Uses Div normally; only the editable branch retains a native element for `bind:innerHTML`.                                                                |
+| Radio                                                                       | Uses Radio for the input, retaining the application's label and handle layout.                                                                            |
+| Spinner                                                                     | Uses Svg with the existing configurable SVG animations and rounded caps; stock Spinner has different animation controls.                                  |
+| Checkbox                                                                    | Composes the library-backed Input, Label, and Div adapters; stock Checkbox puts its input after the handle, which breaks the existing peer-based styling. |
+| Datatable, MultiSelect                                                      | Retain the existing feature-specific UI and data contracts, composed from library-backed primitives.                                                      |
+| MarkdownToken, Modal, MongooseTable, Post, RangeInput, Slider, SubmitButton | Application-specific compositions using the shared component barrel.                                                                                      |
+
 ## Committing changes
 
 Keep using VS Code Source Control: review the staged changes, enter the suggested

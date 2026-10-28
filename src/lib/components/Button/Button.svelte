@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Button as SveltewindButton } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
@@ -25,9 +27,10 @@
 	}: Props = $props();
 </script>
 
-<button
+<SveltewindButton
+	theme={unstyledTheme}
 	{...restProps}
-	bind:this={element}
+	bind:element
 	class={twMerge(
 		$theme.Button.default,
 		...variants.map((variant: string) => $theme.Button[variant]),
@@ -41,4 +44,4 @@
 	{#if children}
 		{@render children()}
 	{/if}
-</button>
+</SveltewindButton>

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+	import { Dialog as SveltewindDialog } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
+	import { type Snippet } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
@@ -8,47 +11,42 @@
 	type Props = Omit<HTMLAttributes<HTMLDialogElement>, 'class'> & {
 		children?: Snippet;
 		class?: string;
-		element?: HTMLDialogElement;
+		element?: HTMLDialogElement | null;
 		open?: boolean;
 		variants?: string[];
 	};
 	let {
 		children,
 		class: className,
-		element = $bindable(),
+		element = $bindable(null),
 		open = $bindable(false),
+		oncancel,
+		onclose,
 		variants = [],
 		...restProps
 	}: Props = $props();
 
-	onMount(() => {
-		if (!element) return;
-
-		if (open) element.showModal();
-		if (!open) element.close();
-
-		const eventCancel = element?.addEventListener('cancel', () => (open = false)) ?? (() => {});
-		const eventClose = element?.addEventListener('close', () => (open = false)) ?? (() => {});
-
+	// The package handles visibility; preserve application callbacks alongside its handlers.
+	const forwardEvents: Attachment<HTMLDialogElement> = (node) => {
+		const cancel = (event: Event) =>
+			oncancel?.(event as Event & { currentTarget: HTMLDialogElement });
+		const close = (event: Event) =>
+			onclose?.(event as Event & { currentTarget: HTMLDialogElement });
+		node.addEventListener('cancel', cancel);
+		node.addEventListener('close', close);
 		return () => {
-			if (element) {
-				element.removeEventListener('cancel', eventCancel);
-				element.removeEventListener('close', eventClose);
-			}
+			node.removeEventListener('cancel', cancel);
+			node.removeEventListener('close', close);
 		};
-	});
-
-	$effect(() => {
-		if (element) {
-			if (open) element.showModal();
-			if (!open) element.close();
-		}
-	});
+	};
 </script>
 
-<dialog
+<SveltewindDialog
+	theme={unstyledTheme}
+	bind:isVisible={open}
 	{...restProps}
-	bind:this={element}
+	{@attach forwardEvents}
+	bind:element
 	class={twMerge(
 		$theme.Dialog.default,
 		...variants.map((variant: string) => $theme.Dialog[variant]),
@@ -67,4 +65,4 @@
 			</Div>
 		</Div>
 	{/if}
-</dialog>
+</SveltewindDialog>

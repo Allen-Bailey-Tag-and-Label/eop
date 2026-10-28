@@ -7,12 +7,12 @@
 		Input,
 		Label,
 		Table,
+		Tbody,
 		Td,
 		Th,
 		Thead,
 		Tr
 	} from '$lib/components';
-	import Tbody from '$lib/components/Tbody/Tbody.svelte';
 
 	type Holiday = string;
 	type Modifier = {

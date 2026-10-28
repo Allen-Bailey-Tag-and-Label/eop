@@ -25,9 +25,14 @@ permission checks. Follow the existing centralized enforcement pattern.
 
 ## UI components
 
-- Reuse components from `src/lib/components` first.
-- If a suitable component is not available there, use `sveltewind/components`
-  from the npm package.
+- Import UI components through `src/lib/components`, which re-exports Sveltewind.
+- Prefer Sveltewind implementations. Keep a local override only when it has
+  materially different behavior that the package cannot preserve.
+- When application defaults or props differ, prefer a thin adapter around the
+  Sveltewind component (for example, Button with `type="button"`) rather than
+  duplicating its native element. Preserve app-specific composition where needed.
+- Preserve the existing appearance through the application theme bridge in
+  `src/lib/theme/sveltewind.ts` rather than duplicating simple library components.
 - Follow existing component usage and styling patterns.
 - Keep `export * from 'sveltewind/components';` in `src/lib/components/index.ts`
   so new library exports are available automatically. Explicit local exports

@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { Input as SveltewindInput } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import { typeFactory } from '$lib/attachments';
 	import { theme } from '$lib/theme';
 	import { Div, Label } from '../';
 
@@ -80,11 +81,11 @@
 
 {#snippet input()}
 	{#if type === 'checkbox'}
-		<input
+		<SveltewindInput
+			theme={unstyledTheme}
 			{...restProps}
-			{@attach typeFactory(type)}
 			bind:checked
-			bind:this={element}
+			bind:element
 			class={twMerge(
 				$theme.Input.default,
 				...variants.map((variant: string) => $theme.Input[variant]),
@@ -97,11 +98,11 @@
 			type="checkbox"
 		/>
 	{:else if type === 'radio'}
-		<input
+		<SveltewindInput
+			theme={unstyledTheme}
 			{...restProps}
-			{@attach typeFactory(type)}
 			bind:group
-			bind:this={element}
+			bind:element
 			class={twMerge(
 				$theme.Input.default,
 				...variants.map((variant: string) => $theme.Input[variant]),
@@ -115,11 +116,12 @@
 			{value}
 		/>
 	{:else}
-		<input
+		<SveltewindInput
+			theme={unstyledTheme}
 			{...restProps}
-			{@attach typeFactory(type)}
-			bind:this={element}
+			bind:element
 			bind:value
+			{type}
 			class={twMerge(
 				$theme.Input.default,
 				...variants.map((variant: string) => $theme.Input[variant]),

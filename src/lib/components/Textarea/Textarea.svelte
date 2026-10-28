@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Textarea as SveltewindTextarea } from 'sveltewind/components';
+	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
@@ -42,10 +44,11 @@
 {/if}
 
 {#snippet textarea()}
-	<textarea
+	<SveltewindTextarea
+		theme={unstyledTheme}
 		{...restProps}
 		{@attach attachmentFactory(attachments)}
-		bind:this={element}
+		bind:element
 		bind:value
 		class={twMerge(
 			$theme.Textarea.default,
@@ -54,6 +57,5 @@
 		)}
 		{name}
 		{style}
-	>
-	</textarea>
+	></SveltewindTextarea>
 {/snippet}
