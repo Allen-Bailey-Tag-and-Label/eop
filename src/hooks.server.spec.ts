@@ -109,22 +109,28 @@ describe('central monitor authentication', () => {
 			expiresAt: '2027-01-01T00:00:00.000Z'
 		});
 		expect(display.event.locals.user).toBeUndefined();
-		const admin = context('/(private)/(padded)/admin/monitors', '/admin/monitors');
-		expect((await invoke(admin)).headers.get('location')).toBe('/sign-in');
-		expect(admin.resolve).not.toHaveBeenCalled();
+		for (const page of ['approval', 'management']) {
+			const admin = context(
+				`/(private)/(padded)/admin/monitors/${page}`,
+				`/admin/monitors/${page}`
+			);
+			expect((await invoke(admin)).headers.get('location')).toBe('/sign-in');
+			expect(admin.resolve).not.toHaveBeenCalled();
+		}
 	});
 
-	it('uses existing role assignments to protect admin approval pages and actions', async () => {
-		const denied = context('/(private)/(padded)/admin/monitors', '/admin/monitors', 'a'.repeat(24));
-		expect((await invoke(denied)).headers.get('location')).toBe('/dashboard');
-		expect(denied.resolve).not.toHaveBeenCalled();
-		userModel.findById.mockReturnValue(userQuery(userWithRoutes(['/admin/monitors'])));
-		const allowed = context(
-			'/(private)/(padded)/admin/monitors',
-			'/admin/monitors',
-			'a'.repeat(24)
-		);
-		expect((await invoke(allowed)).status).toBe(200);
-		expect(allowed.resolve).toHaveBeenCalled();
-	});
+	it.each(['approval', 'management'])(
+		'uses existing role assignments to protect monitor %s',
+		async (page) => {
+			const pathname = `/admin/monitors/${page}`;
+			const routeId = `/(private)/(padded)${pathname}`;
+			const denied = context(routeId, pathname, 'a'.repeat(24));
+			expect((await invoke(denied)).headers.get('location')).toBe('/dashboard');
+			expect(denied.resolve).not.toHaveBeenCalled();
+			userModel.findById.mockReturnValue(userQuery(userWithRoutes([pathname])));
+			const allowed = context(routeId, pathname, 'a'.repeat(24));
+			expect((await invoke(allowed)).status).toBe(200);
+			expect(allowed.resolve).toHaveBeenCalled();
+		}
+	);
 });

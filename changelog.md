@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T12:51:13.547Z
+## 2026-10-28T12:55:35.941Z
+
+refactor: Split monitor approval and management into separate admin routes
+
+## 2026-10-28T08:51:57-04:00
 
 fix: Confirm monitor revocation and require commit message prefixes
 

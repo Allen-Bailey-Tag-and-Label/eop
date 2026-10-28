@@ -2,11 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 import { load as pair } from '../../../routes/(monitors)/monitors/pair/+page.server';
 import { GET as status } from '../../../routes/(monitors)/monitors/status/+server';
-import { actions } from '../../../routes/(private)/(padded)/admin/monitors/+page.server';
+import { load as monitorIndex } from '../../../routes/(private)/(padded)/admin/monitors/+page.server';
+import { actions as approvalActions } from '../../../routes/(private)/(padded)/admin/monitors/approval/+page.server';
+import {
+	actions as managementActions,
+	load as management
+} from '../../../routes/(private)/(padded)/admin/monitors/management/+page.server';
 import { setMonitorCookie } from './cookies';
 import {
 	approveMonitor,
 	getMonitorSession,
+	listMonitors,
 	PairingLimitError,
 	requestPairing,
 	revokeMonitor
@@ -44,7 +50,7 @@ function event(fields: Record<string, string> = {}) {
 		setHeaders: vi.fn(),
 		url: new URL('https://eop.example/monitors/pair'),
 		locals: { user: { _id: 'a'.repeat(24) } },
-		request: new Request('https://eop.example/admin/monitors', { method: 'POST', body })
+		request: new Request('https://eop.example/admin/monitors/approval', { method: 'POST', body })
 	};
 }
 
@@ -59,13 +65,38 @@ beforeEach(() => {
 });
 
 describe('monitor route wiring', () => {
+	it('redirects old admin bookmarks to approval', () => {
+		expect(() => monitorIndex()).toThrow(
+			expect.objectContaining({
+				status: 303,
+				location: '/admin/monitors/approval'
+			})
+		);
+	});
+
+	it('loads approved monitors on the management page', async () => {
+		const monitors = [
+			{
+				id: session._id.toString(),
+				location: 'Break room',
+				approvedAt: null,
+				lastSeenAt: null,
+				expiresAt: session.expiresAt.toISOString()
+			}
+		];
+		vi.mocked(listMonitors).mockResolvedValue(monitors);
+		expect(await management(event() as unknown as Parameters<typeof management>[0])).toEqual({
+			monitors
+		});
+	});
+
 	it('returns the readable pairing code without exposing the secret or its hash to the page', async () => {
 		const input = event();
 		const data = await pair(input as unknown as Parameters<typeof pair>[0]);
 		expect(data).toEqual({
 			code: 'ABCD-EFGH',
 			expiresAt: session.expiresAt.toISOString(),
-			approvalUrl: 'https://eop.example/admin/monitors'
+			approvalUrl: 'https://eop.example/admin/monitors/approval'
 		});
 		expect(setMonitorCookie).toHaveBeenCalledWith(input.cookies, token);
 		expect(JSON.stringify(data)).not.toContain(token);
@@ -111,7 +142,7 @@ describe('monitor route wiring', () => {
 			status: 'approved',
 			location: 'Break room'
 		});
-		const approve = actions.approve!;
+		const approve = approvalActions.approve!;
 		expect(await approve(input as unknown as Parameters<typeof approve>[0])).toEqual({
 			success: 'Monitor approved for Break room.'
 		});
@@ -119,8 +150,8 @@ describe('monitor route wiring', () => {
 	});
 
 	it('reports invalid approvals and missing revocations as form errors', async () => {
-		const approve = actions.approve!;
-		const revoke = actions.revoke!;
+		const approve = approvalActions.approve!;
+		const revoke = managementActions.revoke!;
 		expect(await approve(event() as unknown as Parameters<typeof approve>[0])).toMatchObject({
 			status: 400
 		});

@@ -4,17 +4,20 @@
 
 1. On the monitor's browser, open `/monitors/pair` (or `/monitors`). No employee
    login is required. Leave the displayed code on screen.
-2. On an employee computer, sign in and open `/admin/monitors`. Enter the code and
+2. On an employee computer, sign in and open `/admin/monitors/approval`. Enter the code and
    a location such as "Break room, east wall", then approve it.
 3. Within approximately five seconds, the monitor switches to `/monitors/display`.
    This is an authenticated, full-screen placeholder for the future slide player.
-4. Revoke access from the approved-monitor list when a device is removed or moved.
+4. Open `/admin/monitors/management` to view approved monitors and revoke access
+   when a device is removed or moved. Revocation requires confirmation.
    Online displays return to pairing within approximately 30 seconds.
 
-For an existing database, create a Route with href `/admin/monitors` in
-**Admin → Routes**, then assign it to the authorized approval roles in
+For an existing database, create Routes with hrefs `/admin/monitors/approval` and
+`/admin/monitors/management` in **Admin → Routes**, then assign them to the appropriate roles in
 **Admin → Roles**. Authorization remains in `src/hooks.server.ts`. No role checks
-are duplicated in page actions. The initial admin seed also includes this route.
+are duplicated in page actions. The initial admin seed also includes both routes.
+Replace the old `/admin/monitors` route assignment with the new routes so both
+pages appear in navigation. Existing `/admin/monitors` bookmarks redirect to approval.
 
 Codes expire after 10 minutes, can be approved once, and are replaced automatically
 when an online monitor notices expiry. Approval does not create an employee login:

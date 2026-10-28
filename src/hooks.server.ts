@@ -76,7 +76,16 @@ const initDB = async () => {
 		});
 		const allOtherRoutes = await Promise.all([
 			Route.create({ _createdById: adminUser._id, href: '/dashboard', label: 'Dashboard' }),
-			Route.create({ _createdById: adminUser._id, href: '/admin/monitors', label: 'Monitors' }),
+			Route.create({
+				_createdById: adminUser._id,
+				href: '/admin/monitors/approval',
+				label: 'Monitor approval'
+			}),
+			Route.create({
+				_createdById: adminUser._id,
+				href: '/admin/monitors/management',
+				label: 'Monitor management'
+			}),
 			Route.create({
 				_createdById: adminUser._id,
 				_parentId: adminRoute._id,

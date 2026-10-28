@@ -26,8 +26,8 @@
 	<P class="text-primary-300 text-xl font-semibold">Allen-Bailey Tag &amp; Label</P>
 	<H1 class="text-4xl text-white">Connect this monitor</H1>
 	<P class="text-xl text-gray-200">
-		On another computer, sign in to EOP and open Admin → Monitors. Enter this code and describe
-		where this monitor is located.
+		On another computer, sign in to EOP and open Admin → Monitors → Approval. Enter this code and
+		describe where this monitor is located.
 	</P>
 	<Div
 		class="rounded-xl bg-gray-950 p-8 font-mono text-6xl font-bold tracking-widest md:text-8xl"
