@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T17:53:31.933Z
+## 2026-10-28T18:25:27.185Z
+
+refactor: Replace holiday-specific slides with configurable model data links
+
+## 2026-10-28T14:14:50-04:00
 
 feat: Add live upcoming holiday lists to monitor slides
 

@@ -121,26 +121,54 @@ appropriate roles. New databases include both in the initial admin seed.
 
 The editor and player share the renderer and deterministic timeline evaluator.
 
-**Upcoming holidays** is the first live data source. Maintain dates and optional
-names in **HR → Holidays**, then choose **Add → Upcoming holidays** in the slide
-editor. In Properties, set **Days ahead** (1–365), **Maximum holidays** (1–20),
-and **Business time zone**. Defaults are the next 30 calendar days, including
-today, up to 5 results, in `America/New_York`. Older date-only records display as
-“Holiday” with their date. Holiday names are optional; no migration is required.
+**Data lists** link a slide element to a read-only model query. Choose
+**Add ? Data list**, then configure the **Data link** in Properties:
+
+- **Model**: a supported business model (for example, `Holiday`, `Customer`,
+  `InventoryItem`, `SalesOpportunity`, or `UserProfile`).
+- **find**: a MongoDB filter as JSON, including comparison/logical operators and
+  expressions. JavaScript execution and write operations are not supported.
+- **select**: explicit schema field names separated by spaces. The editor lists
+  available fields for the selected model; Mixed fields accept nested paths.
+- **sort**: JSON field/direction pairs (`1` ascending, `-1` descending).
+- **skip / limit**: pagination, bounded to 10,000 skipped and 1?100 returned rows.
+- **Label / Detail field**: selected fields to display; nested field paths are
+  supported. Detail formatting can be text, date, or number.
+- **Time zone / Empty message**: calendar/date formatting and the no-results text.
+
+For upcoming holidays, use model `Holiday`, select `name date`, label field
+`name`, detail field `date`, detail format `date`, and sort `{"date":1,"_id":1}`.
+Maintain dates and optional names under **HR ? Holidays**. Use this filter:
+
+```json
+{ "date": { "$gte": { "$date": "today" }, "$lt": { "$date": "today+30d" } } }
+```
+
+Relative dates resolve on every server request: `today` is midnight in the
+configured time zone; `today+30d` adds calendar days, including DST changes;
+`now` is the request time and `now-7d` subtracts seven 24-hour periods. Ordinary
+ISO date strings also work with Mongoose date fields. For customer data, the
+same element can instead select model `Customer` and use its schema fields.
+
+Models available for display are listed in `src/lib/slides/data-link.ts`.
+Authentication, credentials, logs, settings, and binary assets are excluded.
+Queries use the server's Mongoose model registry with `find`, `select`, `sort`,
+`skip`, `limit`, `maxTimeMS(4000)`, and `lean`. Schema fields marked `select: false`
+and credential fields cannot be selected. Selected display values are deliberately
+published to monitor audiences; raw database records never reach monitors.
 
 The list is a normal responsive element: adjust its heading, position, size,
-colors, font, and animations. Rows shrink to fit the element's height; long names
-truncate. Increase the element size or reduce the result limit for readability.
-The preview queries the server when source settings change; **Refresh data
-preview** reloads results after editing holidays in another tab.
+colors, font, and animations. Rows shrink to fit; long labels truncate. Increase
+the element size or reduce the result limit for readability. The preview reloads
+when query settings change; **Refresh data preview** reloads after external edits.
+Configuration errors appear in Properties and query diagnostics appear in the
+admin preview; monitors receive a generic error message on failure.
 
-Publish the slide once to save its design and source configuration. Monitors
-query current holiday records on each content refresh, including before each
-slide starts. Calendar changes do not require republishing and do not restart
-playlist order. Held final slides refresh their data too. Empty results and query
-failures show an explicit message inside the list. Resolved rows are never saved
-into slide drafts or exports; lists use named server-owned providers with validated
-parameters, and monitors receive only display labels and formatted dates.
+Publish once to save the design and data link. Monitors query current records
+before each slide starts, with no persistent data cache. Record changes do not
+require republishing and do not restart the playlist. Held final slides refresh
+their data too. Resolved rows are never saved in drafts or exports. Previously
+saved upcoming-holiday sources are upgraded to generic data links automatically.
 
 Element and background color fields offer **Fixed** (one color in both modes) or
 **Light / Dark** (separate swatches). Existing hexadecimal colors stay fixed.

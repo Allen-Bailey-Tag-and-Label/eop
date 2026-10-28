@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
-	it('adds a live holiday list, previews server data, and saves only its source configuration', async () => {
+	it('adds a generic data list, previews server data, and saves only its source configuration', async () => {
 		vi.useFakeTimers();
 		const fetch = vi.fn<typeof globalThis.fetch>(
 			async () =>
@@ -51,7 +51,24 @@ describe('slide authoring', () => {
 				assets: []
 			}
 		});
-		await fireEvent.click(view.getByRole('button', { name: 'Add upcoming holidays' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add data list' }));
+		expect(view.queryByRole('button', { name: 'Add upcoming holidays' })).not.toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Data model' }), {
+			target: { value: 'Holiday' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data select' }), {
+			target: { value: 'name date' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data label field' }), {
+			target: { value: 'name' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data detail field' }), {
+			target: { value: 'date' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data filter' }), {
+			target: { value: '{"date":{"$gte":{"$date":"today"}}}' }
+		});
+
 		const definition = () =>
 			JSON.parse(
 				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
@@ -80,20 +97,19 @@ describe('slide authoring', () => {
 			'x-sveltekit-action': 'true'
 		});
 		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
-		expect(definition().elements[0].dataSource).toEqual({
-			source: 'upcoming-holidays',
-			daysAhead: 30,
-			limit: 5,
-			timeZone: 'America/New_York'
+		expect(definition().elements[0].dataSource).toMatchObject({
+			model: 'Holiday',
+			filter: '{"date":{"$gte":{"$date":"today"}}}',
+			limit: 5
 		});
 		expect(JSON.stringify(definition())).not.toContain('Thanksgiving');
-		await fireEvent.input(view.getByRole('spinbutton', { name: 'Holiday days ahead' }), {
-			target: { value: '60' }
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Data limit' }), {
+			target: { value: '10' }
 		});
 		await vi.advanceTimersByTimeAsync(400);
 		expect(fetch).toHaveBeenCalledTimes(2);
 		const body = fetch.mock.calls[1][1]?.body as FormData;
-		expect(JSON.parse(body.get('definition') as string).elements[0].dataSource.daysAhead).toBe(60);
+		expect(JSON.parse(body.get('definition') as string).elements[0].dataSource.limit).toBe(10);
 		await fireEvent.input(view.getByRole('slider', { name: 'Preview timeline' }), {
 			target: { value: '1000' }
 		});

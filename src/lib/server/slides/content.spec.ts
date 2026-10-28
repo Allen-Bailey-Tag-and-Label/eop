@@ -9,10 +9,15 @@ import {
 } from './content';
 import { Slide, Playlist, Asset } from './models';
 import { MonitorSession } from '../monitors/model';
-import { blankSlide, newElement } from '$lib/slides/types';
+import { blankSlide, newElement, defaultDataSource } from '$lib/slides/types';
 import { Holiday } from '../mongoose/models/Holiday';
 
-vi.mock('../mongoose/models/Holiday', () => ({ Holiday: { find: vi.fn() } }));
+vi.mock('../mongoose/models/Holiday', () => ({
+	Holiday: { find: vi.fn(), schema: { path: () => ({ options: {} }) } }
+}));
+vi.mock('../mongoose/models', async () => ({
+	Holiday: (await import('../mongoose/models/Holiday')).Holiday
+}));
 
 vi.mock('./models', () => ({
 	Slide: {
@@ -35,6 +40,7 @@ vi.mock('../monitors/model', () => ({ MonitorSession: { findById: vi.fn(), updat
 const query = (value: unknown) => ({
 	select: vi.fn().mockReturnThis(),
 	sort: vi.fn().mockReturnThis(),
+	skip: vi.fn().mockReturnThis(),
 	limit: vi.fn().mockReturnThis(),
 	maxTimeMS: vi.fn().mockReturnThis(),
 	lean: vi.fn().mockResolvedValue(value)
@@ -224,7 +230,22 @@ describe('monitor playlist playback', () => {
 			query([
 				{
 					_id: new Types.ObjectId(id),
-					published: { ...blankSlide(), elements: [newElement('list', 'calendar')] },
+					published: {
+						...blankSlide(),
+						elements: [
+							{
+								...newElement('list', 'calendar'),
+								dataSource: {
+									...defaultDataSource(),
+									model: 'Holiday',
+									select: 'name date',
+									labelField: 'name',
+									detailField: 'date',
+									detailFormat: 'date' as const
+								}
+							}
+						]
+					},
 					publishedTitle: 'Welcome',
 					title: 'SECRET DRAFT',
 					draft: { secret: 'SECRET DRAFT' }

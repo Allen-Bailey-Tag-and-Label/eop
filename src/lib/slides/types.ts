@@ -1,10 +1,30 @@
 export type ElementType = 'text' | 'image' | 'svg' | 'rectangle' | 'ellipse' | 'line' | 'list';
 export type SlideDataSource = {
-	source: 'upcoming-holidays';
-	daysAhead: number;
+	model: string;
+	filter: string;
+	select: string;
+	sort: string;
+	skip: number;
 	limit: number;
+	labelField: string;
+	detailField: string;
+	detailFormat: 'text' | 'date' | 'number';
 	timeZone: string;
+	emptyMessage: string;
 };
+export const defaultDataSource = (): SlideDataSource => ({
+	model: '',
+	filter: '{}',
+	select: '',
+	sort: '{}',
+	skip: 0,
+	limit: 5,
+	labelField: '',
+	detailField: '',
+	detailFormat: 'text',
+	timeZone: 'America/New_York',
+	emptyMessage: 'No matching records.'
+});
 export type DataListResult = {
 	state: 'ready' | 'empty' | 'error';
 	items: { id: string; label: string; detail: string }[];
@@ -104,7 +124,7 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		scale: 1,
 		rotation: 0,
 		color: type === 'image' || type === 'svg' ? '#ffffff' : { light: '#111827', dark: '#f9fafb' },
-		text: type === 'list' ? 'Upcoming holidays' : 'Your text here',
+		text: type === 'list' ? 'Data list' : 'Your text here',
 		fontSize: type === 'list' ? 40 : 80,
 		fontFamily: 'sans-serif',
 		align: 'left',
@@ -113,12 +133,7 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		keyframes: [],
 		...(type === 'list'
 			? {
-					dataSource: {
-						source: 'upcoming-holidays' as const,
-						daysAhead: 30,
-						limit: 5,
-						timeZone: 'America/New_York'
-					}
+					dataSource: defaultDataSource()
 				}
 			: {})
 	};

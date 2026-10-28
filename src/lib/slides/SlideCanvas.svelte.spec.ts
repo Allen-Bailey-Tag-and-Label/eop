@@ -50,7 +50,7 @@ describe('responsive slide rendering', () => {
 			}
 		});
 		expect(view.getByText('Holiday data is temporarily unavailable.')).toBeInTheDocument();
-		expect(view.getByText('Upcoming holidays')).toBeInTheDocument();
+		expect(view.getByText('Data list')).toBeInTheDocument();
 	});
 	it('holds element keyframes during entrance, plays them during display, and holds their final pose on exit', async () => {
 		const element = newElement('text', 'headline');

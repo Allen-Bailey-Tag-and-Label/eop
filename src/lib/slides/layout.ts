@@ -1,3 +1,4 @@
+import { normalizeDataSource } from './data-link';
 import type { Pose, SlideDefinition, SlideElement } from './types';
 import { defaultSlideTransition } from './types';
 
@@ -17,6 +18,7 @@ export function withResponsiveDefaults(definition: SlideDefinition): SlideDefini
 		transitionOut: definition.transitionOut ?? defaultSlideTransition(),
 		elements: definition.elements.map((element) => ({
 			...element,
+			...(element.dataSource ? { dataSource: normalizeDataSource(element.dataSource) } : {}),
 			horizontalAnchor: element.horizontalAnchor ?? 'scale',
 			verticalAnchor: element.verticalAnchor ?? 'scale'
 		}))

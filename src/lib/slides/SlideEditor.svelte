@@ -33,7 +33,7 @@
 		Trash2,
 		Download,
 		ChevronDown,
-		CalendarDays
+		Database
 	} from '@lucide/svelte';
 	import {
 		A,
@@ -51,6 +51,7 @@
 	} from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
 	import ColorField from './ColorField.svelte';
+	import DataLinkEditor from './DataLinkEditor.svelte';
 	import {
 		newElement,
 		type AssetSummary,
@@ -72,6 +73,7 @@
 			slide: ContentEditor<SlideDefinition>;
 			assets: AssetSummary[];
 			references?: SlideReference[];
+			dataFields?: Record<string, string[]>;
 		};
 		form?: {
 			error?: string;
@@ -145,7 +147,7 @@
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
 		{ type: 'line', label: 'Line', icon: Minus },
-		{ type: 'list', label: 'Upcoming holidays', icon: CalendarDays }
+		{ type: 'list', label: 'Data list', icon: Database }
 	] as const;
 	const dirty = $derived(
 		JSON.stringify({ title, slug, draft }) !==
@@ -644,48 +646,15 @@
 								: selected.type === 'list'
 									? 'Heading'
 									: 'Description'}
-							aria-label={selected.type === 'list' ? 'Holiday list heading' : 'Element text'}
+							aria-label={selected.type === 'list' ? 'Data list heading' : 'Element text'}
 							bind:value={selected.text}
 							rows={3}
 						/>
 						{#if selected.type === 'list' && selected.dataSource}
-							<P class="text-sm font-semibold">Data source: Upcoming holidays</P>
-							<Input
-								label="Days ahead"
-								aria-label="Holiday days ahead"
-								type="number"
-								min={1}
-								max={365}
-								step={1}
-								value={String(selected.dataSource.daysAhead)}
-								oninput={(event) => {
-									if (selected?.dataSource)
-										selected.dataSource.daysAhead = Number(event.currentTarget.value);
-								}}
+							<DataLinkEditor
+								bind:link={selected.dataSource}
+								fields={data.dataFields?.[selected.dataSource.model] ?? []}
 							/>
-							<Input
-								label="Maximum holidays"
-								aria-label="Maximum holidays"
-								type="number"
-								min={1}
-								max={20}
-								step={1}
-								value={String(selected.dataSource.limit)}
-								oninput={(event) => {
-									if (selected?.dataSource)
-										selected.dataSource.limit = Number(event.currentTarget.value);
-								}}
-							/>
-							<Input
-								label="Business time zone"
-								aria-label="Holiday time zone"
-								maxlength={80}
-								bind:value={selected.dataSource.timeZone}
-							/>
-							<P class="text-xs opacity-60"
-								>Includes today. Update names and dates in <A href="/hr/holidays">HR → Holidays</A>.
-								Published slides query current data automatically.</P
-							>
 							<Button onclick={() => previewRevision++}>Refresh data preview</Button>
 						{/if}
 						<Div class="grid grid-cols-2 gap-3"

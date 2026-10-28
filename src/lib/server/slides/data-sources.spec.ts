@@ -1,111 +1,180 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Types } from 'mongoose';
-import { Holiday } from '../mongoose/models/Holiday';
-import { createSlideDataResolver } from './data-sources';
-import { blankSlide, newElement } from '$lib/slides/types';
+import { Holiday, Customer } from '../mongoose/models';
+import { createSlideDataResolver, resolveDates } from './data-sources';
+import { blankSlide, newElement, defaultDataSource, type SlideDataSource } from '$lib/slides/types';
 import { validateDataSource, validateSlide } from '$lib/slides/validation';
-
-vi.mock('../mongoose/models/Holiday', () => ({ Holiday: { find: vi.fn() } }));
-const now = new Date('2026-03-08T04:30:00Z'); // March 7 in New York, just before the DST change.
-const element = () => newElement('list', 'calendar');
+vi.mock('../mongoose/models', () => {
+	const schema = {
+		path: (field: string) =>
+			['_id', 'name', 'date', 'total'].includes(field) ? { options: {} } : undefined
+	};
+	return { Holiday: { find: vi.fn(), schema }, Customer: { find: vi.fn(), schema } };
+});
+const now = new Date('2026-03-08T04:30:00Z');
+const source = (): SlideDataSource => ({
+	...defaultDataSource(),
+	model: 'Holiday',
+	filter: '{"date":{"$gte":{"$date":"today"},"$lt":{"$date":"today+2d"}}}',
+	select: 'name date',
+	sort: '{"date":1,"_id":1}',
+	labelField: 'name',
+	detailField: 'date',
+	detailFormat: 'date' as const
+});
+const element = () => ({ ...newElement('list', 'data'), dataSource: source() });
 const query = (rows: unknown[]) => ({
 	select: vi.fn().mockReturnThis(),
 	sort: vi.fn().mockReturnThis(),
+	skip: vi.fn().mockReturnThis(),
 	limit: vi.fn().mockReturnThis(),
 	maxTimeMS: vi.fn().mockReturnThis(),
 	lean: vi.fn().mockResolvedValue(rows)
 });
 beforeEach(() => vi.resetAllMocks());
-
-describe('slide data sources', () => {
-	it('queries the selected business-calendar window with sorted, bounded, display-safe results', async () => {
+describe('generic slide data links', () => {
+	it('executes query components and returns only configured display values', async () => {
 		const rows = query([
 			{
-				_id: new Types.ObjectId(),
+				_id: 'one',
 				name: ' Spring holiday ',
 				date: new Date('2026-03-08T05:00:00Z'),
 				secret: 'PRIVATE'
 			}
 		]);
 		vi.mocked(Holiday.find).mockReturnValue(rows as unknown as ReturnType<typeof Holiday.find>);
-		const list = element();
-		list.dataSource!.daysAhead = 2;
-		const result = await createSlideDataResolver(now)({ ...blankSlide(), elements: [list] });
-		expect(result.calendar).toMatchObject({
+		const result = await createSlideDataResolver(now)({ ...blankSlide(), elements: [element()] });
+		expect(result.data).toMatchObject({
 			state: 'ready',
 			items: [{ label: 'Spring holiday', detail: 'Mar 8, 2026' }]
 		});
 		expect(JSON.stringify(result)).not.toContain('PRIVATE');
-		const calls = vi.mocked(Holiday.find).mock.calls as unknown as [unknown][];
-		const filter = JSON.stringify(calls[0][0]);
-		expect(filter).toContain('2026-03-07');
-		expect(filter).toContain('2026-03-09');
-		expect(filter).toContain('America/New_York');
-		expect(rows.select).toHaveBeenCalledWith('date name');
+		expect(Holiday.find).toHaveBeenCalledWith({
+			date: { $gte: new Date('2026-03-07T05:00:00Z'), $lt: new Date('2026-03-09T04:00:00Z') }
+		});
+		expect(rows.select).toHaveBeenCalledWith('name date');
 		expect(rows.sort).toHaveBeenCalledWith({ date: 1, _id: 1 });
+		expect(rows.skip).toHaveBeenCalledWith(0);
 		expect(rows.limit).toHaveBeenCalledWith(5);
 		expect(rows.maxTimeMS).toHaveBeenCalledWith(4000);
 	});
-	it('shares identical queries within one response and queries again for the next render', async () => {
+	it('queries another model with arbitrary filters and number formatting', async () => {
+		const rows = query([{ _id: 'customer', name: 'Example', total: 1234 }]);
+		vi.mocked(Customer.find).mockReturnValue(rows as unknown as ReturnType<typeof Customer.find>);
+		const item = element();
+		item.dataSource = {
+			...source(),
+			model: 'Customer',
+			filter: '{"total":{"$gte":100}}',
+			select: 'name total',
+			sort: '{"total":-1}',
+			skip: 2,
+			limit: 10,
+			detailField: 'total',
+			detailFormat: 'number'
+		} as typeof item.dataSource;
+		const result = await createSlideDataResolver(now)({ ...blankSlide(), elements: [item] });
+		expect(result.data.items[0]).toMatchObject({ label: 'Example', detail: '1,234' });
+		expect(Customer.find).toHaveBeenCalledWith({ total: { $gte: 100 } });
+		expect(rows.skip).toHaveBeenCalledWith(2);
+	});
+	it('deduplicates within a response and queries again on the next request', async () => {
 		vi.mocked(Holiday.find).mockReturnValue(
 			query([]) as unknown as ReturnType<typeof Holiday.find>
 		);
 		const definition = { ...blankSlide(), elements: [element(), { ...element(), id: 'second' }] };
 		const resolve = createSlideDataResolver(now);
-		expect((await resolve(definition)).calendar.state).toBe('empty');
+		expect((await resolve(definition)).data).toMatchObject({
+			state: 'empty',
+			message: 'No matching records.'
+		});
 		await resolve(definition);
 		expect(Holiday.find).toHaveBeenCalledOnce();
 		await createSlideDataResolver(now)(definition);
 		expect(Holiday.find).toHaveBeenCalledTimes(2);
 	});
-	it('supports older unnamed holidays and shows a safe message when persistence fails', async () => {
-		const rows = query([{ _id: new Types.ObjectId(), date: new Date('2026-03-08T05:00:00Z') }]);
+	it('keeps query errors off monitors and includes diagnostics in admin preview', async () => {
+		const rows = query([]);
+		rows.lean.mockRejectedValue(new Error('query failed'));
 		vi.mocked(Holiday.find).mockReturnValue(rows as unknown as ReturnType<typeof Holiday.find>);
-		const definition = { ...blankSlide(), elements: [element()] };
-		expect((await createSlideDataResolver(now)(definition)).calendar.items[0].label).toBe(
-			'Holiday'
-		);
-		rows.lean.mockRejectedValueOnce(new Error('PRIVATE database error'));
 		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 		try {
-			const result = await createSlideDataResolver(now)(definition);
-			expect(result.calendar).toMatchObject({ state: 'error', items: [] });
-			expect(JSON.stringify(result)).not.toContain('PRIVATE');
+			const definition = { ...blankSlide(), elements: [element()] };
+			expect((await createSlideDataResolver(now)(definition)).data).toEqual({
+				state: 'error',
+				items: [],
+				message: 'Data is temporarily unavailable.'
+			});
+			expect((await createSlideDataResolver(now, true)(definition)).data.message).toBe(
+				'query failed'
+			);
 		} finally {
 			log.mockRestore();
 		}
 	});
-	it('validates source names, limits, and time zones and strips queries and supplied results', () => {
-		const source = element().dataSource!;
+	it('rejects invalid components, executable queries, and prototype keys', () => {
 		for (const change of [
-			{ source: 'User' },
-			{ source: { $ne: null } },
-			{ daysAhead: 0 },
-			{ daysAhead: 366 },
-			{ daysAhead: 1.5 },
-			{ limit: 21 },
-			{ limit: Infinity },
-			{ timeZone: 'invalid-zone' }
+			{ model: 'User' },
+			{ model: 'UserPasswordReset' },
+			{ filter: '[]' },
+			{ filter: '{"$where":"run()"}' },
+			{ filter: '{"$expr":{"$function":{}}}' },
+			{ filter: '{"__proto__":{}}' },
+			{ filter: '{"date":{"$date":"bad"}}' },
+			{ sort: '{"date":0}' },
+			{ select: '+passwordHash' },
+			{ select: '' },
+			{ labelField: 'missing' },
+			{ limit: 101 },
+			{ limit: 1.5 },
+			{ skip: -1 },
+			{ timeZone: 'invalid' }
 		])
-			expect(() => validateDataSource({ ...source, ...change })).toThrow();
+			expect(() => validateDataSource({ ...source(), ...change })).toThrow();
 		const slide = validateSlide({
 			...blankSlide(),
-			elements: [
-				{
-					...element(),
-					dataSource: { ...source, query: { $where: 'run()' } },
-					data: { secret: 'PRIVATE' }
-				}
-			]
+			elements: [{ ...element(), data: { secret: 'PRIVATE' } }]
 		});
-		expect(slide.elements[0].dataSource).toEqual(source);
 		expect(JSON.stringify(slide)).not.toContain('PRIVATE');
-		expect(JSON.stringify(slide)).not.toContain('$where');
-		expect(() =>
-			validateSlide({ ...blankSlide(), elements: [{ ...element(), dataSource: undefined }] })
-		).toThrow();
 	});
-	it('does not query persistence for static slides', async () => {
+	it('rejects unknown and non-display schema fields before executing the query', async () => {
+		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			const item = element();
+			item.dataSource.select = 'name date passwordHash';
+			const result = await createSlideDataResolver(
+				now,
+				true
+			)({ ...blankSlide(), elements: [item] });
+			expect(result.data.message).toContain('Unavailable field');
+			expect(Holiday.find).not.toHaveBeenCalled();
+		} finally {
+			log.mockRestore();
+		}
+	});
+	it('upgrades saved holiday sources to generic query components', () => {
+		expect(
+			validateDataSource({
+				source: 'upcoming-holidays',
+				daysAhead: 30,
+				limit: 5,
+				timeZone: 'America/New_York'
+			})
+		).toMatchObject({
+			model: 'Holiday',
+			select: 'name date',
+			labelField: 'name',
+			detailField: 'date'
+		});
+	});
+	it('resolves today across DST and now relative to request time', () => {
+		expect(resolveDates({ $date: 'today+2d' }, now, 'America/New_York')).toEqual(
+			new Date('2026-03-09T04:00:00Z')
+		);
+		expect(resolveDates({ $date: 'now-1d' }, now, 'America/New_York')).toEqual(
+			new Date('2026-03-07T04:30:00Z')
+		);
+	});
+	it('does not query for static slides', async () => {
 		expect(await createSlideDataResolver(now)(blankSlide())).toEqual({});
 		expect(Holiday.find).not.toHaveBeenCalled();
 	});
