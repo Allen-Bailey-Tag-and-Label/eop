@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { Button, Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
-	import { poseAt } from './timeline';
+	import { poseAt, slideContentTime } from './timeline';
 	import { displayBackground } from './colors';
 	import { moveElement, resizeDimensions, resizeDelta, resizeElement } from './editor';
 	import { elementLayout, type LayoutScales } from './layout';
@@ -33,6 +33,9 @@
 		onEdit: () => void;
 	} = $props();
 	let workspace: HTMLDivElement;
+	const elementTimeMs = $derived(
+		animateTransitions ? slideContentTime(definition, timeMs) : timeMs
+	);
 	let width = $state(0);
 	let height = $state(0);
 	let panX = $state(0);
@@ -80,7 +83,7 @@
 		event.stopPropagation();
 		if (element) selectedId = element.id;
 		onEdit();
-		const pose = element ? poseAt(element, timeMs) : null;
+		const pose = element ? poseAt(element, elementTimeMs) : null;
 		const layout =
 			element && pose
 				? elementLayout(definition, element, pose, viewportWidth, viewportHeight)
@@ -184,7 +187,7 @@
 		event.preventDefault();
 		onEdit();
 		const step = event.shiftKey ? 10 : 1;
-		const pose = poseAt(element, timeMs);
+		const pose = poseAt(element, elementTimeMs);
 		resizeElement(
 			element,
 			resizeDimensions(element.width, element.height, vector[0] * step, vector[1] * step, 0, 1),
@@ -223,7 +226,7 @@
 		/>
 		<Div class="pointer-events-none absolute inset-0 overflow-visible">
 			{#each definition.elements as element, index (element.id)}
-				{@const pose = poseAt(element, timeMs)}
+				{@const pose = poseAt(element, elementTimeMs)}
 				{@const box = elementLayout(definition, element, pose, viewportWidth, viewportHeight)}
 				<Div
 					class="absolute"

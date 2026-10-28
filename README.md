@@ -70,7 +70,7 @@ appropriate roles. New databases include both in the initial admin seed.
 3. Use an animation preset or edit keyframes. Each keyframe specifies a complete
    pose (x, y, opacity, scale, rotation), time in milliseconds, and easing into
    that frame. Playback, scrubbing, and clickable keyframe markers remain at the
-   bottom of the editor. Set the slide duration (1–600 seconds) in Settings.
+   bottom of the editor. Set the display duration (1–600 seconds) in Settings.
    **Background type** offers **Solid color** or **Transparent**. Transparent
    backgrounds show a checkerboard matched to the selected preview mode and reveal
    the monitor's light or dark display background.
@@ -78,9 +78,12 @@ appropriate roles. New databases include both in the initial admin seed.
    **Whole-slide transitions** in Settings control the entrance and exit separately:
    choose **Fade** or **None** and set each duration in milliseconds. Both default
    to a 2000 ms fade, including existing slides. Fades include the background and
-   every element and run inside the total slide duration. If their combined time
-   exceeds the effective playlist duration, both shorten proportionally. The final
-   slide of a non-looping playlist omits its exit fade so it stays visible.
+   every element and are added before and after the display duration: a 2000 ms
+   entrance, 10000 ms display, and 2000 ms exit take 14000 ms total. Element
+   keyframes run during the display period, holding their first/last poses during
+   the transitions. Playlist overrides change the display period, with transitions
+   still added in full. The editor timeline and monitor countdown show total time.
+   The final slide of a non-looping playlist omits its exit fade so it stays visible.
    Play or scrub the timeline to preview fades; the stopped editor at time zero
    and the upcoming-slide thumbnail remain fully visible for editing and review.
 4. Save a draft or publish the current editor content. Draft changes do not affect
@@ -110,8 +113,9 @@ appropriate roles. New databases include both in the initial admin seed.
    during a network interruption.
    A footer below the slide shows the upcoming slide's thumbnail and published
    title on the left and the current slide's remaining time on the right. The
-   countdown uses the playlist duration override when set. Non-looping playlists
-   show **End of playlist** and hold at **0:00** after the final slide.
+   countdown includes transitions and the playlist display-duration override when
+   set. Non-looping playlists show **End of playlist** and hold at **0:00** after
+   the final slide.
    Media uses a bounded 64 MB in-memory cache; offline persistence across browser
    restarts is not provided. Revocation polling remains active independently.
 

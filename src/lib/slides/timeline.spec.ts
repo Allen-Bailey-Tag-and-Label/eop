@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { blankSlide, type SlideDefinition } from './types';
-import { slideOpacityAt } from './timeline';
+import { slideContentTime, slideOpacityAt, slideTiming } from './timeline';
 import { validateSlide } from './validation';
 import { withResponsiveDefaults } from './layout';
 
@@ -22,9 +22,9 @@ describe('whole-slide transitions', () => {
 			[0, 0],
 			[1000, 0.5],
 			[2000, 1],
-			[8000, 1],
-			[9000, 0.5],
-			[10000, 0]
+			[12000, 1],
+			[13000, 0.5],
+			[14000, 0]
 		])
 			expect(slideOpacityAt(legacy as SlideDefinition, time)).toBe(opacity);
 	});
@@ -33,7 +33,7 @@ describe('whole-slide transitions', () => {
 		slide.transitionIn.durationMs = 1000;
 		slide.transitionOut.durationMs = 3000;
 		expect(slideOpacityAt(slide, 500)).toBe(0.5);
-		expect(slideOpacityAt(slide, 8500)).toBe(0.5);
+		expect(slideOpacityAt(slide, 12500)).toBe(0.5);
 		slide.transitionIn.type = 'none';
 		expect(slideOpacityAt(slide, 0)).toBe(1);
 		slide.transitionOut.type = 'none';
@@ -41,12 +41,27 @@ describe('whole-slide transitions', () => {
 		slide.transitionIn = { type: 'fade', durationMs: 0 };
 		expect(slideOpacityAt(slide, 0)).toBe(1);
 	});
-	it('fits fades inside a shorter playlist duration and holds non-looping final slides visibly', () => {
+	it('adds transitions to display duration and overrides without shortening them', () => {
 		const slide = blankSlide();
-		expect(slideOpacityAt(slide, 250, 1000)).toBe(0.5);
-		expect(slideOpacityAt(slide, 500, 1000)).toBe(1);
-		expect(slideOpacityAt(slide, 750, 1000)).toBe(0.5);
-		expect(slideOpacityAt(slide, 1000, 1000, false)).toBe(1);
+		expect(slideTiming(slide)).toEqual({
+			entranceMs: 2000,
+			displayMs: 10000,
+			exitMs: 2000,
+			totalMs: 14000
+		});
+		expect(slideTiming(slide, 1000).totalMs).toBe(5000);
+		expect(slideOpacityAt(slide, 1000, 1000)).toBe(0.5);
+		expect(slideOpacityAt(slide, 2000, 1000)).toBe(1);
+		expect(slideOpacityAt(slide, 3000, 1000)).toBe(1);
+		expect(slideOpacityAt(slide, 4000, 1000)).toBe(0.5);
+		expect(slideTiming(slide, 1000, false).totalMs).toBe(3000);
+		expect(slideOpacityAt(slide, 3000, 1000, false)).toBe(1);
+	});
+	it('holds element animation time during entrance and exit transitions', () => {
+		const slide = blankSlide();
+		expect(slideContentTime(slide, 1000)).toBe(0);
+		expect(slideContentTime(slide, 2500)).toBe(500);
+		expect(slideContentTime(slide, 13000)).toBe(10000);
 	});
 	it('validates transition data before saving or importing it', () => {
 		for (const transitionIn of [

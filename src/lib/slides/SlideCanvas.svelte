@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Div } from '$lib/components';
-	import { poseAt, slideOpacityAt } from './timeline';
+	import { poseAt, slideContentTime, slideOpacityAt } from './timeline';
 	import { elementLayout } from './layout';
 	import type { ColorScheme, SlideDefinition } from './types';
 	import { resolveSlideColor } from './colors';
@@ -30,6 +30,9 @@
 		label?: string;
 	} = $props();
 	let containerWidth = $state(0);
+	const elementTimeMs = $derived(
+		animateTransitions ? slideContentTime(definition, timeMs, durationMs) : timeMs
+	);
 	let containerHeight = $state(0);
 	const renderWidth = $derived(viewportWidth ?? containerWidth);
 	const renderHeight = $derived(viewportHeight ?? containerHeight);
@@ -55,7 +58,7 @@
 		style={`position:absolute;left:50%;top:50%;width:${renderWidth}px;height:${renderHeight}px;transform:translate(-50%,-50%) scale(${scale});transform-origin:center;overflow:hidden;`}
 	>
 		{#each definition.elements as element (element.id)}
-			{@const pose = poseAt(element, timeMs)}
+			{@const pose = poseAt(element, elementTimeMs)}
 			{@const box = elementLayout(definition, element, pose, renderWidth, renderHeight)}
 			<Div
 				style={`position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;opacity:${pose.opacity};transform:translate(${box.x}px,${box.y}px) rotate(${pose.rotation}deg) scale(${pose.scale});transform-origin:center;overflow:hidden;`}

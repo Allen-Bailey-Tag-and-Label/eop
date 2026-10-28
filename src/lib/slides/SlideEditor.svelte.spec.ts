@@ -100,6 +100,7 @@ describe('slide authoring', () => {
 				assets: []
 			}
 		});
+		expect(view.getByRole('slider', { name: 'Preview timeline' })).toHaveAttribute('max', '14000');
 		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
 		expect(
 			view.getByRole('spinbutton', { name: 'Slide transition in duration in milliseconds' })
@@ -108,6 +109,10 @@ describe('slide authoring', () => {
 			view.getByRole('spinbutton', { name: 'Slide transition in duration in milliseconds' }),
 			{ target: { value: '4000' } }
 		);
+		expect(view.container.querySelector('input[aria-label="Preview timeline"]')).toHaveAttribute(
+			'max',
+			'16000'
+		);
 		await fireEvent.change(view.getByRole('combobox', { name: 'Slide transition out' }), {
 			target: { value: 'none' }
 		});
@@ -115,6 +120,7 @@ describe('slide authoring', () => {
 			view.getByRole('spinbutton', { name: 'Slide transition out duration in milliseconds' })
 		).toBeDisabled();
 		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
+		expect(view.getByRole('slider', { name: 'Preview timeline' })).toHaveAttribute('max', '14000');
 		const definition = JSON.parse(
 			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);

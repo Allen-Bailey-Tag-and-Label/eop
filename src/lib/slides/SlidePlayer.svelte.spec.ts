@@ -20,6 +20,8 @@ function content(version = 'one', loop = true): Playback {
 			durationMs: 1000,
 			definition: {
 				...blankSlide(),
+				transitionIn: { type: 'none', durationMs: 2000 },
+				transitionOut: { type: 'none', durationMs: 2000 },
 				elements: [{ ...newElement('text', `text-${index}`), text: `${version} ${text}` }]
 			}
 		}))
@@ -96,24 +98,37 @@ describe('monitor player', () => {
 		view.unmount();
 		expect(removeEventListener).toHaveBeenCalledWith('change', change);
 	});
-	it('fades the whole slide using the effective playlist duration and restarts on advance', async () => {
+	it('adds both 2-second fades to a 10-second display and includes them in the countdown', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
-		vi.mocked(watchPlayback).mock.calls[0][0](content());
+		const playlist = content();
+		playlist.slides[0].durationMs = 10000;
+		for (const slide of playlist.slides) {
+			slide.definition.transitionIn.type = 'fade';
+			slide.definition.transitionOut.type = 'fade';
+		}
+		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
 		await flush();
 		const current = within(view.getByRole('region', { name: 'Current slide' }));
 		expect(current.getByRole('img')).toHaveStyle({ opacity: '0' });
-		await vi.advanceTimersByTimeAsync(250);
+		expect(view.getByRole('timer')).toHaveTextContent('0:14');
+		await vi.advanceTimersByTimeAsync(1000);
 		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
 		await tick();
 		expect(current.getByRole('img')).toHaveStyle({ opacity: '0.5' });
-		await vi.advanceTimersByTimeAsync(500);
+		await vi.advanceTimersByTimeAsync(11000);
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
+		await tick();
+		expect(current.getByRole('img')).toHaveStyle({ opacity: '1' });
+		expect(view.getByRole('timer')).toHaveTextContent('0:02');
+		await vi.advanceTimersByTimeAsync(1000);
 		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
 		await tick();
 		expect(current.getByRole('img')).toHaveStyle({ opacity: '0.5' });
-		await vi.advanceTimersByTimeAsync(250);
+		await vi.advanceTimersByTimeAsync(1000);
 		await flush();
 		expect(current.getByText('one Second')).toBeInTheDocument();
 		expect(current.getByRole('img')).toHaveStyle({ opacity: '0' });
+		expect(view.getByRole('timer')).toHaveTextContent('0:05');
 	});
 	it('animates published keyframes on display frames and restarts them for a single-slide loop', async () => {
 		vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1920);
@@ -284,14 +299,18 @@ describe('monitor player', () => {
 	});
 	it('shows the end of a non-looping playlist instead of a false next slide', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
-		vi.mocked(watchPlayback).mock.calls[0][0](content('one', false));
+		const playlist = content('one', false);
+		playlist.slides[1].definition.transitionIn.type = 'fade';
+		playlist.slides[1].definition.transitionOut.type = 'fade';
+		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
 		await flush();
 		await vi.advanceTimersByTimeAsync(1000);
 		await flush();
 		expect(
 			within(view.getByRole('region', { name: 'Up next' })).getByText('End of playlist')
 		).toBeInTheDocument();
-		await vi.advanceTimersByTimeAsync(1000);
+		expect(view.getByRole('timer')).toHaveTextContent('0:03');
+		await vi.advanceTimersByTimeAsync(3000);
 		await flush();
 		expect(view.getByRole('timer')).toHaveTextContent('0:00');
 		expect(

@@ -1,23 +1,40 @@
 import type { Easing, Pose, SlideElement } from './types';
 import { defaultSlideTransition, type SlideDefinition } from './types';
 
-// Whole-slide fades include the background and compose with element animations.
+export function slideTiming(
+	definition: SlideDefinition,
+	durationMs = definition.durationMs,
+	includeExit = true
+) {
+	const entrance = definition.transitionIn ?? defaultSlideTransition();
+	const exit = definition.transitionOut ?? defaultSlideTransition();
+	const entranceMs = entrance.type === 'fade' ? Math.max(0, entrance.durationMs) : 0;
+	const exitMs = includeExit && exit.type === 'fade' ? Math.max(0, exit.durationMs) : 0;
+	const displayMs = Number.isFinite(durationMs) ? Math.max(0, durationMs) : 0;
+	return { entranceMs, displayMs, exitMs, totalMs: entranceMs + displayMs + exitMs };
+}
+
+export function slideContentTime(
+	definition: SlideDefinition,
+	timeMs: number,
+	durationMs = definition.durationMs
+) {
+	const { entranceMs, displayMs } = slideTiming(definition, durationMs);
+	return Math.max(0, Math.min(displayMs, timeMs - entranceMs));
+}
+
+// Transition time is additional to the display period; element keyframes use display time.
 export function slideOpacityAt(
 	definition: SlideDefinition,
 	timeMs: number,
 	durationMs = definition.durationMs,
 	includeExit = true
 ) {
-	if (!Number.isFinite(durationMs) || durationMs <= 0) return 1;
-	const entrance = definition.transitionIn ?? defaultSlideTransition();
-	const exit = definition.transitionOut ?? defaultSlideTransition();
-	const fadeIn = entrance.type === 'fade' ? entrance.durationMs : 0;
-	const fadeOut = includeExit && exit.type === 'fade' ? exit.durationMs : 0;
-	const scale = Math.min(1, durationMs / Math.max(1, fadeIn + fadeOut));
-	const time = Math.max(0, Math.min(durationMs, timeMs));
+	const { entranceMs, exitMs, totalMs } = slideTiming(definition, durationMs, includeExit);
+	const time = Math.max(0, Math.min(totalMs, timeMs));
 	return Math.min(
-		fadeIn > 0 ? time / (fadeIn * scale) : 1,
-		fadeOut > 0 ? (durationMs - time) / (fadeOut * scale) : 1,
+		entranceMs > 0 ? time / entranceMs : 1,
+		exitMs > 0 ? (totalMs - time) / exitMs : 1,
 		1
 	);
 }

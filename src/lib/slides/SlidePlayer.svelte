@@ -6,6 +6,7 @@
 	import { mediaIds, SlideMediaCache } from './media';
 	import type { ColorScheme, DisplayMode, Playback, PlaybackSlide, SlideDefinition } from './types';
 	import { displayBackground } from './colors';
+	import { slideTiming } from './timeline';
 	let { location }: { location: string } = $props();
 	let playback = $state<Playback | null>(null);
 	let queued = $state<Playback | null | undefined>();
@@ -23,6 +24,7 @@
 		definition: SlideDefinition;
 		title: string;
 		durationMs: number;
+		totalMs: number;
 		version: string;
 		next: PlaybackSlide | null;
 	} | null>(null);
@@ -40,7 +42,7 @@
 		return shown.next;
 	});
 	const remainingSeconds = $derived(
-		Math.max(0, Math.ceil(((shown?.durationMs ?? 0) - timeMs) / 1000))
+		Math.max(0, Math.ceil(((shown?.totalMs ?? 0) - timeMs) / 1000))
 	);
 	const countdown = $derived(
 		`${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`
@@ -97,10 +99,16 @@
 			if (disposed) return;
 			assetUrls = cache.urls(ids);
 			const next = nextSlide(current, index);
+			const timing = slideTiming(
+				slide.definition,
+				slide.durationMs,
+				current.loop || next !== index
+			);
 			shown = {
 				definition: slide.definition,
 				title: current.title,
 				durationMs: slide.durationMs,
+				totalMs: timing.totalMs,
 				version: current.version,
 				next: current.loop || next !== index ? current.slides[next] : null
 			};
@@ -109,13 +117,13 @@
 			mediaMissing = Object.keys(assetUrls).length !== ids.length;
 			const start = performance.now();
 			const tick = (now: number) => {
-				timeMs = Math.min(slide.durationMs, now - start);
+				timeMs = Math.min(timing.totalMs, now - start);
 				frame = requestAnimationFrame(tick);
 			};
 			frame = requestAnimationFrame(tick);
 			timer = setTimeout(async () => {
 				cancelAnimationFrame(frame);
-				timeMs = slide.durationMs;
+				timeMs = timing.totalMs;
 				// Revalidate published content before every new slide, including single-slide loops.
 				await refresh?.();
 				if (disposed) return;
@@ -134,7 +142,7 @@
 					index = next;
 					if (current.slides.length === 1) playback = { ...current };
 				}
-			}, slide.durationMs);
+			}, timing.totalMs);
 		});
 		return () => {
 			disposed = true;

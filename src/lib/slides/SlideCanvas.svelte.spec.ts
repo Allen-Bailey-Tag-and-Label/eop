@@ -21,6 +21,24 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('holds element keyframes during entrance, plays them during display, and holds their final pose on exit', async () => {
+		const element = newElement('text', 'headline');
+		element.opacity = 0;
+		element.keyframes = [{ ...element, atMs: 1000, opacity: 1, easing: 'linear' }];
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [element] },
+			assetBase: '/assets',
+			animateTransitions: true,
+			timeMs: 1000
+		});
+		const box = () => view.getByText('Your text here').parentElement!;
+		expect(box()).toHaveStyle({ opacity: '0' });
+		await view.rerender({ timeMs: 2500 });
+		expect(box()).toHaveStyle({ opacity: '0.5' });
+		await view.rerender({ timeMs: 13000 });
+		expect(box()).toHaveStyle({ opacity: '1' });
+		expect(view.getByRole('img')).toHaveStyle({ opacity: '0.5' });
+	});
 	it('renders themed text, shapes, and backgrounds independently of the app theme while preserving fixed colors', async () => {
 		const definition = {
 			...blankSlide(),
@@ -57,7 +75,7 @@ describe('responsive slide rendering', () => {
 			opacity: '0.5',
 			background: resolveSlideColor(definition.background, 'dark')
 		});
-		await view.rerender({ timeMs: 10000 });
+		await view.rerender({ timeMs: 14000 });
 		expect(view.getByRole('img')).toHaveStyle({ opacity: '0' });
 		await view.rerender({ includeExit: false });
 		expect(view.getByRole('img')).toHaveStyle({ opacity: '1' });

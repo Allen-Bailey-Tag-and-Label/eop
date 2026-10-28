@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T17:22:46.685Z
+## 2026-10-28T17:31:34.076Z
+
+fix: Add transition time to slide display duration
+
+## 2026-10-28T13:24:17-04:00
 
 fix: Correct monitor and playlist layouts and footer styling
 

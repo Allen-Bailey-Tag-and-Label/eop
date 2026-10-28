@@ -34,9 +34,9 @@
 		>{/if}
 	<Card class="space-y-4"
 		><P
-			>Arrange slides in playback order. Leave a duration override empty to use the slide's
-			duration. A shorter override clips its animation. Publish the playlist, then assign it in
-			Monitor management.</P
+			>Arrange slides in playback order. Leave a duration override empty to use the slide's display
+			duration. Entrance and exit transitions are additional time. A shorter override clips its
+			element animations. Publish the playlist, then assign it in Monitor management.</P
 		>
 		<Form action="?/save" class="max-w-none" bind:isLoading={saving}>
 			<Input type="hidden" name="id" value={data.playlist.id} /><Input

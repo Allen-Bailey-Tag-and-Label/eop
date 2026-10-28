@@ -60,6 +60,7 @@
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
 	import { withResponsiveDefaults } from './layout';
+	import { slideContentTime, slideTiming } from './timeline';
 	let {
 		data,
 		form
@@ -84,6 +85,8 @@
 	let selectedId = $state('');
 	const selected = $derived(draft.elements.find((element) => element.id === selectedId));
 	let timeMs = $state(0);
+	const previewTiming = $derived(slideTiming(draft));
+	const contentTimeMs = $derived(slideContentTime(draft, timeMs));
 	let playing = $state(false);
 	let saving = $state(false);
 	let uploading = $state(false);
@@ -254,21 +257,22 @@
 			);
 	}
 	function addKeyframe() {
-		if (!selected || selected.keyframes.some((frame) => frame.atMs === Math.round(timeMs))) return;
+		if (!selected || selected.keyframes.some((frame) => frame.atMs === Math.round(contentTimeMs)))
+			return;
 		selected.keyframes.push({
 			x: selected.x,
 			y: selected.y,
 			opacity: selected.opacity,
 			rotation: selected.rotation,
 			scale: selected.scale,
-			atMs: Math.round(timeMs),
+			atMs: Math.round(contentTimeMs),
 			easing: 'linear'
 		});
 		selected.keyframes.sort((a, b) => a.atMs - b.atMs);
 	}
 	$effect(() => {
 		if (!playing) return;
-		const duration = draft.durationMs;
+		const duration = previewTiming.totalMs;
 		if (!Number.isFinite(duration) || duration < 1000) return;
 		const start = performance.now() - untrack(() => timeMs);
 		let frame: number;
@@ -667,7 +671,7 @@
 						{#each selected.keyframes as frame, index (frame)}
 							<Div class="space-y-3 rounded border border-gray-500 p-3">
 								<Input
-									label="Time (ms)"
+									label="Display time (ms)"
 									type="number"
 									min={0}
 									max={draft.durationMs}
@@ -728,7 +732,7 @@
 				>{#if playing}<Pause size={17} />{:else}<Play size={17} />{/if}</Button
 			>
 			<P class="shrink-0 font-mono text-xs tabular-nums"
-				>{(timeMs / 1000).toFixed(1)} / {(draft.durationMs / 1000).toFixed(1)}s</P
+				>{(timeMs / 1000).toFixed(1)} / {(previewTiming.totalMs / 1000).toFixed(1)}s</P
 			>
 			<Button
 				aria-label="Add keyframe at preview time"
@@ -795,7 +799,7 @@
 				type="range"
 				class="w-full px-0 py-1"
 				min={0}
-				max={draft.durationMs}
+				max={previewTiming.totalMs}
 				step={10}
 				value={String(timeMs)}
 				oninput={(event) => {
@@ -807,17 +811,17 @@
 				{#each [0, 0.25, 0.5, 0.75, 1] as fraction (fraction)}<span
 						class="absolute top-1 -translate-x-1/2 text-[10px] opacity-60"
 						style={`left:${fraction * 100}%;`}
-						>{((draft.durationMs * fraction) / 1000).toFixed(1)}s</span
+						>{((previewTiming.totalMs * fraction) / 1000).toFixed(1)}s</span
 					>{/each}
 				{#if selected}{#each selected.keyframes as frame, index (frame)}<Button
 							aria-label={`Keyframe ${index + 1} at ${frame.atMs} milliseconds`}
-							title={`Keyframe ${index + 1} · ${(frame.atMs / 1000).toFixed(2)}s`}
+							title={`Keyframe ${index + 1} · ${(frame.atMs / 1000).toFixed(2)}s into display`}
 							variants={['ghost']}
 							class="absolute -top-2 h-4 w-4 -translate-x-1/2 items-center p-0 text-sky-600"
-							style={`left:${Math.max(0, Math.min(100, (frame.atMs / draft.durationMs) * 100))}%;`}
+							style={`left:${Math.max(0, Math.min(100, ((previewTiming.entranceMs + frame.atMs) / previewTiming.totalMs) * 100))}%;`}
 							onclick={() => {
 								playing = false;
-								timeMs = frame.atMs;
+								timeMs = previewTiming.entranceMs + frame.atMs;
 								showPanel('animation');
 							}}><Diamond size={13} fill="currentColor" /></Button
 						>{/each}{/if}
@@ -895,7 +899,7 @@
 							draft.background = backgroundColor;
 						}}
 					/><Input
-						label="Duration (seconds)"
+						label="Display duration (seconds)"
 						aria-label="Slide duration in seconds"
 						type="number"
 						min={1}
@@ -950,9 +954,10 @@
 					</Div>
 				{/each}
 				<P class="text-xs opacity-60"
-					>Fades include the background and all elements, within the slide duration. Short slides
-					shorten the fades proportionally. Play or scrub the timeline to preview them. A
-					non-looping playlist keeps its final slide visible.</P
+					>Transitions are added before and after the display duration. Element animations run
+					during the display period, holding their first and last poses during transitions. The
+					preview timeline shows the total time. A non-looping playlist keeps its final slide
+					visible.</P
 				>
 				<P class="text-xs opacity-60"
 					>{data.slide.publishedAt
