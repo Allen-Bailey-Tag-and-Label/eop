@@ -21,6 +21,36 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('saves transparent backgrounds without coercing them through the color picker and restores the solid color', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: { ...blankSlide(), background: '#123456' }
+				},
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
+		const background = view.getByRole('combobox', { name: 'Slide background type' });
+		await fireEvent.change(background, { target: { value: 'transparent' } });
+		expect(view.getByLabelText('Slide background')).toBeDisabled();
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		expect(definition().background).toBe('transparent');
+		expect(view.getByRole('img', { name: 'Slide preview' })).toHaveStyle({
+			background: 'transparent'
+		});
+		await fireEvent.change(background, { target: { value: 'solid' } });
+		expect(definition().background).toBe('#123456');
+		expect(view.getByLabelText('Slide background')).toBeEnabled();
+	});
 	it('saves independent whole-slide transition settings and previews them on the timeline', async () => {
 		const view = render(SlideEditor, {
 			data: {

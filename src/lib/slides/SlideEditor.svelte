@@ -74,6 +74,11 @@
 	);
 	let title = $state(untrack(() => data.slide.title));
 	let slug = $state(untrack(() => data.slide.slug));
+	let backgroundColor = $state(
+		untrack(() =>
+			data.slide.draft.background === 'transparent' ? '#09090c' : data.slide.draft.background
+		)
+	);
 	let selectedId = $state('');
 	const selected = $derived(draft.elements.find((element) => element.id === selectedId));
 	let timeMs = $state(0);
@@ -866,7 +871,12 @@
 						label="Background"
 						aria-label="Slide background"
 						type="color"
-						bind:value={draft.background}
+						value={draft.background === 'transparent' ? backgroundColor : draft.background}
+						disabled={draft.background === 'transparent'}
+						oninput={(event) => {
+							backgroundColor = event.currentTarget.value;
+							draft.background = backgroundColor;
+						}}
 					/><Input
 						label="Duration (seconds)"
 						aria-label="Slide duration in seconds"
@@ -878,6 +888,21 @@
 						oninput={(e) => (draft.durationMs = Number(e.currentTarget.value) * 1000)}
 					/></Div
 				>
+				<Select
+					label="Background type"
+					aria-label="Slide background type"
+					value={draft.background === 'transparent' ? 'transparent' : 'solid'}
+					options={[
+						{ label: 'Solid color', value: 'solid' },
+						{ label: 'Transparent', value: 'transparent' }
+					]}
+					onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+						if (event.currentTarget.value === 'transparent') {
+							if (draft.background !== 'transparent') backgroundColor = draft.background;
+							draft.background = 'transparent';
+						} else draft.background = backgroundColor;
+					}}
+				/>
 				<P class="font-semibold">Whole-slide transitions</P>
 				{#each transitionDirections as direction (direction)}
 					<Div class="grid grid-cols-2 gap-4">

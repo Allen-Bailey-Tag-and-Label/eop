@@ -207,7 +207,7 @@
 >
 	<Div
 		class="absolute bg-black shadow-xl"
-		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));`}
+		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));${definition.background === 'transparent' ? 'background:repeating-conic-gradient(#d1d5db 0% 25%,#f9fafb 0% 50%) 0 0 / 20px 20px;' : ''}`}
 	>
 		<SlideCanvas
 			{definition}

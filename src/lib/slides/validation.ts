@@ -138,7 +138,7 @@ export function validateSlide(input: unknown): SlideDefinition {
 		schemaVersion: 1,
 		width: number(value.width, 320, 4096, 'Canvas width'),
 		height: number(value.height, 240, 4096, 'Canvas height'),
-		background: color(value.background),
+		background: value.background === 'transparent' ? 'transparent' : color(value.background),
 		durationMs,
 		transitionIn: transition(value.transitionIn),
 		transitionOut: transition(value.transitionOut),

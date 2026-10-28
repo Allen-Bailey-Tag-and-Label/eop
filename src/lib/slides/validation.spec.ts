@@ -4,6 +4,17 @@ import { parseJson, slug, validatePlaylist, validateSlide } from './validation';
 import { poseAt } from './timeline';
 
 describe('slide definitions', () => {
+	it('accepts transparent backgrounds while keeping element colors restricted to hex colors', () => {
+		expect(validateSlide({ ...blankSlide(), background: 'transparent' }).background).toBe(
+			'transparent'
+		);
+		expect(() =>
+			validateSlide({
+				...blankSlide(),
+				elements: [{ ...newElement('text', 'headline'), color: 'transparent' }]
+			})
+		).toThrow();
+	});
 	it('accepts typed elements and strips executable or unknown fields', () => {
 		const element = {
 			...newElement('text', 'headline'),

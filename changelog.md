@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T16:44:09.445Z
+## 2026-10-28T16:48:59.766Z
+
+feat: Support transparent slide backgrounds
+
+## 2026-10-28T12:46:04-04:00
 
 feat: Add configurable whole-slide fade transitions
 
