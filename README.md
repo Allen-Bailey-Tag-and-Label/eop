@@ -1,5 +1,39 @@
 # sv
 
+## Raspberry Pi and monitor approval
+
+1. On the monitor's browser, open `/monitors/pair` (or `/monitors`). No employee
+   login is required. Leave the displayed code on screen.
+2. On an employee computer, sign in and open `/admin/monitors`. Enter the code and
+   a location such as "Break room, east wall", then approve it.
+3. Within approximately five seconds, the monitor switches to `/monitors/display`.
+   This is an authenticated, full-screen placeholder for the future slide player.
+4. Revoke access from the approved-monitor list when a device is removed or moved.
+   Online displays return to pairing within approximately 30 seconds.
+
+For an existing database, create a Route with href `/admin/monitors` in
+**Admin → Routes**, then assign it to the authorized approval roles in
+**Admin → Roles**. Authorization remains in `src/hooks.server.ts`. No role checks
+are duplicated in page actions. The initial admin seed also includes this route.
+
+Codes expire after 10 minutes, can be approved once, and are replaced automatically
+when an online monitor notices expiry. Approval does not create an employee login:
+the browser gets a separate random, HttpOnly credential restricted to `/monitors`.
+Only its SHA-256 hash is stored. Approved sessions last 90 days; expiry and
+revocation are checked in MongoDB, independently of TTL cleanup. Use HTTPS in
+production and keep the kiosk browser's profile/cookies across Pi reboots.
+
+New pairing requests are limited to 30 per client IP per 10-minute window using
+shared MongoDB counters. Refreshing a live code reuses the existing request.
+Monitor credentials and rate-limit records are excluded from generic database
+CRUD tools and operation logs. No additional environment secrets are needed.
+MongoDB creates the new collections and indexes through the existing model setup.
+
+Tests use mocked persistence and never connect to a live database:
+`npm run test:unit -- --run src/lib/server/monitors src/lib/monitors/watchStatus.spec.ts src/hooks.server.spec.ts`.
+
+Slide creation, media uploads, transitions, and playback scheduling are deferred.
+
 ## Component implementations
 
 Import components through `$lib/components`. Standard primitives come directly

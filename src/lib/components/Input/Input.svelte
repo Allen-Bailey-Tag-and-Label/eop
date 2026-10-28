@@ -2,12 +2,12 @@
 	import { Input as SveltewindInput } from 'sveltewind/components';
 	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import type { Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
 	import { Div, Label } from '../';
 
-	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'checked' | 'class' | 'name'> & {
+	type Props = Omit<HTMLInputAttributes, 'checked' | 'class' | 'name'> & {
 		checked?: boolean;
 		children?: Snippet;
 		class?: string;

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-27T18:02:46.356Z
+## 2026-10-28T12:02:59.772Z
+
+Add Raspberry Pi monitor pairing, admin approval, and display authentication
+
+## 2026-10-28T07:36:15-04:00
 
 Replace local UI implementations with Sveltewind components and compatibility adapters
 

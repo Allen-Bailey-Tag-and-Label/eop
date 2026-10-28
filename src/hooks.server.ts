@@ -6,6 +6,7 @@ import { connect } from '$lib/server/mongoose';
 import { setSkipLogging } from '$lib/server/mongoose/middleware';
 import { Log, Role, Route, UpsQuote, User } from '$lib/server/mongoose/models';
 import { type Navigation, type Route as RouteType } from '$lib/types';
+import { getMonitorSession, MONITOR_COOKIE } from '$lib/server/monitors/sessions';
 
 type NavigationMap = Map<string, NavigationMap>;
 type Role = { label: string; routes: RouteType[] };
@@ -75,6 +76,7 @@ const initDB = async () => {
 		});
 		const allOtherRoutes = await Promise.all([
 			Route.create({ _createdById: adminUser._id, href: '/dashboard', label: 'Dashboard' }),
+			Route.create({ _createdById: adminUser._id, href: '/admin/monitors', label: 'Monitors' }),
 			Route.create({
 				_createdById: adminUser._id,
 				_parentId: adminRoute._id,
@@ -106,6 +108,22 @@ const initDB = async () => {
 
 export const handle: Handle = async ({ event, resolve }) => {
 	await connect();
+
+	// Device credentials are independent of employees and only authorize monitor displays.
+	if (event.route.id?.startsWith('/(monitors)/')) {
+		event.setHeaders({ 'cache-control': 'private, no-store' });
+		if (event.route.id.startsWith('/(monitors)/monitors/(approved)/')) {
+			const session = await getMonitorSession(event.cookies.get(MONITOR_COOKIE));
+			if (session?.status !== 'approved') return redirect('/monitors/pair');
+			event.locals.monitor = {
+				id: session._id.toString(),
+				location: session.location,
+				expiresAt: session.expiresAt.toISOString()
+			};
+		}
+		return resolve(event);
+	}
+
 	await initDB();
 
 	const userIdCookie = event.cookies.get('userId');
