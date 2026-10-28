@@ -1,4 +1,5 @@
 import type { Keyframe, PlaylistDefinition, Pose, SlideDefinition, SlideElement } from './types';
+import { defaultSlideTransition, type SlideTransition } from './types';
 
 export class SlideValidationError extends Error {}
 const invalid = (message: string): never => {
@@ -54,6 +55,14 @@ function pose(value: Record<string, unknown>): Pose {
 		opacity: number(value.opacity, 0, 1, 'Opacity'),
 		scale: number(value.scale, 0, 10, 'Scale'),
 		rotation: number(value.rotation, -3600, 3600, 'Rotation')
+	};
+}
+function transition(value: unknown): SlideTransition {
+	if (value === undefined) return defaultSlideTransition();
+	const settings = object(value);
+	return {
+		type: choice(settings.type, ['fade', 'none'], 'slide transition'),
+		durationMs: number(settings.durationMs, 0, 600000, 'Transition duration in milliseconds')
 	};
 }
 export function validateSlide(input: unknown): SlideDefinition {
@@ -131,6 +140,8 @@ export function validateSlide(input: unknown): SlideDefinition {
 		height: number(value.height, 240, 4096, 'Canvas height'),
 		background: color(value.background),
 		durationMs,
+		transitionIn: transition(value.transitionIn),
+		transitionOut: transition(value.transitionOut),
 		elements
 	};
 }

@@ -21,6 +21,40 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('saves independent whole-slide transition settings and previews them on the timeline', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
+		expect(
+			view.getByRole('spinbutton', { name: 'Slide transition in duration in milliseconds' })
+		).toHaveValue(2000);
+		await fireEvent.input(
+			view.getByRole('spinbutton', { name: 'Slide transition in duration in milliseconds' }),
+			{ target: { value: '4000' } }
+		);
+		await fireEvent.change(view.getByRole('combobox', { name: 'Slide transition out' }), {
+			target: { value: 'none' }
+		});
+		expect(
+			view.getByRole('spinbutton', { name: 'Slide transition out duration in milliseconds' })
+		).toBeDisabled();
+		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(definition.transitionIn).toEqual({ type: 'fade', durationMs: 4000 });
+		expect(definition.transitionOut).toEqual({ type: 'none', durationMs: 2000 });
+		const canvas = view.getByRole('img', { name: 'Slide preview' });
+		expect(canvas).toHaveStyle({ opacity: '1' });
+		await fireEvent.input(view.getByRole('slider', { name: 'Preview timeline' }), {
+			target: { value: '1000' }
+		});
+		expect(canvas).toHaveStyle({ opacity: '0.25' });
+	});
 	it('requires confirmation to unpublish and lists affected playlists', async () => {
 		const view = render(SlideEditor, {
 			data: {

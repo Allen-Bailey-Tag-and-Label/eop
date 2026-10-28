@@ -72,6 +72,14 @@ appropriate roles. New databases include both in the initial admin seed.
    that frame. Playback, scrubbing, and clickable keyframe markers remain at the
    bottom of the editor. Set the slide duration (1–600 seconds) in Settings.
    Later elements render in front. The final pose is held until the slide ends.
+   **Whole-slide transitions** in Settings control the entrance and exit separately:
+   choose **Fade** or **None** and set each duration in milliseconds. Both default
+   to a 2000 ms fade, including existing slides. Fades include the background and
+   every element and run inside the total slide duration. If their combined time
+   exceeds the effective playlist duration, both shorten proportionally. The final
+   slide of a non-looping playlist omits its exit fade so it stays visible.
+   Play or scrub the timeline to preview fades; the stopped editor at time zero
+   and the upcoming-slide thumbnail remain fully visible for editing and review.
 4. Save a draft or publish the current editor content. Draft changes do not affect
    monitors. Publishing updates the saved draft and published snapshot together;
    stale concurrent saves are rejected. The published snapshot is kept until the
@@ -157,7 +165,7 @@ console.log(JSON.stringify(slide));
 
 V1 supports up to 100 elements (20 media elements) per slide, 100 keyframes per
 element, 100 entries per playlist, and 250 KB slide/playlist definitions. Scheduling
-by date/time, slide-to-slide transitions, custom live-data templates, asset deletion,
+by date/time, additional slide transition styles, custom live-data templates, asset deletion,
 and playlist deletion are future work.
 
 ## Component implementations

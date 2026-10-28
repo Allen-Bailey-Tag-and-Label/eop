@@ -114,6 +114,7 @@
 	let returnFocus: HTMLElement | null = null;
 	let colorInput = $state<HTMLInputElement | null>(null);
 	const uid = $props.id();
+	const transitionDirections = ['transitionIn', 'transitionOut'] as const;
 	const geometry = ['x', 'y', 'width', 'height', 'rotation', 'scale', 'opacity'] as const;
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
@@ -469,6 +470,7 @@
 				bind:selectedId
 				{timeMs}
 				{tool}
+				animateTransitions={playing || timeMs > 0}
 				{zoom}
 				{resetView}
 				viewportWidth={viewport.width}
@@ -875,6 +877,40 @@
 						value={String(draft.durationMs / 1000)}
 						oninput={(e) => (draft.durationMs = Number(e.currentTarget.value) * 1000)}
 					/></Div
+				>
+				<P class="font-semibold">Whole-slide transitions</P>
+				{#each transitionDirections as direction (direction)}
+					<Div class="grid grid-cols-2 gap-4">
+						<Select
+							label={direction === 'transitionIn' ? 'Transition in' : 'Transition out'}
+							aria-label={direction === 'transitionIn'
+								? 'Slide transition in'
+								: 'Slide transition out'}
+							bind:value={draft[direction].type}
+							options={[
+								{ label: 'Fade', value: 'fade' },
+								{ label: 'None', value: 'none' }
+							]}
+						/>
+						<Input
+							label="Duration (ms)"
+							aria-label={direction === 'transitionIn'
+								? 'Slide transition in duration in milliseconds'
+								: 'Slide transition out duration in milliseconds'}
+							type="number"
+							min={0}
+							max={600000}
+							step={100}
+							disabled={draft[direction].type === 'none'}
+							value={String(draft[direction].durationMs)}
+							oninput={(event) => (draft[direction].durationMs = Number(event.currentTarget.value))}
+						/>
+					</Div>
+				{/each}
+				<P class="text-xs opacity-60"
+					>Fades include the background and all elements, within the slide duration. Short slides
+					shorten the fades proportionally. Play or scrub the timeline to preview them. A
+					non-looping playlist keeps its final slide visible.</P
 				>
 				<P class="text-xs opacity-60"
 					>{data.slide.publishedAt

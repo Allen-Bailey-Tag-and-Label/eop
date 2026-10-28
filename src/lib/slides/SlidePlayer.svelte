@@ -169,6 +169,9 @@
 			<SlideCanvas
 				definition={shown.definition}
 				{timeMs}
+				animateTransitions
+				durationMs={shown.durationMs}
+				includeExit={shown.next !== null}
 				{assetUrls}
 				assetBase="/monitors/media"
 				label={`${shown.title} — ${location}`}

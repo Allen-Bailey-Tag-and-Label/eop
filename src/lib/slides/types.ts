@@ -4,6 +4,8 @@ export type HorizontalAnchor = 'scale' | 'left' | 'right' | 'center' | 'stretch'
 export type VerticalAnchor = 'scale' | 'top' | 'bottom' | 'center' | 'stretch';
 export type Pose = { x: number; y: number; opacity: number; scale: number; rotation: number };
 export type Keyframe = Pose & { atMs: number; easing: Easing };
+export type SlideTransition = { type: 'fade' | 'none'; durationMs: number };
+export const defaultSlideTransition = (): SlideTransition => ({ type: 'fade', durationMs: 2000 });
 export type SlideElement = Pose & {
 	id: string;
 	type: ElementType;
@@ -26,6 +28,8 @@ export type SlideDefinition = {
 	height: number;
 	background: string;
 	durationMs: number;
+	transitionIn: SlideTransition;
+	transitionOut: SlideTransition;
 	elements: SlideElement[];
 };
 export type PlaylistItem = { slideId: string; durationMs: number | null };
@@ -64,6 +68,8 @@ export const blankSlide = (): SlideDefinition => ({
 	height: 1080,
 	background: '#09090c',
 	durationMs: 10000,
+	transitionIn: defaultSlideTransition(),
+	transitionOut: defaultSlideTransition(),
 	elements: []
 });
 

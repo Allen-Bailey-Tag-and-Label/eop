@@ -1,4 +1,5 @@
 import type { Pose, SlideDefinition, SlideElement } from './types';
+import { defaultSlideTransition } from './types';
 
 export type LayoutScales = {
 	positionScaleX: number;
@@ -12,6 +13,8 @@ export type LayoutScales = {
 export function withResponsiveDefaults(definition: SlideDefinition): SlideDefinition {
 	return {
 		...definition,
+		transitionIn: definition.transitionIn ?? defaultSlideTransition(),
+		transitionOut: definition.transitionOut ?? defaultSlideTransition(),
 		elements: definition.elements.map((element) => ({
 			...element,
 			horizontalAnchor: element.horizontalAnchor ?? 'scale',

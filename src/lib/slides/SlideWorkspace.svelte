@@ -10,6 +10,7 @@
 		definition = $bindable(),
 		selectedId = $bindable(''),
 		timeMs,
+		animateTransitions = false,
 		tool,
 		zoom,
 		resetView,
@@ -20,6 +21,7 @@
 		definition: SlideDefinition;
 		selectedId?: string;
 		timeMs: number;
+		animateTransitions?: boolean;
 		tool: 'select' | 'pan' | 'resize';
 		zoom: number;
 		resetView: number;
@@ -204,12 +206,13 @@
 	onpointercancel={stop}
 >
 	<Div
-		class="absolute shadow-xl"
+		class="absolute bg-black shadow-xl"
 		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));`}
 	>
 		<SlideCanvas
 			{definition}
 			{timeMs}
+			{animateTransitions}
 			{viewportWidth}
 			{viewportHeight}
 			assetBase="/admin/monitors/slides/assets"

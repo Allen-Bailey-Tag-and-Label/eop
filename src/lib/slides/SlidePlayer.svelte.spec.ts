@@ -56,6 +56,25 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('fades the whole slide using the effective playlist duration and restarts on advance', async () => {
+		const view = render(SlidePlayer, { location: 'Break room' });
+		vi.mocked(watchPlayback).mock.calls[0][0](content());
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByRole('img')).toHaveStyle({ opacity: '0' });
+		await vi.advanceTimersByTimeAsync(250);
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
+		await tick();
+		expect(current.getByRole('img')).toHaveStyle({ opacity: '0.5' });
+		await vi.advanceTimersByTimeAsync(500);
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
+		await tick();
+		expect(current.getByRole('img')).toHaveStyle({ opacity: '0.5' });
+		await vi.advanceTimersByTimeAsync(250);
+		await flush();
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		expect(current.getByRole('img')).toHaveStyle({ opacity: '0' });
+	});
 	it('animates published keyframes on display frames and restarts them for a single-slide loop', async () => {
 		vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1920);
 		vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(1080);
@@ -235,5 +254,8 @@ describe('monitor player', () => {
 		await vi.advanceTimersByTimeAsync(1000);
 		await flush();
 		expect(view.getByRole('timer')).toHaveTextContent('0:00');
+		expect(
+			within(view.getByRole('region', { name: 'Current slide' })).getByRole('img')
+		).toHaveStyle({ opacity: '1' });
 	});
 });

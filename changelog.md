@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T16:35:59.721Z
+## 2026-10-28T16:44:09.445Z
+
+feat: Add configurable whole-slide fade transitions
+
+## 2026-10-28T12:37:09-04:00
 
 fix: Refresh published monitor content before every slide
 

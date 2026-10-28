@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Div } from '$lib/components';
-	import { poseAt } from './timeline';
+	import { poseAt, slideOpacityAt } from './timeline';
 	import { elementLayout } from './layout';
 	import type { SlideDefinition } from './types';
 	let {
@@ -10,6 +10,9 @@
 		assetUrls = {},
 		viewportWidth,
 		viewportHeight,
+		animateTransitions = false,
+		durationMs = definition.durationMs,
+		includeExit = true,
 		label = 'Slide preview'
 	}: {
 		definition: SlideDefinition;
@@ -18,6 +21,9 @@
 		assetUrls?: Record<string, string>;
 		viewportWidth?: number;
 		viewportHeight?: number;
+		animateTransitions?: boolean;
+		durationMs?: number;
+		includeExit?: boolean;
 		label?: string;
 	} = $props();
 	let containerWidth = $state(0);
@@ -36,7 +42,7 @@
 
 <div
 	class="relative h-full w-full overflow-hidden"
-	style={`background:${definition.background};`}
+	style={`background:${definition.background};opacity:${animateTransitions ? slideOpacityAt(definition, timeMs, durationMs, includeExit) : 1};`}
 	role="img"
 	aria-label={label}
 	bind:clientWidth={containerWidth}

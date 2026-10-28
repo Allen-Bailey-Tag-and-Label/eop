@@ -20,6 +20,20 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('fades the entire canvas including its background while static previews stay visible', async () => {
+		const definition = { ...blankSlide(), elements: [newElement('text', 'headline')] };
+		const view = render(SlideCanvas, { definition, assetBase: '/assets', timeMs: 0 });
+		expect(view.getByRole('img')).toHaveStyle({ opacity: '1' });
+		await view.rerender({ animateTransitions: true, timeMs: 1000 });
+		expect(view.getByRole('img')).toHaveStyle({
+			opacity: '0.5',
+			background: definition.background
+		});
+		await view.rerender({ timeMs: 10000 });
+		expect(view.getByRole('img')).toHaveStyle({ opacity: '0' });
+		await view.rerender({ includeExit: false });
+		expect(view.getByRole('img')).toHaveStyle({ opacity: '1' });
+	});
 	it('fills the actual viewport and anchors a bottom-right element without letterboxing', () => {
 		vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(2520);
 		vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(1080);

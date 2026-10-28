@@ -243,7 +243,7 @@ export async function getPlayback(monitorId: string): Promise<Playback | null> {
 					{
 						id: slide._id.toString(),
 						title: slide.publishedTitle ?? `Slide ${index + 1}`,
-						definition: slide.published,
+						definition: withResponsiveDefaults(slide.published),
 						durationMs: item.durationMs ?? slide.published.durationMs
 					}
 				]
