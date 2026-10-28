@@ -97,6 +97,22 @@ export function validateSlide(input: unknown): SlideDefinition {
 			type,
 			assetId,
 			keyframes,
+			horizontalAnchor:
+				e.horizontalAnchor === undefined
+					? 'scale'
+					: choice(
+							e.horizontalAnchor,
+							['scale', 'left', 'right', 'center', 'stretch'],
+							'horizontal anchor'
+						),
+			verticalAnchor:
+				e.verticalAnchor === undefined
+					? 'scale'
+					: choice(
+							e.verticalAnchor,
+							['scale', 'top', 'bottom', 'center', 'stretch'],
+							'vertical anchor'
+						),
 			width: number(e.width, 1, 8192, 'Width'),
 			height: number(e.height, 1, 8192, 'Height'),
 			color: color(e.color),

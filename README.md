@@ -52,11 +52,12 @@ appropriate roles. New databases include both in the initial admin seed.
 
 1. Open **Admin → Monitors → Slides** and create a slide. The editor fills the
    available application height without page scrolling. Use **Settings** in the
-   top toolbar for title, unique slug, canvas dimensions, background, and duration.
-   The default canvas is 1920 × 1080 and scales to fit the monitor.
+   top toolbar for title, unique slug, reference dimensions, background, and duration.
+   The default reference is 1920 × 1080. Playback always fills the available screen;
+   element constraints adapt the layout without letterboxing the slide.
 2. Use **Add** or the left tool rail for text, images, SVG assets, rectangles,
    ellipses, or lines. Select and drag elements to move them; arrow keys nudge by
-   one pixel (Shift for ten). The resize tool provides a corner handle. Moving an
+   one reference unit (Shift for ten). The resize tool provides a corner handle. Moving an
    animated element shifts its complete animation path. Use the hand tool to pan
    the view, and the bottom zoom/fit controls to navigate without changing the slide.
    The right inspector has Properties, Layers, and Animation tabs and scrolls
@@ -87,6 +88,31 @@ appropriate roles. New databases include both in the initial admin seed.
    restarts is not provided. Revocation polling remains active independently.
 
 The editor and player share the renderer and deterministic timeline evaluator.
+
+Each element has horizontal and vertical anchoring in **Properties**:
+
+| Anchor                      | Responsive behavior                                                 |
+| --------------------------- | ------------------------------------------------------------------- |
+| Scale                       | Position and box size follow that screen dimension proportionally.  |
+| Left / Top                  | Keep the offset from the starting edge and scale the box uniformly. |
+| Right / Bottom              | Keep the offset from the ending edge and scale the box uniformly.   |
+| Center                      | Keep the offset from the center and scale the box uniformly.        |
+| Left & right / Top & bottom | Stretch the box between its two reference margins.                  |
+
+Edge offsets and uniform sizes scale by the smaller screen/reference ratio, so
+they follow resolution changes without stretching text or media. Scale and stretch
+may change a box's aspect ratio; text scales uniformly and wraps within its box,
+while images and SVGs use their existing contain/cover setting. Changing constraints
+preserves the reference composition; Center retains the element's existing offset
+from the reference center rather than automatically moving it to the center.
+Use the bottom preview selector for reference size, 16:9, 16:10, 21:9, or portrait.
+Previewing a screen shape does not change the slide's saved reference dimensions.
+Animation positions use the same constraints at every frame, and canvas movement
+and resizing are converted back to reference units. Existing v1 JSON without
+anchors defaults to Scale on both axes, including published slides; no database
+migration is required. Refresh an already-open monitor player after deployment
+to load the new renderer.
+
 Definitions are validated data, never compiled Svelte or evaluated JavaScript.
 Slugs address editors; playlist entries use stable database IDs so renaming a slug
 does not break playback. Only approved monitor routes can fetch playback or

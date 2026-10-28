@@ -1,5 +1,7 @@
 export type ElementType = 'text' | 'image' | 'svg' | 'rectangle' | 'ellipse' | 'line';
 export type Easing = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+export type HorizontalAnchor = 'scale' | 'left' | 'right' | 'center' | 'stretch';
+export type VerticalAnchor = 'scale' | 'top' | 'bottom' | 'center' | 'stretch';
 export type Pose = { x: number; y: number; opacity: number; scale: number; rotation: number };
 export type Keyframe = Pose & { atMs: number; easing: Easing };
 export type SlideElement = Pose & {
@@ -7,6 +9,8 @@ export type SlideElement = Pose & {
 	type: ElementType;
 	width: number;
 	height: number;
+	horizontalAnchor: HorizontalAnchor;
+	verticalAnchor: VerticalAnchor;
 	color: string;
 	text: string;
 	fontSize: number;
@@ -59,6 +63,8 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		y: 160,
 		width: 800,
 		height: type === 'line' ? 8 : 240,
+		horizontalAnchor: 'scale',
+		verticalAnchor: 'scale',
 		opacity: 1,
 		scale: 1,
 		rotation: 0,

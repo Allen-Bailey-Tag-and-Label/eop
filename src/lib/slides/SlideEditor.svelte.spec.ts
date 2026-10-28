@@ -20,6 +20,33 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('saves anchor choices with the slide and previews alternate screen shapes without changing reference dimensions', async () => {
+		const { container, getByRole, getByText } = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(getByRole('button', { name: 'Add text' }));
+		await fireEvent.change(getByRole('combobox', { name: 'Horizontal anchoring' }), {
+			target: { value: 'right' }
+		});
+		await fireEvent.change(getByRole('combobox', { name: 'Vertical anchoring' }), {
+			target: { value: 'bottom' }
+		});
+		await fireEvent.change(getByRole('combobox', { name: 'Preview aspect ratio' }), {
+			target: { value: 'portrait' }
+		});
+		const definition = JSON.parse(
+			(container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(definition.elements[0]).toMatchObject({
+			horizontalAnchor: 'right',
+			verticalAnchor: 'bottom'
+		});
+		expect(definition).toMatchObject({ width: 1920, height: 1080 });
+		expect(getByText('1080 × 1920 · 1 elements')).toBeInTheDocument();
+	});
 	it('keeps document settings in a dialog and submits them through the top save form', async () => {
 		const { container, getByRole, queryByRole } = render(SlideEditor, {
 			data: {

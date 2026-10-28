@@ -3,6 +3,7 @@ import { Types } from 'mongoose';
 import { error } from '@sveltejs/kit';
 import { Slide, Playlist, Asset } from './models';
 import { MonitorSession } from '../monitors/model';
+import { withResponsiveDefaults } from '$lib/slides/layout';
 import {
 	blankSlide,
 	type Playback,
@@ -85,7 +86,7 @@ export async function getEditor(kind: 'slide' | 'playlist', key: string) {
 		title: row.title,
 		version: row.version,
 		publishedAt: row.publishedAt?.toISOString() ?? null,
-		draft: row.draft
+		draft: kind === 'slide' ? withResponsiveDefaults(row.draft as SlideDefinition) : row.draft
 	};
 }
 export async function validateAssets(definition: SlideDefinition) {

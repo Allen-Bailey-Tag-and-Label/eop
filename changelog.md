@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T14:26:47.921Z
+## 2026-10-28T14:49:05.534Z
+
+feat: Add responsive slide layouts and element anchoring
+
+## 2026-10-28T10:33:30-04:00
 
 feat: Add a full-height slide editor with toolbars and canvas controls
 

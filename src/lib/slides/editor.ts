@@ -1,4 +1,5 @@
 import type { SlideElement } from './types';
+import type { LayoutScales } from './layout';
 
 // Move the whole animation path, rather than changing a base pose that keyframes override.
 export function moveElement(element: SlideElement, dx: number, dy: number) {
@@ -25,17 +26,19 @@ export function resizeDimensions(
 	rotation: number,
 	scale: number
 ) {
+	const delta = resizeDelta(dx, dy, rotation, scale);
+	return {
+		width: Math.max(1, Math.min(8192, width + delta.width)),
+		height: Math.max(1, Math.min(8192, height + delta.height))
+	};
+}
+
+export function resizeDelta(dx: number, dy: number, rotation: number, scale: number) {
 	const radians = (rotation * Math.PI) / 180;
 	const divisor = Math.max(scale, 0.01);
 	return {
-		width: Math.max(
-			1,
-			Math.min(8192, width + (dx * Math.cos(radians) + dy * Math.sin(radians)) / divisor)
-		),
-		height: Math.max(
-			1,
-			Math.min(8192, height + (-dx * Math.sin(radians) + dy * Math.cos(radians)) / divisor)
-		)
+		width: (dx * Math.cos(radians) + dy * Math.sin(radians)) / divisor,
+		height: (-dx * Math.sin(radians) + dy * Math.cos(radians)) / divisor
 	};
 }
 
@@ -44,15 +47,18 @@ export function resizeElement(
 	element: SlideElement,
 	dimensions: { width: number; height: number },
 	rotation: number,
-	scale: number
+	scale: number,
+	layout: LayoutScales = { positionScaleX: 1, positionScaleY: 1, sizeScaleX: 1, sizeScaleY: 1 }
 ) {
 	const radians = (rotation * Math.PI) / 180;
-	const halfWidth = (dimensions.width - element.width) / 2;
-	const halfHeight = (dimensions.height - element.height) / 2;
+	const halfWidth = ((dimensions.width - element.width) * layout.sizeScaleX) / 2;
+	const halfHeight = ((dimensions.height - element.height) * layout.sizeScaleY) / 2;
 	moveElement(
 		element,
-		(scale * Math.cos(radians) - 1) * halfWidth - scale * Math.sin(radians) * halfHeight,
-		scale * Math.sin(radians) * halfWidth + (scale * Math.cos(radians) - 1) * halfHeight
+		((scale * Math.cos(radians) - 1) * halfWidth - scale * Math.sin(radians) * halfHeight) /
+			Math.max(0.0001, layout.positionScaleX),
+		(scale * Math.sin(radians) * halfWidth + (scale * Math.cos(radians) - 1) * halfHeight) /
+			Math.max(0.0001, layout.positionScaleY)
 	);
 	Object.assign(element, dimensions);
 }

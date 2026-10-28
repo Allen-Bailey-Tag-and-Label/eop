@@ -3,7 +3,8 @@
 	import { Button, Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt } from './timeline';
-	import { moveElement, resizeDimensions, resizeElement } from './editor';
+	import { moveElement, resizeDimensions, resizeDelta, resizeElement } from './editor';
+	import { elementLayout, type LayoutScales } from './layout';
 	import type { SlideDefinition, SlideElement } from './types';
 	let {
 		definition = $bindable(),
@@ -12,6 +13,8 @@
 		tool,
 		zoom,
 		resetView,
+		viewportWidth,
+		viewportHeight,
 		onEdit
 	}: {
 		definition: SlideDefinition;
@@ -20,6 +23,8 @@
 		tool: 'select' | 'pan' | 'resize';
 		zoom: number;
 		resetView: number;
+		viewportWidth: number;
+		viewportHeight: number;
 		onEdit: () => void;
 	} = $props();
 	let workspace: HTMLDivElement;
@@ -32,8 +37,8 @@
 		Math.max(
 			0.01,
 			Math.min(
-				Math.max(1, width - 64) / definition.width,
-				Math.max(1, height - 64) / definition.height
+				Math.max(1, width - 64) / Math.max(1, viewportWidth),
+				Math.max(1, height - 64) / Math.max(1, viewportHeight)
 			)
 		) * zoom
 	);
@@ -50,6 +55,7 @@
 				height: number;
 				rotation: number;
 				scale: number;
+				layout: LayoutScales;
 		  }
 		| undefined;
 	$effect(() => {
@@ -70,6 +76,10 @@
 		if (element) selectedId = element.id;
 		onEdit();
 		const pose = element ? poseAt(element, timeMs) : null;
+		const layout =
+			element && pose
+				? elementLayout(definition, element, pose, viewportWidth, viewportHeight)
+				: { positionScaleX: 1, positionScaleY: 1, sizeScaleX: 1, sizeScaleY: 1 };
 		gesture = {
 			pointerId: event.pointerId,
 			kind: tool === 'pan' ? 'pan' : resize ? 'resize' : 'move',
@@ -81,7 +91,8 @@
 			width: element?.width ?? 0,
 			height: element?.height ?? 0,
 			rotation: pose?.rotation ?? 0,
-			scale: pose?.scale ?? 1
+			scale: pose?.scale ?? 1,
+			layout
 		};
 		dragging = true;
 		workspace.setPointerCapture(event.pointerId);
@@ -94,23 +105,38 @@
 			panX = gesture.startPanX + dx;
 			panY = gesture.startPanY + dy;
 		} else if (gesture.element && gesture.kind === 'move') {
-			moveElement(gesture.element, dx / scale, dy / scale);
+			moveElement(
+				gesture.element,
+				dx / scale / Math.max(0.0001, gesture.layout.positionScaleX),
+				dy / scale / Math.max(0.0001, gesture.layout.positionScaleY)
+			);
 			gesture.x = event.clientX;
 			gesture.y = event.clientY;
-		} else if (gesture.element)
+		} else if (gesture.element) {
+			const delta = resizeDelta(dx / scale, dy / scale, gesture.rotation, gesture.scale);
 			resizeElement(
 				gesture.element,
-				resizeDimensions(
-					gesture.width,
-					gesture.height,
-					dx / scale,
-					dy / scale,
-					gesture.rotation,
-					gesture.scale
-				),
+				{
+					width: Math.max(
+						1,
+						Math.min(
+							8192,
+							gesture.width + delta.width / Math.max(0.0001, gesture.layout.sizeScaleX)
+						)
+					),
+					height: Math.max(
+						1,
+						Math.min(
+							8192,
+							gesture.height + delta.height / Math.max(0.0001, gesture.layout.sizeScaleY)
+						)
+					)
+				},
 				gesture.rotation,
-				gesture.scale
+				gesture.scale,
+				gesture.layout
 			);
+		}
 	}
 	function stop(event: PointerEvent) {
 		if (gesture?.pointerId !== event.pointerId) return;
@@ -158,7 +184,8 @@
 			element,
 			resizeDimensions(element.width, element.height, vector[0] * step, vector[1] * step, 0, 1),
 			pose.rotation,
-			pose.scale
+			pose.scale,
+			elementLayout(definition, element, pose, viewportWidth, viewportHeight)
 		);
 	}
 </script>
@@ -178,15 +205,22 @@
 >
 	<Div
 		class="absolute shadow-xl"
-		style={`left:50%;top:50%;width:${definition.width * scale}px;height:${definition.height * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));`}
+		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));`}
 	>
-		<SlideCanvas {definition} {timeMs} assetBase="/admin/monitors/slides/assets" />
+		<SlideCanvas
+			{definition}
+			{timeMs}
+			{viewportWidth}
+			{viewportHeight}
+			assetBase="/admin/monitors/slides/assets"
+		/>
 		<Div class="pointer-events-none absolute inset-0 overflow-visible">
 			{#each definition.elements as element, index (element.id)}
 				{@const pose = poseAt(element, timeMs)}
+				{@const box = elementLayout(definition, element, pose, viewportWidth, viewportHeight)}
 				<Div
 					class="absolute"
-					style={`left:0;top:0;width:${element.width * scale}px;height:${element.height * scale}px;transform:translate(${pose.x * scale}px,${pose.y * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`}
+					style={`left:0;top:0;width:${box.width * scale}px;height:${box.height * scale}px;transform:translate(${box.x * scale}px,${box.y * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`}
 				>
 					<Button
 						aria-label={`Select element ${index + 1}: ${element.type}`}

@@ -56,6 +56,7 @@
 		type SlideDefinition
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
+	import { withResponsiveDefaults } from './layout';
 	let {
 		data,
 		form
@@ -63,7 +64,9 @@
 		data: { slide: ContentEditor<SlideDefinition>; assets: AssetSummary[] };
 		form?: { error?: string; success?: string } | null;
 	} = $props();
-	let draft = $state(untrack(() => structuredClone($state.snapshot(data.slide.draft))));
+	let draft = $state(
+		untrack(() => withResponsiveDefaults(structuredClone($state.snapshot(data.slide.draft))))
+	);
 	let title = $state(untrack(() => data.slide.title));
 	let slug = $state(untrack(() => data.slide.slug));
 	let selectedId = $state('');
@@ -77,6 +80,16 @@
 	let tool = $state<'select' | 'pan' | 'resize'>('select');
 	let zoom = $state(1);
 	let resetView = $state(0);
+	let previewPreset = $state('reference');
+	const previewSizes: Record<string, { width: number; height: number }> = {
+		wide: { width: 1920, height: 1080 },
+		taller: { width: 1920, height: 1200 },
+		ultrawide: { width: 2520, height: 1080 },
+		portrait: { width: 1080, height: 1920 }
+	};
+	const viewport = $derived(
+		previewSizes[previewPreset] ?? { width: draft.width, height: draft.height }
+	);
 	let inspectorOpen = $state(false);
 	let inspectorTab = $state<'properties' | 'layers' | 'animation'>('properties');
 	let dialog = $state<'settings' | 'upload' | 'import' | 'export'>('settings');
@@ -436,6 +449,8 @@
 				{tool}
 				{zoom}
 				{resetView}
+				viewportWidth={viewport.width}
+				viewportHeight={viewport.height}
 				onEdit={() => {
 					playing = false;
 				}}
@@ -444,7 +459,7 @@
 				class="pointer-events-none absolute right-3 bottom-3 left-3 flex items-end justify-between gap-2 text-xs"
 				><span
 					class="rounded bg-white/85 px-2 py-1 text-slate-700 dark:bg-gray-900/85 dark:text-gray-300"
-					>{draft.width} × {draft.height} · {draft.elements.length} elements</span
+					>{viewport.width} × {viewport.height} · {draft.elements.length} elements</span
 				><span
 					class="hidden rounded bg-white/85 px-2 py-1 text-slate-700 lg:block dark:bg-gray-900/85 dark:text-gray-300"
 					>{tool === 'pan'
@@ -495,6 +510,35 @@
 							>Select an element on the canvas or in Layers to edit its properties and animation.</P
 						>
 					{:else if inspectorTab === 'properties'}<H2 class="text-sm">Element properties</H2>
+						<Select
+							label="Horizontal anchoring"
+							aria-label="Horizontal anchoring"
+							bind:value={selected.horizontalAnchor}
+							options={[
+								{ value: 'scale', label: 'Scale' },
+								{ value: 'left', label: 'Left' },
+								{ value: 'right', label: 'Right' },
+								{ value: 'center', label: 'Center' },
+								{ value: 'stretch', label: 'Left & right' }
+							]}
+						/>
+						<Select
+							label="Vertical anchoring"
+							aria-label="Vertical anchoring"
+							bind:value={selected.verticalAnchor}
+							options={[
+								{ value: 'scale', label: 'Scale' },
+								{ value: 'top', label: 'Top' },
+								{ value: 'bottom', label: 'Bottom' },
+								{ value: 'center', label: 'Center' },
+								{ value: 'stretch', label: 'Top & bottom' }
+							]}
+						/>
+						<P class="text-xs opacity-60"
+							>Anchors preserve the reference design and control other screen shapes. Scale follows
+							screen proportions; edge and center anchors keep spacing and size proportional.
+							Opposite edges stretch the box. X/Y are reference coordinates.</P
+						>
 						<Textarea
 							label={selected.type === 'text' ? 'Text' : 'Description'}
 							bind:value={selected.text}
@@ -629,7 +673,7 @@
 		role="region"
 		aria-label="Animation timeline controls"
 	>
-		<Div class="flex items-center gap-2">
+		<Div class="flex flex-wrap items-center gap-2">
 			<Button
 				aria-label="Restart preview"
 				title="Restart preview"
@@ -661,6 +705,20 @@
 					showPanel('animation');
 				}}><Diamond size={15} /><span class="hidden sm:inline">Keyframe</span></Button
 			>
+			<Select
+				aria-label="Preview aspect ratio"
+				title="Preview aspect ratio"
+				class="h-8 w-40 px-2 py-1 text-xs"
+				bind:value={previewPreset}
+				onchange={fitView}
+				options={[
+					{ value: 'reference', label: 'Reference size' },
+					{ value: 'wide', label: '16:9 landscape' },
+					{ value: 'taller', label: '16:10 landscape' },
+					{ value: 'ultrawide', label: '21:9 ultrawide' },
+					{ value: 'portrait', label: '9:16 portrait' }
+				]}
+			/>
 			<Div class="ml-auto flex shrink-0 items-center gap-1"
 				><Button
 					aria-label="Zoom out"
@@ -752,6 +810,11 @@
 			{#if localError}<P role="alert" class="text-sm text-red-600 dark:text-red-400">{localError}</P
 				>{/if}
 			{#if dialog === 'settings'}
+				<P class="text-sm opacity-60"
+					>Reference dimensions set the coordinate units for your design. The slide fills the
+					monitor; use element anchoring and the aspect-ratio previews to control different screen
+					shapes.</P
+				>
 				<Input
 					label="Title"
 					aria-label="Slide title"
@@ -768,16 +831,16 @@
 				/>
 				<Div class="grid grid-cols-2 gap-4"
 					><Input
-						label="Canvas width"
-						aria-label="Canvas width"
+						label="Reference width"
+						aria-label="Reference width"
 						type="number"
 						min={320}
 						max={4096}
 						value={String(draft.width)}
 						oninput={(e) => (draft.width = Number(e.currentTarget.value))}
 					/><Input
-						label="Canvas height"
-						aria-label="Canvas height"
+						label="Reference height"
+						aria-label="Reference height"
 						type="number"
 						min={240}
 						max={4096}
