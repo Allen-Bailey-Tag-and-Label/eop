@@ -112,7 +112,13 @@ export type Playback = {
 	loop: boolean;
 	slides: PlaybackSlide[];
 };
-export type AssetSummary = { id: string; name: string; contentType: string };
+export type AssetSummary = {
+	id: string;
+	name: string;
+	contentType: string;
+	scope?: 'slide' | 'shared' | 'unassigned';
+	slideId?: string;
+};
 export type ContentEditor<T> = {
 	id: string;
 	slug: string;

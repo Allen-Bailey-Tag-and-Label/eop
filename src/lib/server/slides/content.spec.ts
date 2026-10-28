@@ -1,3 +1,5 @@
+import { validateAssetScope } from './asset-library';
+vi.mock('./asset-library', () => ({ validateAssetScope: vi.fn() }));
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 import {
@@ -73,6 +75,17 @@ beforeEach(() => {
 	>);
 });
 describe('slide publishing', () => {
+	it('uses the unsaved slide asset scope as the newly created slide ID', async () => {
+		const form = fields();
+		form.set('id', '');
+		form.set('version', '0');
+		form.set('assetScopeId', 'c'.repeat(24));
+		await saveContent('slide', form, userId);
+		expect(Slide.create).toHaveBeenCalledWith(
+			expect.objectContaining({ _id: new Types.ObjectId('c'.repeat(24)) })
+		);
+		expect(validateAssetScope).toHaveBeenCalledWith(expect.anything(), 'c'.repeat(24));
+	});
 	it('keeps draft saves separate from the published snapshot', async () => {
 		await saveContent('slide', fields(), userId);
 		const change = slideUpdate.mock.calls[0][1];

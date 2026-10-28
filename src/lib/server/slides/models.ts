@@ -32,6 +32,8 @@ export type AssetRecord = {
 	name: string;
 	contentType: string;
 	data: Buffer;
+	scope?: 'slide' | 'shared' | 'unassigned';
+	slideId?: Types.ObjectId;
 };
 // Avoid copying binary files into operation logs.
 export const Asset = defineModel<AssetRecord>(
@@ -39,7 +41,9 @@ export const Asset = defineModel<AssetRecord>(
 	{
 		name: { type: String, required: true },
 		contentType: { type: String, required: true },
-		data: { type: Buffer, required: true, select: false }
+		data: { type: Buffer, required: true, select: false },
+		scope: { type: String, enum: ['slide', 'shared', 'unassigned'], index: true },
+		slideId: { type: Schema.Types.ObjectId, ref: 'MonitorSlide', index: true }
 	},
 	{ log: false }
 );

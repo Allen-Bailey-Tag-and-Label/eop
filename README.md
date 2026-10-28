@@ -159,6 +159,36 @@ If no asset is available, it opens the upload dialog instead of inserting an emp
 element. After uploading, choose **Add ? Image / Graphic** again. Existing image
 and SVG elements can switch between both formats in Properties.
 
+**Asset organization:** uploads belong to the current slide by default, including
+uploads made while editing a repeater template. The asset selector starts on
+**This slide**; **Shared library** is an explicit separate choice. Shared assets
+already used by the current slide also appear under This slide. **Assets** in the
+top toolbar opens the library with search and file preview links:
+
+- **This slide:** add a local file to the canvas, **Share asset**, or select another
+  saved slide as the **Copy destination** and create an independent copy there.
+- **Shared library:** add an intentionally reusable file, or copy it into a slide
+  to get an independent slide-specific asset.
+- **Unused assets:** review slide-specific/unassigned files not referenced by saved
+  drafts or published slides. Files used by the current unsaved edit are hidden
+  here. Other unfinished edits may still reference listed files. Unassigned files
+  can be assigned to this slide or shared; other unused files can be copied.
+  This review does not delete files automatically or offer destructive cleanup.
+
+A new slide receives a stable `assetScope` ID in its URL before its first upload.
+The same ID is used when it is first saved, so uploads survive action reloads and
+page refreshes. Keep that draft URL to return to its uploaded files before saving.
+Changing a saved slide's slug does not change asset ownership.
+
+The first admin library load classifies legacy files using distinct slide IDs
+across both drafts and published snapshots, including repeater templates. A file
+used by one slide belongs to that slide; one used by several becomes shared; an
+unreferenced file becomes unassigned for review. Conditional updates make the
+migration repeatable and preserve existing asset IDs, bytes, and published links.
+Ownership is enforced when saving new references: copy or share another slide's
+asset first. Existing saved references remain valid. Library sections show up to
+500 recent files, plus assets already referenced by this slide.
+
 Uploads are stored in MongoDB as `MonitorAsset` records with a name, content type,
 and binary `data` buffer. Slides and templates store asset IDs, not copies of the
 file. Files are served through the application's asset endpoints; they are not

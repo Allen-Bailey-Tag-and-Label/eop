@@ -208,6 +208,52 @@ describe('slide authoring', () => {
 			assetId: svg
 		});
 	});
+	it('defaults to slide assets and requires explicitly choosing the shared library', async () => {
+		const own = 'b'.repeat(24),
+			shared = 'c'.repeat(24),
+			scope = 'a'.repeat(24);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assetScopeId: scope,
+				assets: [
+					{
+						id: own,
+						name: 'Private photo',
+						contentType: 'image/png',
+						scope: 'slide',
+						slideId: scope
+					}
+				],
+				sharedAssets: [
+					{ id: shared, name: 'Shared logo', contentType: 'image/svg+xml', scope: 'shared' }
+				]
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
+		expect(definition().elements[0].assetId).toBe(own);
+		expect(view.getByRole('combobox', { name: 'Graphic asset' })).not.toHaveTextContent(
+			'Shared logo'
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Shared library' }));
+		expect(view.getByRole('combobox', { name: 'Graphic asset' })).toHaveTextContent('Shared logo');
+		await fireEvent.change(view.getByRole('combobox', { name: 'Graphic asset' }), {
+			target: { value: shared }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'This slide' }));
+		expect(view.getByRole('combobox', { name: 'Graphic asset' })).toHaveTextContent('Shared logo');
+		expect(
+			(view.container.querySelector('input[name="assetScopeId"]') as HTMLInputElement).value
+		).toBe(scope);
+		await fireEvent.click(view.getByRole('button', { name: 'Upload asset' }));
+		expect(view.getByRole('dialog').querySelector('form')?.getAttribute('action')).toBe(
+			`?/upload&assetScope=${scope}`
+		);
+	});
 	it('shows action validation errors in the repeater instead of a generic retry message', async () => {
 		vi.useFakeTimers();
 		vi.stubGlobal(

@@ -1,3 +1,5 @@
+import { Types } from 'mongoose';
+import { assetScope } from './asset-library';
 import { error, fail } from '@sveltejs/kit';
 import createDOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
@@ -51,14 +53,18 @@ export function prepareAsset(bytes: Buffer, contentType: string) {
 		);
 	return bytes;
 }
-export async function uploadAsset(request: Request, userId: string) {
+export async function uploadAsset(request: Request, userId: string, slideSlug: string) {
 	try {
-		const file = (await request.formData()).get('file');
+		const fields = await request.formData();
+		const slideId = await assetScope(slideSlug, fields.get('assetScopeId'));
+		const file = fields.get('file');
 		if (!(file instanceof File) || file.size > MAX_ASSET_BYTES)
 			throw new SlideValidationError('Choose a file under 3 MB.');
 		const bytes = prepareAsset(Buffer.from(await file.arrayBuffer()), file.type);
 		await Asset.create({
 			name: file.name.slice(0, 160),
+			scope: 'slide',
+			slideId: new Types.ObjectId(slideId),
 			contentType: file.type,
 			data: bytes,
 			_createdById: userId

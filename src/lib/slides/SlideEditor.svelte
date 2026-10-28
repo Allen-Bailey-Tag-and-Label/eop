@@ -32,6 +32,7 @@
 		Trash2,
 		Download,
 		ChevronDown,
+		FolderOpen,
 		Database
 	} from '@lucide/svelte';
 	import {
@@ -52,7 +53,8 @@
 	import ColorField from './ColorField.svelte';
 	import DataLinkEditor from './DataLinkEditor.svelte';
 	import RepeaterSettings from './RepeaterSettings.svelte';
-	import { defaultRepeater, templateSlide } from './repeater';
+	import AssetLibrary from './AssetLibrary.svelte';
+	import { allElements, defaultRepeater, templateSlide } from './repeater';
 	import type { SlideElement } from './types';
 	import {
 		newElement,
@@ -74,6 +76,10 @@
 		data: {
 			slide: ContentEditor<SlideDefinition>;
 			assets: AssetSummary[];
+			sharedAssets?: AssetSummary[];
+			unusedAssets?: AssetSummary[];
+			assetScopeId?: string;
+			assetSlides?: { id: string; title: string; slug: string }[];
 			references?: SlideReference[];
 			dataFields?: Record<string, string[]>;
 		};
@@ -95,6 +101,23 @@
 		)
 	);
 	let slideData = $state<SlideData>({});
+	let assetTab = $state<'slide' | 'shared'>('slide');
+	const localAssets = $derived([
+		...new Map(
+			[
+				...data.assets,
+				...(data.sharedAssets ?? []).filter((asset) =>
+					allElements(draft).some((element) => element.assetId === asset.id)
+				)
+			].map((asset) => [asset.id, asset])
+		).values()
+	]);
+	const availableAssets = $derived(assetTab === 'shared' ? (data.sharedAssets ?? []) : localAssets);
+	const allAvailableAssets = $derived([...data.assets, ...(data.sharedAssets ?? [])]);
+	const scopeId = $derived(data.assetScopeId ?? data.slide.id);
+	function assetAction(name: string) {
+		return `?/${name}${!data.slide.id && scopeId ? `&assetScope=${scopeId}` : ''}`;
+	}
 	let selectedId = $state('');
 	let editingRepeaterId = $state('');
 	let previewRow = $state(0);
@@ -169,12 +192,13 @@
 	);
 	let inspectorOpen = $state(false);
 	let inspectorTab = $state<'properties' | 'layers' | 'animation'>('properties');
-	let dialog = $state<'settings' | 'upload' | 'import' | 'export' | 'unpublish' | 'delete'>(
-		'settings'
-	);
+	let dialog = $state<
+		'settings' | 'upload' | 'import' | 'export' | 'unpublish' | 'delete' | 'assets'
+	>('settings');
 	const dialogTitles = {
 		settings: 'Slide settings',
 		upload: 'Upload an asset',
+		assets: 'Asset library',
 		import: 'Import slide JSON',
 		export: 'Export slide JSON',
 		unpublish: 'Unpublish slide?',
@@ -209,16 +233,20 @@
 		inspectorTab = tab;
 		inspectorOpen = true;
 	}
-	function addElement(type: ElementType) {
+	function addElement(type: ElementType, chosenAsset?: AssetSummary) {
 		const element = newElement(type, crypto.randomUUID());
 		if (type === 'image' || type === 'svg') {
-			const asset = data.assets.find((asset) =>
-				['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(asset.contentType)
-			);
+			const asset =
+				chosenAsset ??
+				availableAssets.find((asset) =>
+					['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(asset.contentType)
+				);
 			if (!asset) {
-				openDialog('upload');
+				openDialog((data.sharedAssets?.length ?? 0) > 0 ? 'assets' : 'upload');
 				localError =
-					'Upload an image or SVG asset first, then add it to the slide or item template.';
+					(data.sharedAssets?.length ?? 0) > 0
+						? 'Choose a shared asset or upload an asset to this slide.'
+						: 'Upload an image or SVG asset first, then add it to the slide or item template.';
 				return;
 			}
 			element.assetId = asset.id;
@@ -478,6 +506,14 @@
 			><Settings size={18} /><span class="hidden md:inline">Settings</span></Button
 		>
 		<Button
+			aria-label="Asset library"
+			title="Asset library"
+			variants={['ghost']}
+			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
+			onclick={() => openDialog('assets')}
+			><FolderOpen size={18} /><span class="hidden lg:inline">Assets</span></Button
+		>
+		<Button
 			aria-label="Upload asset"
 			title="Upload asset"
 			variants={['ghost']}
@@ -502,7 +538,7 @@
 			><FileOutput size={18} /><span class="hidden lg:inline">Export</span></Button
 		>
 		<Form
-			action="?/save"
+			action={assetAction('save')}
 			class="ml-auto flex w-auto max-w-none shrink-0 items-center gap-2 space-y-0"
 			submitFunction={({ cancel }) => {
 				if (!title.trim() || !slug.trim()) {
@@ -521,15 +557,19 @@
 				};
 			}}
 		>
-			<Input type="hidden" name="id" value={data.slide.id} /><Input
+			<Input type="hidden" name="assetScopeId" value={scopeId} /><Input
 				type="hidden"
-				name="version"
-				value={String(data.slide.version)}
-			/><Input type="hidden" name="definition" value={JSON.stringify(draft)} /><Input
+				name="id"
+				value={data.slide.id}
+			/><Input type="hidden" name="version" value={String(data.slide.version)} /><Input
 				type="hidden"
-				name="title"
-				value={title}
-			/><Input type="hidden" name="slug" value={slug} />
+				name="definition"
+				value={JSON.stringify(draft)}
+			/><Input type="hidden" name="title" value={title} /><Input
+				type="hidden"
+				name="slug"
+				value={slug}
+			/>
 			<Button
 				aria-label="Save draft"
 				title="Save draft"
@@ -882,20 +922,34 @@
 								options={['left', 'center', 'right'].map((value) => ({ value, label: value }))}
 							/>
 						{:else if selected.type === 'image' || selected.type === 'svg'}
+							<Div class="flex gap-2" role="group" aria-label="Graphic asset source">
+								<Button
+									aria-pressed={assetTab === 'slide'}
+									variants={assetTab === 'slide' ? [] : ['ghost']}
+									onclick={() => (assetTab = 'slide')}>This slide</Button
+								>
+								<Button
+									aria-pressed={assetTab === 'shared'}
+									variants={assetTab === 'shared' ? [] : ['ghost']}
+									onclick={() => (assetTab = 'shared')}>Shared library</Button
+								>
+							</Div>
 							<Select
 								label="Asset"
 								aria-label="Graphic asset"
 								value={selected.assetId}
 								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
 									if (!selected) return;
-									const asset = data.assets.find((asset) => asset.id === event.currentTarget.value);
+									const asset = allAvailableAssets.find(
+										(asset) => asset.id === event.currentTarget.value
+									);
 									selected.assetId = asset?.id ?? '';
 									if (asset)
 										selected.type = asset.contentType === 'image/svg+xml' ? 'svg' : 'image';
 								}}
 								options={[
 									{ value: '', label: 'Choose an asset' },
-									...data.assets.map((asset) => ({ value: asset.id, label: asset.name }))
+									...availableAssets.map((asset) => ({ value: asset.id, label: asset.name }))
 								]}
 							/>
 							<Select
@@ -1313,12 +1367,32 @@
 						</Button>
 					{/snippet}
 				</Form>
+			{:else if dialog === 'assets'}
+				{#if form?.error}<P role="alert" class="text-sm text-red-600 dark:text-red-400"
+						>{form.error}</P
+					>{/if}
+				{#if form?.success}<P role="status" class="text-sm">{form.success}</P>{/if}
+				<AssetLibrary
+					assets={localAssets}
+					sharedAssets={data.sharedAssets ?? []}
+					unusedAssets={(data.unusedAssets ?? []).filter(
+						(asset) => !allElements(draft).some((element) => element.assetId === asset.id)
+					)}
+					slides={data.assetSlides ?? []}
+					{scopeId}
+					action={assetAction('asset')}
+					onChoose={(asset) => {
+						addElement('image', asset);
+						closeDialog();
+					}}
+				/>
+				<Button onclick={() => openDialog('upload')}>Upload to this slide</Button>
 			{:else if dialog === 'upload'}
 				{#if form?.error}<P role="alert" class="text-sm text-red-600 dark:text-red-400"
 						>{form.error}</P
 					>{/if}
 				<Form
-					action="?/upload"
+					action={assetAction('upload')}
 					enctype="multipart/form-data"
 					submitFunction={() => {
 						uploading = true;
@@ -1332,7 +1406,7 @@
 						};
 					}}
 				>
-					{#snippet inputs()}<Input
+					{#snippet inputs()}<Input type="hidden" name="assetScopeId" value={scopeId} /><Input
 							type="file"
 							name="file"
 							aria-label="Asset file"

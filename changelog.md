@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T20:04:19.658Z
+## 2026-10-28T20:22:34.658Z
+
+feat: Scope slide assets and add a shared library
+
+## 2026-10-28T16:06:58-04:00
 
 refactor: Combine image and SVG slide tools
 

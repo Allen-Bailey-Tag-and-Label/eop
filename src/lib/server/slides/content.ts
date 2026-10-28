@@ -1,3 +1,4 @@
+import { validateAssetScope } from './asset-library';
 import { allElements } from '$lib/slides/repeater';
 import { createHash } from 'node:crypto';
 import { Types } from 'mongoose';
@@ -95,18 +96,6 @@ export async function listPlaylists() {
 		publishedAt: row.publishedAt?.toISOString() ?? null
 	}));
 }
-export async function listAssets() {
-	const rows = await Asset.find()
-		.select('name contentType')
-		.sort({ createdAt: -1 })
-		.limit(500)
-		.lean();
-	return rows.map((row) => ({
-		id: row._id.toString(),
-		name: row.name,
-		contentType: row.contentType
-	}));
-}
 export function getEditor(kind: 'slide', key: string): Promise<ContentEditor<SlideDefinition>>;
 export function getEditor(
 	kind: 'playlist',
@@ -167,8 +156,19 @@ export async function saveContent(kind: 'slide' | 'playlist', fields: FormData, 
 	const publish = fields.get('intent') === 'publish';
 	const raw = parseJson(fields.get('definition'));
 	const definition = kind === 'slide' ? validateSlide(raw) : validatePlaylist(raw);
-	if (kind === 'slide') await validateAssets(definition as SlideDefinition);
-	else {
+	const scopeInput = fields.get('assetScopeId');
+	if (kind === 'slide' && scopeInput && !isId(scopeInput))
+		throw new SlideValidationError('Invalid asset scope. Reload the editor.');
+	const slideId =
+		id === ''
+			? typeof scopeInput === 'string' && scopeInput
+				? scopeInput
+				: new Types.ObjectId().toString()
+			: String(id);
+	if (kind === 'slide') {
+		await validateAssets(definition as SlideDefinition);
+		await validateAssetScope(definition as SlideDefinition, slideId);
+	} else {
 		const items = (definition as PlaylistDefinition).items;
 		const ids = [...new Set(items.map((item) => item.slideId))];
 		const count = await Slide.countDocuments({
@@ -191,7 +191,13 @@ export async function saveContent(kind: 'slide' | 'playlist', fields: FormData, 
 	try {
 		if (id === '') {
 			if (version !== 0) throw new SlideValidationError('Invalid new content version.');
-			if (kind === 'slide') await Slide.create({ ...update, version: 1, _createdById: userId });
+			if (kind === 'slide')
+				await Slide.create({
+					_id: new Types.ObjectId(slideId),
+					...update,
+					version: 1,
+					_createdById: userId
+				});
 			else await Playlist.create({ ...update, version: 1, _createdById: userId });
 		} else {
 			const filter = { _id: id, version };

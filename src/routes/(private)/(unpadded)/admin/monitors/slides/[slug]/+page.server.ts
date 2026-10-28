@@ -1,14 +1,23 @@
-import { getEditor, listAssets, listSlideReferences } from '$lib/server/slides/content';
+import { Types } from 'mongoose';
+import { redirect } from '@sveltejs/kit';
+import { assetScope, listAssetLibrary, manageAsset } from '$lib/server/slides/asset-library';
+import { getEditor, listSlideReferences } from '$lib/server/slides/content';
 import { manageSlideEditor, saveEditor } from '$lib/server/slides/actions';
 import { uploadAsset } from '$lib/server/slides/assets';
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 import { previewSlideData, getDataFields } from '$lib/server/slides/data-sources';
 import { parseJson, SlideValidationError } from '$lib/slides/validation';
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
+	if (params.slug === 'new' && !/^[a-f0-9]{24}$/i.test(url.searchParams.get('assetScope') ?? ''))
+		redirect(303, `/admin/monitors/slides/new?assetScope=${new Types.ObjectId()}`);
 	const slide = await getEditor('slide', params.slug);
-	const [assets, references] = await Promise.all([listAssets(), listSlideReferences(slide.id)]);
-	return { slide, assets, references, dataFields: await getDataFields() };
+	const assetScopeId = slide.id || url.searchParams.get('assetScope')!;
+	const [library, references] = await Promise.all([
+		listAssetLibrary(assetScopeId),
+		listSlideReferences(slide.id)
+	]);
+	return { slide, ...library, references, assetScopeId, dataFields: await getDataFields() };
 };
 export const actions: Actions = {
 	preview: async ({ request }) => {
@@ -25,5 +34,15 @@ export const actions: Actions = {
 		manageSlideEditor('unpublish', request, locals.user._id, params.slug),
 	delete: ({ request, locals, params }) =>
 		manageSlideEditor('delete', request, locals.user._id, params.slug),
-	upload: ({ request, locals }) => uploadAsset(request, locals.user._id)
+	asset: async ({ request, locals, params }) => {
+		try {
+			const fields = await request.formData();
+			const scope = await assetScope(params.slug, fields.get('assetScopeId'));
+			return await manageAsset(fields, scope, locals.user._id);
+		} catch (cause) {
+			if (cause instanceof SlideValidationError) return fail(400, { error: cause.message });
+			throw cause;
+		}
+	},
+	upload: ({ request, locals, params }) => uploadAsset(request, locals.user._id, params.slug)
 };
