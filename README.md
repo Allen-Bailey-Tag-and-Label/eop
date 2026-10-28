@@ -153,9 +153,17 @@ resolved row values are transient and are never written into the slide definitio
 Data previews validate each data link independently of unfinished slide geometry,
 item templates, and media selections. Editing other elements preserves loaded
 preview data. Query and validation failures show their diagnostic message in the
-admin preview. Save/publish still validates the complete slide. **Add ? SVG**
-uses an uploaded SVG asset; if none is available, it opens the upload dialog
-instead of inserting an empty element. After uploading, choose **Add ? SVG** again.
+admin preview. Save/publish still validates the complete slide. **Add ? Image / Graphic**
+accepts PNG, JPEG, WebP, and SVG assets through one tool and one asset selector.
+If no asset is available, it opens the upload dialog instead of inserting an empty
+element. After uploading, choose **Add ? Image / Graphic** again. Existing image
+and SVG elements can switch between both formats in Properties.
+
+Uploads are stored in MongoDB as `MonitorAsset` records with a name, content type,
+and binary `data` buffer. Slides and templates store asset IDs, not copies of the
+file. Files are served through the application's asset endpoints; they are not
+written to an upload folder or external object storage. Uploads are limited to
+3 MB; SVG source is additionally limited to 300 KB and sanitized before storage.
 
 **Data lists** link a slide element to a read-only model query. Choose
 **Add ? Repeater**, then configure the **Data link** in Properties:

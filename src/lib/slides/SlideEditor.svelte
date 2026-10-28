@@ -16,7 +16,6 @@
 		Palette,
 		Type,
 		Image,
-		Shapes,
 		Square,
 		Circle,
 		Minus,
@@ -190,8 +189,7 @@
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
-		{ type: 'image', label: 'Image', icon: Image },
-		{ type: 'svg', label: 'SVG', icon: Shapes },
+		{ type: 'image', label: 'Image / Graphic', icon: Image },
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
 		{ type: 'line', label: 'Line', icon: Minus },
@@ -214,15 +212,17 @@
 	function addElement(type: ElementType) {
 		const element = newElement(type, crypto.randomUUID());
 		if (type === 'image' || type === 'svg') {
-			const asset = data.assets.find(
-				(asset) => (asset.contentType === 'image/svg+xml') === (type === 'svg')
+			const asset = data.assets.find((asset) =>
+				['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(asset.contentType)
 			);
 			if (!asset) {
 				openDialog('upload');
-				localError = `Upload ${type === 'svg' ? 'an SVG' : 'an image'} asset first, then add it to the slide or item template.`;
+				localError =
+					'Upload an image or SVG asset first, then add it to the slide or item template.';
 				return;
 			}
 			element.assetId = asset.id;
+			element.type = asset.contentType === 'image/svg+xml' ? 'svg' : 'image';
 		}
 		if (type === 'list') {
 			element.repeater = defaultRepeater();
@@ -884,15 +884,18 @@
 						{:else if selected.type === 'image' || selected.type === 'svg'}
 							<Select
 								label="Asset"
-								bind:value={selected.assetId}
+								aria-label="Graphic asset"
+								value={selected.assetId}
+								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+									if (!selected) return;
+									const asset = data.assets.find((asset) => asset.id === event.currentTarget.value);
+									selected.assetId = asset?.id ?? '';
+									if (asset)
+										selected.type = asset.contentType === 'image/svg+xml' ? 'svg' : 'image';
+								}}
 								options={[
 									{ value: '', label: 'Choose an asset' },
-									...data.assets
-										.filter(
-											(asset) =>
-												(asset.contentType === 'image/svg+xml') === (selected?.type === 'svg')
-										)
-										.map((asset) => ({ value: asset.id, label: asset.name }))
+									...data.assets.map((asset) => ({ value: asset.id, label: asset.name }))
 								]}
 							/>
 							<Select

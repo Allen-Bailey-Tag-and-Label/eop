@@ -143,7 +143,7 @@ describe('slide authoring', () => {
 		});
 		await vi.advanceTimersByTimeAsync(400);
 		expect(fetch).toHaveBeenCalledTimes(2);
-		await fireEvent.click(view.getByRole('button', { name: 'Add svg' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
 		expect(definition().elements[1]).toMatchObject({ type: 'svg', assetId: 'a'.repeat(24) });
 		expect(view.container.querySelector('img')?.getAttribute('src')).toBe(
 			`/admin/monitors/slides/assets/${'a'.repeat(24)}`
@@ -152,19 +152,61 @@ describe('slide authoring', () => {
 		expect(fetch).toHaveBeenCalledTimes(2);
 		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
 	});
-	it('asks for an uploaded SVG instead of inserting an invalid empty element', async () => {
+	it('asks for an uploaded graphic instead of inserting an invalid empty element', async () => {
 		const view = render(SlideEditor, {
 			data: {
 				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
 				assets: []
 			}
 		});
-		await fireEvent.click(view.getByRole('button', { name: 'Add svg' }));
-		expect(view.getByRole('dialog')).toHaveTextContent('Upload an SVG asset first');
+		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
+		expect(view.getByRole('dialog')).toHaveTextContent('Upload an image or SVG asset first');
 		const definition = JSON.parse(
 			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);
 		expect(definition.elements).toHaveLength(0);
+	});
+	it('uses one tool and asset selector for raster images and SVGs, including item templates', async () => {
+		const raster = 'b'.repeat(24);
+		const svg = 'a'.repeat(24);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: [
+					{ id: raster, name: 'Photo', contentType: 'image/png' },
+					{ id: svg, name: 'Logo', contentType: 'image/svg+xml' }
+				]
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		expect(view.queryByRole('button', { name: 'Add svg' })).not.toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
+		expect(definition().elements[0]).toMatchObject({ type: 'image', assetId: raster });
+		await fireEvent.change(view.getByRole('combobox', { name: 'Graphic asset' }), {
+			target: { value: svg }
+		});
+		expect(definition().elements[0]).toMatchObject({ type: 'svg', assetId: svg });
+		expect(view.container.querySelector('img')?.getAttribute('src')).toBe(
+			`/admin/monitors/slides/assets/${svg}`
+		);
+		await fireEvent.change(view.getByRole('combobox', { name: 'Graphic asset' }), {
+			target: { value: raster }
+		});
+		expect(definition().elements[0]).toMatchObject({ type: 'image', assetId: raster });
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Graphic asset' }), {
+			target: { value: svg }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
+		expect(definition().elements[1].repeater.template.elements.at(-1)).toMatchObject({
+			type: 'svg',
+			assetId: svg
+		});
 	});
 	it('shows action validation errors in the repeater instead of a generic retry message', async () => {
 		vi.useFakeTimers();

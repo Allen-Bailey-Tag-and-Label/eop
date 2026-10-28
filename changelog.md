@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T19:36:53.702Z
+## 2026-10-28T20:04:19.658Z
+
+refactor: Combine image and SVG slide tools
+
+## 2026-10-28T15:40:01-04:00
 
 fix: Keep repeater previews working while adding SVG assets
 
