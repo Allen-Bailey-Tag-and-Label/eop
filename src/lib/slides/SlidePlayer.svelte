@@ -4,7 +4,14 @@
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { nextSlide, watchPlayback } from './playback';
 	import { mediaIds, SlideMediaCache } from './media';
-	import type { ColorScheme, DisplayMode, Playback, PlaybackSlide, SlideDefinition } from './types';
+	import type {
+		ColorScheme,
+		DisplayMode,
+		Playback,
+		PlaybackSlide,
+		SlideData,
+		SlideDefinition
+	} from './types';
 	import { displayBackground } from './colors';
 	import { slideTiming } from './timeline';
 	let { location }: { location: string } = $props();
@@ -27,18 +34,26 @@
 		totalMs: number;
 		version: string;
 		next: PlaybackSlide | null;
+		data: SlideData;
 	} | null>(null);
 	let preparing = $state<PlaybackSlide | null>(null);
-	let nextPreview = $state<{ definition: SlideDefinition; urls: Record<string, string> } | null>(
-		null
-	);
+	let nextPreview = $state<{
+		definition: SlideDefinition;
+		urls: Record<string, string>;
+		data: SlideData;
+	} | null>(null);
 	let previewLoading = $state(false);
 	let displayWidth = $state(0);
 	let displayHeight = $state(0);
 	const upcoming = $derived.by(() => {
 		if (!shown) return null;
 		if (preparing) return preparing;
-		if (queued !== undefined && queued?.version !== shown.version) return queued?.slides[0] ?? null;
+		if (queued !== undefined) {
+			if (!queued) return null;
+			if (queued.version !== shown.version) return queued.slides[0] ?? null;
+			const next = nextSlide(queued, index);
+			return queued.loop || next !== index ? queued.slides[next] : null;
+		}
 		return shown.next;
 	});
 	const remainingSeconds = $derived(
@@ -63,7 +78,7 @@
 					if (content?.version !== playback?.version) {
 						index = 0;
 						playback = content;
-					}
+					} else if (finished && shown && content) shown.data = content.slides[index]?.data ?? {};
 				} else queued = content;
 			},
 			(value) => (connected = value),
@@ -109,6 +124,7 @@
 				title: current.title,
 				durationMs: slide.durationMs,
 				totalMs: timing.totalMs,
+				data: slide.data ?? {},
 				version: current.version,
 				next: current.loop || next !== index ? current.slides[next] : null
 			};
@@ -127,6 +143,7 @@
 				// Revalidate published content before every new slide, including single-slide loops.
 				await refresh?.();
 				if (disposed) return;
+				let updated = current;
 				if (queued !== undefined) {
 					const content = queued;
 					queued = undefined;
@@ -135,12 +152,15 @@
 						playback = content;
 						return;
 					}
+					if (content) updated = content;
 				}
-				const next = nextSlide(current, index);
-				if (next === index && !current.loop) finished = true;
-				else {
+				const next = nextSlide(updated, index);
+				if (next === index && !updated.loop) {
+					finished = true;
+					if (shown) shown.data = updated.slides[index]?.data ?? {};
+				} else {
 					index = next;
-					if (current.slides.length === 1) playback = { ...current };
+					playback = { ...updated };
 				}
 			}, timing.totalMs);
 		});
@@ -167,7 +187,7 @@
 			previewLoading = false;
 			const urls = cache.urls(ids);
 			if (Object.keys(urls).length === ids.length)
-				nextPreview = { definition: slide.definition, urls };
+				nextPreview = { definition: slide.definition, urls, data: slide.data ?? {} };
 		});
 		return () => {
 			disposed = true;
@@ -192,6 +212,7 @@
 		{#if shown}
 			<SlideCanvas
 				definition={shown.definition}
+				data={shown.data}
 				{timeMs}
 				{scheme}
 				animateTransitions
@@ -234,6 +255,7 @@
 						{#if nextPreview}
 							<SlideCanvas
 								definition={nextPreview.definition}
+								data={nextPreview.data}
 								{scheme}
 								assetUrls={nextPreview.urls}
 								timeMs={Math.min(2000, upcoming.durationMs / 2)}

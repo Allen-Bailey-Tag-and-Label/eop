@@ -121,6 +121,27 @@ appropriate roles. New databases include both in the initial admin seed.
 
 The editor and player share the renderer and deterministic timeline evaluator.
 
+**Upcoming holidays** is the first live data source. Maintain dates and optional
+names in **HR → Holidays**, then choose **Add → Upcoming holidays** in the slide
+editor. In Properties, set **Days ahead** (1–365), **Maximum holidays** (1–20),
+and **Business time zone**. Defaults are the next 30 calendar days, including
+today, up to 5 results, in `America/New_York`. Older date-only records display as
+“Holiday” with their date. Holiday names are optional; no migration is required.
+
+The list is a normal responsive element: adjust its heading, position, size,
+colors, font, and animations. Rows shrink to fit the element's height; long names
+truncate. Increase the element size or reduce the result limit for readability.
+The preview queries the server when source settings change; **Refresh data
+preview** reloads results after editing holidays in another tab.
+
+Publish the slide once to save its design and source configuration. Monitors
+query current holiday records on each content refresh, including before each
+slide starts. Calendar changes do not require republishing and do not restart
+playlist order. Held final slides refresh their data too. Empty results and query
+failures show an explicit message inside the list. Resolved rows are never saved
+into slide drafts or exports; lists use named server-owned providers with validated
+parameters, and monitors receive only display labels and formatted dates.
+
 Element and background color fields offer **Fixed** (one color in both modes) or
 **Light / Dark** (separate swatches). Existing hexadecimal colors stay fixed.
 New slides, text, and shapes start with matching light/dark color pairs. Images

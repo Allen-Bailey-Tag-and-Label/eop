@@ -1,4 +1,16 @@
-export type ElementType = 'text' | 'image' | 'svg' | 'rectangle' | 'ellipse' | 'line';
+export type ElementType = 'text' | 'image' | 'svg' | 'rectangle' | 'ellipse' | 'line' | 'list';
+export type SlideDataSource = {
+	source: 'upcoming-holidays';
+	daysAhead: number;
+	limit: number;
+	timeZone: string;
+};
+export type DataListResult = {
+	state: 'ready' | 'empty' | 'error';
+	items: { id: string; label: string; detail: string }[];
+	message: string;
+};
+export type SlideData = Record<string, DataListResult>;
 export type ColorScheme = 'light' | 'dark';
 export type DisplayMode = ColorScheme | 'system';
 export type SlideColor = string | { light: string; dark: string };
@@ -24,6 +36,7 @@ export type SlideElement = Pose & {
 	assetId: string;
 	fit: 'contain' | 'cover';
 	keyframes: Keyframe[];
+	dataSource?: SlideDataSource;
 };
 export type SlideDefinition = {
 	schemaVersion: 1;
@@ -48,6 +61,7 @@ export type PlaybackSlide = {
 	title: string;
 	definition: SlideDefinition;
 	durationMs: number;
+	data?: SlideData;
 };
 export type Playback = {
 	version: string;
@@ -82,20 +96,30 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		type,
 		x: 160,
 		y: 160,
-		width: 800,
-		height: type === 'line' ? 8 : 240,
+		width: type === 'list' ? 1000 : 800,
+		height: type === 'list' ? 540 : type === 'line' ? 8 : 240,
 		horizontalAnchor: 'scale',
 		verticalAnchor: 'scale',
 		opacity: 1,
 		scale: 1,
 		rotation: 0,
 		color: type === 'image' || type === 'svg' ? '#ffffff' : { light: '#111827', dark: '#f9fafb' },
-		text: 'Your text here',
-		fontSize: 80,
+		text: type === 'list' ? 'Upcoming holidays' : 'Your text here',
+		fontSize: type === 'list' ? 40 : 80,
 		fontFamily: 'sans-serif',
 		align: 'left',
 		assetId: '',
 		fit: 'contain',
-		keyframes: []
+		keyframes: [],
+		...(type === 'list'
+			? {
+					dataSource: {
+						source: 'upcoming-holidays' as const,
+						daysAhead: 30,
+						limit: 5,
+						timeZone: 'America/New_York'
+					}
+				}
+			: {})
 	};
 }

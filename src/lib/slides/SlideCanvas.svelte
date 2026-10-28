@@ -4,6 +4,8 @@
 	import { elementLayout } from './layout';
 	import type { ColorScheme, SlideDefinition } from './types';
 	import { resolveSlideColor } from './colors';
+	import DataList from './DataList.svelte';
+	import type { SlideData } from './types';
 	let {
 		definition,
 		timeMs = 0,
@@ -15,6 +17,7 @@
 		durationMs = definition.durationMs,
 		includeExit = true,
 		scheme = 'dark',
+		data = {},
 		label = 'Slide preview'
 	}: {
 		definition: SlideDefinition;
@@ -27,6 +30,7 @@
 		durationMs?: number;
 		includeExit?: boolean;
 		scheme?: ColorScheme;
+		data?: SlideData;
 		label?: string;
 	} = $props();
 	let containerWidth = $state(0);
@@ -68,6 +72,17 @@
 						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};`}
 						>{element.text}</Div
 					>
+				{:else if element.type === 'list'}
+					<DataList
+						heading={element.text}
+						result={Object.hasOwn(data, element.id) ? data[element.id] : undefined}
+						width={box.width}
+						height={box.height}
+						fontSize={box.fontSize}
+						fontFamily={element.fontFamily}
+						color={resolveSlideColor(element.color, scheme)}
+						align={element.align}
+					/>
 				{:else if element.type === 'image' || element.type === 'svg'}
 					{#if element.assetId}<img
 							src={assetUrls[element.assetId] ?? `${assetBase}/${element.assetId}`}

@@ -6,13 +6,14 @@
 	import { displayBackground } from './colors';
 	import { moveElement, resizeDimensions, resizeDelta, resizeElement } from './editor';
 	import { elementLayout, type LayoutScales } from './layout';
-	import type { ColorScheme, SlideDefinition, SlideElement } from './types';
+	import type { ColorScheme, SlideData, SlideDefinition, SlideElement } from './types';
 	let {
 		definition = $bindable(),
 		selectedId = $bindable(''),
 		timeMs,
 		animateTransitions = false,
 		scheme = 'dark',
+		data = {},
 		tool,
 		zoom,
 		resetView,
@@ -25,6 +26,7 @@
 		timeMs: number;
 		animateTransitions?: boolean;
 		scheme?: ColorScheme;
+		data?: SlideData;
 		tool: 'select' | 'pan' | 'resize';
 		zoom: number;
 		resetView: number;
@@ -220,6 +222,7 @@
 			{timeMs}
 			{animateTransitions}
 			{scheme}
+			{data}
 			{viewportWidth}
 			{viewportHeight}
 			assetBase="/admin/monitors/slides/assets"

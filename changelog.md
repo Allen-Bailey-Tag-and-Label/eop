@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T17:31:34.076Z
+## 2026-10-28T17:53:31.933Z
+
+feat: Add live upcoming holiday lists to monitor slides
+
+## 2026-10-28T13:32:51-04:00
 
 fix: Add transition time to slide display duration
 

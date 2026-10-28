@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import SlideEditor from './SlideEditor.svelte';
 import { blankSlide, newElement } from './types';
 
-vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
+vi.mock('$app/forms', () => ({
+	enhance: vi.fn(() => ({ destroy: vi.fn() })),
+	deserialize: (value: string) => JSON.parse(value)
+}));
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 beforeEach(() => {
 	vi.stubGlobal(
@@ -17,10 +20,86 @@ beforeEach(() => {
 });
 afterEach(() => {
 	cleanup();
+	vi.useRealTimers();
 	vi.unstubAllGlobals();
 });
 
 describe('slide authoring', () => {
+	it('adds a live holiday list, previews server data, and saves only its source configuration', async () => {
+		vi.useFakeTimers();
+		const fetch = vi.fn<typeof globalThis.fetch>(
+			async () =>
+				new Response(
+					JSON.stringify({
+						type: 'success',
+						data: {
+							slideData: {
+								calendar: {
+									state: 'ready',
+									items: [{ id: 'holiday', label: 'Thanksgiving', detail: 'Nov 26, 2026' }],
+									message: ''
+								}
+							}
+						}
+					})
+				)
+		);
+		vi.stubGlobal('fetch', fetch);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add upcoming holidays' }));
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		const id = definition().elements[0].id;
+		fetch.mockImplementation(
+			async () =>
+				new Response(
+					JSON.stringify({
+						type: 'success',
+						data: {
+							slideData: {
+								[id]: {
+									state: 'ready',
+									items: [{ id: 'holiday', label: 'Thanksgiving', detail: 'Nov 26, 2026' }],
+									message: ''
+								}
+							}
+						}
+					})
+				)
+		);
+		await vi.advanceTimersByTimeAsync(400);
+		expect(fetch.mock.calls[0][1]?.headers).toEqual({
+			accept: 'application/json',
+			'x-sveltekit-action': 'true'
+		});
+		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
+		expect(definition().elements[0].dataSource).toEqual({
+			source: 'upcoming-holidays',
+			daysAhead: 30,
+			limit: 5,
+			timeZone: 'America/New_York'
+		});
+		expect(JSON.stringify(definition())).not.toContain('Thanksgiving');
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Holiday days ahead' }), {
+			target: { value: '60' }
+		});
+		await vi.advanceTimersByTimeAsync(400);
+		expect(fetch).toHaveBeenCalledTimes(2);
+		const body = fetch.mock.calls[1][1]?.body as FormData;
+		expect(JSON.parse(body.get('definition') as string).elements[0].dataSource.daysAhead).toBe(60);
+		await fireEvent.input(view.getByRole('slider', { name: 'Preview timeline' }), {
+			target: { value: '1000' }
+		});
+		await vi.advanceTimersByTimeAsync(400);
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
 	it('edits light/dark colors, previews each mode, and can lock the chosen color as fixed', async () => {
 		const view = render(SlideEditor, {
 			data: {

@@ -9,7 +9,10 @@ import {
 } from './content';
 import { Slide, Playlist, Asset } from './models';
 import { MonitorSession } from '../monitors/model';
-import { blankSlide } from '$lib/slides/types';
+import { blankSlide, newElement } from '$lib/slides/types';
+import { Holiday } from '../mongoose/models/Holiday';
+
+vi.mock('../mongoose/models/Holiday', () => ({ Holiday: { find: vi.fn() } }));
 
 vi.mock('./models', () => ({
 	Slide: {
@@ -32,6 +35,8 @@ vi.mock('../monitors/model', () => ({ MonitorSession: { findById: vi.fn(), updat
 const query = (value: unknown) => ({
 	select: vi.fn().mockReturnThis(),
 	sort: vi.fn().mockReturnThis(),
+	limit: vi.fn().mockReturnThis(),
+	maxTimeMS: vi.fn().mockReturnThis(),
 	lean: vi.fn().mockResolvedValue(value)
 });
 const id = 'a'.repeat(24);
@@ -210,11 +215,16 @@ describe('monitor playlist playback', () => {
 				}
 			}) as unknown as ReturnType<typeof Playlist.findById>
 		);
+		vi.mocked(Holiday.find).mockReturnValue(
+			query([
+				{ _id: new Types.ObjectId(), date: new Date('2026-11-26T05:00:00Z'), name: 'Thanksgiving' }
+			]) as unknown as ReturnType<typeof Holiday.find>
+		);
 		vi.mocked(Slide.find).mockReturnValue(
 			query([
 				{
 					_id: new Types.ObjectId(id),
-					published: blankSlide(),
+					published: { ...blankSlide(), elements: [newElement('list', 'calendar')] },
 					publishedTitle: 'Welcome',
 					title: 'SECRET DRAFT',
 					draft: { secret: 'SECRET DRAFT' }
@@ -227,6 +237,20 @@ describe('monitor playlist playback', () => {
 		expect(playback?.title).toBe('Break room');
 		expect(JSON.stringify(playback)).not.toContain('SECRET DRAFT');
 		expect((await getPlayback(id))?.version).toBe(playback?.version);
+		expect(playback?.slides[0].data?.calendar.items[0].label).toBe('Thanksgiving');
+		vi.mocked(Holiday.find).mockReturnValue(
+			query([
+				{
+					_id: new Types.ObjectId(),
+					date: new Date('2026-11-26T05:00:00Z'),
+					name: 'Updated holiday'
+				}
+			]) as unknown as ReturnType<typeof Holiday.find>
+		);
+		const refreshed = await getPlayback(id);
+		expect(refreshed?.slides[0].data?.calendar.items[0].label).toBe('Updated holiday');
+		expect(refreshed?.version).toBe(playback?.version);
+		expect(Holiday.find).toHaveBeenCalledTimes(3);
 	});
 	it('rejects unpublished assignments and supports clearing an assignment', async () => {
 		vi.mocked(Playlist.exists).mockResolvedValue(null);

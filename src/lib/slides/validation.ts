@@ -1,5 +1,5 @@
 import type { Keyframe, PlaylistDefinition, Pose, SlideDefinition, SlideElement } from './types';
-import { defaultSlideTransition, type SlideTransition } from './types';
+import { defaultSlideTransition, type SlideTransition, type SlideDataSource } from './types';
 
 export class SlideValidationError extends Error {}
 const invalid = (message: string): never => {
@@ -70,6 +70,25 @@ function transition(value: unknown): SlideTransition {
 		durationMs: number(settings.durationMs, 0, 600000, 'Transition duration in milliseconds')
 	};
 }
+export function validateDataSource(input: unknown): SlideDataSource {
+	const config = object(input);
+	const daysAhead = number(config.daysAhead, 1, 365, 'Days ahead');
+	const limit = number(config.limit, 1, 20, 'Maximum holidays');
+	if (!Number.isInteger(daysAhead) || !Number.isInteger(limit))
+		invalid('Use whole numbers for data source limits.');
+	const timeZone = text(config.timeZone, 80, 'Time zone');
+	try {
+		new Intl.DateTimeFormat('en-US', { timeZone });
+	} catch {
+		invalid('Enter a valid time zone, such as America/New_York.');
+	}
+	return {
+		source: choice(config.source, ['upcoming-holidays'], 'data source'),
+		daysAhead,
+		limit,
+		timeZone
+	};
+}
 export function validateSlide(input: unknown): SlideDefinition {
 	const value = object(input);
 	if (value.schemaVersion !== 1) invalid('Unsupported slide version.');
@@ -85,7 +104,7 @@ export function validateSlide(input: unknown): SlideDefinition {
 		ids.add(id);
 		const type = choice(
 			e.type,
-			['text', 'image', 'svg', 'rectangle', 'ellipse', 'line'],
+			['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list'],
 			'element type'
 		);
 		const assetId = text(e.assetId, 24, 'Asset ID').toLowerCase();
@@ -111,6 +130,7 @@ export function validateSlide(input: unknown): SlideDefinition {
 			type,
 			assetId,
 			keyframes,
+			...(type === 'list' ? { dataSource: validateDataSource(e.dataSource) } : {}),
 			horizontalAnchor:
 				e.horizontalAnchor === undefined
 					? 'scale'

@@ -66,6 +66,39 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('refreshes live data without restarting playlist order and updates a held final slide', async () => {
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		const playlist = content('one', false);
+		for (const slide of playlist.slides) {
+			slide.definition.elements = [newElement('list', 'calendar')];
+			slide.data = {
+				calendar: {
+					state: 'ready',
+					items: [{ id: 'holiday', label: `Old ${slide.id}`, detail: 'Nov 26, 2026' }],
+					message: ''
+				}
+			};
+		}
+		receive(playlist);
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByText('Old 0')).toBeInTheDocument();
+		const fresh = structuredClone(playlist);
+		fresh.slides[1].data!.calendar.items[0].label = 'Updated holiday';
+		receive(fresh);
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		expect(current.getByText('Updated holiday')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		const latest = structuredClone(fresh);
+		latest.slides[1].data!.calendar.items[0].label = 'Latest holiday';
+		receive(latest);
+		await flush();
+		expect(current.getByText('Latest holiday')).toBeInTheDocument();
+		expect(view.getByRole('timer')).toHaveTextContent('0:00');
+	});
 	it('uses the monitor mode and follows system changes only when System is selected', async () => {
 		let systemDark = false;
 		let change!: () => void;

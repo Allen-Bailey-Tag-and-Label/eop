@@ -4,6 +4,7 @@ import { error } from '@sveltejs/kit';
 import { Slide, Playlist, Asset } from './models';
 import { MonitorSession } from '../monitors/model';
 import { withResponsiveDefaults } from '$lib/slides/layout';
+import { createSlideDataResolver } from './data-sources';
 import {
 	blankSlide,
 	type Playback,
@@ -250,6 +251,7 @@ export async function getPlayback(monitorId: string): Promise<Playback | null> {
 			: [];
 	});
 	if (!slides.length) return null;
+	const resolveData = createSlideDataResolver();
 	const content = {
 		title: playlist.publishedTitle ?? 'Monitor playlist',
 		loop: playlist.published.loop,
@@ -257,6 +259,9 @@ export async function getPlayback(monitorId: string): Promise<Playback | null> {
 	};
 	return {
 		...content,
+		slides: await Promise.all(
+			slides.map(async (slide) => ({ ...slide, data: await resolveData(slide.definition) }))
+		),
 		version: createHash('sha256').update(JSON.stringify(content)).digest('hex')
 	};
 }

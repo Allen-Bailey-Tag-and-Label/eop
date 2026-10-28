@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
+	import { deserialize } from '$app/forms';
 	import {
 		ArrowLeft,
 		Plus,
@@ -31,7 +32,8 @@
 		Diamond,
 		Trash2,
 		Download,
-		ChevronDown
+		ChevronDown,
+		CalendarDays
 	} from '@lucide/svelte';
 	import {
 		A,
@@ -56,7 +58,8 @@
 		type ElementType,
 		type ColorScheme,
 		type SlideReference,
-		type SlideDefinition
+		type SlideDefinition,
+		type SlideData
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
 	import { withResponsiveDefaults } from './layout';
@@ -70,7 +73,12 @@
 			assets: AssetSummary[];
 			references?: SlideReference[];
 		};
-		form?: { error?: string; success?: string; references?: SlideReference[] } | null;
+		form?: {
+			error?: string;
+			success?: string;
+			references?: SlideReference[];
+			slideData?: SlideData;
+		} | null;
 	} = $props();
 	let draft = $state(
 		untrack(() => withResponsiveDefaults(structuredClone($state.snapshot(data.slide.draft))))
@@ -94,6 +102,8 @@
 	const references = $derived(form?.references ?? data.references ?? []);
 	let json = $state('');
 	let localError = $state('');
+	let slideData = $state<SlideData>({});
+	let previewRevision = $state(0);
 	let tool = $state<'select' | 'pan' | 'resize'>('select');
 	let zoom = $state(1);
 	let resetView = $state(0);
@@ -134,7 +144,8 @@
 		{ type: 'svg', label: 'SVG', icon: Shapes },
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
-		{ type: 'line', label: 'Line', icon: Minus }
+		{ type: 'line', label: 'Line', icon: Minus },
+		{ type: 'list', label: 'Upcoming holidays', icon: CalendarDays }
 	] as const;
 	const dirty = $derived(
 		JSON.stringify({ title, slug, draft }) !==
@@ -282,6 +293,56 @@
 		};
 		frame = requestAnimationFrame(animate);
 		return () => cancelAnimationFrame(frame);
+	});
+	$effect(() => {
+		const signature = JSON.stringify(
+			draft.elements
+				.filter((element) => element.type === 'list')
+				.map(({ id, dataSource }) => ({ id, dataSource }))
+		);
+		void previewRevision;
+		slideData = {};
+		if (signature === '[]') return;
+		const controller = new AbortController();
+		let disposed = false;
+		const timer = setTimeout(async () => {
+			const timeout = setTimeout(() => controller.abort(), 10000);
+			try {
+				const fields = new FormData();
+				fields.set('definition', JSON.stringify($state.snapshot(draft)));
+				const response = await fetch('?/preview', {
+					method: 'POST',
+					headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
+					body: fields,
+					signal: controller.signal,
+					cache: 'no-store'
+				});
+				const result = deserialize(await response.text());
+				if (disposed) return;
+				if (result.type !== 'success' || !result.data?.slideData)
+					throw new Error('Preview unavailable');
+				slideData = result.data.slideData as SlideData;
+			} catch {
+				if (!disposed)
+					slideData = Object.fromEntries(
+						JSON.parse(signature).map(({ id }: { id: string }) => [
+							id,
+							{
+								state: 'error',
+								items: [],
+								message: 'Could not load preview. Check data source settings and retry.'
+							}
+						])
+					);
+			} finally {
+				clearTimeout(timeout);
+			}
+		}, 400);
+		return () => {
+			disposed = true;
+			clearTimeout(timer);
+			controller.abort();
+		};
 	});
 </script>
 
@@ -484,6 +545,7 @@
 				{tool}
 				animateTransitions={playing || timeMs > 0}
 				scheme={previewScheme}
+				data={slideData}
 				{zoom}
 				{resetView}
 				viewportWidth={viewport.width}
@@ -577,10 +639,55 @@
 							Opposite edges stretch the box. X/Y are reference coordinates.</P
 						>
 						<Textarea
-							label={selected.type === 'text' ? 'Text' : 'Description'}
+							label={selected.type === 'text'
+								? 'Text'
+								: selected.type === 'list'
+									? 'Heading'
+									: 'Description'}
+							aria-label={selected.type === 'list' ? 'Holiday list heading' : 'Element text'}
 							bind:value={selected.text}
 							rows={3}
 						/>
+						{#if selected.type === 'list' && selected.dataSource}
+							<P class="text-sm font-semibold">Data source: Upcoming holidays</P>
+							<Input
+								label="Days ahead"
+								aria-label="Holiday days ahead"
+								type="number"
+								min={1}
+								max={365}
+								step={1}
+								value={String(selected.dataSource.daysAhead)}
+								oninput={(event) => {
+									if (selected?.dataSource)
+										selected.dataSource.daysAhead = Number(event.currentTarget.value);
+								}}
+							/>
+							<Input
+								label="Maximum holidays"
+								aria-label="Maximum holidays"
+								type="number"
+								min={1}
+								max={20}
+								step={1}
+								value={String(selected.dataSource.limit)}
+								oninput={(event) => {
+									if (selected?.dataSource)
+										selected.dataSource.limit = Number(event.currentTarget.value);
+								}}
+							/>
+							<Input
+								label="Business time zone"
+								aria-label="Holiday time zone"
+								maxlength={80}
+								bind:value={selected.dataSource.timeZone}
+							/>
+							<P class="text-xs opacity-60"
+								>Includes today. Update names and dates in <A href="/hr/holidays">HR → Holidays</A>.
+								Published slides query current data automatically.</P
+							>
+							<Button onclick={() => previewRevision++}>Refresh data preview</Button>
+						{/if}
 						<Div class="grid grid-cols-2 gap-3"
 							>{#each geometry as field (field)}<Input
 									label={field}
@@ -602,7 +709,7 @@
 								if (selected) selected.color = value;
 							}}
 						/>
-						{#if selected.type === 'text'}
+						{#if selected.type === 'text' || selected.type === 'list'}
 							<Input
 								label="Font size"
 								type="number"

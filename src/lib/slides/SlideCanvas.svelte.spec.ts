@@ -21,6 +21,37 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('renders resolved holiday rows and explicit empty/error states without hiding other elements', async () => {
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [newElement('list', 'calendar')] },
+			assetBase: '/assets'
+		});
+		expect(view.getByText('Loading data…')).toBeInTheDocument();
+		await view.rerender({
+			data: {
+				calendar: {
+					state: 'ready',
+					items: [{ id: '1', label: 'Thanksgiving', detail: 'Nov 26, 2026' }],
+					message: ''
+				}
+			}
+		});
+		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
+		expect(view.getByText('Nov 26, 2026')).toBeInTheDocument();
+		await view.rerender({ data: {} });
+		expect(view.getByText('Loading data…')).toBeInTheDocument();
+		await view.rerender({
+			data: { calendar: { state: 'empty', items: [], message: 'No upcoming holidays.' } }
+		});
+		expect(view.getByText('No upcoming holidays.')).toBeInTheDocument();
+		await view.rerender({
+			data: {
+				calendar: { state: 'error', items: [], message: 'Holiday data is temporarily unavailable.' }
+			}
+		});
+		expect(view.getByText('Holiday data is temporarily unavailable.')).toBeInTheDocument();
+		expect(view.getByText('Upcoming holidays')).toBeInTheDocument();
+	});
 	it('holds element keyframes during entrance, plays them during display, and holds their final pose on exit', async () => {
 		const element = newElement('text', 'headline');
 		element.opacity = 0;
