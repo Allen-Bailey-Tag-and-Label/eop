@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T16:06:43.101Z
+## 2026-10-28T16:21:29.060Z
+
+fix: Polish dialog transitions, focus outlines, and color inputs
+
+## 2026-10-28T12:08:18-04:00
 
 feat: Add slide unpublishing and deletion controls
 

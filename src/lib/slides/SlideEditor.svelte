@@ -820,7 +820,7 @@
 				onclick={closeDialog}><X size={18} /></Button
 			></Div
 		>
-		<Div class="min-h-0 space-y-4 overflow-y-auto overscroll-contain">
+		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			{#if localError}<P role="alert" class="text-sm text-red-600 dark:text-red-400">{localError}</P
 				>{/if}
 			{#if dialog === 'settings'}

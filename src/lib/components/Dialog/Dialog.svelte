@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Dialog as SveltewindDialog } from 'sveltewind/components';
+	import { subtleReveal } from 'sveltewind/transitions';
 	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
@@ -43,6 +44,7 @@
 
 <SveltewindDialog
 	theme={unstyledTheme}
+	transition={[subtleReveal, {}]}
 	bind:isVisible={open}
 	{...restProps}
 	{@attach forwardEvents}

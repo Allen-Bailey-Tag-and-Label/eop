@@ -7,10 +7,13 @@ import { defaultTheme } from '$lib/theme/themes';
 import { A, Card, H1, H2, H3, Header, Label, P, Table, Tbody, Td, Th, Thead, Tr } from './index';
 import Bindings from './fixtures/Bindings.svelte';
 import Adapters from './fixtures/Adapters.svelte';
-import { Button, Em, Form, Hr, Li, Ol, Option, Spinner, Strong, Ul } from './index';
+import { Button, Em, Form, Hr, Input, Li, Modal, Ol, Option, Spinner, Strong, Ul } from './index';
+import { subtleReveal } from 'sveltewind/transitions';
 import { enhance } from '$app/forms';
 
 vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
+// Exercise visibility changes without requiring jsdom to implement Web Animations.
+vi.mock('sveltewind/transitions', () => ({ subtleReveal: vi.fn(() => ({ duration: 0 })) }));
 // jsdom has no Web Animations API; binding tests do not need the checkmark animation.
 vi.mock('svelte/transition', async (importOriginal) => ({
 	...(await importOriginal<typeof import('svelte/transition')>()),
@@ -27,6 +30,33 @@ afterEach(() => {
 });
 
 describe('Sveltewind compatibility adapters', () => {
+	it('reveals shared modals on opening and removes their focus targets on closing', async () => {
+		const view = render(Modal, {
+			isOpen: false,
+			role: 'dialog',
+			'aria-label': 'Test modal',
+			children: textSnippet('Modal content')
+		});
+		expect(view.queryByRole('dialog')).toBeNull();
+		await view.rerender({ isOpen: true });
+		expect(view.getByRole('dialog', { name: 'Test modal' })).toHaveTextContent('Modal content');
+		expect(subtleReveal).toHaveBeenCalled();
+		await view.rerender({ isOpen: false });
+		await tick();
+		expect(view.queryByRole('dialog')).toBeNull();
+	});
+
+	it('keeps full-width color fields styled like standard inputs with a reactive swatch', async () => {
+		const view = render(Input, { type: 'color', 'aria-label': 'Choose color', value: '#123456' });
+		const input = view.getByLabelText('Choose color');
+		expect(input).toHaveAttribute('type', 'color');
+		expect(input).toHaveClass('h-12', 'w-full', 'rounded-lg', 'px-6', 'py-3');
+		expect(input).toHaveValue('#123456');
+		await fireEvent.input(input, { target: { value: '#abcdef' } });
+		expect(input).toHaveValue('#abcdef');
+		await view.rerender({ value: '#654321' });
+		expect(input).toHaveValue('#654321');
+	});
 	it('defaults buttons to button and preserves disabled styles and overrides', async () => {
 		const target = document.createElement('form');
 		const submit = vi.fn((event: Event) => event.preventDefault());
@@ -118,6 +148,7 @@ describe('Sveltewind compatibility adapters', () => {
 			component.showDialog();
 			await tick();
 			expect(showModal).toHaveBeenCalled();
+			expect(subtleReveal).toHaveBeenCalled();
 			const dialog = container.querySelector('dialog')!;
 			expect(dialog).toHaveAttribute('class', twMerge(defaultTheme.Dialog.default));
 			expect(dialog.querySelector('.pointer-events-auto')).not.toBeNull();

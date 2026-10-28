@@ -4,6 +4,7 @@ import SlideEditor from './SlideEditor.svelte';
 import { blankSlide, newElement } from './types';
 
 vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
+vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 beforeEach(() => {
 	vi.stubGlobal(
 		'ResizeObserver',

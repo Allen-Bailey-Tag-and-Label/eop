@@ -124,6 +124,7 @@
 			{type}
 			class={twMerge(
 				$theme.Input.default,
+				type === 'color' ? $theme.Input.color : undefined,
 				...variants.map((variant: string) => $theme.Input[variant]),
 				className
 			)}

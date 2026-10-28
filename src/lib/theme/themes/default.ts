@@ -64,6 +64,8 @@ export const defaultTheme = {
 	Hr: { default: '' },
 	Input: {
 		default: twMerge(InputDefault),
+		color:
+			'h-12 w-full [&::-webkit-color-swatch-wrapper]:flex [&::-webkit-color-swatch-wrapper]:items-center [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:size-6 [&::-webkit-color-swatch]:flex-none [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:outline-1 [&::-webkit-color-swatch]:outline-gray-900 dark:[&::-webkit-color-swatch]:outline-gray-100 [&::-moz-color-swatch]:size-6 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0 [&::-moz-color-swatch]:outline-1 [&::-moz-color-swatch]:outline-gray-900 dark:[&::-moz-color-swatch]:outline-gray-100',
 		readonly:
 			'bg-transparent dark:bg-transparent shadow-none dark:shadow-none backdrop-blur-none outline-0 cursor-default'
 	},

@@ -166,6 +166,13 @@ The application theme bridge preserves styles for direct library exports.
 Adapters pass `unstyledTheme` when supplying their existing application classes,
 so package preset classes do not change the portal's appearance.
 
+Both shared dialog components use `subtleReveal` from `sveltewind/transitions`.
+The Modal panel enters and exits through that transition, including dialogs mounted
+conditionally by their callers. Color inputs retain the native color picker and
+use the application's `Input.color` theme variant for full-width fields with
+standard input corners and padding, containing a small circular swatch that
+reflects their bound value.
+
 | Components                                                                  | Sveltewind reuse and application behavior                                                                                                                 |
 | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Button                                                                      | Wraps Button with `type="button"` by default and automatic disabled styling.                                                                              |

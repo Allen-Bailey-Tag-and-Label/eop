@@ -3,6 +3,7 @@
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
+	import { subtleReveal } from 'sveltewind/transitions';
 	import { attachmentFactory, focusFirst, focusTrap, portal } from '$lib/attachments';
 	import { theme } from '$lib/theme';
 	import { Card, Div } from '..';
@@ -40,26 +41,26 @@
 		if (isCloseable) isOpen = false;
 	}}
 >
-	<Card
-		{...restProps}
-		{@attach attachmentFactory(attachments)}
-		{@attach focusFirst()}
-		{@attach focusTrap}
-		class={twMerge(
-			'transition duration-200',
-			isOpen ? undefined : 'pointer-events-none',
-			isOpen ? 'opacity-100' : 'opacity-0',
-			isOpen ? 'scale-100' : 'scale-[.90]',
-			$theme.Modal.default,
-			...variants.map((variant: string) => $theme.Modal[variant]),
-			className
-		)}
-		inert={isOpen ? undefined : true}
-		onclick={(e: Event) => e.stopPropagation()}
-		{style}
-	>
-		{#if children}
-			{@render children()}
-		{/if}
-	</Card>
+	{#if isOpen}
+		<div class="flex h-full w-full items-center justify-center" transition:subtleReveal|global>
+			<Card
+				{...restProps}
+				{@attach attachmentFactory(attachments)}
+				{@attach focusFirst()}
+				{@attach focusTrap}
+				class={twMerge(
+					$theme.Modal.default,
+					...variants.map((variant: string) => $theme.Modal[variant]),
+					className
+				)}
+				inert={isOpen ? undefined : true}
+				onclick={(e: Event) => e.stopPropagation()}
+				{style}
+			>
+				{#if children}
+					{@render children()}
+				{/if}
+			</Card>
+		</div>
+	{/if}
 </Div>
