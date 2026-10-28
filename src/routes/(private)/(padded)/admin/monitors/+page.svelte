@@ -7,6 +7,7 @@
 		H1,
 		H2,
 		Input,
+		Modal,
 		P,
 		Table,
 		Tbody,
@@ -19,6 +20,9 @@
 
 	let { data, form }: PageProps = $props();
 	let isApproving = $state(false);
+	let isRevokeModalOpen = $state(false);
+	let isRevoking = $state(false);
+	let monitorToRevoke = $state<{ id: string; location: string }>();
 </script>
 
 <Div class="space-y-8">
@@ -87,14 +91,15 @@
 								>
 								<Td>{new Date(monitor.expiresAt).toLocaleDateString()}</Td>
 								<Td>
-									<Form action="?/revoke" class="w-auto max-w-none space-y-0">
-										<Input type="hidden" name="sessionId" value={monitor.id} />
-										<Button
-											type="submit"
-											variants={['error', 'small']}
-											aria-label={`Revoke access for ${monitor.location}`}>Revoke</Button
-										>
-									</Form>
+									<Button
+										type="button"
+										variants={['error', 'small']}
+										onclick={() => {
+											monitorToRevoke = monitor;
+											isRevokeModalOpen = true;
+										}}
+										aria-label={`Revoke access for ${monitor.location}`}>Revoke</Button
+									>
 								</Td>
 							</Tr>
 						{/each}
@@ -104,3 +109,47 @@
 		{/if}
 	</Card>
 </Div>
+
+{#if isRevokeModalOpen && monitorToRevoke}
+	<Modal
+		bind:isOpen={isRevokeModalOpen}
+		isCloseable={!isRevoking}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="revoke-monitor-title"
+		aria-describedby="revoke-monitor-description"
+	>
+		<Form
+			action="?/revoke"
+			submitFunction={() => {
+				isRevoking = true;
+				return async ({ update }) => {
+					try {
+						await update();
+					} finally {
+						isRevoking = false;
+						isRevokeModalOpen = false;
+					}
+				};
+			}}
+		>
+			<Input type="hidden" name="sessionId" value={monitorToRevoke.id} />
+			<H2 id="revoke-monitor-title">Revoke monitor access?</H2>
+			<P id="revoke-monitor-description">
+				Revoke access for {monitorToRevoke.location}? The monitor will return to the pairing screen
+				on its next check and will need approval to reconnect.
+			</P>
+			{#snippet buttons()}
+				<Button
+					type="button"
+					variants={['contrast']}
+					disabled={isRevoking}
+					onclick={() => (isRevokeModalOpen = false)}>Cancel</Button
+				>
+				<Button type="submit" variants={['error']} disabled={isRevoking}>
+					{isRevoking ? 'Revoking…' : 'Revoke access'}
+				</Button>
+			{/snippet}
+		</Form>
+	</Modal>
+{/if}

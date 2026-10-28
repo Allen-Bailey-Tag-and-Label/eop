@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T12:02:59.772Z
+## 2026-10-28T12:51:13.547Z
+
+fix: Confirm monitor revocation and require commit message prefixes
+
+## 2026-10-28T08:46:04-04:00
 
 Add Raspberry Pi monitor pairing, admin approval, and display authentication
 

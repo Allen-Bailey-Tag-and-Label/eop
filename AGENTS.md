@@ -60,6 +60,8 @@ locally before committing or publishing.
 
 ## Changelog and commits
 
+- Prefix every suggested commit message with `fix: `, `feat: `, or `refactor: `,
+  choosing the prefix that best describes the complete change.
 - The user keeps using VS Code Source Control: enter the supplied message and
   click Commit. Do not require a terminal command or VS Code task from the user.
 - At the end of each task with file changes, assume the current changes will be
