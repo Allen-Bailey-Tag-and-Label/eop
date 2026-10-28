@@ -213,10 +213,17 @@
 	}
 	function addElement(type: ElementType) {
 		const element = newElement(type, crypto.randomUUID());
-		if (type === 'image' || type === 'svg')
-			element.assetId =
-				data.assets.find((asset) => (asset.contentType === 'image/svg+xml') === (type === 'svg'))
-					?.id ?? '';
+		if (type === 'image' || type === 'svg') {
+			const asset = data.assets.find(
+				(asset) => (asset.contentType === 'image/svg+xml') === (type === 'svg')
+			);
+			if (!asset) {
+				openDialog('upload');
+				localError = `Upload ${type === 'svg' ? 'an SVG' : 'an image'} asset first, then add it to the slide or item template.`;
+				return;
+			}
+			element.assetId = asset.id;
+		}
 		if (type === 'list') {
 			element.repeater = defaultRepeater();
 			element.text = 'Repeater';
@@ -359,12 +366,15 @@
 		frame = requestAnimationFrame(animate);
 		return () => cancelAnimationFrame(frame);
 	});
-	$effect(() => {
-		const signature = JSON.stringify(
+	const dataSourceSignature = $derived(
+		JSON.stringify(
 			draft.elements
 				.filter((element) => element.type === 'list')
-				.map(({ id, dataSource }) => ({ id, dataSource }))
-		);
+				.map(({ id, dataSource, repeater }) => ({ id, dataSource, templateMode: !!repeater }))
+		)
+	);
+	$effect(() => {
+		const signature = dataSourceSignature;
 		void previewRevision;
 		slideData = {};
 		if (signature === '[]') return;
@@ -382,12 +392,23 @@
 					signal: controller.signal,
 					cache: 'no-store'
 				});
-				const result = deserialize(await response.text());
+				let result: ReturnType<typeof deserialize>;
+				try {
+					result = deserialize(await response.text());
+				} catch {
+					throw new Error(
+						`Preview returned an unexpected response (HTTP ${response.status}). Retry or sign in again.`
+					);
+				}
 				if (disposed) return;
 				if (result.type !== 'success' || !result.data?.slideData)
-					throw new Error('Preview unavailable');
+					throw new Error(
+						result.type === 'failure' && typeof result.data?.error === 'string'
+							? result.data.error
+							: `Could not load preview (HTTP ${response.status}). Retry or sign in again.`
+					);
 				slideData = result.data.slideData as SlideData;
-			} catch {
+			} catch (cause) {
 				if (!disposed)
 					slideData = Object.fromEntries(
 						JSON.parse(signature).map(({ id }: { id: string }) => [
@@ -395,7 +416,11 @@
 							{
 								state: 'error',
 								items: [],
-								message: 'Could not load preview. Check data source settings and retry.'
+								message: controller.signal.aborted
+									? 'Preview request timed out. Retry the data preview.'
+									: cause instanceof Error
+										? cause.message
+										: 'Could not load preview. Retry the data preview.'
 							}
 						])
 					);

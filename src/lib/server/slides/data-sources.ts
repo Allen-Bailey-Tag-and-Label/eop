@@ -1,3 +1,5 @@
+import { blankSlide, newElement } from '$lib/slides/types';
+import { defaultRepeater } from '$lib/slides/repeater';
 import type { Model, Schema } from 'mongoose';
 import type {
 	DataListResult,
@@ -5,7 +7,7 @@ import type {
 	SlideDataSource,
 	SlideDefinition
 } from '$lib/slides/types';
-import { validateDataSource } from '$lib/slides/validation';
+import { validateDataSource, SlideValidationError } from '$lib/slides/validation';
 import { dataModels, parseFilter, parseSort } from '$lib/slides/data-link';
 
 function availableField(schema: Schema, field: string) {
@@ -196,4 +198,35 @@ export function createSlideDataResolver(now = new Date(), preview = false) {
 					})
 			)
 		);
+}
+
+// Query previews must work while unrelated geometry, templates, and assets are unfinished.
+// Full slide validation still runs when saving or publishing.
+export async function previewSlideData(input: unknown, now = new Date()): Promise<SlideData> {
+	if (
+		!input ||
+		typeof input !== 'object' ||
+		!Array.isArray((input as { elements?: unknown }).elements)
+	)
+		throw new SlideValidationError('Preview requires a slide with elements.');
+	const rawElements = (input as { elements: unknown[] }).elements;
+	if (rawElements.length > 100) throw new SlideValidationError('Use at most 100 elements.');
+	const ids = new Set<string>();
+	const elements = rawElements
+		.filter(
+			(raw): raw is Record<string, unknown> =>
+				!!raw && typeof raw === 'object' && (raw as { type?: unknown }).type === 'list'
+		)
+		.map((raw) => {
+			const id = raw.id;
+			if (typeof id !== 'string' || id.length > 80 || !/^[a-zA-Z0-9_-]+$/.test(id) || ids.has(id))
+				throw new SlideValidationError('Data preview elements need unique valid IDs.');
+			ids.add(id);
+			return {
+				...newElement('list', id),
+				dataSource: raw.dataSource as SlideDataSource,
+				...(raw.repeater ? { repeater: defaultRepeater() } : {})
+			};
+		});
+	return createSlideDataResolver(now, true)({ ...blankSlide(), elements });
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Holiday, Customer } from '../mongoose/models';
-import { createSlideDataResolver, resolveDates } from './data-sources';
+import { createSlideDataResolver, resolveDates, previewSlideData } from './data-sources';
 import { blankSlide, newElement, defaultDataSource, type SlideDataSource } from '$lib/slides/types';
 import { validateDataSource, validateSlide } from '$lib/slides/validation';
 vi.mock('../mongoose/models', () => {
@@ -32,6 +32,36 @@ const query = (rows: unknown[]) => ({
 });
 beforeEach(() => vi.resetAllMocks());
 describe('generic slide data links', () => {
+	it('previews valid links despite unfinished SVGs, templates, and other invalid links', async () => {
+		const rows = query([{ _id: 'one', name: 'Holiday', date: new Date('2026-03-08T05:00:00Z') }]);
+		vi.mocked(Holiday.find).mockReturnValue(rows as unknown as ReturnType<typeof Holiday.find>);
+		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			const definition = {
+				...blankSlide(),
+				elements: [
+					{ ...element(), repeater: { template: { width: 0 } } },
+					newElement('svg', 'unfinished'),
+					{ ...element(), id: 'bad', dataSource: { ...source(), model: 'User' } }
+				]
+			};
+			expect(() => validateSlide(definition)).toThrow();
+			const result = await previewSlideData(definition, now);
+			expect(result.data.state).toBe('ready');
+			expect(result.data.items[0].label).toBe('Holiday');
+			expect(result.bad.state).toBe('error');
+			expect(result.bad.message).toContain('supported business model');
+			expect(result).not.toHaveProperty('unfinished');
+		} finally {
+			log.mockRestore();
+		}
+	});
+	it('bounds and validates the preview envelope before querying persistence', async () => {
+		await expect(previewSlideData({ elements: [element(), element()] })).rejects.toThrow('unique');
+		await expect(previewSlideData({ elements: Array(101).fill(element()) })).rejects.toThrow('100');
+		await expect(previewSlideData(null)).rejects.toThrow('slide');
+		expect(Holiday.find).not.toHaveBeenCalled();
+	});
 	it('executes query components and returns only configured display values', async () => {
 		const rows = query([
 			{

@@ -36,7 +36,14 @@ describe('slide authoring', () => {
 							slideData: {
 								calendar: {
 									state: 'ready',
-									items: [{ id: 'holiday', label: 'Thanksgiving', detail: 'Nov 26, 2026' }],
+									items: [
+										{
+											id: 'holiday',
+											label: 'Thanksgiving',
+											detail: 'Nov 26, 2026',
+											fields: { name: 'Thanksgiving' }
+										}
+									],
 									message: ''
 								}
 							}
@@ -48,7 +55,7 @@ describe('slide authoring', () => {
 		const view = render(SlideEditor, {
 			data: {
 				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
-				assets: []
+				assets: [{ id: 'a'.repeat(24), name: 'Test SVG', contentType: 'image/svg+xml' }]
 			}
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
@@ -77,7 +84,14 @@ describe('slide authoring', () => {
 							slideData: {
 								[id]: {
 									state: 'ready',
-									items: [{ id: 'holiday', label: 'Thanksgiving', detail: 'Nov 26, 2026' }],
+									items: [
+										{
+											id: 'holiday',
+											label: 'Thanksgiving',
+											detail: 'Nov 26, 2026',
+											fields: { name: 'Thanksgiving' }
+										}
+									],
 									message: ''
 								}
 							}
@@ -129,6 +143,54 @@ describe('slide authoring', () => {
 		});
 		await vi.advanceTimersByTimeAsync(400);
 		expect(fetch).toHaveBeenCalledTimes(2);
+		await fireEvent.click(view.getByRole('button', { name: 'Add svg' }));
+		expect(definition().elements[1]).toMatchObject({ type: 'svg', assetId: 'a'.repeat(24) });
+		expect(view.container.querySelector('img')?.getAttribute('src')).toBe(
+			`/admin/monitors/slides/assets/${'a'.repeat(24)}`
+		);
+		await vi.advanceTimersByTimeAsync(400);
+		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
+	});
+	it('asks for an uploaded SVG instead of inserting an invalid empty element', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add svg' }));
+		expect(view.getByRole('dialog')).toHaveTextContent('Upload an SVG asset first');
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(definition.elements).toHaveLength(0);
+	});
+	it('shows action validation errors in the repeater instead of a generic retry message', async () => {
+		vi.useFakeTimers();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							type: 'failure',
+							status: 400,
+							data: { error: 'Select fields must be space separated.' }
+						}),
+						{ status: 400 }
+					)
+			)
+		);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		await vi.advanceTimersByTimeAsync(400);
+		expect(view.getByText('Select fields must be space separated.')).toBeInTheDocument();
 	});
 	it('edits light/dark colors, previews each mode, and can lock the chosen color as fixed', async () => {
 		const view = render(SlideEditor, {

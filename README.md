@@ -150,6 +150,13 @@ Existing data lists retain their layout until **Convert to grid repeater** is
 chosen in Properties. Query configuration and templates are saved/exported;
 resolved row values are transient and are never written into the slide definition.
 
+Data previews validate each data link independently of unfinished slide geometry,
+item templates, and media selections. Editing other elements preserves loaded
+preview data. Query and validation failures show their diagnostic message in the
+admin preview. Save/publish still validates the complete slide. **Add ? SVG**
+uses an uploaded SVG asset; if none is available, it opens the upload dialog
+instead of inserting an empty element. After uploading, choose **Add ? SVG** again.
+
 **Data lists** link a slide element to a read-only model query. Choose
 **Add ? Repeater**, then configure the **Data link** in Properties:
 

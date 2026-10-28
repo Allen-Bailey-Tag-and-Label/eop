@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T19:11:32.028Z
+## 2026-10-28T19:36:53.702Z
+
+fix: Keep repeater previews working while adding SVG assets
+
+## 2026-10-28T15:27:40-04:00
 
 feat: Add grid repeaters with editable row templates to slides
 
