@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T16:21:29.060Z
+## 2026-10-28T16:35:59.721Z
+
+fix: Refresh published monitor content before every slide
+
+## 2026-10-28T12:22:30-04:00
 
 fix: Polish dialog transitions, focus outlines, and color inputs
 

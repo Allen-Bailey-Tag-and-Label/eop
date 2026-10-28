@@ -41,9 +41,10 @@
 	);
 	let loading = $state(true);
 	let finished = false;
+	let refresh: (() => Promise<void>) | undefined;
 	const cache = new SlideMediaCache();
 	onMount(() => {
-		const stop = watchPlayback(
+		const source = watchPlayback(
 			(content) => {
 				loading = false;
 				if (!playback || finished) {
@@ -55,8 +56,9 @@
 			},
 			(value) => (connected = value)
 		);
+		refresh = source.refresh;
 		return () => {
-			stop();
+			source.stop();
 			cache.destroy();
 		};
 	});
@@ -99,9 +101,12 @@
 				frame = requestAnimationFrame(tick);
 			};
 			frame = requestAnimationFrame(tick);
-			timer = setTimeout(() => {
+			timer = setTimeout(async () => {
 				cancelAnimationFrame(frame);
 				timeMs = slide.durationMs;
+				// Revalidate published content before every new slide, including single-slide loops.
+				await refresh?.();
+				if (disposed) return;
 				if (queued !== undefined) {
 					const content = queued;
 					queued = undefined;

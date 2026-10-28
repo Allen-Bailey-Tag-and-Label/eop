@@ -90,9 +90,13 @@ appropriate roles. New databases include both in the initial admin seed.
    Publish every referenced slide before publishing the playlist. Looping restarts
    from the beginning; disabling it holds the final slide on screen.
 6. Assign a published playlist to an approved monitor in **Monitor management**.
-   The display checks for changes every 30 seconds and applies changes at a slide
-   boundary. It preloads upcoming media, retains the current slide while preparing
-   the next one, and continues loaded content during a network interruption.
+   Before starting each slide (including loops), the display fetches the latest
+   published content from the server with caching disabled. It retains the current
+   slide while that request is pending. Background checks every 30 seconds also
+   keep empty displays and non-looping final slides up to date without a browser
+   refresh. Changes apply at slide boundaries. It preloads upcoming media, retains
+   the current slide while preparing the next one, and continues loaded content
+   during a network interruption.
    A footer below the slide shows the upcoming slide's thumbnail and published
    title on the left and the current slide's remaining time on the right. The
    countdown uses the playlist duration override when set. Non-looping playlists

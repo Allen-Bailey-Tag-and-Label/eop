@@ -7,13 +7,16 @@ export function watchPlayback(
 	onContent: (content: Playback | null) => void,
 	onConnection: (connected: boolean) => void
 ) {
-	const controller = new AbortController();
+	let stopped = false;
+	let active: AbortController | undefined;
 	let timer: ReturnType<typeof setTimeout>;
-	const poll = async () => {
+	const refresh = async () => {
+		if (stopped) return;
+		clearTimeout(timer);
+		active?.abort();
 		const request = new AbortController();
-		const abort = () => request.abort();
-		controller.signal.addEventListener('abort', abort, { once: true });
-		const timeout = setTimeout(abort, 10000);
+		active = request;
+		const timeout = setTimeout(() => request.abort(), 10000);
 		try {
 			const response = await fetch('/monitors/playback', {
 				cache: 'no-store',
@@ -22,20 +25,26 @@ export function watchPlayback(
 			if (!response.ok || !response.headers.get('content-type')?.includes('application/json'))
 				throw new Error('Playback unavailable');
 			const content: Playback | null = await response.json();
-			if (controller.signal.aborted) return;
+			if (stopped || active !== request) return;
 			onContent(content);
 			onConnection(true);
 		} catch {
-			if (!controller.signal.aborted) onConnection(false);
+			if (!stopped && active === request) onConnection(false);
 		} finally {
 			clearTimeout(timeout);
-			controller.signal.removeEventListener('abort', abort);
-			if (!controller.signal.aborted) timer = setTimeout(poll, 30000);
+			if (!stopped && active === request) {
+				active = undefined;
+				timer = setTimeout(refresh, 30000);
+			}
 		}
 	};
-	void poll();
-	return () => {
-		controller.abort();
-		clearTimeout(timer);
+	void refresh();
+	return {
+		refresh,
+		stop: () => {
+			stopped = true;
+			active?.abort();
+			clearTimeout(timer);
+		}
 	};
 }
