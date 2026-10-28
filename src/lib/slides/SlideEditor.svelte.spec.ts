@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import SlideEditor from './SlideEditor.svelte';
 import { blankSlide, newElement } from './types';
 
@@ -20,6 +20,62 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('requires confirmation to unpublish and lists affected playlists', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: {
+					id: 'a'.repeat(24),
+					title: 'Welcome',
+					slug: 'welcome',
+					version: 2,
+					publishedAt: new Date().toISOString(),
+					draft: blankSlide()
+				},
+				assets: [],
+				references: [{ slug: 'break-room', title: 'Break room', draft: false, published: true }]
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
+		expect(view.baseElement.querySelector('form[action="?/unpublish"]')).toBeNull();
+		await fireEvent.click(view.getByRole('button', { name: 'Unpublish slide' }));
+		const confirmation = within(view.getByRole('dialog', { name: 'Unpublish slide?' }));
+		expect(confirmation.getByRole('link', { name: 'Break room' })).toHaveAttribute(
+			'href',
+			'/admin/monitors/playlists/break-room'
+		);
+		expect(confirmation.getByRole('button', { name: 'Unpublish' })).toHaveAttribute(
+			'type',
+			'submit'
+		);
+		const form = view.baseElement.querySelector('form[action="?/unpublish"]')!;
+		expect(form.querySelector('input[name="version"]')).toHaveValue('2');
+		await fireEvent.click(confirmation.getByRole('button', { name: 'Cancel' }));
+		expect(view.getByRole('dialog', { name: 'Slide settings' })).toBeInTheDocument();
+		expect(view.baseElement.querySelector('form[action="?/unpublish"]')).toBeNull();
+	});
+	it('blocks deleting a referenced slide and allows confirmation for an unused draft', async () => {
+		const data = {
+			slide: {
+				id: 'a'.repeat(24),
+				title: 'Welcome',
+				slug: 'welcome',
+				version: 2,
+				publishedAt: null,
+				draft: blankSlide()
+			},
+			assets: [],
+			references: [{ slug: 'break-room', title: 'Break room', draft: true, published: false }]
+		};
+		const view = render(SlideEditor, { data });
+		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
+		expect(view.queryByRole('button', { name: 'Unpublish slide' })).toBeNull();
+		await fireEvent.click(view.getByRole('button', { name: 'Delete slide' }));
+		expect(view.getByRole('dialog', { name: 'Delete slide?' })).toBeInTheDocument();
+		expect(view.getByRole('button', { name: 'Delete permanently' })).toBeDisabled();
+		await view.rerender({ data: { ...data, references: [] } });
+		expect(view.getByRole('button', { name: 'Delete permanently' })).toBeEnabled();
+		expect(view.baseElement.querySelector('form[action="?/delete"]')).not.toBeNull();
+	});
 	it('saves anchor choices with the slide and previews alternate screen shapes without changing reference dimensions', async () => {
 		const { container, getByRole, getByText } = render(SlideEditor, {
 			data: {

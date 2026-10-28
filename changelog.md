@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T15:57:16.948Z
+## 2026-10-28T16:06:43.101Z
+
+feat: Add slide unpublishing and deletion controls
+
+## 2026-10-28T11:58:45-04:00
 
 feat: Show upcoming slides and countdowns on monitor displays
 

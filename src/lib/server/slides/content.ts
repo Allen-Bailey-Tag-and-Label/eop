@@ -21,6 +21,51 @@ import {
 	SlideValidationError
 } from '$lib/slides/validation';
 
+export async function listSlideReferences(id: string) {
+	if (!isId(id)) return [];
+	const rows = await Playlist.find({
+		$or: [{ 'draft.items.slideId': id }, { 'published.items.slideId': id }]
+	})
+		.select('slug title draft.items published.items')
+		.sort({ title: 1 })
+		.lean();
+	return rows.map((row) => ({
+		slug: row.slug,
+		title: row.title,
+		draft: row.draft.items.some((item) => item.slideId === id),
+		published: row.published?.items.some((item) => item.slideId === id) ?? false
+	}));
+}
+
+export async function manageSlide(
+	operation: 'unpublish' | 'delete',
+	key: string,
+	fields: FormData,
+	userId: string
+) {
+	const id = fields.get('id');
+	const version = Number(fields.get('version'));
+	if (!isId(id) || !Number.isInteger(version) || version < 1)
+		throw new SlideValidationError('Invalid slide version. Reload the editor.');
+	const filter = { _id: id, slug: key, version };
+	const options = { _createdById: userId };
+	if (operation === 'delete') {
+		// Recheck persistence on submission; the editor's reference list may be stale.
+		const references = await listSlideReferences(id);
+		if (references.length) return references;
+		const result = await Slide.deleteOne(filter, options);
+		if (result.deletedCount) return [];
+	} else {
+		const result = await Slide.updateOne(
+			{ ...filter, published: { $exists: true } },
+			{ $unset: { published: 1, publishedAt: 1, publishedTitle: 1 }, $inc: { version: 1 } },
+			{ ...options, runValidators: true }
+		);
+		if (result.modifiedCount) return [];
+	}
+	throw new SlideValidationError('This slide changed in another editor. Reload before continuing.');
+}
+
 export async function listSlides() {
 	const rows = await Slide.find()
 		.select('slug title version publishedAt')

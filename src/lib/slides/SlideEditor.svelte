@@ -53,6 +53,7 @@
 		type AssetSummary,
 		type ContentEditor,
 		type ElementType,
+		type SlideReference,
 		type SlideDefinition
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
@@ -61,8 +62,12 @@
 		data,
 		form
 	}: {
-		data: { slide: ContentEditor<SlideDefinition>; assets: AssetSummary[] };
-		form?: { error?: string; success?: string } | null;
+		data: {
+			slide: ContentEditor<SlideDefinition>;
+			assets: AssetSummary[];
+			references?: SlideReference[];
+		};
+		form?: { error?: string; success?: string; references?: SlideReference[] } | null;
 	} = $props();
 	let draft = $state(
 		untrack(() => withResponsiveDefaults(structuredClone($state.snapshot(data.slide.draft))))
@@ -75,6 +80,8 @@
 	let playing = $state(false);
 	let saving = $state(false);
 	let uploading = $state(false);
+	let managing = $state(false);
+	const references = $derived(form?.references ?? data.references ?? []);
 	let json = $state('');
 	let localError = $state('');
 	let tool = $state<'select' | 'pan' | 'resize'>('select');
@@ -92,7 +99,17 @@
 	);
 	let inspectorOpen = $state(false);
 	let inspectorTab = $state<'properties' | 'layers' | 'animation'>('properties');
-	let dialog = $state<'settings' | 'upload' | 'import' | 'export'>('settings');
+	let dialog = $state<'settings' | 'upload' | 'import' | 'export' | 'unpublish' | 'delete'>(
+		'settings'
+	);
+	const dialogTitles = {
+		settings: 'Slide settings',
+		upload: 'Upload an asset',
+		import: 'Import slide JSON',
+		export: 'Export slide JSON',
+		unpublish: 'Unpublish slide?',
+		delete: 'Delete slide?'
+	};
 	let isDialogOpen = $state(false);
 	let returnFocus: HTMLElement | null = null;
 	let colorInput = $state<HTMLInputElement | null>(null);
@@ -131,15 +148,17 @@
 		showPanel('properties');
 	}
 	function openDialog(value: typeof dialog) {
-		returnFocus = document.activeElement as HTMLElement;
+		if (!isDialogOpen) returnFocus = document.activeElement as HTMLElement;
 		dialog = value;
 		if (value === 'export') json = JSON.stringify(draft, null, 2);
 		if (value === 'import') json = '';
 		localError = '';
 		isDialogOpen = true;
+		if (value === 'unpublish' || value === 'delete')
+			void tick().then(() => document.getElementById(`${uid}-dialog-cancel`)?.focus());
 	}
 	function closeDialog() {
-		if (!uploading) isDialogOpen = false;
+		if (!uploading && !managing) isDialogOpen = false;
 	}
 	$effect(() => {
 		if (!isDialogOpen)
@@ -786,26 +805,18 @@
 {#if isDialogOpen}
 	<Modal
 		bind:isOpen={isDialogOpen}
-		isCloseable={!uploading}
+		isCloseable={!uploading && !managing}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby={`${uid}-dialog-title`}
 		class="flex max-h-[85svh] w-full max-w-2xl flex-col gap-4 overflow-hidden p-5"
 	>
 		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2 id={`${uid}-dialog-title`} class="text-lg"
-				>{dialog === 'settings'
-					? 'Slide settings'
-					: dialog === 'upload'
-						? 'Upload an asset'
-						: dialog === 'import'
-							? 'Import slide JSON'
-							: 'Export slide JSON'}</H2
-			><Button
+			><H2 id={`${uid}-dialog-title`} class="text-lg">{dialogTitles[dialog]}</H2><Button
 				aria-label="Close dialog"
 				variants={['ghost']}
 				class="h-8 w-8 items-center p-0"
-				disabled={uploading}
+				disabled={uploading || managing}
 				onclick={closeDialog}><X size={18} /></Button
 			></Div
 		>
@@ -871,6 +882,88 @@
 						: 'This slide has not been published.'} Use Save for a draft or Publish to update monitors.</P
 				>
 				<Button onclick={closeDialog}>Done</Button>
+				{#if data.slide.id}
+					<Div class="flex flex-wrap gap-3 border-t pt-4">
+						{#if data.slide.publishedAt}
+							<Button
+								variants={['contrast']}
+								disabled={saving}
+								onclick={() => openDialog('unpublish')}
+							>
+								Unpublish slide
+							</Button>
+						{/if}
+						<Button variants={['error']} disabled={saving} onclick={() => openDialog('delete')}>
+							<Trash2 size={18} /> Delete slide
+						</Button>
+					</Div>
+				{/if}
+			{:else if dialog === 'unpublish' || dialog === 'delete'}
+				<P>
+					{#if dialog === 'unpublish'}
+						Unpublish “{data.slide.title}”? Its saved draft and playlist entries will remain.
+						Monitors skip this slide after their next refresh, switching between slides. Playlists
+						with no published slides show the no-playlist screen. Disconnected monitors continue
+						loaded content until they reconnect. Publishing the slide again restores playback.
+					{:else}
+						Permanently delete “{data.slide.title}”? Its draft, published content, and any unsaved
+						edits will be lost. Uploaded assets will remain available to other slides.
+					{/if}
+				</P>
+				{#if references.length}
+					<P class="font-semibold">Playlists using this slide</P>
+					{#each references as reference (reference.slug)}
+						<P>
+							<A href={`/admin/monitors/playlists/${reference.slug}`}>{reference.title}</A>
+							({[reference.draft ? 'Draft' : '', reference.published ? 'Published' : '']
+								.filter(Boolean)
+								.join(' and ')})
+						</P>
+					{/each}
+					{#if dialog === 'delete'}
+						<P role="status"
+							>Remove this slide from every listed draft and published playlist before deleting it.
+							Save draft changes and publish playlist changes, then reload this editor.</P
+						>
+					{/if}
+				{:else}
+					<P>No playlists currently reference this slide.</P>
+				{/if}
+				{#if form?.error}<P role="alert" class="text-sm text-red-600 dark:text-red-400"
+						>{form.error}</P
+					>{/if}
+				<Form
+					action={dialog === 'delete' ? '?/delete' : '?/unpublish'}
+					submitFunction={() => {
+						managing = true;
+						return async ({ update, result }) => {
+							try {
+								await update();
+								if (result.type === 'success') isDialogOpen = false;
+							} finally {
+								managing = false;
+							}
+						};
+					}}
+				>
+					<Input type="hidden" name="id" value={data.slide.id} />
+					<Input type="hidden" name="version" value={String(data.slide.version)} />
+					{#snippet buttons()}
+						<Button
+							id={`${uid}-dialog-cancel`}
+							variants={['contrast']}
+							disabled={managing}
+							onclick={() => (dialog = 'settings')}>Cancel</Button
+						>
+						<Button
+							type="submit"
+							variants={['error']}
+							disabled={managing || (dialog === 'delete' && references.length > 0)}
+						>
+							{managing ? 'Working…' : dialog === 'delete' ? 'Delete permanently' : 'Unpublish'}
+						</Button>
+					{/snippet}
+				</Form>
 			{:else if dialog === 'upload'}
 				{#if form?.error}<P role="alert" class="text-sm text-red-600 dark:text-red-400"
 						>{form.error}</P

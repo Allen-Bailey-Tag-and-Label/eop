@@ -75,7 +75,16 @@ appropriate roles. New databases include both in the initial admin seed.
 4. Save a draft or publish the current editor content. Draft changes do not affect
    monitors. Publishing updates the saved draft and published snapshot together;
    stale concurrent saves are rejected. The published snapshot is kept until the
-   next publish; revision history and rollback are not yet provided.
+   next publish or unpublish; revision history and rollback are not yet provided.
+   Saved slides have **Unpublish slide** and **Delete slide** controls in Settings.
+   Both require confirmation and list referencing playlists. Unpublish preserves
+   the saved draft and playlist entries; monitors skip the slide after their next
+   refresh at a slide boundary, and republishing restores it. Disconnected monitors
+   keep loaded content until reconnecting. A playlist with no published slides
+   shows the no-playlist screen. Delete is permanent and blocked while any draft
+   or published playlist references the slide. Remove it from those playlists,
+   save their drafts and publish their changes, then reload the slide editor.
+   Uploaded assets are retained.
 5. Open **Admin → Monitors → Playlists**, create a playlist, add slides, reorder
    them, and optionally override each duration. A shorter override clips animation.
    Publish every referenced slide before publishing the playlist. Looping restarts
@@ -145,7 +154,7 @@ console.log(JSON.stringify(slide));
 V1 supports up to 100 elements (20 media elements) per slide, 100 keyframes per
 element, 100 entries per playlist, and 250 KB slide/playlist definitions. Scheduling
 by date/time, slide-to-slide transitions, custom live-data templates, asset deletion,
-and slide/playlist deletion are future work.
+and playlist deletion are future work.
 
 ## Component implementations
 

@@ -30,6 +30,12 @@ export type SlideDefinition = {
 };
 export type PlaylistItem = { slideId: string; durationMs: number | null };
 export type PlaylistDefinition = { items: PlaylistItem[]; loop: boolean };
+export type SlideReference = {
+	slug: string;
+	title: string;
+	draft: boolean;
+	published: boolean;
+};
 export type PlaybackSlide = {
 	id: string;
 	title: string;

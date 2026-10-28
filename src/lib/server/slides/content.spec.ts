@@ -1,18 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
-import { assignPlaylist, getPlayback, saveContent } from './content';
+import {
+	assignPlaylist,
+	getPlayback,
+	listSlideReferences,
+	manageSlide,
+	saveContent
+} from './content';
 import { Slide, Playlist, Asset } from './models';
 import { MonitorSession } from '../monitors/model';
 import { blankSlide } from '$lib/slides/types';
 
 vi.mock('./models', () => ({
-	Slide: { create: vi.fn(), updateOne: vi.fn(), countDocuments: vi.fn(), find: vi.fn() },
-	Playlist: { create: vi.fn(), updateOne: vi.fn(), findById: vi.fn(), exists: vi.fn() },
+	Slide: {
+		create: vi.fn(),
+		updateOne: vi.fn(),
+		deleteOne: vi.fn(),
+		countDocuments: vi.fn(),
+		find: vi.fn()
+	},
+	Playlist: {
+		create: vi.fn(),
+		updateOne: vi.fn(),
+		findById: vi.fn(),
+		find: vi.fn(),
+		exists: vi.fn()
+	},
 	Asset: { find: vi.fn() }
 }));
 vi.mock('../monitors/model', () => ({ MonitorSession: { findById: vi.fn(), updateOne: vi.fn() } }));
 const query = (value: unknown) => ({
 	select: vi.fn().mockReturnThis(),
+	sort: vi.fn().mockReturnThis(),
 	lean: vi.fn().mockResolvedValue(value)
 });
 const id = 'a'.repeat(24);
@@ -78,6 +97,90 @@ describe('slide publishing', () => {
 	it('does not query media persistence for a text-only slide', async () => {
 		await saveContent('slide', fields(), userId);
 		expect(Asset.find).not.toHaveBeenCalled();
+	});
+});
+describe('slide unpublishing and deletion', () => {
+	it('finds draft-only and published-only references, including repeated entries', async () => {
+		vi.mocked(Playlist.find).mockReturnValue(
+			query([
+				{
+					slug: 'draft',
+					title: 'Draft playlist',
+					draft: { items: [{ slideId: id }, { slideId: id }] }
+				},
+				{
+					slug: 'live',
+					title: 'Live playlist',
+					draft: { items: [] },
+					published: { items: [{ slideId: id }] }
+				}
+			]) as unknown as ReturnType<typeof Playlist.find>
+		);
+		expect(await listSlideReferences(id)).toEqual([
+			{ slug: 'draft', title: 'Draft playlist', draft: true, published: false },
+			{ slug: 'live', title: 'Live playlist', draft: false, published: true }
+		]);
+		expect(Playlist.find).toHaveBeenCalledWith({
+			$or: [{ 'draft.items.slideId': id }, { 'published.items.slideId': id }]
+		});
+	});
+	it('unpublishes only the saved snapshot and advances the concurrency version', async () => {
+		expect(await manageSlide('unpublish', 'welcome', fields(), userId)).toEqual([]);
+		expect(Slide.updateOne).toHaveBeenCalledWith(
+			{ _id: id, slug: 'welcome', version: 1, published: { $exists: true } },
+			{ $unset: { published: 1, publishedAt: 1, publishedTitle: 1 }, $inc: { version: 1 } },
+			{ _createdById: userId, runValidators: true }
+		);
+		expect(Slide.deleteOne).not.toHaveBeenCalled();
+	});
+	it('blocks deletion when a published playlist still uses the slide', async () => {
+		vi.mocked(Playlist.find).mockReturnValue(
+			query([
+				{
+					slug: 'live',
+					title: 'Live playlist',
+					draft: { items: [] },
+					published: { items: [{ slideId: id }] }
+				}
+			]) as unknown as ReturnType<typeof Playlist.find>
+		);
+		expect(await manageSlide('delete', 'welcome', fields(), userId)).toEqual([
+			{ slug: 'live', title: 'Live playlist', draft: false, published: true }
+		]);
+		expect(Slide.deleteOne).not.toHaveBeenCalled();
+	});
+	it('deletes an unreferenced slide with a version check and retains uploaded assets', async () => {
+		vi.mocked(Playlist.find).mockReturnValue(
+			query([]) as unknown as ReturnType<typeof Playlist.find>
+		);
+		vi.mocked(Slide.deleteOne).mockResolvedValue({ deletedCount: 1, acknowledged: true });
+		expect(await manageSlide('delete', 'welcome', fields(), userId)).toEqual([]);
+		expect(Slide.deleteOne).toHaveBeenCalledWith(
+			{ _id: id, slug: 'welcome', version: 1 },
+			{ _createdById: userId }
+		);
+		expect(Asset.find).not.toHaveBeenCalled();
+	});
+	it('rejects invalid versions and stale deletes or unpublishes', async () => {
+		const invalid = fields();
+		invalid.set('version', '0');
+		await expect(manageSlide('delete', 'welcome', invalid, userId)).rejects.toThrow(
+			'Invalid slide version'
+		);
+		expect(Slide.deleteOne).not.toHaveBeenCalled();
+		vi.mocked(Playlist.find).mockReturnValue(
+			query([]) as unknown as ReturnType<typeof Playlist.find>
+		);
+		vi.mocked(Slide.deleteOne).mockResolvedValue({ deletedCount: 0, acknowledged: true });
+		await expect(manageSlide('delete', 'welcome', fields(), userId)).rejects.toThrow(
+			'another editor'
+		);
+		vi.mocked(Slide.updateOne).mockResolvedValue({ modifiedCount: 0 } as Awaited<
+			ReturnType<typeof Slide.updateOne>
+		>);
+		await expect(manageSlide('unpublish', 'welcome', fields(), userId)).rejects.toThrow(
+			'another editor'
+		);
 	});
 });
 describe('monitor playlist playback', () => {
