@@ -9,6 +9,7 @@
 		Input,
 		Modal,
 		P,
+		Select,
 		Table,
 		Tbody,
 		Td,
@@ -27,7 +28,9 @@
 <Div class="space-y-8">
 	<Div class="space-y-2">
 		<H1>Monitor management</H1>
-		<P>View approved monitors and revoke access when a device is removed or moved.</P>
+		<P
+			>Assign published playlists to monitors and revoke access when a device is removed or moved.</P
+		>
 	</Div>
 	{#if form?.error}<P role="alert" class="text-red-600 dark:text-red-400">{form.error}</P>{/if}
 	{#if form?.success}<P role="status" class="text-green-700 dark:text-green-400">{form.success}</P
@@ -39,7 +42,10 @@
 		{:else}
 			<Div class="overflow-x-auto">
 				<Table class="w-full text-left">
-					<Thead><Tr><Th>Location</Th><Th>Last connected</Th><Th>Access</Th></Tr></Thead>
+					<Thead
+						><Tr><Th>Location</Th><Th>Last connected</Th><Th>Playlist</Th><Th>Access</Th></Tr
+						></Thead
+					>
 					<Tbody>
 						{#each data.monitors as monitor (monitor.id)}
 							<Tr>
@@ -49,6 +55,24 @@
 										? new Date(monitor.lastSeenAt).toLocaleString()
 										: 'Waiting for monitor'}</Td
 								>
+								<Td>
+									<Form action="?/assign" class="flex min-w-64 items-end gap-2">
+										<Input type="hidden" name="sessionId" value={monitor.id} />
+										<Select
+											name="playlistId"
+											aria-label={`Playlist for ${monitor.location}`}
+											value={monitor.playlistId}
+											options={[
+												{ value: '', label: 'No playlist' },
+												...data.playlists.map((playlist) => ({
+													value: playlist.id,
+													label: playlist.title
+												}))
+											]}
+										/>
+										<Button type="submit">Assign</Button>
+									</Form>
+								</Td>
 								<Td>
 									<Button
 										type="button"

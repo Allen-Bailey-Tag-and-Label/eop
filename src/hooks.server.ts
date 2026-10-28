@@ -89,6 +89,16 @@ const initDB = async () => {
 			}),
 			Route.create({
 				_createdById: adminUser._id,
+				href: '/admin/monitors/slides',
+				label: 'Monitor slides'
+			}),
+			Route.create({
+				_createdById: adminUser._id,
+				href: '/admin/monitors/playlists',
+				label: 'Monitor playlists'
+			}),
+			Route.create({
+				_createdById: adminUser._id,
 				_parentId: adminRoute._id,
 				href: '/admin/roles',
 				label: 'Roles'

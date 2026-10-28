@@ -89,11 +89,13 @@ describe('central monitor authentication', () => {
 			vi.mocked(getMonitorSession).mockResolvedValue(
 				session as Awaited<ReturnType<typeof getMonitorSession>>
 			);
-			const input = context('/(monitors)/monitors/(approved)/display', '/monitors/display');
-			const response = await invoke(input);
-			expect(response.status).toBe(303);
-			expect(response.headers.get('location')).toBe('/monitors/pair');
-			expect(input.resolve).not.toHaveBeenCalled();
+			for (const path of ['display', 'playback', 'media/[id]']) {
+				const input = context(`/(monitors)/monitors/(approved)/${path}`, `/monitors/${path}`);
+				const response = await invoke(input);
+				expect(response.status).toBe(303);
+				expect(response.headers.get('location')).toBe('/monitors/pair');
+				expect(input.resolve).not.toHaveBeenCalled();
+			}
 		}
 	});
 
@@ -120,7 +122,7 @@ describe('central monitor authentication', () => {
 		}
 	});
 
-	it.each(['approval', 'management'])(
+	it.each(['approval', 'management', 'slides', 'playlists'])(
 		'uses existing role assignments to protect monitor %s',
 		async (page) => {
 			const pathname = `/admin/monitors/${page}`;

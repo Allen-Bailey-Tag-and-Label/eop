@@ -7,7 +7,7 @@
 2. On an employee computer, sign in and open `/admin/monitors/approval`. Enter the code and
    a location such as "Break room, east wall", then approve it.
 3. Within approximately five seconds, the monitor switches to `/monitors/display`.
-   This is an authenticated, full-screen placeholder for the future slide player.
+   This is the authenticated, full-screen player for its assigned published playlist.
 4. Open `/admin/monitors/management` to view approved monitors and revoke access
    when a device is removed or moved. Revocation requires confirmation.
    Online displays return to pairing within approximately 30 seconds.
@@ -44,7 +44,69 @@ MongoDB creates the new collections and indexes through the existing model setup
 Tests use mocked persistence and never connect to a live database:
 `npm run test:unit -- --run src/lib/server/monitors src/lib/monitors/watchStatus.spec.ts src/hooks.server.spec.ts`.
 
-Slide creation, media uploads, transitions, and playback scheduling are deferred.
+## Monitor slides and playlists
+
+For an existing database, add `/admin/monitors/slides` and
+`/admin/monitors/playlists` in **Admin → Routes**, then assign the routes to the
+appropriate roles. New databases include both in the initial admin seed.
+
+1. Open **Admin → Monitors → Slides**, create a slide, and enter its title and
+   unique slug. The default canvas is 1920 × 1080 and scales to fit the monitor.
+2. Add text, images, SVG assets, rectangles, ellipses, or lines. Edit coordinates,
+   dimensions, colors, typography, and layer order in the property panel. Upload
+   PNG/JPEG/WebP images under 3 MB or SVGs under 300 KB. SVG scripts, external
+   references, embedded HTML, and styles are removed; use element timelines for
+   animation. Assets are immutable and stored separately in MongoDB, with IDs
+   referenced by slides. No extra hosting service or environment secrets are needed.
+3. Use an animation preset or edit keyframes. Each keyframe specifies a complete
+   pose (x, y, opacity, scale, rotation), time in milliseconds, and easing into
+   that frame. Scrub or play the preview. Set the slide duration (1–600 seconds).
+   Later elements render in front. The final pose is held until the slide ends.
+4. Save a draft or publish the current editor content. Draft changes do not affect
+   monitors. Publishing updates the saved draft and published snapshot together;
+   stale concurrent saves are rejected. The published snapshot is kept until the
+   next publish; revision history and rollback are not yet provided.
+5. Open **Admin → Monitors → Playlists**, create a playlist, add slides, reorder
+   them, and optionally override each duration. A shorter override clips animation.
+   Publish every referenced slide before publishing the playlist. Looping restarts
+   from the beginning; disabling it holds the final slide on screen.
+6. Assign a published playlist to an approved monitor in **Monitor management**.
+   The display checks for changes every 30 seconds and applies changes at a slide
+   boundary. It preloads upcoming media, retains the current slide while preparing
+   the next one, and continues loaded content during a network interruption.
+   Media uses a bounded 64 MB in-memory cache; offline persistence across browser
+   restarts is not provided. Revocation polling remains active independently.
+
+The editor and player share the renderer and deterministic timeline evaluator.
+Definitions are validated data, never compiled Svelte or evaluated JavaScript.
+Slugs address editors; playlist entries use stable database IDs so renaming a slug
+does not break playback. Only approved monitor routes can fetch playback or
+published media. Versioned slides, playlists, and binary assets are kept outside
+generic database CRUD exports so writes follow validation and publication rules.
+
+For programmatic creation, use **Export to JSON** for a complete example, generate
+the same structure, and use **Import from JSON** before saving or publishing.
+The shared types and validation live in `src/lib/slides`. For example:
+
+```ts
+import { blankSlide, newElement } from './src/lib/slides/types';
+
+const slide = blankSlide();
+const headline = newElement('text', 'headline');
+headline.text = 'Safety first';
+headline.keyframes = [
+	{ x: 160, y: 160, opacity: 0, scale: 1, rotation: 0, atMs: 0, easing: 'linear' },
+	{ x: 160, y: 160, opacity: 1, scale: 1, rotation: 0, atMs: 800, easing: 'ease-out' }
+];
+slide.elements.push(headline);
+console.log(JSON.stringify(slide));
+```
+
+V1 supports up to 100 elements (20 media elements) per slide, 100 keyframes per
+element, 100 entries per playlist, and 250 KB slide/playlist definitions. Scheduling
+by date/time, slide-to-slide transitions, custom live-data templates, drag handles,
+asset deletion, and slide/playlist deletion are future work. The current editor
+positions elements through numeric properties.
 
 ## Component implementations
 

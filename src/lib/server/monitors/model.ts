@@ -11,6 +11,7 @@ export type MonitorRecord = {
 	approvedAt?: Date;
 	approvedById?: Types.ObjectId;
 	lastSeenAt?: Date;
+	playlistId?: Types.ObjectId;
 };
 
 // Deliberately outside the general model barrel: credentials must not be exposed
@@ -26,7 +27,8 @@ export const MonitorSession = defineModel<MonitorRecord>(
 		expiresAt: { type: Date, index: { expires: 0 } },
 		approvedAt: Date,
 		approvedById: { type: Schema.Types.ObjectId, ref: 'User' },
-		lastSeenAt: Date
+		lastSeenAt: Date,
+		playlistId: { type: Schema.Types.ObjectId, ref: 'MonitorPlaylist' }
 	},
 	{ log: false }
 );

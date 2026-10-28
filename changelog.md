@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T13:03:05.695Z
+## 2026-10-28T13:44:54.524Z
+
+feat: Add slide authoring, publishing, playlists, and monitor playback
+
+## 2026-10-28T09:16:36-04:00
 
 feat: Keep approved monitor sessions valid until revoked
 

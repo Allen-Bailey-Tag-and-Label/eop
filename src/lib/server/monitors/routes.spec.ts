@@ -19,6 +19,10 @@ import {
 } from './sessions';
 
 vi.mock('./cookies', () => ({ setMonitorCookie: vi.fn() }));
+vi.mock('$lib/server/slides/content', () => ({
+	listPlaylists: vi.fn(async () => []),
+	assignPlaylist: vi.fn()
+}));
 vi.mock('./sessions', () => ({
 	MONITOR_COOKIE: 'monitorSession',
 	PairingLimitError: class extends Error {},
@@ -80,12 +84,14 @@ describe('monitor route wiring', () => {
 				id: session._id.toString(),
 				location: 'Break room',
 				approvedAt: null,
-				lastSeenAt: null
+				lastSeenAt: null,
+				playlistId: ''
 			}
 		];
 		vi.mocked(listMonitors).mockResolvedValue(monitors);
 		expect(await management(event() as unknown as Parameters<typeof management>[0])).toEqual({
-			monitors
+			monitors,
+			playlists: []
 		});
 	});
 

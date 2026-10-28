@@ -4,13 +4,13 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { Snippet } from 'svelte';
 	import { fromAction } from 'svelte/attachments';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLFormAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { enhance } from '$app/forms';
 	import { theme } from '$lib/theme';
 	import { Div } from '../';
 
-	type Props = Omit<HTMLAttributes<HTMLFormElement>, 'class' | 'style'> & {
+	type Props = Omit<HTMLFormAttributes, 'class' | 'style'> & {
 		action?: string;
 		buttons?: Snippet;
 		children?: Snippet;

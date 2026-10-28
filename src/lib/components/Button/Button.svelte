@@ -2,11 +2,11 @@
 	import { Button as SveltewindButton } from 'sveltewind/components';
 	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import type { Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLButtonAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
 
-	type Props = Omit<HTMLAttributes<HTMLButtonElement>, 'class' | 'disabled'> & {
+	type Props = Omit<HTMLButtonAttributes, 'class' | 'disabled'> & {
 		children?: Snippet;
 		class?: string;
 		disabled?: boolean;

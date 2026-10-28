@@ -3,13 +3,13 @@
 	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
-	import { type HTMLAttributes } from 'svelte/elements';
+	import { type HTMLTextareaAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { attachmentFactory } from '$lib/attachments';
 	import { theme } from '$lib/theme';
 	import { Div, Label } from '..';
 
-	type Props = Omit<HTMLAttributes<HTMLTextAreaElement>, 'class' | 'style'> & {
+	type Props = Omit<HTMLTextareaAttributes, 'class' | 'style'> & {
 		attachments?: Attachment[];
 		children?: Snippet;
 		class?: string;

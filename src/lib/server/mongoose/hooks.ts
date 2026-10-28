@@ -1,5 +1,4 @@
 import type { Schema } from 'mongoose';
-import { User, UserProfile, UserSettings } from './models';
 import { logOperation, shouldSkipLogging } from './middleware';
 
 const enableVirtuals = (schema: Schema) => {
@@ -87,6 +86,8 @@ export class Hooks {
 					if (shouldSkipLogging()) return next?.();
 					if ((doc as any)._profileId && (doc as any)._settingsId) return next?.();
 
+					// Load models after schema registration to avoid a model/defineModel cycle.
+					const { User, UserProfile, UserSettings } = await import('./models');
 					const [profile, settings] = await Promise.all([
 						UserProfile.create({ _createdById: doc._id }),
 						UserSettings.create({ _createdById: doc._id })

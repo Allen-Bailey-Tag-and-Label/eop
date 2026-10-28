@@ -122,7 +122,7 @@ export async function touchMonitor(id: Types.ObjectId, now = new Date()) {
 
 export async function listMonitors() {
 	const sessions = await MonitorSession.find({ status: 'approved' })
-		.select('location approvedAt lastSeenAt')
+		.select('location approvedAt lastSeenAt playlistId')
 		.sort({ approvedAt: -1 })
 		.limit(200)
 		.lean();
@@ -130,7 +130,8 @@ export async function listMonitors() {
 		id: session._id.toString(),
 		location: session.location,
 		approvedAt: session.approvedAt?.toISOString() ?? null,
-		lastSeenAt: session.lastSeenAt?.toISOString() ?? null
+		lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+		playlistId: session.playlistId?.toString() ?? ''
 	}));
 }
 
