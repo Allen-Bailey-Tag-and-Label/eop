@@ -72,7 +72,7 @@ appropriate roles. New databases include both in the initial admin seed.
    that frame. Playback, scrubbing, and clickable keyframe markers remain at the
    bottom of the editor. Set the slide duration (1–600 seconds) in Settings.
    **Background type** offers **Solid color** or **Transparent**. Transparent
-   backgrounds show a checkerboard in the editor and reveal the underlying
+   backgrounds show a checkerboard matched to the editor's light/dark mode and reveal the underlying
    display background (currently black) on monitors.
    Later elements render in front. The final pose is held until the slide ends.
    **Whole-slide transitions** in Settings control the entrance and exit separately:

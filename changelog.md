@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T16:48:59.766Z
+## 2026-10-28T16:53:08.993Z
+
+fix: Adapt the slide transparency checkerboard to light and dark mode
+
+## 2026-10-28T12:49:43-04:00
 
 feat: Support transparent slide backgrounds
 

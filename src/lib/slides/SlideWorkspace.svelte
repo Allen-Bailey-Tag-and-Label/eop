@@ -206,8 +206,8 @@
 	onpointercancel={stop}
 >
 	<Div
-		class="absolute bg-black shadow-xl"
-		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));${definition.background === 'transparent' ? 'background:repeating-conic-gradient(#d1d5db 0% 25%,#f9fafb 0% 50%) 0 0 / 20px 20px;' : ''}`}
+		class="absolute bg-black shadow-xl [--slide-checker-a:#e5e7eb] [--slide-checker-b:#f3f4f6] dark:[--slide-checker-a:#1f2937] dark:[--slide-checker-b:#374151]"
+		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));${definition.background === 'transparent' ? 'background:repeating-conic-gradient(var(--slide-checker-a) 0% 25%,var(--slide-checker-b) 0% 50%) 0 0 / 20px 20px;' : ''}`}
 	>
 		<SlideCanvas
 			{definition}
