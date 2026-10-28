@@ -109,11 +109,18 @@ describe('monitor playlist playback', () => {
 		);
 		vi.mocked(Slide.find).mockReturnValue(
 			query([
-				{ _id: new Types.ObjectId(id), published: blankSlide(), draft: { secret: 'SECRET DRAFT' } }
+				{
+					_id: new Types.ObjectId(id),
+					published: blankSlide(),
+					publishedTitle: 'Welcome',
+					title: 'SECRET DRAFT',
+					draft: { secret: 'SECRET DRAFT' }
+				}
 			]) as unknown as ReturnType<typeof Slide.find>
 		);
 		const playback = await getPlayback(id);
 		expect(playback?.slides.map((slide) => slide.durationMs)).toEqual([2500, 10000]);
+		expect(playback?.slides.map((slide) => slide.title)).toEqual(['Welcome', 'Welcome']);
 		expect(playback?.title).toBe('Break room');
 		expect(JSON.stringify(playback)).not.toContain('SECRET DRAFT');
 		expect((await getPlayback(id))?.version).toBe(playback?.version);

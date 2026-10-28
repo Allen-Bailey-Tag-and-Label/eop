@@ -30,11 +30,17 @@ export type SlideDefinition = {
 };
 export type PlaylistItem = { slideId: string; durationMs: number | null };
 export type PlaylistDefinition = { items: PlaylistItem[]; loop: boolean };
+export type PlaybackSlide = {
+	id: string;
+	title: string;
+	definition: SlideDefinition;
+	durationMs: number;
+};
 export type Playback = {
 	version: string;
 	title: string;
 	loop: boolean;
-	slides: { id: string; definition: SlideDefinition; durationMs: number }[];
+	slides: PlaybackSlide[];
 };
 export type AssetSummary = { id: string; name: string; contentType: string };
 export type ContentEditor<T> = {

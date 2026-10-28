@@ -4,16 +4,41 @@
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { nextSlide, watchPlayback } from './playback';
 	import { mediaIds, SlideMediaCache } from './media';
-	import type { Playback, SlideDefinition } from './types';
+	import type { Playback, PlaybackSlide, SlideDefinition } from './types';
 	let { location }: { location: string } = $props();
 	let playback = $state<Playback | null>(null);
-	let queued: Playback | null | undefined;
+	let queued = $state<Playback | null | undefined>();
 	let index = $state(0);
 	let timeMs = $state(0);
 	let assetUrls = $state<Record<string, string>>({});
 	let connected = $state(true);
 	let mediaMissing = $state(false);
-	let shown = $state<{ definition: SlideDefinition; title: string } | null>(null);
+	let shown = $state<{
+		definition: SlideDefinition;
+		title: string;
+		durationMs: number;
+		version: string;
+		next: PlaybackSlide | null;
+	} | null>(null);
+	let preparing = $state<PlaybackSlide | null>(null);
+	let nextPreview = $state<{ definition: SlideDefinition; urls: Record<string, string> } | null>(
+		null
+	);
+	let previewLoading = $state(false);
+	let displayWidth = $state(0);
+	let displayHeight = $state(0);
+	const upcoming = $derived.by(() => {
+		if (!shown) return null;
+		if (preparing) return preparing;
+		if (queued !== undefined && queued?.version !== shown.version) return queued?.slides[0] ?? null;
+		return shown.next;
+	});
+	const remainingSeconds = $derived(
+		Math.max(0, Math.ceil(((shown?.durationMs ?? 0) - timeMs) / 1000))
+	);
+	const countdown = $derived(
+		`${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`
+	);
 	let loading = $state(true);
 	let finished = false;
 	const cache = new SlideMediaCache();
@@ -40,16 +65,16 @@
 		const slide = current?.slides[index];
 		if (!current || !slide) {
 			shown = null;
+			preparing = null;
 			mediaMissing = false;
 			return;
 		}
 		const ids = mediaIds(slide.definition);
+		preparing = slide;
 		cache.protectedIds = new Set(ids);
 		const controller = new AbortController();
 		let frame: number;
 		let timer: ReturnType<typeof setTimeout>;
-		const prefetch = new AbortController();
-		let prefetchTimeout: ReturnType<typeof setTimeout>;
 		const timeout = setTimeout(() => controller.abort(), 5000);
 		let disposed = false;
 		finished = false;
@@ -57,7 +82,15 @@
 			clearTimeout(timeout);
 			if (disposed) return;
 			assetUrls = cache.urls(ids);
-			shown = { definition: slide.definition, title: current.title };
+			const next = nextSlide(current, index);
+			shown = {
+				definition: slide.definition,
+				title: current.title,
+				durationMs: slide.durationMs,
+				version: current.version,
+				next: current.loop || next !== index ? current.slides[next] : null
+			};
+			preparing = null;
 			timeMs = 0;
 			mediaMissing = Object.keys(assetUrls).length !== ids.length;
 			const start = performance.now();
@@ -85,49 +118,117 @@
 					if (current.slides.length === 1) playback = { ...current };
 				}
 			}, slide.durationMs);
-			const upcoming = current.slides[nextSlide(current, index)];
-			if (upcoming) {
-				prefetchTimeout = setTimeout(() => prefetch.abort(), 10000);
-				void Promise.allSettled(
-					mediaIds(upcoming.definition).map((id) => cache.load(id, prefetch.signal))
-				).finally(() => clearTimeout(prefetchTimeout));
-			}
 		});
 		return () => {
 			disposed = true;
 			controller.abort();
-			prefetch.abort();
-			clearTimeout(prefetchTimeout);
 			clearTimeout(timeout);
 			clearTimeout(timer);
 			cancelAnimationFrame(frame);
 		};
 	});
+	$effect(() => {
+		const slide = upcoming;
+		nextPreview = null;
+		previewLoading = !!slide;
+		if (!slide || preparing) return;
+		const ids = mediaIds(slide.definition);
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 10000);
+		let disposed = false;
+		void Promise.allSettled(ids.map((id) => cache.load(id, controller.signal))).then(() => {
+			clearTimeout(timeout);
+			if (disposed) return;
+			previewLoading = false;
+			const urls = cache.urls(ids);
+			if (Object.keys(urls).length === ids.length)
+				nextPreview = { definition: slide.definition, urls };
+		});
+		return () => {
+			disposed = true;
+			controller.abort();
+			clearTimeout(timeout);
+		};
+	});
 </script>
 
-<Div class="fixed inset-0 bg-black text-white">
+<Div class="fixed inset-0 flex flex-col bg-black text-white">
+	<div
+		class="relative min-h-0 flex-1"
+		role="region"
+		aria-label="Current slide"
+		bind:clientWidth={displayWidth}
+		bind:clientHeight={displayHeight}
+	>
+		{#if shown}
+			<SlideCanvas
+				definition={shown.definition}
+				{timeMs}
+				{assetUrls}
+				assetBase="/monitors/media"
+				label={`${shown.title} — ${location}`}
+			/>
+		{:else}
+			<Div class="flex h-full flex-col items-center justify-center gap-6 p-8 text-center"
+				><P class="text-2xl">Allen-Bailey Tag &amp; Label</P><H1 class="text-5xl text-white"
+					>{location}</H1
+				><P class="text-2xl"
+					>{loading ? 'Loading playlist…' : 'No published playlist is assigned to this monitor.'}</P
+				></Div
+			>
+		{/if}
+		{#if !connected || mediaMissing}<P
+				role="status"
+				class="absolute bottom-4 left-4 rounded bg-black/80 px-4 py-2 text-sm text-white"
+				>{!connected
+					? 'Connection lost. Continuing loaded content and retrying…'
+					: 'Some images could not load. Retrying on the next slide.'}</P
+			>{/if}
+	</div>
 	{#if shown}
-		<SlideCanvas
-			definition={shown.definition}
-			{timeMs}
-			{assetUrls}
-			assetBase="/monitors/media"
-			label={`${shown.title} — ${location}`}
-		/>
-	{:else}
-		<Div class="flex h-full flex-col items-center justify-center gap-6 p-8 text-center"
-			><P class="text-2xl">Allen-Bailey Tag &amp; Label</P><H1 class="text-5xl text-white"
-				>{location}</H1
-			><P class="text-2xl"
-				>{loading ? 'Loading playlist…' : 'No published playlist is assigned to this monitor.'}</P
-			></Div
+		<Div
+			class="flex shrink-0 items-center justify-between gap-4 border-t border-white/15 bg-gray-950 px-4 py-3 text-white md:px-6"
+			role="region"
+			aria-label="Playback information"
 		>
+			<Div class="flex min-w-0 items-center gap-3" role="region" aria-label="Up next">
+				{#if upcoming}
+					<Div
+						class="aspect-video w-24 shrink-0 overflow-hidden rounded border border-white/20 bg-black md:w-32"
+						aria-hidden="true"
+					>
+						{#if nextPreview}
+							<SlideCanvas
+								definition={nextPreview.definition}
+								assetUrls={nextPreview.urls}
+								timeMs={Math.min(2000, upcoming.durationMs / 2)}
+								viewportWidth={displayWidth || upcoming.definition.width}
+								viewportHeight={displayHeight || upcoming.definition.height}
+								assetBase="/monitors/media"
+								label="Next slide preview"
+							/>
+						{:else}<Div class="flex h-full items-center justify-center text-xs text-gray-400"
+								>{previewLoading ? 'Preview loading…' : 'Preview unavailable'}</Div
+							>{/if}
+					</Div>
+				{/if}
+				<Div class="min-w-0"
+					><P class="text-xs tracking-wide text-gray-400 uppercase">Up next</P><P
+						class="truncate text-base font-semibold md:text-xl"
+						title={upcoming?.title}
+						>{upcoming ? upcoming.title || 'Next slide' : 'End of playlist'}</P
+					></Div
+				>
+			</Div>
+			<Div class="shrink-0 text-right"
+				><P class="text-xs tracking-wide text-gray-400 uppercase">Time remaining</P><P
+					role="timer"
+					aria-label="Current slide time remaining"
+					aria-live="off"
+					class="font-mono text-3xl leading-none font-semibold tabular-nums md:text-4xl"
+					>{countdown}</P
+				></Div
+			>
+		</Div>
 	{/if}
-	{#if !connected || mediaMissing}<P
-			role="status"
-			class="absolute bottom-4 left-4 rounded bg-black/80 px-4 py-2 text-sm text-white"
-			>{!connected
-				? 'Connection lost. Continuing loaded content and retrying…'
-				: 'Some images could not load. Retrying on the next slide.'}</P
-		>{/if}
 </Div>

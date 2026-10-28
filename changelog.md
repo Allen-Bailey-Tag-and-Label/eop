@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T15:46:32.416Z
+## 2026-10-28T15:57:16.948Z
+
+feat: Show upcoming slides and countdowns on monitor displays
+
+## 2026-10-28T11:47:02-04:00
 
 fix: Match the Add dropdown size and colors to toolbar buttons
 

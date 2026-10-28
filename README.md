@@ -84,6 +84,10 @@ appropriate roles. New databases include both in the initial admin seed.
    The display checks for changes every 30 seconds and applies changes at a slide
    boundary. It preloads upcoming media, retains the current slide while preparing
    the next one, and continues loaded content during a network interruption.
+   A footer below the slide shows the upcoming slide's thumbnail and published
+   title on the left and the current slide's remaining time on the right. The
+   countdown uses the playlist duration override when set. Non-looping playlists
+   show **End of playlist** and hold at **0:00** after the final slide.
    Media uses a bounded 64 MB in-memory cache; offline persistence across browser
    restarts is not provided. Revocation polling remains active independently.
 

@@ -189,14 +189,15 @@ export async function getPlayback(monitorId: string): Promise<Playback | null> {
 		_id: { $in: playlist.published.items.map((item) => item.slideId) },
 		published: { $exists: true }
 	})
-		.select('published')
+		.select('published publishedTitle')
 		.lean();
-	const slides = playlist.published.items.flatMap((item) => {
+	const slides = playlist.published.items.flatMap((item, index) => {
 		const slide = rows.find((row) => row._id.toString() === item.slideId);
 		return slide?.published
 			? [
 					{
 						id: slide._id.toString(),
+						title: slide.publishedTitle ?? `Slide ${index + 1}`,
 						definition: slide.published,
 						durationMs: item.durationMs ?? slide.published.durationMs
 					}
