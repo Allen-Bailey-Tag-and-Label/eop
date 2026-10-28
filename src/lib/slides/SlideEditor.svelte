@@ -274,14 +274,17 @@
 			></Div
 		>
 		<DropdownMenu
+			class="shrink-0 [&>button]:inline-flex [&>button]:h-9 [&>button]:items-center [&>button]:px-2 [&>button]:py-1 [&>button]:text-sm [&>button]:text-white [&>button]:hover:text-white [&>button]:focus:text-white"
 			label="Add element"
 			items={elementTools.map((item) => ({ value: item.type, label: item.label }))}
 			onSelect={(item) => addElement(item.value as ElementType)}
 		>
-			<Plus size={18} /><span class="ml-1 hidden md:inline">Add</span><ChevronDown
-				size={14}
-				class="ml-1"
-			/>
+			<span class="inline-flex flex-nowrap items-center gap-1 whitespace-nowrap">
+				<Plus size={18} class="shrink-0" /><span class="hidden md:inline">Add</span><ChevronDown
+					size={14}
+					class="shrink-0"
+				/>
+			</span>
 		</DropdownMenu>
 		<Button
 			aria-label="Settings"

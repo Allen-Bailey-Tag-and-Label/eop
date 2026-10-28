@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T14:49:05.534Z
+## 2026-10-28T15:46:32.416Z
+
+fix: Match the Add dropdown size and colors to toolbar buttons
+
+## 2026-10-28T11:40:31-04:00
 
 feat: Add responsive slide layouts and element anchoring
 
