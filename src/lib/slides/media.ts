@@ -1,8 +1,9 @@
+import { allElements } from './repeater';
 import type { SlideDefinition } from './types';
 
 export const mediaIds = (definition: SlideDefinition) => [
 	...new Set(
-		definition.elements
+		allElements(definition)
 			.filter((element) => element.type === 'image' || element.type === 'svg')
 			.map((element) => element.assetId)
 	)

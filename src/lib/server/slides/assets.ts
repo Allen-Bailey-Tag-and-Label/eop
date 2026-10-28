@@ -71,7 +71,15 @@ export async function uploadAsset(request: Request, userId: string) {
 }
 export async function serveAsset(id: string, publishedOnly = false) {
 	if (!isId(id)) error(404, 'Asset not found.');
-	if (publishedOnly && !(await Slide.exists({ 'published.elements.assetId': id })))
+	if (
+		publishedOnly &&
+		!(await Slide.exists({
+			$or: [
+				{ 'published.elements.assetId': id },
+				{ 'published.elements.repeater.template.elements.assetId': id }
+			]
+		}))
+	)
 		error(404, 'Asset not found.');
 	const asset = await Asset.findById(id).select('+data');
 	if (!asset) error(404, 'Asset not found.');

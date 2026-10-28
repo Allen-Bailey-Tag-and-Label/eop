@@ -19,6 +19,7 @@
 	let queued = $state<Playback | null | undefined>();
 	let index = $state(0);
 	let timeMs = $state(0);
+	let dataTimeMs = $state(0);
 	let assetUrls = $state<Record<string, string>>({});
 	let connected = $state(true);
 	let colorMode = $state<DisplayMode>('dark');
@@ -130,15 +131,18 @@
 			};
 			preparing = null;
 			timeMs = 0;
+			dataTimeMs = 0;
 			mediaMissing = Object.keys(assetUrls).length !== ids.length;
 			const start = performance.now();
 			const tick = (now: number) => {
 				timeMs = Math.min(timing.totalMs, now - start);
+				dataTimeMs = now - start;
 				frame = requestAnimationFrame(tick);
 			};
 			frame = requestAnimationFrame(tick);
 			timer = setTimeout(async () => {
-				cancelAnimationFrame(frame);
+				if (!slide.definition.elements.some((element) => element.repeater))
+					cancelAnimationFrame(frame);
 				timeMs = timing.totalMs;
 				// Revalidate published content before every new slide, including single-slide loops.
 				await refresh?.();
@@ -213,6 +217,7 @@
 			<SlideCanvas
 				definition={shown.definition}
 				data={shown.data}
+				{dataTimeMs}
 				{timeMs}
 				{scheme}
 				animateTransitions

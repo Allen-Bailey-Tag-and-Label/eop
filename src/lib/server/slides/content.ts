@@ -1,3 +1,4 @@
+import { allElements } from '$lib/slides/repeater';
 import { createHash } from 'node:crypto';
 import { Types } from 'mongoose';
 import { error } from '@sveltejs/kit';
@@ -138,7 +139,7 @@ export async function getEditor(kind: 'slide' | 'playlist', key: string) {
 export async function validateAssets(definition: SlideDefinition) {
 	const ids = [
 		...new Set(
-			definition.elements
+			allElements(definition)
 				.filter((e) => e.type === 'image' || e.type === 'svg')
 				.map((e) => e.assetId)
 		)
@@ -147,7 +148,7 @@ export async function validateAssets(definition: SlideDefinition) {
 	const assets = await Asset.find({ _id: { $in: ids } })
 		.select('contentType')
 		.lean();
-	for (const element of definition.elements) {
+	for (const element of allElements(definition)) {
 		if (element.type !== 'image' && element.type !== 'svg') continue;
 		const asset = assets.find((item) => item._id.toString() === element.assetId);
 		if (!asset || (element.type === 'svg') !== (asset.contentType === 'image/svg+xml'))

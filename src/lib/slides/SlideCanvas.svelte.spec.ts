@@ -1,3 +1,4 @@
+import { defaultRepeater } from './repeater';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/svelte';
 import SlideCanvas from './SlideCanvas.svelte';
@@ -51,6 +52,49 @@ describe('responsive slide rendering', () => {
 		});
 		expect(view.getByText('Holiday data is temporarily unavailable.')).toBeInTheDocument();
 		expect(view.getByText('Data list')).toBeInTheDocument();
+	});
+	it('renders bound item templates, preserves styling, and changes grid pages on the timeline', async () => {
+		const settings = defaultRepeater();
+		settings.template.elements[1].binding = {
+			field: 'row.name',
+			format: 'text',
+			fallback: 'Missing'
+		};
+		settings.template.elements[2].binding = { field: 'row.date', format: 'date', fallback: '' };
+		const grid = {
+			...newElement('list', 'grid'),
+			x: 0,
+			y: 0,
+			width: 1000,
+			height: 400,
+			repeater: settings
+		};
+		const rows = Array.from({ length: 5 }, (_, index) => ({
+			id: String(index),
+			label: '',
+			detail: '',
+			fields: { name: `Item ${index + 1}`, date: '2026-11-26T12:00:00Z' }
+		}));
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), width: 1000, height: 400, elements: [grid] },
+			viewportWidth: 1000,
+			viewportHeight: 400,
+			assetBase: '/assets',
+			data: { grid: { state: 'ready', items: rows, message: '' } }
+		});
+		expect(view.getByText('Item 1')).toBeInTheDocument();
+		expect(view.queryByText('Item 5')).not.toBeInTheDocument();
+		expect(view.getByText('Item 1')).toHaveStyle({ fontWeight: '700' });
+		expect(view.getAllByText('Nov 26, 2026')).toHaveLength(4);
+		await view.rerender({ timeMs: 5000 });
+		expect(view.getByText('Item 5')).toBeInTheDocument();
+		expect(view.queryByText('Item 1')).not.toBeInTheDocument();
+		await view.rerender({ animateTransitions: true, timeMs: 0 });
+		expect(view.getByText('Item 1')).toBeInTheDocument();
+		await view.rerender({ timeMs: 7000 });
+		expect(view.getByText('Item 5')).toBeInTheDocument();
+		await view.rerender({ data: { grid: { state: 'empty', items: [], message: 'No rows' } } });
+		expect(view.getByText('No rows')).toBeInTheDocument();
 	});
 	it('holds element keyframes during entrance, plays them during display, and holds their final pose on exit', async () => {
 		const element = newElement('text', 'headline');

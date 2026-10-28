@@ -1,6 +1,13 @@
+import { safeField } from './data-link';
+import { allElements } from './repeater';
 import { normalizeDataSource, validateLink } from './data-link';
 import type { Keyframe, PlaylistDefinition, Pose, SlideDefinition, SlideElement } from './types';
-import { defaultSlideTransition, type SlideTransition, type SlideDataSource } from './types';
+import {
+	defaultSlideTransition,
+	type SlideTransition,
+	type SlideDataSource,
+	type RepeaterDefinition
+} from './types';
 
 export class SlideValidationError extends Error {}
 const invalid = (message: string): never => {
@@ -71,16 +78,47 @@ function transition(value: unknown): SlideTransition {
 		durationMs: number(settings.durationMs, 0, 600000, 'Transition duration in milliseconds')
 	};
 }
-export function validateDataSource(input: unknown): SlideDataSource {
+export function validateDataSource(input: unknown, requireLabel = true): SlideDataSource {
 	try {
 		const config = normalizeDataSource(input);
-		validateLink(config);
+		validateLink(config, requireLabel);
 		return config;
 	} catch (cause) {
 		return invalid(cause instanceof Error ? cause.message : 'Invalid data link.');
 	}
 }
-export function validateSlide(input: unknown): SlideDefinition {
+function repeater(input: unknown, durationMs: number): RepeaterDefinition {
+	const value = object(input);
+	const integer = (raw: unknown, min: number, max: number, label: string) => {
+		const n = number(raw, min, max, label);
+		if (!Number.isInteger(n)) invalid(`${label} must be a whole number.`);
+		return n;
+	};
+	const template = object(value.template);
+	const validated = validateSlide(
+		{
+			schemaVersion: 1,
+			width: template.width,
+			height: template.height,
+			durationMs,
+			background: 'transparent',
+			elements: template.elements
+		},
+		true
+	);
+	return {
+		columns: integer(value.columns, 0, 12, 'Columns'),
+		minItemWidth: number(value.minItemWidth, 24, 4096, 'Minimum item width'),
+		itemHeight: number(value.itemHeight, 0, 4096, 'Item height'),
+		columnGap: number(value.columnGap, 0, 512, 'Column gap'),
+		rowGap: number(value.rowGap, 0, 512, 'Row gap'),
+		align: choice(value.align, ['start', 'center', 'end'], 'grid alignment'),
+		overflow: choice(value.overflow, ['paginate', 'scroll', 'clip'], 'grid overflow'),
+		pageDurationMs: integer(value.pageDurationMs, 500, 600000, 'Page duration'),
+		template: { width: validated.width, height: validated.height, elements: validated.elements }
+	};
+}
+export function validateSlide(input: unknown, itemTemplate = false): SlideDefinition {
 	const value = object(input);
 	if (value.schemaVersion !== 1) invalid('Unsupported slide version.');
 	const durationMs = number(value.durationMs, 1000, 600000, 'Duration in milliseconds');
@@ -95,7 +133,9 @@ export function validateSlide(input: unknown): SlideDefinition {
 		ids.add(id);
 		const type = choice(
 			e.type,
-			['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list'],
+			itemTemplate
+				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line']
+				: ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list'],
 			'element type'
 		);
 		const assetId = text(e.assetId, 24, 'Asset ID').toLowerCase();
@@ -121,7 +161,40 @@ export function validateSlide(input: unknown): SlideDefinition {
 			type,
 			assetId,
 			keyframes,
-			...(type === 'list' ? { dataSource: validateDataSource(e.dataSource) } : {}),
+			...(type === 'list'
+				? {
+						dataSource: validateDataSource(e.dataSource, !e.repeater),
+						...(e.repeater ? { repeater: repeater(e.repeater, durationMs) } : {})
+					}
+				: {}),
+			...(itemTemplate && type === 'text' && e.binding
+				? (() => {
+						const binding = object(e.binding);
+						const field = text(binding.field, 160, 'Binding field');
+						if (
+							!['label', 'detail', '$index'].includes(field) &&
+							!(field.startsWith('row.') && safeField(field.slice(4)))
+						)
+							invalid('Choose a row field for this binding.');
+						return {
+							binding: {
+								field,
+								format: choice(binding.format, ['text', 'date', 'number'], 'binding format'),
+								fallback: text(binding.fallback, 500, 'Binding fallback')
+							}
+						};
+					})()
+				: {}),
+			...(e.fontWeight !== undefined
+				? {
+						fontWeight: [400, 600, 700].includes(e.fontWeight as number)
+							? (e.fontWeight as 400 | 600 | 700)
+							: invalid('Invalid font weight.')
+					}
+				: {}),
+			...(e.borderRadius !== undefined
+				? { borderRadius: number(e.borderRadius, 0, 512, 'Corner radius') }
+				: {}),
 			horizontalAnchor:
 				e.horizontalAnchor === undefined
 					? 'scale'
@@ -148,12 +221,16 @@ export function validateSlide(input: unknown): SlideDefinition {
 			fit: choice(e.fit, ['contain', 'cover'], 'image fit')
 		};
 	});
-	if (elements.filter((element) => element.type === 'image' || element.type === 'svg').length > 20)
+	if (
+		allElements({ elements }).filter(
+			(element) => element.type === 'image' || element.type === 'svg'
+		).length > 20
+	)
 		invalid('Use at most 20 media elements per slide.');
 	return {
 		schemaVersion: 1,
-		width: number(value.width, 320, 4096, 'Canvas width'),
-		height: number(value.height, 240, 4096, 'Canvas height'),
+		width: number(value.width, itemTemplate ? 1 : 320, 4096, 'Canvas width'),
+		height: number(value.height, itemTemplate ? 1 : 240, 4096, 'Canvas height'),
 		background: value.background === 'transparent' ? 'transparent' : color(value.background),
 		durationMs,
 		transitionIn: transition(value.transitionIn),

@@ -136,10 +136,33 @@ async function queryLink(config: SlideDataSource, now: Date): Promise<DataListRe
 		state: rows.length ? 'ready' : 'empty',
 		items: rows.map((row, index) => ({
 			id: String(row._id ?? index),
-			label: display(read(row, config.labelField), 'text', config.timeZone) || config.model,
+			fields: Object.fromEntries(
+				fields.map((field) => {
+					const value = read(row, field);
+					return [
+						field,
+						value instanceof Date
+							? value.toISOString()
+							: typeof value === 'string'
+								? value.slice(0, 5000)
+								: (typeof value === 'number' && Number.isFinite(value)) ||
+									  typeof value === 'boolean'
+									? value
+									: null
+					];
+				})
+			),
+			label:
+				display(read(row, config.labelField || fields[0]), 'text', config.timeZone) || config.model,
 			detail: config.detailField
 				? display(read(row, config.detailField), config.detailFormat, config.timeZone)
-				: ''
+				: !config.labelField && fields[1]
+					? display(
+							read(row, fields[1]),
+							read(row, fields[1]) instanceof Date ? 'date' : 'text',
+							config.timeZone
+						)
+					: ''
 		})),
 		message: rows.length ? '' : config.emptyMessage
 	};
@@ -154,7 +177,7 @@ export function createSlideDataResolver(now = new Date(), preview = false) {
 					.map(async (element) => {
 						let result: DataListResult;
 						try {
-							const config = validateDataSource(element.dataSource);
+							const config = validateDataSource(element.dataSource, !element.repeater);
 							const key = JSON.stringify(config);
 							if (!pending.has(key)) pending.set(key, queryLink(config, now));
 							result = await pending.get(key)!;

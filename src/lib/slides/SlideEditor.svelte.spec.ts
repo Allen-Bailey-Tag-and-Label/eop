@@ -51,19 +51,13 @@ describe('slide authoring', () => {
 				assets: []
 			}
 		});
-		await fireEvent.click(view.getByRole('button', { name: 'Add data list' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
 		expect(view.queryByRole('button', { name: 'Add upcoming holidays' })).not.toBeInTheDocument();
 		await fireEvent.change(view.getByRole('combobox', { name: 'Data model' }), {
 			target: { value: 'Holiday' }
 		});
 		await fireEvent.input(view.getByRole('textbox', { name: 'Data select' }), {
 			target: { value: 'name date' }
-		});
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data label field' }), {
-			target: { value: 'name' }
-		});
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data detail field' }), {
-			target: { value: 'date' }
 		});
 		await fireEvent.input(view.getByRole('textbox', { name: 'Data filter' }), {
 			target: { value: '{"date":{"$gte":{"$date":"today"}}}' }
@@ -103,6 +97,26 @@ describe('slide authoring', () => {
 			limit: 5
 		});
 		expect(JSON.stringify(definition())).not.toContain('Thanksgiving');
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Columns (0 = automatic)' }), {
+			target: { value: '3' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		expect(view.getByText('Editing repeater item template')).toBeInTheDocument();
+		expect(view.queryByRole('button', { name: 'Add repeater' })).not.toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Text data binding' }), {
+			target: { value: 'row.name' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Font size' }), {
+			target: { value: '52' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
+		expect(definition().elements[0].repeater.columns).toBe(3);
+		expect(definition().elements[0].repeater.template.elements[1]).toMatchObject({
+			fontSize: 52,
+			binding: { field: 'row.name', format: 'text' }
+		});
+		expect(fetch).toHaveBeenCalledTimes(1);
+
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Data limit' }), {
 			target: { value: '10' }
 		});

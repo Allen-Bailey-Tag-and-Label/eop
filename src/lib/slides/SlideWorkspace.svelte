@@ -6,7 +6,7 @@
 	import { displayBackground } from './colors';
 	import { moveElement, resizeDimensions, resizeDelta, resizeElement } from './editor';
 	import { elementLayout, type LayoutScales } from './layout';
-	import type { ColorScheme, SlideData, SlideDefinition, SlideElement } from './types';
+	import type { DataRow, ColorScheme, SlideData, SlideDefinition, SlideElement } from './types';
 	let {
 		definition = $bindable(),
 		selectedId = $bindable(''),
@@ -19,7 +19,10 @@
 		resetView,
 		viewportWidth,
 		viewportHeight,
-		onEdit
+		onEdit,
+		row,
+		rowIndex = 0,
+		timeZone = 'America/New_York'
 	}: {
 		definition: SlideDefinition;
 		selectedId?: string;
@@ -33,6 +36,9 @@
 		viewportWidth: number;
 		viewportHeight: number;
 		onEdit: () => void;
+		row?: DataRow;
+		rowIndex?: number;
+		timeZone?: string;
 	} = $props();
 	let workspace: HTMLDivElement;
 	const elementTimeMs = $derived(
@@ -223,6 +229,9 @@
 			{animateTransitions}
 			{scheme}
 			{data}
+			{row}
+			{rowIndex}
+			{timeZone}
 			{viewportWidth}
 			{viewportHeight}
 			assetBase="/admin/monitors/slides/assets"

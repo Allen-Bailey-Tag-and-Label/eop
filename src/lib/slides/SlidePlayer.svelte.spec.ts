@@ -1,3 +1,4 @@
+import { defaultRepeater } from './repeater';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
@@ -66,6 +67,47 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('continues repeater pages after a non-looping final slide is held', async () => {
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const playlist = content('grid', false);
+		playlist.slides = playlist.slides.slice(0, 1);
+		playlist.slides[0].definition = {
+			...playlist.slides[0].definition,
+			width: 1000,
+			height: 400,
+			elements: [
+				{
+					...newElement('list', 'grid'),
+					x: 0,
+					y: 0,
+					width: 1000,
+					height: 400,
+					repeater: defaultRepeater()
+				}
+			]
+		};
+		playlist.slides[0].data = {
+			grid: {
+				state: 'ready',
+				items: Array.from({ length: 5 }, (_, index) => ({
+					id: String(index),
+					label: `Row ${index + 1}`,
+					detail: ''
+				})),
+				message: ''
+			}
+		};
+		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
+		await flush();
+		expect(view.getByText('Row 1')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now() + 4500);
+		await flush();
+		expect(view.getByText('Row 5')).toBeInTheDocument();
+		expect(view.queryByText('Row 1')).not.toBeInTheDocument();
+		expect(view.getByLabelText('Current slide time remaining')).toHaveTextContent('0:00');
+	});
 	it('refreshes live data without restarting playlist order and updates a held final slide', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
 		const receive = vi.mocked(watchPlayback).mock.calls[0][0];

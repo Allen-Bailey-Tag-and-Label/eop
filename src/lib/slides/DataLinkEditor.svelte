@@ -2,10 +2,14 @@
 	import { Div, Input, P, Select, Textarea } from '$lib/components';
 	import { dataModels, validateLink } from './data-link';
 	import type { SlideDataSource } from './types';
-	let { link = $bindable(), fields = [] }: { link: SlideDataSource; fields?: string[] } = $props();
+	let {
+		link = $bindable(),
+		fields = [],
+		templateMode = false
+	}: { link: SlideDataSource; fields?: string[]; templateMode?: boolean } = $props();
 	const error = $derived.by(() => {
 		try {
-			validateLink(link);
+			validateLink(link, !templateMode);
 			return '';
 		} catch (cause) {
 			return cause instanceof Error ? cause.message : 'Invalid data link.';
@@ -63,17 +67,19 @@
 			/>
 		{/each}
 	</Div>
-	<Input label="Label field" aria-label="Data label field" bind:value={link.labelField} />
-	<Input
-		label="Detail field (optional)"
-		aria-label="Data detail field"
-		bind:value={link.detailField}
-	/>
-	<Select
-		label="Detail format"
-		bind:value={link.detailFormat}
-		options={['text', 'date', 'number'].map((value) => ({ value, label: value }))}
-	/>
+	{#if !templateMode}
+		<Input label="Label field" aria-label="Data label field" bind:value={link.labelField} />
+		<Input
+			label="Detail field (optional)"
+			aria-label="Data detail field"
+			bind:value={link.detailField}
+		/>
+		<Select
+			label="Detail format"
+			bind:value={link.detailFormat}
+			options={['text', 'date', 'number'].map((value) => ({ value, label: value }))}
+		/>
+	{/if}
 	<Input label="Time zone" aria-label="Data time zone" bind:value={link.timeZone} />
 	<Input label="Empty message" bind:value={link.emptyMessage} />
 	{#if error}<P role="alert" class="text-sm text-red-600 dark:text-red-400">{error}</P>{/if}

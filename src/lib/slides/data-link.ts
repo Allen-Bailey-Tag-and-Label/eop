@@ -110,7 +110,7 @@ export function parseSort(text: string): Record<string, 1 | -1> {
 export function safeField(value: string) {
 	return fieldPath.test(value) && !value.split('.').some((part) => forbidden.has(part));
 }
-export function validateLink(config: SlideDataSource) {
+export function validateLink(config: SlideDataSource, requireLabel = true) {
 	if (!dataModels.includes(config.model as (typeof dataModels)[number]))
 		throw new Error('Choose a supported business model.');
 	for (const key of [
@@ -132,7 +132,7 @@ export function validateLink(config: SlideDataSource) {
 	for (const field of [config.labelField, config.detailField].filter(Boolean))
 		if (!safeField(field) || !fields.includes(field))
 			throw new Error('Display fields must be included in select.');
-	if (!config.labelField) throw new Error('Choose a label field.');
+	if (requireLabel && !config.labelField) throw new Error('Choose a label field.');
 	if (!['text', 'date', 'number'].includes(config.detailFormat))
 		throw new Error('Invalid detail format.');
 	for (const [key, max] of [

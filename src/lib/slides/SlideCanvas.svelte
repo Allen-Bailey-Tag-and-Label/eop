@@ -5,6 +5,10 @@
 	import type { ColorScheme, SlideDefinition } from './types';
 	import { resolveSlideColor } from './colors';
 	import DataList from './DataList.svelte';
+	import Repeater from './Repeater.svelte';
+	import { boundText } from './repeater';
+	import type { DataRow } from './types';
+	import { slideTiming } from './timeline';
 	import type { SlideData } from './types';
 	let {
 		definition,
@@ -18,7 +22,11 @@
 		includeExit = true,
 		scheme = 'dark',
 		data = {},
-		label = 'Slide preview'
+		label = 'Slide preview',
+		row,
+		rowIndex = 0,
+		timeZone = 'America/New_York',
+		dataTimeMs
 	}: {
 		definition: SlideDefinition;
 		timeMs?: number;
@@ -32,14 +40,19 @@
 		scheme?: ColorScheme;
 		data?: SlideData;
 		label?: string;
+		row?: DataRow;
+		rowIndex?: number;
+		timeZone?: string;
+		dataTimeMs?: number;
 	} = $props();
+	const repeaterClock = $derived(dataTimeMs ?? timeMs);
 	let containerWidth = $state(0);
 	const elementTimeMs = $derived(
 		animateTransitions ? slideContentTime(definition, timeMs, durationMs) : timeMs
 	);
 	let containerHeight = $state(0);
-	const renderWidth = $derived(viewportWidth ?? containerWidth);
-	const renderHeight = $derived(viewportHeight ?? containerHeight);
+	const renderWidth = $derived(viewportWidth ?? (containerWidth || definition.width));
+	const renderHeight = $derived(viewportHeight ?? (containerHeight || definition.height));
 	const scale = $derived(
 		viewportWidth !== undefined && viewportHeight !== undefined
 			? Math.min(
@@ -65,13 +78,39 @@
 			{@const pose = poseAt(element, elementTimeMs)}
 			{@const box = elementLayout(definition, element, pose, renderWidth, renderHeight)}
 			<Div
-				style={`position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;opacity:${pose.opacity};transform:translate(${box.x}px,${box.y}px) rotate(${pose.rotation}deg) scale(${pose.scale});transform-origin:center;overflow:hidden;`}
+				style={`position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;opacity:${pose.opacity};transform:translate(${box.x}px,${box.y}px) rotate(${pose.rotation}deg) scale(${pose.scale});transform-origin:center;overflow:hidden;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};`}
 			>
 				{#if element.type === 'text'}
 					<Div
-						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};`}
-						>{element.text}</Div
+						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};`}
+						>{element.binding
+							? boundText(element.binding, row, rowIndex, timeZone)
+							: element.text}</Div
 					>
+				{:else if element.type === 'list' && element.repeater}
+					<Repeater
+						settings={element.repeater}
+						result={Object.hasOwn(data, element.id) ? data[element.id] : undefined}
+						width={box.width}
+						height={box.height}
+						timeMs={animateTransitions
+							? Math.max(
+									0,
+									(includeExit
+										? Math.min(
+												repeaterClock,
+												slideTiming(definition, durationMs).entranceMs + durationMs
+											)
+										: repeaterClock) - slideTiming(definition, durationMs).entranceMs
+								)
+							: repeaterClock}
+						{durationMs}
+						{scheme}
+						{assetBase}
+						{assetUrls}
+						timeZone={element.dataSource?.timeZone ?? timeZone}
+						unit={box.fontSize / element.fontSize}
+					/>
 				{:else if element.type === 'list'}
 					<DataList
 						heading={element.text}
@@ -91,7 +130,7 @@
 						/>{/if}
 				{:else}
 					<Div
-						style={`width:100%;height:100%;background:${resolveSlideColor(element.color, scheme)};border-radius:${element.type === 'ellipse' ? '50%' : '0'};`}
+						style={`width:100%;height:100%;background:${resolveSlideColor(element.color, scheme)};border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};`}
 					></Div>
 				{/if}
 			</Div>

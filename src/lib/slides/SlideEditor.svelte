@@ -52,6 +52,9 @@
 	import SlideWorkspace from './SlideWorkspace.svelte';
 	import ColorField from './ColorField.svelte';
 	import DataLinkEditor from './DataLinkEditor.svelte';
+	import RepeaterSettings from './RepeaterSettings.svelte';
+	import { defaultRepeater, templateSlide } from './repeater';
+	import type { SlideElement } from './types';
 	import {
 		newElement,
 		type AssetSummary,
@@ -92,8 +95,48 @@
 			data.slide.draft.background === 'transparent' ? '#09090c' : data.slide.draft.background
 		)
 	);
+	let slideData = $state<SlideData>({});
 	let selectedId = $state('');
-	const selected = $derived(draft.elements.find((element) => element.id === selectedId));
+	let editingRepeaterId = $state('');
+	let previewRow = $state(0);
+	const editingRepeater = $derived(
+		draft.elements.find((element) => element.id === editingRepeaterId && element.repeater)
+	);
+	const activeElements = $derived(editingRepeater?.repeater?.template.elements ?? draft.elements);
+	const selected = $derived(activeElements.find((element) => element.id === selectedId));
+	const workingDefinition = $derived(
+		editingRepeater?.repeater ? templateSlide(editingRepeater.repeater, draft.durationMs) : draft
+	);
+	const templateRows = $derived(slideData[editingRepeaterId]?.items ?? []);
+	const currentRow = $derived(
+		templateRows[Math.min(previewRow, Math.max(0, templateRows.length - 1))] ?? {
+			id: 'example',
+			label: 'Label',
+			detail: 'Detail'
+		}
+	);
+	function setElements(elements: SlideElement[]) {
+		if (editingRepeater?.repeater) editingRepeater.repeater.template.elements = elements;
+		else draft.elements = elements;
+	}
+	function editTemplate() {
+		const parent = selected;
+		if (!parent?.repeater) return;
+		const child = parent.repeater.template.elements.find((element) => element.type === 'text');
+		editingRepeaterId = parent.id;
+		selectedId = child?.id ?? '';
+		previewRow = 0;
+		playing = false;
+		fitView();
+	}
+
+	function leaveTemplate() {
+		const parent = editingRepeaterId;
+		editingRepeaterId = '';
+		selectedId = parent;
+		playing = false;
+		fitView();
+	}
 	let timeMs = $state(0);
 	const previewTiming = $derived(slideTiming(draft));
 	const contentTimeMs = $derived(slideContentTime(draft, timeMs));
@@ -104,7 +147,7 @@
 	const references = $derived(form?.references ?? data.references ?? []);
 	let json = $state('');
 	let localError = $state('');
-	let slideData = $state<SlideData>({});
+
 	let previewRevision = $state(0);
 	let tool = $state<'select' | 'pan' | 'resize'>('select');
 	let zoom = $state(1);
@@ -118,7 +161,12 @@
 		portrait: { width: 1080, height: 1920 }
 	};
 	const viewport = $derived(
-		previewSizes[previewPreset] ?? { width: draft.width, height: draft.height }
+		editingRepeater?.repeater
+			? {
+					width: editingRepeater.repeater.template.width,
+					height: editingRepeater.repeater.template.height
+				}
+			: (previewSizes[previewPreset] ?? { width: draft.width, height: draft.height })
 	);
 	let inspectorOpen = $state(false);
 	let inspectorTab = $state<'properties' | 'layers' | 'animation'>('properties');
@@ -147,8 +195,11 @@
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
 		{ type: 'line', label: 'Line', icon: Minus },
-		{ type: 'list', label: 'Data list', icon: Database }
+		{ type: 'list', label: 'Repeater', icon: Database }
 	] as const;
+	const availableTools = $derived(
+		editingRepeater ? elementTools.filter((item) => item.type !== 'list') : elementTools
+	);
 	const dirty = $derived(
 		JSON.stringify({ title, slug, draft }) !==
 			JSON.stringify({ title: data.slide.title, slug: data.slide.slug, draft: data.slide.draft })
@@ -166,7 +217,18 @@
 			element.assetId =
 				data.assets.find((asset) => (asset.contentType === 'image/svg+xml') === (type === 'svg'))
 					?.id ?? '';
-		draft.elements.push(element);
+		if (type === 'list') {
+			element.repeater = defaultRepeater();
+			element.text = 'Repeater';
+		}
+		if (editingRepeater?.repeater) {
+			element.x = 20;
+			element.y = 20;
+			element.width = Math.max(1, editingRepeater.repeater.template.width - 40);
+			element.height = Math.min(80, editingRepeater.repeater.template.height);
+			element.fontSize = 32;
+		}
+		activeElements.push(element);
 		selectedId = element.id;
 		tool = 'select';
 		playing = false;
@@ -200,6 +262,7 @@
 	function importJson() {
 		try {
 			draft = validateSlide(parseJson(json));
+			editingRepeaterId = '';
 			selectedId = '';
 			playing = false;
 			timeMs = 0;
@@ -371,7 +434,7 @@
 		<DropdownMenu
 			class="shrink-0 [&>button]:inline-flex [&>button]:h-9 [&>button]:items-center [&>button]:px-2 [&>button]:py-1 [&>button]:text-sm [&>button]:text-white [&>button]:hover:text-white [&>button]:focus:text-white"
 			label="Add element"
-			items={elementTools.map((item) => ({ value: item.type, label: item.label }))}
+			items={availableTools.map((item) => ({ value: item.type, label: item.label }))}
 			onSelect={(item) => addElement(item.value as ElementType)}
 		>
 			<span class="inline-flex flex-nowrap items-center gap-1 whitespace-nowrap">
@@ -485,6 +548,24 @@
 				title={form.success}>{form.success}</P
 			>{/if}
 	{/if}
+	{#if editingRepeater}
+		<Div
+			class="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-300 px-3 py-2 dark:border-gray-700"
+			aria-label="Item template editing"
+		>
+			<Button onclick={leaveTemplate}>Back to slide</Button>
+			<P class="text-sm font-semibold">Editing repeater item template</P>
+			<Input
+				label="Preview row"
+				aria-label="Preview row"
+				type="number"
+				min={1}
+				max={Math.max(1, templateRows.length)}
+				value={String(previewRow + 1)}
+				oninput={(event) => (previewRow = Math.max(0, Number(event.currentTarget.value) - 1))}
+			/>
+		</Div>
+	{/if}
 	<Div class="relative flex min-h-0 flex-1 overflow-hidden">
 		<Div
 			class="z-1 flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-slate-300 py-2 dark:border-gray-700"
@@ -512,7 +593,7 @@
 				onclick={editColor}><Palette size={18} /></Button
 			>
 			<Div class="my-1 w-7 border-t border-slate-300 dark:border-gray-700"></Div>
-			{#each elementTools as item (item.type)}<Button
+			{#each availableTools as item (item.type)}<Button
 					aria-label={`Add ${item.label.toLowerCase()}`}
 					title={`Add ${item.label.toLowerCase()}`}
 					variants={['ghost']}
@@ -534,20 +615,23 @@
 				variants={['ghost']}
 				class="h-9 w-9 shrink-0 items-center p-0"
 				onclick={() => {
-					draft.elements = draft.elements.filter((element) => element.id !== selectedId);
+					setElements(activeElements.filter((element) => element.id !== selectedId));
 					selectedId = '';
 				}}><Trash2 size={18} /></Button
 			>
 		</Div>
 		<Div class="relative min-h-0 min-w-0 flex-1">
 			<SlideWorkspace
-				bind:definition={draft}
+				definition={workingDefinition}
 				bind:selectedId
-				{timeMs}
+				timeMs={editingRepeater ? contentTimeMs : timeMs}
 				{tool}
-				animateTransitions={playing || timeMs > 0}
+				animateTransitions={!editingRepeater && (playing || timeMs > 0)}
 				scheme={previewScheme}
 				data={slideData}
+				row={editingRepeater ? currentRow : undefined}
+				rowIndex={previewRow}
+				timeZone={editingRepeater?.dataSource?.timeZone ?? 'America/New_York'}
 				{zoom}
 				{resetView}
 				viewportWidth={viewport.width}
@@ -560,7 +644,7 @@
 				class="pointer-events-none absolute right-3 bottom-3 left-3 flex items-end justify-between gap-2 text-xs"
 				><span
 					class="rounded bg-white/85 px-2 py-1 text-slate-700 dark:bg-gray-900/85 dark:text-gray-300"
-					>{viewport.width} × {viewport.height} · {draft.elements.length} elements</span
+					>{viewport.width} × {viewport.height} · {activeElements.length} elements</span
 				><span
 					class="hidden rounded bg-white/85 px-2 py-1 text-slate-700 lg:block dark:bg-gray-900/85 dark:text-gray-300"
 					>{tool === 'pan'
@@ -597,14 +681,14 @@
 						<H2 class="text-sm">Layers</H2><P class="text-xs opacity-60"
 							>Later elements appear in front.</P
 						>
-						{#each draft.elements as element, index (element.id)}<Button
+						{#each activeElements as element, index (element.id)}<Button
 								class="w-full min-w-0 justify-start truncate px-3 py-2 text-left text-xs"
 								aria-pressed={selectedId === element.id}
 								variants={selectedId === element.id ? [] : ['ghost']}
 								onclick={() => (selectedId = element.id)}
 								>{index + 1}. {element.type}: {element.text.slice(0, 32)}</Button
 							>{/each}
-						{#if !draft.elements.length}<P class="text-sm opacity-60"
+						{#if !activeElements.length}<P class="text-sm opacity-60"
 								>Use Add or the left rail to create your first element.</P
 							>{/if}
 					{:else if !selected}<P class="text-sm opacity-60"
@@ -644,18 +728,73 @@
 							label={selected.type === 'text'
 								? 'Text'
 								: selected.type === 'list'
-									? 'Heading'
+									? selected.repeater
+										? 'Description'
+										: 'Heading'
 									: 'Description'}
-							aria-label={selected.type === 'list' ? 'Data list heading' : 'Element text'}
+							aria-label={selected.type === 'list'
+								? selected.repeater
+									? 'Repeater description'
+									: 'Data list heading'
+								: 'Element text'}
 							bind:value={selected.text}
 							rows={3}
 						/>
 						{#if selected.type === 'list' && selected.dataSource}
 							<DataLinkEditor
 								bind:link={selected.dataSource}
+								templateMode={!!selected.repeater}
 								fields={data.dataFields?.[selected.dataSource.model] ?? []}
 							/>
 							<Button onclick={() => previewRevision++}>Refresh data preview</Button>
+							{#if selected.repeater}
+								<RepeaterSettings
+									bind:settings={selected.repeater}
+									width={selected.width}
+									height={selected.height}
+									count={slideData[selected.id]?.items.length ?? 0}
+								/>
+								<Button onclick={editTemplate}>Edit item template</Button>
+							{:else}<Button
+									onclick={() => {
+										if (selected) selected.repeater = defaultRepeater();
+									}}>Convert to grid repeater</Button
+								>{/if}
+						{/if}
+						{#if editingRepeater && selected.type === 'text'}
+							<Select
+								label="Text data binding"
+								aria-label="Text data binding"
+								value={selected.binding?.field ?? ''}
+								options={[
+									{ value: '', label: 'Static text' },
+									{ value: 'label', label: 'Label (legacy mapping)' },
+									{ value: 'detail', label: 'Detail (legacy mapping)' },
+									{ value: '$index', label: 'Row number' },
+									...(
+										editingRepeater.dataSource?.select.trim().split(/\s+/).filter(Boolean) ?? []
+									).map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
+								]}
+								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+									if (selected)
+										selected.binding = event.currentTarget.value
+											? { field: event.currentTarget.value, format: 'text', fallback: '' }
+											: undefined;
+								}}
+							/>
+							{#if selected.binding}
+								<Select
+									label="Binding format"
+									aria-label="Binding format"
+									bind:value={selected.binding.format}
+									options={['text', 'date', 'number'].map((value) => ({ value, label: value }))}
+								/>
+								<Input
+									label="Binding fallback"
+									aria-label="Binding fallback"
+									bind:value={selected.binding.fallback}
+								/>
+							{/if}
 						{/if}
 						<Div class="grid grid-cols-2 gap-3"
 							>{#each geometry as field (field)}<Input
@@ -678,9 +817,24 @@
 								if (selected) selected.color = value;
 							}}
 						/>
-						{#if selected.type === 'text' || selected.type === 'list'}
+						{#if selected.type === 'text' || (selected.type === 'list' && !selected.repeater)}
+							<Select
+								label="Font weight"
+								aria-label="Font weight"
+								value={String(selected.fontWeight ?? 400)}
+								options={[
+									{ value: '400', label: 'Normal' },
+									{ value: '600', label: 'Semibold' },
+									{ value: '700', label: 'Bold' }
+								]}
+								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+									if (selected)
+										selected.fontWeight = Number(event.currentTarget.value) as 400 | 600 | 700;
+								}}
+							/>
 							<Input
 								label="Font size"
+								aria-label="Font size"
 								type="number"
 								min={8}
 								max={500}
@@ -722,14 +876,22 @@
 								options={['contain', 'cover'].map((value) => ({ value, label: value }))}
 							/>
 						{/if}
+						{#if selected.type === 'rectangle'}<Input
+								label="Corner radius"
+								aria-label="Corner radius"
+								type="number"
+								min={0}
+								max={512}
+								value={String(selected.borderRadius ?? 0)}
+								oninput={(event) => {
+									if (selected) selected.borderRadius = Number(event.currentTarget.value);
+								}}
+							/>{/if}
 						<Button
 							onclick={() => {
 								if (!selected) return;
 								const element = selected;
-								draft.elements = [
-									...draft.elements.filter((item) => item.id !== element.id),
-									element
-								];
+								setElements([...activeElements.filter((item) => item.id !== element.id), element]);
 							}}>Bring to front</Button
 						>
 					{:else}

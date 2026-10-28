@@ -121,8 +121,37 @@ appropriate roles. New databases include both in the initial admin seed.
 
 The editor and player share the renderer and deterministic timeline evaluator.
 
+**Grid repeaters** display model-query results using an editable item template.
+Choose **Add ? Repeater**, configure its data link, then set its grid properties:
+columns (0 for automatic), minimum item width, item height (0 to preserve template
+aspect ratio), separate gaps, and vertical alignment. Overflow supports pagination
+(default), automatic scrolling down and back, or clipping. Page/scroll duration is
+in milliseconds. Make the slide display duration long enough to show all pages.
+A held final slide continues cycling without replaying the slide transition.
+
+Choose **Edit item template** to design one item on the canvas. The same text,
+image, SVG, shape, color, font, anchoring, layers, and animation controls apply.
+Font weight and rectangle corner radius are configurable. Set the template's
+reference dimensions in the repeater properties. Use **Preview row** to inspect
+different results, and **Back to slide** to see the full grid. Uploaded media in
+templates is validated, prefetched, and served to monitors like other slide media.
+
+For template text, choose **Text data binding**, such as `row.name` or `row.date`,
+then a text/date/number format and an optional fallback. Only fields in the data
+link's `select` are available. Data is rendered as plain text. `$index` is the
+one-based row number. The default template uses Label/Detail aliases, which use
+the first two selected fields when explicit legacy mappings are absent. Images,
+SVGs, and shapes provide static template artwork; field bindings currently drive
+text content. Nested repeaters are not supported.
+
+Scrub or play the timeline to preview pagination and scrolling. Item animations
+use slide display time, and whole-slide fades still wrap the complete grid.
+Existing data lists retain their layout until **Convert to grid repeater** is
+chosen in Properties. Query configuration and templates are saved/exported;
+resolved row values are transient and are never written into the slide definition.
+
 **Data lists** link a slide element to a read-only model query. Choose
-**Add ? Data list**, then configure the **Data link** in Properties:
+**Add ? Repeater**, then configure the **Data link** in Properties:
 
 - **Model**: a supported business model (for example, `Holiday`, `Customer`,
   `InventoryItem`, `SalesOpportunity`, or `UserProfile`).
@@ -132,12 +161,12 @@ The editor and player share the renderer and deterministic timeline evaluator.
   available fields for the selected model; Mixed fields accept nested paths.
 - **sort**: JSON field/direction pairs (`1` ascending, `-1` descending).
 - **skip / limit**: pagination, bounded to 10,000 skipped and 1?100 returned rows.
-- **Label / Detail field**: selected fields to display; nested field paths are
+- **Label / Detail field** (legacy lists): selected fields to display; nested field paths are
   supported. Detail formatting can be text, date, or number.
 - **Time zone / Empty message**: calendar/date formatting and the no-results text.
 
-For upcoming holidays, use model `Holiday`, select `name date`, label field
-`name`, detail field `date`, detail format `date`, and sort `{"date":1,"_id":1}`.
+For upcoming holidays, use model `Holiday`, select `name date`, template text bound to
+`row.name` and `row.date` (date format), and sort `{"date":1,"_id":1}`.
 Maintain dates and optional names under **HR ? Holidays**. Use this filter:
 
 ```json
@@ -157,7 +186,7 @@ Queries use the server's Mongoose model registry with `find`, `select`, `sort`,
 and credential fields cannot be selected. Selected display values are deliberately
 published to monitor audiences; raw database records never reach monitors.
 
-The list is a normal responsive element: adjust its heading, position, size,
+The legacy list is a normal responsive element: adjust its heading, position, size,
 colors, font, and animations. Rows shrink to fit; long labels truncate. Increase
 the element size or reduce the result limit for readability. The preview reloads
 when query settings change; **Refresh data preview** reloads after external edits.

@@ -25,9 +25,28 @@ export const defaultDataSource = (): SlideDataSource => ({
 	timeZone: 'America/New_York',
 	emptyMessage: 'No matching records.'
 });
+export type DataValue = string | number | boolean | null;
+export type DataRow = {
+	id: string;
+	label: string;
+	detail: string;
+	fields?: Record<string, DataValue>;
+};
+export type DataBinding = { field: string; format: 'text' | 'date' | 'number'; fallback: string };
+export type RepeaterDefinition = {
+	columns: number;
+	minItemWidth: number;
+	itemHeight: number;
+	columnGap: number;
+	rowGap: number;
+	align: 'start' | 'center' | 'end';
+	overflow: 'paginate' | 'scroll' | 'clip';
+	pageDurationMs: number;
+	template: { width: number; height: number; elements: SlideElement[] };
+};
 export type DataListResult = {
 	state: 'ready' | 'empty' | 'error';
-	items: { id: string; label: string; detail: string }[];
+	items: DataRow[];
 	message: string;
 };
 export type SlideData = Record<string, DataListResult>;
@@ -57,6 +76,10 @@ export type SlideElement = Pose & {
 	fit: 'contain' | 'cover';
 	keyframes: Keyframe[];
 	dataSource?: SlideDataSource;
+	repeater?: RepeaterDefinition;
+	binding?: DataBinding;
+	fontWeight?: 400 | 600 | 700;
+	borderRadius?: number;
 };
 export type SlideDefinition = {
 	schemaVersion: 1;

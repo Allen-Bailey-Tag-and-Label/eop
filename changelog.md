@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T18:25:27.185Z
+## 2026-10-28T19:11:32.028Z
+
+feat: Add grid repeaters with editable row templates to slides
+
+## 2026-10-28T14:49:36-04:00
 
 refactor: Replace holiday-specific slides with configurable model data links
 
