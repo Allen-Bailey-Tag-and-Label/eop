@@ -12,6 +12,7 @@ export type MonitorRecord = {
 	approvedById?: Types.ObjectId;
 	lastSeenAt?: Date;
 	playlistId?: Types.ObjectId;
+	colorMode?: 'light' | 'dark' | 'system';
 };
 
 // Deliberately outside the general model barrel: credentials must not be exposed
@@ -28,7 +29,8 @@ export const MonitorSession = defineModel<MonitorRecord>(
 		approvedAt: Date,
 		approvedById: { type: Schema.Types.ObjectId, ref: 'User' },
 		lastSeenAt: Date,
-		playlistId: { type: Schema.Types.ObjectId, ref: 'MonitorPlaylist' }
+		playlistId: { type: Schema.Types.ObjectId, ref: 'MonitorPlaylist' },
+		colorMode: { type: String, enum: ['light', 'dark', 'system'], default: 'dark' }
 	},
 	{ log: false }
 );

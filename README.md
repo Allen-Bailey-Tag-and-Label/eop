@@ -72,8 +72,8 @@ appropriate roles. New databases include both in the initial admin seed.
    that frame. Playback, scrubbing, and clickable keyframe markers remain at the
    bottom of the editor. Set the slide duration (1–600 seconds) in Settings.
    **Background type** offers **Solid color** or **Transparent**. Transparent
-   backgrounds show a checkerboard matched to the editor's light/dark mode and reveal the underlying
-   display background (currently black) on monitors.
+   backgrounds show a checkerboard matched to the selected preview mode and reveal
+   the monitor's light or dark display background.
    Later elements render in front. The final pose is held until the slide ends.
    **Whole-slide transitions** in Settings control the entrance and exit separately:
    choose **Fade** or **None** and set each duration in milliseconds. Both default
@@ -116,6 +116,24 @@ appropriate roles. New databases include both in the initial admin seed.
    restarts is not provided. Revocation polling remains active independently.
 
 The editor and player share the renderer and deterministic timeline evaluator.
+
+Element and background color fields offer **Fixed** (one color in both modes) or
+**Light / Dark** (separate swatches). Existing hexadecimal colors stay fixed.
+New slides, text, and shapes start with matching light/dark color pairs. Images
+and SVG artwork keep their original colors. Programmatic definitions can use a
+hex string or a pair such as `{ light: '#111827', dark: '#f9fafb' }`.
+
+Use **Preview color mode** beside the timeline to view either mode independently
+of the admin interface theme. The canvas and transparency checkerboard follow
+that selection. Choosing Fixed from a pair retains the current preview color.
+
+In **Monitor management**, choose **Light**, **Dark**, or **System** for each monitor
+and save. Existing monitors default to Dark. The setting arrives on the next
+content check without reloading the browser, even when no playlist is assigned.
+System follows the monitor browser's OS preference and reacts to changes. The
+display background, slide colors, footer, and next-slide preview use that mode;
+transparent slides reveal a light background in Light mode and a dark one in
+Dark mode. Saved slide color edits still require publishing to reach monitors.
 
 Each element has horizontal and vertical anchoring in **Properties**:
 

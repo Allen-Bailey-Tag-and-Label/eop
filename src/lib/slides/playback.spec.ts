@@ -5,6 +5,30 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('monitor content refresh', () => {
+	it('refreshes monitor color mode even when no playlist is assigned', async () => {
+		vi.useFakeTimers();
+		let mode = 'light';
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response('null', {
+						headers: {
+							'content-type': 'application/json',
+							'x-monitor-color-mode': mode
+						}
+					})
+			)
+		);
+		const onMode = vi.fn();
+		const source = watchPlayback(vi.fn(), vi.fn(), onMode);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onMode).toHaveBeenLastCalledWith('light');
+		mode = 'system';
+		await source.refresh();
+		expect(onMode).toHaveBeenLastCalledWith('system');
+		source.stop();
+	});
 	it('fetches without caching on demand and ignores an older poll that finishes afterward', async () => {
 		vi.useFakeTimers();
 		let finishOld!: (response: Response) => void;

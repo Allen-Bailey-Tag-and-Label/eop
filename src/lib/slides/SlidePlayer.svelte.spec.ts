@@ -33,6 +33,14 @@ async function flush() {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.clearAllMocks();
+	vi.stubGlobal(
+		'matchMedia',
+		vi.fn(() => ({
+			matches: false,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn()
+		}))
+	);
 	vi.mocked(watchPlayback).mockReturnValue({ refresh: vi.fn(async () => {}), stop: vi.fn() });
 	vi.stubGlobal(
 		'ResizeObserver',
@@ -56,6 +64,38 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('uses the monitor mode and follows system changes only when System is selected', async () => {
+		let systemDark = false;
+		let change!: () => void;
+		const removeEventListener = vi.fn();
+		vi.spyOn(window, 'matchMedia').mockReturnValue({
+			get matches() {
+				return systemDark;
+			},
+			addEventListener: (_type: string, listener: () => void) => (change = listener),
+			removeEventListener
+		} as unknown as MediaQueryList);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const [receive, , mode] = vi.mocked(watchPlayback).mock.calls[0];
+		receive(content());
+		mode?.('system');
+		await flush();
+		const screen = view.container.querySelector('[data-color-mode]')!;
+		expect(screen).toHaveAttribute('data-color-mode', 'light');
+		expect(screen).toHaveStyle({ background: '#ffffff' });
+		systemDark = true;
+		change();
+		await tick();
+		expect(screen).toHaveAttribute('data-color-mode', 'dark');
+		mode?.('light');
+		await tick();
+		expect(screen).toHaveAttribute('data-color-mode', 'light');
+		change();
+		await tick();
+		expect(screen).toHaveAttribute('data-color-mode', 'light');
+		view.unmount();
+		expect(removeEventListener).toHaveBeenCalledWith('change', change);
+	});
 	it('fades the whole slide using the effective playlist duration and restarts on advance', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
 		vi.mocked(watchPlayback).mock.calls[0][0](content());

@@ -19,10 +19,15 @@ const text = (value: unknown, max: number, label: string) =>
 		: invalid(`${label} is too long or missing.`);
 const choice = <T extends string>(value: unknown, values: readonly T[], label: string): T =>
 	values.includes(value as T) ? (value as T) : invalid(`Invalid ${label}.`);
-const color = (value: unknown) =>
+const hexColor = (value: unknown) =>
 	typeof value === 'string' && /^#[a-f\d]{6}$/i.test(value)
 		? value
 		: invalid('Use a six-digit hex color.');
+const color = (value: unknown) => {
+	if (typeof value === 'string') return hexColor(value);
+	const pair = object(value);
+	return { light: hexColor(pair.light), dark: hexColor(pair.dark) };
+};
 export const isId = (value: unknown): value is string =>
 	typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 export function slug(value: unknown) {

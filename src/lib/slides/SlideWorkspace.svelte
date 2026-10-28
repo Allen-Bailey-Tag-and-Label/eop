@@ -3,14 +3,16 @@
 	import { Button, Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt } from './timeline';
+	import { displayBackground } from './colors';
 	import { moveElement, resizeDimensions, resizeDelta, resizeElement } from './editor';
 	import { elementLayout, type LayoutScales } from './layout';
-	import type { SlideDefinition, SlideElement } from './types';
+	import type { ColorScheme, SlideDefinition, SlideElement } from './types';
 	let {
 		definition = $bindable(),
 		selectedId = $bindable(''),
 		timeMs,
 		animateTransitions = false,
+		scheme = 'dark',
 		tool,
 		zoom,
 		resetView,
@@ -22,6 +24,7 @@
 		selectedId?: string;
 		timeMs: number;
 		animateTransitions?: boolean;
+		scheme?: ColorScheme;
 		tool: 'select' | 'pan' | 'resize';
 		zoom: number;
 		resetView: number;
@@ -206,13 +209,14 @@
 	onpointercancel={stop}
 >
 	<Div
-		class="absolute bg-black shadow-xl [--slide-checker-a:#e5e7eb] [--slide-checker-b:#f3f4f6] dark:[--slide-checker-a:#1f2937] dark:[--slide-checker-b:#374151]"
-		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));${definition.background === 'transparent' ? 'background:repeating-conic-gradient(var(--slide-checker-a) 0% 25%,var(--slide-checker-b) 0% 50%) 0 0 / 20px 20px;' : ''}`}
+		class="absolute shadow-xl"
+		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));background:${definition.background === 'transparent' ? `repeating-conic-gradient(${scheme === 'dark' ? '#1f2937 0% 25%,#374151' : '#e5e7eb 0% 25%,#f3f4f6'} 0% 50%) 0 0 / 20px 20px` : displayBackground(scheme)};`}
 	>
 		<SlideCanvas
 			{definition}
 			{timeMs}
 			{animateTransitions}
+			{scheme}
 			{viewportWidth}
 			{viewportHeight}
 			assetBase="/admin/monitors/slides/assets"

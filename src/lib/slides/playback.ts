@@ -1,11 +1,12 @@
-import type { Playback } from './types';
+import type { DisplayMode, Playback } from './types';
 
 export function nextSlide(playback: Playback, index: number) {
 	return index + 1 < playback.slides.length ? index + 1 : playback.loop ? 0 : index;
 }
 export function watchPlayback(
 	onContent: (content: Playback | null) => void,
-	onConnection: (connected: boolean) => void
+	onConnection: (connected: boolean) => void,
+	onColorMode?: (mode: DisplayMode) => void
 ) {
 	let stopped = false;
 	let active: AbortController | undefined;
@@ -26,6 +27,8 @@ export function watchPlayback(
 				throw new Error('Playback unavailable');
 			const content: Playback | null = await response.json();
 			if (stopped || active !== request) return;
+			const mode = response.headers.get('x-monitor-color-mode');
+			if (mode === 'light' || mode === 'dark' || mode === 'system') onColorMode?.(mode);
 			onContent(content);
 			onConnection(true);
 		} catch {

@@ -109,7 +109,8 @@ describe('central monitor authentication', () => {
 		expect((await invoke(display)).status).toBe(200);
 		expect(display.event.locals.monitor).toEqual({
 			id: 'monitor-id',
-			location: 'Break room'
+			location: 'Break room',
+			colorMode: 'dark'
 		});
 		expect(display.event.locals.user).toBeUndefined();
 		for (const page of ['approval', 'management']) {

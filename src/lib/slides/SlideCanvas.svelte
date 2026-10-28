@@ -2,7 +2,8 @@
 	import { Div } from '$lib/components';
 	import { poseAt, slideOpacityAt } from './timeline';
 	import { elementLayout } from './layout';
-	import type { SlideDefinition } from './types';
+	import type { ColorScheme, SlideDefinition } from './types';
+	import { resolveSlideColor } from './colors';
 	let {
 		definition,
 		timeMs = 0,
@@ -13,6 +14,7 @@
 		animateTransitions = false,
 		durationMs = definition.durationMs,
 		includeExit = true,
+		scheme = 'dark',
 		label = 'Slide preview'
 	}: {
 		definition: SlideDefinition;
@@ -24,6 +26,7 @@
 		animateTransitions?: boolean;
 		durationMs?: number;
 		includeExit?: boolean;
+		scheme?: ColorScheme;
 		label?: string;
 	} = $props();
 	let containerWidth = $state(0);
@@ -42,7 +45,7 @@
 
 <div
 	class="relative h-full w-full overflow-hidden"
-	style={`background:${definition.background};opacity:${animateTransitions ? slideOpacityAt(definition, timeMs, durationMs, includeExit) : 1};`}
+	style={`background:${resolveSlideColor(definition.background, scheme)};opacity:${animateTransitions ? slideOpacityAt(definition, timeMs, durationMs, includeExit) : 1};`}
 	role="img"
 	aria-label={label}
 	bind:clientWidth={containerWidth}
@@ -59,7 +62,7 @@
 			>
 				{#if element.type === 'text'}
 					<Div
-						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${element.color};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};`}
+						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};`}
 						>{element.text}</Div
 					>
 				{:else if element.type === 'image' || element.type === 'svg'}
@@ -70,7 +73,7 @@
 						/>{/if}
 				{:else}
 					<Div
-						style={`width:100%;height:100%;background:${element.color};border-radius:${element.type === 'ellipse' ? '50%' : '0'};`}
+						style={`width:100%;height:100%;background:${resolveSlideColor(element.color, scheme)};border-radius:${element.type === 'ellipse' ? '50%' : '0'};`}
 					></Div>
 				{/if}
 			</Div>

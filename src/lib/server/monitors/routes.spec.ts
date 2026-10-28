@@ -15,7 +15,8 @@ import {
 	listMonitors,
 	PairingLimitError,
 	requestPairing,
-	revokeMonitor
+	revokeMonitor,
+	setMonitorColorMode
 } from './sessions';
 
 vi.mock('./cookies', () => ({ setMonitorCookie: vi.fn() }));
@@ -31,6 +32,7 @@ vi.mock('./sessions', () => ({
 	touchMonitor: vi.fn(),
 	approveMonitor: vi.fn(),
 	revokeMonitor: vi.fn(),
+	setMonitorColorMode: vi.fn(),
 	listMonitors: vi.fn()
 }));
 
@@ -69,6 +71,23 @@ beforeEach(() => {
 });
 
 describe('monitor route wiring', () => {
+	it('validates and saves monitor color mode through the management action', async () => {
+		vi.mocked(setMonitorColorMode).mockResolvedValue(false);
+		const input = event({ sessionId: 'a'.repeat(24), colorMode: 'system' });
+		expect(
+			await managementActions.colorMode(
+				input as unknown as Parameters<typeof managementActions.colorMode>[0]
+			)
+		).toMatchObject({ status: 400 });
+		vi.mocked(setMonitorColorMode).mockResolvedValue(true);
+		const saved = event({ sessionId: 'a'.repeat(24), colorMode: 'light' });
+		expect(
+			await managementActions.colorMode(
+				saved as unknown as Parameters<typeof managementActions.colorMode>[0]
+			)
+		).toHaveProperty('success');
+		expect(setMonitorColorMode).toHaveBeenLastCalledWith('a'.repeat(24), 'light');
+	});
 	it('redirects old admin bookmarks to approval', () => {
 		expect(() => monitorIndex()).toThrow(
 			expect.objectContaining({
@@ -85,7 +104,8 @@ describe('monitor route wiring', () => {
 				location: 'Break room',
 				approvedAt: null,
 				lastSeenAt: null,
-				playlistId: ''
+				playlistId: '',
+				colorMode: 'dark' as const
 			}
 		];
 		vi.mocked(listMonitors).mockResolvedValue(monitors);

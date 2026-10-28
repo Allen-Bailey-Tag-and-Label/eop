@@ -48,11 +48,13 @@
 		Textarea
 	} from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
+	import ColorField from './ColorField.svelte';
 	import {
 		newElement,
 		type AssetSummary,
 		type ContentEditor,
 		type ElementType,
+		type ColorScheme,
 		type SlideReference,
 		type SlideDefinition
 	} from './types';
@@ -93,6 +95,7 @@
 	let zoom = $state(1);
 	let resetView = $state(0);
 	let previewPreset = $state('reference');
+	let previewScheme = $state<ColorScheme>('dark');
 	const previewSizes: Record<string, { width: number; height: number }> = {
 		wide: { width: 1920, height: 1080 },
 		taller: { width: 1920, height: 1200 },
@@ -476,6 +479,7 @@
 				{timeMs}
 				{tool}
 				animateTransitions={playing || timeMs > 0}
+				scheme={previewScheme}
 				{zoom}
 				{resetView}
 				viewportWidth={viewport.width}
@@ -584,12 +588,15 @@
 									}}
 								/>{/each}</Div
 						>
-						<Input
+						<ColorField
 							bind:element={colorInput}
-							aria-label="Element color"
+							ariaLabel="Element color"
 							label="Color"
-							type="color"
-							bind:value={selected.color}
+							value={selected.color}
+							scheme={previewScheme}
+							onValueChange={(value) => {
+								if (selected) selected.color = value;
+							}}
 						/>
 						{#if selected.type === 'text'}
 							<Input
@@ -748,6 +755,16 @@
 					{ value: 'portrait', label: '9:16 portrait' }
 				]}
 			/>
+			<Select
+				aria-label="Preview color mode"
+				title="Preview color mode"
+				class="h-8 w-32 px-2 py-1 text-xs"
+				bind:value={previewScheme}
+				options={[
+					{ value: 'light', label: 'Light preview' },
+					{ value: 'dark', label: 'Dark preview' }
+				]}
+			/>
 			<Div class="ml-auto flex shrink-0 items-center gap-1"
 				><Button
 					aria-label="Zoom out"
@@ -867,14 +884,14 @@
 						max={4096}
 						value={String(draft.height)}
 						oninput={(e) => (draft.height = Number(e.currentTarget.value))}
-					/><Input
+					/><ColorField
 						label="Background"
-						aria-label="Slide background"
-						type="color"
+						ariaLabel="Slide background"
+						scheme={previewScheme}
 						value={draft.background === 'transparent' ? backgroundColor : draft.background}
 						disabled={draft.background === 'transparent'}
-						oninput={(event) => {
-							backgroundColor = event.currentTarget.value;
+						onValueChange={(value) => {
+							backgroundColor = value;
 							draft.background = backgroundColor;
 						}}
 					/><Input

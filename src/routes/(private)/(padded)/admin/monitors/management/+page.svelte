@@ -43,7 +43,10 @@
 			<Div class="overflow-x-auto">
 				<Table class="w-full text-left">
 					<Thead
-						><Tr><Th>Location</Th><Th>Last connected</Th><Th>Playlist</Th><Th>Access</Th></Tr
+						><Tr
+							><Th>Location</Th><Th>Last connected</Th><Th>Playlist</Th><Th>Color mode</Th><Th
+								>Access</Th
+							></Tr
 						></Thead
 					>
 					<Tbody>
@@ -71,6 +74,22 @@
 											]}
 										/>
 										<Button type="submit">Assign</Button>
+									</Form>
+								</Td>
+								<Td>
+									<Form action="?/colorMode" class="flex min-w-56 items-end gap-2">
+										<Input type="hidden" name="sessionId" value={monitor.id} />
+										<Select
+											name="colorMode"
+											aria-label={`Color mode for ${monitor.location}`}
+											value={monitor.colorMode}
+											options={[
+												{ value: 'dark', label: 'Dark' },
+												{ value: 'light', label: 'Light' },
+												{ value: 'system', label: 'System' }
+											]}
+										/>
+										<Button type="submit">Save</Button>
 									</Form>
 								</Td>
 								<Td>

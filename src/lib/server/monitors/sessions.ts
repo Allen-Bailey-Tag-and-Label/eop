@@ -122,7 +122,7 @@ export async function touchMonitor(id: Types.ObjectId, now = new Date()) {
 
 export async function listMonitors() {
 	const sessions = await MonitorSession.find({ status: 'approved' })
-		.select('location approvedAt lastSeenAt playlistId')
+		.select('location approvedAt lastSeenAt playlistId colorMode')
 		.sort({ approvedAt: -1 })
 		.limit(200)
 		.lean();
@@ -131,8 +131,23 @@ export async function listMonitors() {
 		location: session.location,
 		approvedAt: session.approvedAt?.toISOString() ?? null,
 		lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
-		playlistId: session.playlistId?.toString() ?? ''
+		playlistId: session.playlistId?.toString() ?? '',
+		colorMode: session.colorMode ?? 'dark'
 	}));
+}
+
+export async function setMonitorColorMode(id: unknown, mode: unknown) {
+	if (
+		typeof id !== 'string' ||
+		!/^[a-f\d]{24}$/i.test(id) ||
+		(mode !== 'light' && mode !== 'dark' && mode !== 'system')
+	)
+		return false;
+	const result = await MonitorSession.updateOne(
+		{ _id: new Types.ObjectId(id), status: 'approved' },
+		{ $set: { colorMode: mode } }
+	);
+	return result.matchedCount === 1;
 }
 
 export async function revokeMonitor(id: unknown, now = new Date()) {

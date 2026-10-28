@@ -4,7 +4,8 @@
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { nextSlide, watchPlayback } from './playback';
 	import { mediaIds, SlideMediaCache } from './media';
-	import type { Playback, PlaybackSlide, SlideDefinition } from './types';
+	import type { ColorScheme, DisplayMode, Playback, PlaybackSlide, SlideDefinition } from './types';
+	import { displayBackground } from './colors';
 	let { location }: { location: string } = $props();
 	let playback = $state<Playback | null>(null);
 	let queued = $state<Playback | null | undefined>();
@@ -12,6 +13,11 @@
 	let timeMs = $state(0);
 	let assetUrls = $state<Record<string, string>>({});
 	let connected = $state(true);
+	let colorMode = $state<DisplayMode>('dark');
+	let prefersDark = $state(false);
+	const scheme = $derived<ColorScheme>(
+		colorMode === 'system' ? (prefersDark ? 'dark' : 'light') : colorMode
+	);
 	let mediaMissing = $state(false);
 	let shown = $state<{
 		definition: SlideDefinition;
@@ -44,6 +50,10 @@
 	let refresh: (() => Promise<void>) | undefined;
 	const cache = new SlideMediaCache();
 	onMount(() => {
+		const media = window.matchMedia('(prefers-color-scheme: dark)');
+		const updateScheme = () => (prefersDark = media.matches);
+		updateScheme();
+		media.addEventListener('change', updateScheme);
 		const source = watchPlayback(
 			(content) => {
 				loading = false;
@@ -54,10 +64,12 @@
 					}
 				} else queued = content;
 			},
-			(value) => (connected = value)
+			(value) => (connected = value),
+			(value) => (colorMode = value)
 		);
 		refresh = source.refresh;
 		return () => {
+			media.removeEventListener('change', updateScheme);
 			source.stop();
 			cache.destroy();
 		};
@@ -157,7 +169,11 @@
 	});
 </script>
 
-<Div class="fixed inset-0 flex flex-col bg-black text-white">
+<Div
+	class="fixed inset-0 flex flex-col"
+	data-color-mode={scheme}
+	style={`background:${displayBackground(scheme)};color:${scheme === 'dark' ? '#f9fafb' : '#111827'};color-scheme:${scheme};`}
+>
 	<div
 		class="relative min-h-0 flex-1"
 		role="region"
@@ -169,6 +185,7 @@
 			<SlideCanvas
 				definition={shown.definition}
 				{timeMs}
+				{scheme}
 				animateTransitions
 				durationMs={shown.durationMs}
 				includeExit={shown.next !== null}
@@ -178,8 +195,8 @@
 			/>
 		{:else}
 			<Div class="flex h-full flex-col items-center justify-center gap-6 p-8 text-center"
-				><P class="text-2xl">Allen-Bailey Tag &amp; Label</P><H1 class="text-5xl text-white"
-					>{location}</H1
+				><P class="text-2xl">Allen-Bailey Tag &amp; Label</P><H1
+					class="text-5xl text-current dark:text-current">{location}</H1
 				><P class="text-2xl"
 					>{loading ? 'Loading playlist…' : 'No published playlist is assigned to this monitor.'}</P
 				></Div
@@ -195,19 +212,22 @@
 	</div>
 	{#if shown}
 		<Div
-			class="flex shrink-0 items-center justify-between gap-4 border-t border-white/15 bg-gray-950 px-4 py-3 text-white md:px-6"
+			class="flex shrink-0 items-center justify-between gap-4 border-t px-4 py-3 md:px-6"
+			style={`background:${scheme === 'dark' ? '#030712' : '#f3f4f6'};border-color:${scheme === 'dark' ? '#ffffff26' : '#00000026'};`}
 			role="region"
 			aria-label="Playback information"
 		>
 			<Div class="flex min-w-0 items-center gap-3" role="region" aria-label="Up next">
 				{#if upcoming}
 					<Div
-						class="aspect-video w-24 shrink-0 overflow-hidden rounded border border-white/20 bg-black md:w-32"
+						class="aspect-video w-24 shrink-0 overflow-hidden rounded border border-current md:w-32"
+						style={`background:${displayBackground(scheme)};`}
 						aria-hidden="true"
 					>
 						{#if nextPreview}
 							<SlideCanvas
 								definition={nextPreview.definition}
+								{scheme}
 								assetUrls={nextPreview.urls}
 								timeMs={Math.min(2000, upcoming.durationMs / 2)}
 								viewportWidth={displayWidth || upcoming.definition.width}
@@ -215,13 +235,13 @@
 								assetBase="/monitors/media"
 								label="Next slide preview"
 							/>
-						{:else}<Div class="flex h-full items-center justify-center text-xs text-gray-400"
+						{:else}<Div class="flex h-full items-center justify-center text-xs opacity-60"
 								>{previewLoading ? 'Preview loading…' : 'Preview unavailable'}</Div
 							>{/if}
 					</Div>
 				{/if}
 				<Div class="min-w-0"
-					><P class="text-xs tracking-wide text-gray-400 uppercase">Up next</P><P
+					><P class="text-xs tracking-wide uppercase opacity-60">Up next</P><P
 						class="truncate text-base font-semibold md:text-xl"
 						title={upcoming?.title}
 						>{upcoming ? upcoming.title || 'Next slide' : 'End of playlist'}</P
@@ -229,7 +249,7 @@
 				>
 			</Div>
 			<Div class="shrink-0 text-right"
-				><P class="text-xs tracking-wide text-gray-400 uppercase">Time remaining</P><P
+				><P class="text-xs tracking-wide uppercase opacity-60">Time remaining</P><P
 					role="timer"
 					aria-label="Current slide time remaining"
 					aria-live="off"

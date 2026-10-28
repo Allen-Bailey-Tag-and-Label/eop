@@ -10,7 +10,8 @@ import {
 	PAIRING_DURATION_MS,
 	PairingLimitError,
 	requestPairing,
-	revokeMonitor
+	revokeMonitor,
+	setMonitorColorMode
 } from './sessions';
 
 vi.mock('./model', () => ({
@@ -101,6 +102,22 @@ beforeEach(() => {
 });
 
 describe('monitor pairing', () => {
+	it('sets only valid color modes on approved monitors', async () => {
+		for (const [id, mode] of [
+			[{ $ne: null }, 'dark'],
+			['a'.repeat(24), 'invalid']
+		])
+			expect(await setMonitorColorMode(id, mode)).toBe(false);
+		expect(model.updateOne).not.toHaveBeenCalled();
+		model.updateOne.mockResolvedValueOnce({ matchedCount: 1 });
+		expect(await setMonitorColorMode('a'.repeat(24), 'system')).toBe(true);
+		expect(model.updateOne).toHaveBeenCalledWith(
+			{ _id: new Types.ObjectId('a'.repeat(24)), status: 'approved' },
+			{ $set: { colorMode: 'system' } }
+		);
+		model.updateOne.mockResolvedValueOnce({ matchedCount: 0 });
+		expect(await setMonitorColorMode('a'.repeat(24), 'light')).toBe(false);
+	});
 	it('creates a short-lived code and a separate cryptographically random browser secret', async () => {
 		const pairing = await requestPairing(undefined, '192.0.2.1', now);
 		expect(pairing.token).toMatch(/^[a-f0-9]{64}$/);

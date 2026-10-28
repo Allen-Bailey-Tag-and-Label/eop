@@ -138,7 +138,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (session?.status !== 'approved') return redirect('/monitors/pair');
 			event.locals.monitor = {
 				id: session._id.toString(),
-				location: session.location
+				location: session.location,
+				colorMode: session.colorMode ?? 'dark'
 			};
 		}
 		return resolve(event);

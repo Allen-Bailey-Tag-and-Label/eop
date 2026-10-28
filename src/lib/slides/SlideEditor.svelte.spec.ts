@@ -21,6 +21,48 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('edits light/dark colors, previews each mode, and can lock the chosen color as fixed', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		expect(view.getByRole('combobox', { name: 'Element color mode' })).toHaveValue('themed');
+		await fireEvent.input(view.getByLabelText('Element color in light mode'), {
+			target: { value: '#123456' }
+		});
+		await fireEvent.input(view.getByLabelText('Element color in dark mode'), {
+			target: { value: '#abcdef' }
+		});
+		const canvas = within(view.getByRole('img', { name: 'Slide preview' }));
+		expect(canvas.getByText('Your text here')).toHaveStyle({ color: '#abcdef' });
+		await fireEvent.change(view.getByRole('combobox', { name: 'Preview color mode' }), {
+			target: { value: 'light' }
+		});
+		expect(canvas.getByText('Your text here')).toHaveStyle({ color: '#123456' });
+		expect(view.getByRole('img', { name: 'Slide preview' }).parentElement).toHaveStyle({
+			background: '#ffffff'
+		});
+		const saved = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		expect(saved().elements[0].color).toEqual({ light: '#123456', dark: '#abcdef' });
+		await fireEvent.change(view.getByRole('combobox', { name: 'Element color mode' }), {
+			target: { value: 'fixed' }
+		});
+		expect(saved().elements[0].color).toBe('#123456');
+		await fireEvent.change(view.getByRole('combobox', { name: 'Preview color mode' }), {
+			target: { value: 'dark' }
+		});
+		expect(canvas.getByText('Your text here')).toHaveStyle({ color: '#123456' });
+		await fireEvent.change(view.getByRole('combobox', { name: 'Element color mode' }), {
+			target: { value: 'themed' }
+		});
+		expect(saved().elements[0].color).toEqual({ light: '#123456', dark: '#123456' });
+	});
 	it('saves transparent backgrounds without coercing them through the color picker and restores the solid color', async () => {
 		const view = render(SlideEditor, {
 			data: {

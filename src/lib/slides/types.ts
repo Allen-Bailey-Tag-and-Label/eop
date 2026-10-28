@@ -1,4 +1,7 @@
 export type ElementType = 'text' | 'image' | 'svg' | 'rectangle' | 'ellipse' | 'line';
+export type ColorScheme = 'light' | 'dark';
+export type DisplayMode = ColorScheme | 'system';
+export type SlideColor = string | { light: string; dark: string };
 export type Easing = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
 export type HorizontalAnchor = 'scale' | 'left' | 'right' | 'center' | 'stretch';
 export type VerticalAnchor = 'scale' | 'top' | 'bottom' | 'center' | 'stretch';
@@ -13,7 +16,7 @@ export type SlideElement = Pose & {
 	height: number;
 	horizontalAnchor: HorizontalAnchor;
 	verticalAnchor: VerticalAnchor;
-	color: string;
+	color: SlideColor;
 	text: string;
 	fontSize: number;
 	fontFamily: 'sans-serif' | 'serif' | 'monospace';
@@ -26,7 +29,7 @@ export type SlideDefinition = {
 	schemaVersion: 1;
 	width: number;
 	height: number;
-	background: string;
+	background: SlideColor;
 	durationMs: number;
 	transitionIn: SlideTransition;
 	transitionOut: SlideTransition;
@@ -66,7 +69,7 @@ export const blankSlide = (): SlideDefinition => ({
 	schemaVersion: 1,
 	width: 1920,
 	height: 1080,
-	background: '#09090c',
+	background: { light: '#ffffff', dark: '#09090c' },
 	durationMs: 10000,
 	transitionIn: defaultSlideTransition(),
 	transitionOut: defaultSlideTransition(),
@@ -86,7 +89,7 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		opacity: 1,
 		scale: 1,
 		rotation: 0,
-		color: '#ffffff',
+		color: type === 'image' || type === 'svg' ? '#ffffff' : { light: '#111827', dark: '#f9fafb' },
 		text: 'Your text here',
 		fontSize: 80,
 		fontFamily: 'sans-serif',

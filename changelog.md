@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T16:53:08.993Z
+## 2026-10-28T17:06:35.177Z
+
+feat: Add theme-aware slide colors and per-monitor display modes
+
+## 2026-10-28T12:54:26-04:00
 
 fix: Adapt the slide transparency checkerboard to light and dark mode
 

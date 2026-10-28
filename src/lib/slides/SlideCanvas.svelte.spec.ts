@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/svelte';
 import SlideCanvas from './SlideCanvas.svelte';
 import { blankSlide, newElement } from './types';
+import { resolveSlideColor } from './colors';
 
 beforeEach(() => {
 	vi.stubGlobal(
@@ -20,6 +21,33 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('renders themed text, shapes, and backgrounds independently of the app theme while preserving fixed colors', async () => {
+		const definition = {
+			...blankSlide(),
+			elements: [
+				{
+					...newElement('text', 'headline'),
+					text: 'Themed text',
+					color: { light: '#111111', dark: '#eeeeee' }
+				},
+				{ ...newElement('rectangle', 'shape'), color: { light: '#123456', dark: '#abcdef' } },
+				{ ...newElement('text', 'brand'), text: 'Brand', color: '#ff0000' }
+			]
+		};
+		const view = render(SlideCanvas, { definition, assetBase: '/assets', scheme: 'light' });
+		expect(view.getByText('Themed text')).toHaveStyle({ color: '#111111' });
+		expect(view.getByRole('img')).toHaveStyle({ background: '#ffffff' });
+		expect(view.container.querySelector('div[style*="border-radius"]')).toHaveStyle({
+			background: '#123456'
+		});
+		await view.rerender({ scheme: 'dark' });
+		expect(view.getByText('Themed text')).toHaveStyle({ color: '#eeeeee' });
+		expect(view.getByRole('img')).toHaveStyle({ background: '#09090c' });
+		expect(view.container.querySelector('div[style*="border-radius"]')).toHaveStyle({
+			background: '#abcdef'
+		});
+		expect(view.getByText('Brand')).toHaveStyle({ color: '#ff0000' });
+	});
 	it('fades the entire canvas including its background while static previews stay visible', async () => {
 		const definition = { ...blankSlide(), elements: [newElement('text', 'headline')] };
 		const view = render(SlideCanvas, { definition, assetBase: '/assets', timeMs: 0 });
@@ -27,7 +55,7 @@ describe('responsive slide rendering', () => {
 		await view.rerender({ animateTransitions: true, timeMs: 1000 });
 		expect(view.getByRole('img')).toHaveStyle({
 			opacity: '0.5',
-			background: definition.background
+			background: resolveSlideColor(definition.background, 'dark')
 		});
 		await view.rerender({ timeMs: 10000 });
 		expect(view.getByRole('img')).toHaveStyle({ opacity: '0' });
