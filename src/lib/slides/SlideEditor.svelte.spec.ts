@@ -210,6 +210,11 @@ describe('slide authoring', () => {
 		await fireEvent.change(view.getByRole('combobox', { name: 'Frame layout' }), {
 			target: { value: 'grid' }
 		});
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Clip frame contents' }));
+		expect(definition().elements[0].frame.clip).toBe(false);
+		expect(view.getByRole('region', { name: 'Animation timeline controls' })).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Clip frame contents' }));
+		expect(definition().elements[0].frame.clip).toBe(true);
 		await fireEvent.change(view.getByRole('combobox', { name: 'Padding mode' }), {
 			target: { value: 'axis' }
 		});

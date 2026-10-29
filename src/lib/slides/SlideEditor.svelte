@@ -1912,7 +1912,10 @@
 {/if}
 
 <style>
-	:global(.slide-inspector-controls input:not([type='hidden']):not([type='color'])),
+	:global(
+		.slide-inspector-controls
+			input:not([type='hidden']):not([type='color']):not([type='checkbox']):not([type='radio'])
+	),
 	:global(.slide-inspector-controls select) {
 		min-height: 0;
 		height: 2rem;

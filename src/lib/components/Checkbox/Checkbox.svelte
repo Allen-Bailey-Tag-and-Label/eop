@@ -48,14 +48,15 @@
 {/if}
 
 {#snippet input()}
-	<Label class={twMerge(className)} {style}>
+	<Label class={twMerge('relative inline-flex items-center', className)} {style}>
 		<SveltewindInput
 			theme={unstyledTheme}
 			{...restProps}
+			aria-label={restProps['aria-label'] ?? label}
 			{@attach attachmentFactory(attachments)}
 			bind:checked
 			bind:element
-			class={twMerge($theme.Input.default, 'peer sr-only absolute h-0 w-0')}
+			class="peer sr-only"
 			{name}
 			type="checkbox"
 		/>

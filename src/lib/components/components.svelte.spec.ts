@@ -7,6 +7,7 @@ import { defaultTheme } from '$lib/theme/themes';
 import {
 	A,
 	Card,
+	Checkbox,
 	H1,
 	H2,
 	H3,
@@ -46,6 +47,19 @@ afterEach(() => {
 });
 
 describe('Sveltewind compatibility adapters', () => {
+	it('keeps hidden checkbox inputs outside text-field theme sizing and anchors their focus target', async () => {
+		const view = render(Checkbox, { label: 'Clip frame contents', checked: true });
+		const input = view.getByRole('checkbox', { name: 'Clip frame contents' });
+		expect(input).toHaveClass('sr-only');
+		expect(input.closest('label')).toHaveClass('relative');
+		theme.set.component('Input', { default: 'h-96 p-24' });
+		await tick();
+		expect(input).not.toHaveClass('h-96', 'p-24');
+		input.focus();
+		expect(input).toHaveFocus();
+		await fireEvent.click(input);
+		expect(input).not.toBeChecked();
+	});
 	it('reveals shared modals on opening and removes their focus targets on closing', async () => {
 		const view = render(Modal, {
 			isOpen: false,

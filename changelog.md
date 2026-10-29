@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T16:17:05.493Z
+## 2026-10-29T16:33:31.930Z
+
+fix: Prevent clipping checkbox focus from shifting the slide editor layout
+
+## 2026-10-29T12:30:38-04:00
 
 feat: Add configurable clipping for repeater content
 

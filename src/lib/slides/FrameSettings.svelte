@@ -94,4 +94,8 @@
 	/>
 	{#if settings.layout !== 'grid'}<Checkbox label="Wrap items" bind:checked={settings.wrap} />{/if}
 {/if}
-<Checkbox label="Clip frame contents" bind:checked={settings.clip} />
+<Checkbox
+	label="Clip frame contents"
+	aria-label="Clip frame contents"
+	bind:checked={settings.clip}
+/>
