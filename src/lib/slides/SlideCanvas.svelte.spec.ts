@@ -4,6 +4,7 @@ import { cleanup, render } from '@testing-library/svelte';
 import SlideCanvas from './SlideCanvas.svelte';
 import { blankSlide, newElement } from './types';
 import { resolveSlideColor } from './colors';
+import { frameSlide } from './frames';
 
 beforeEach(() => {
 	vi.stubGlobal(
@@ -22,6 +23,95 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	for (const depth of [1, 3]) {
+		it(`keeps heading and staggered repeater timing identical in root and frame previews at depth ${depth}`, async () => {
+			const upcoming = { ...newElement('text', 'upcoming'), text: 'UPCOMING' };
+			upcoming.keyframes = [
+				{ ...upcoming, opacity: 0, atMs: 0, easing: 'linear' },
+				{ ...upcoming, opacity: 1, atMs: 800, easing: 'linear' }
+			];
+			const holidays = { ...newElement('text', 'holidays'), text: 'HOLIDAYS' };
+			holidays.keyframes = [
+				{ ...holidays, opacity: 0, atMs: 0, easing: 'linear' },
+				{ ...holidays, opacity: 0, atMs: 400, easing: 'linear' },
+				{ ...holidays, opacity: 1, atMs: 1200, easing: 'linear' }
+			];
+			const settings = { ...defaultRepeater(), columns: 1, itemHeight: 100, staggerMs: 200 };
+			const detail = { ...newElement('text', 'detail'), text: 'Detail' };
+			detail.keyframes = [
+				{ ...detail, opacity: 0, atMs: 0, easing: 'linear' },
+				{ ...detail, opacity: 0, atMs: 1600, easing: 'linear' },
+				{ ...detail, opacity: 1, atMs: 2400, easing: 'linear' }
+			];
+			settings.template.elements = [detail];
+			const repeater = { ...newElement('list', 'grid'), height: 250, repeater: settings };
+			const heading = newElement('frame', 'heading');
+			heading.frame!.elements = [upcoming, holidays];
+			let outer = newElement('frame', 'outer');
+			outer.frame!.elements = [repeater, heading];
+			for (let level = 1; level < depth; level++) {
+				const parent = newElement('frame', `parent-${level}`);
+				parent.frame!.elements = [outer];
+				outer = parent;
+			}
+			const data = {
+				grid: {
+					state: 'ready' as const,
+					message: '',
+					items: Array.from({ length: 4 }, (_, index) => ({
+						id: String(index),
+						label: String(index),
+						detail: ''
+					}))
+				}
+			};
+			const definition = { ...blankSlide(), durationMs: 56000, elements: [outer] };
+			const view = render(SlideCanvas, {
+				definition,
+				assetBase: '/assets',
+				animateTransitions: true,
+				timeMs: 1000,
+				data
+			});
+			const text = (id: string) => view.container.querySelector(`[data-slide-element="${id}"]`);
+			const item = (number: number) =>
+				view.container.querySelector(
+					`[aria-label="Repeater item ${number}"] [data-slide-element="detail"]`
+				);
+			expect(text('upcoming')).toHaveStyle({ opacity: '0' });
+			expect(item(1)).toHaveStyle({ opacity: '0' });
+			await view.rerender({ timeMs: 2400 });
+			expect(text('upcoming')).toHaveStyle({ opacity: '0.5' });
+			expect(text('holidays')).toHaveStyle({ opacity: '0' });
+			expect(item(1)).toHaveStyle({ opacity: '0' });
+			await view.rerender({ timeMs: 3600 });
+			expect(text('holidays')).toHaveStyle({ opacity: '1' });
+			expect(item(1)).toHaveStyle({ opacity: '0' });
+			await view.rerender({ timeMs: 4000 });
+			expect(item(1)).toHaveStyle({ opacity: '0.5' });
+			expect(item(2)).toHaveStyle({ opacity: '0.25' });
+			// Frame editing uses display time directly, without the root slide fade.
+			await view.rerender({
+				definition: frameSlide(outer, 56000),
+				animateTransitions: false,
+				timeMs: 2000
+			});
+			expect(text('upcoming')).toHaveStyle({ opacity: '1' });
+			expect(text('holidays')).toHaveStyle({ opacity: '1' });
+			expect(item(1)).toHaveStyle({ opacity: '0.5' });
+			expect(item(2)).toHaveStyle({ opacity: '0.25' });
+			// During the root exit, data and element clocks both stop at display end.
+			await view.rerender({ definition, animateTransitions: true, timeMs: 59000 });
+			expect(item(3)).toHaveStyle({ opacity: '0' });
+			// A held final slide freezes headings but keeps paging, using the same time origin.
+			await view.rerender({ includeExit: false, timeMs: 58000, dataTimeMs: 62000 });
+			expect(text('holidays')).toHaveStyle({ opacity: '1' });
+			expect(item(1)).toHaveStyle({ opacity: '0' });
+			await view.rerender({ dataTimeMs: 64000 });
+			expect(item(1)).toHaveStyle({ opacity: '0.5' });
+			expect(item(2)).toHaveStyle({ opacity: '0.25' });
+		});
+	}
 	it('allows repeater overflow through the element, grid and item template while preserving legacy clipping', async () => {
 		const settings = defaultRepeater();
 		const element = { ...newElement('list', 'grid'), repeater: settings };

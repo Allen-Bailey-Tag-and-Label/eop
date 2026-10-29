@@ -54,6 +54,18 @@
 		clip?: boolean;
 	} = $props();
 	const repeaterClock = $derived(dataTimeMs ?? timeMs);
+	// Remove the slide entrance once, before passing the data clock into nested frames.
+	// Held slides keep paging after element keyframes reach their final pose.
+	const repeaterTimeMs = $derived(
+		animateTransitions
+			? Math.max(
+					0,
+					(includeExit
+						? Math.min(repeaterClock, slideTiming(definition, durationMs).entranceMs + durationMs)
+						: repeaterClock) - slideTiming(definition, durationMs).entranceMs
+				)
+			: repeaterClock
+	);
 	let measured = $state<Record<string, { width: number; height: number }>>({});
 	function observe(node: HTMLDivElement, id: string) {
 		if (!flow || flow.layout === 'free') return;
@@ -128,7 +140,7 @@
 						height={contentHeight}
 						{durationMs}
 						timeMs={elementTimeMs}
-						dataTimeMs={repeaterClock}
+						dataTimeMs={repeaterTimeMs}
 						{scheme}
 						{data}
 						{assetBase}
@@ -150,17 +162,7 @@
 						result={Object.hasOwn(data, element.id) ? data[element.id] : undefined}
 						width={contentWidth}
 						height={contentHeight}
-						timeMs={animateTransitions
-							? Math.max(
-									0,
-									(includeExit
-										? Math.min(
-												repeaterClock,
-												slideTiming(definition, durationMs).entranceMs + durationMs
-											)
-										: repeaterClock) - slideTiming(definition, durationMs).entranceMs
-								)
-							: repeaterClock}
+						timeMs={repeaterTimeMs}
 						{durationMs}
 						{scheme}
 						{assetBase}

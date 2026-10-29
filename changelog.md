@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T16:33:31.930Z
+## 2026-10-29T16:47:25.289Z
+
+fix: Synchronize nested repeater animations with the slide display timeline
+
+## 2026-10-29T12:43:36-04:00
 
 fix: Prevent clipping checkbox focus from shifting the slide editor layout
 
