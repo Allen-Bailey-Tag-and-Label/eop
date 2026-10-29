@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 import {
 	assignPlaylist,
+	duplicateSlide,
 	getPlayback,
 	listSlideReferences,
 	manageSlide,
@@ -27,7 +28,8 @@ vi.mock('./models', () => ({
 		updateOne: vi.fn(),
 		deleteOne: vi.fn(),
 		countDocuments: vi.fn(),
-		find: vi.fn()
+		find: vi.fn(),
+		findOne: vi.fn()
 	},
 	Playlist: {
 		create: vi.fn(),
@@ -75,6 +77,46 @@ beforeEach(() => {
 	>);
 });
 describe('slide publishing', () => {
+	it('duplicates the saved draft into a unique unpublished slide and retains nested artwork references', async () => {
+		const frame = newElement('frame', 'frame');
+		frame.frame!.elements = [{ ...newElement('image', 'image'), assetId: 'c'.repeat(24) }];
+		const draft = { ...blankSlide(), elements: [frame] };
+		vi.mocked(Slide.findOne).mockReturnValue(
+			query({
+				slug: 'a'.repeat(80),
+				title: 'b'.repeat(160),
+				draft,
+				published: blankSlide()
+			}) as unknown as ReturnType<typeof Slide.findOne>
+		);
+		const key = await duplicateSlide(fields(draft), userId);
+		expect(Slide.findOne).toHaveBeenCalledWith({ _id: id, version: 1 });
+		expect(key).toHaveLength(80);
+		expect(Slide.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				slug: key,
+				title: `${'b'.repeat(153)} (copy)`,
+				version: 1,
+				draft,
+				_createdById: userId
+			})
+		);
+		const copy = vi.mocked(Slide.create).mock.calls[0][0];
+		expect(copy).not.toHaveProperty('published');
+		expect(copy).not.toHaveProperty('publishedAt');
+		expect(copy).not.toHaveProperty('publishedTitle');
+		expect(Slide.updateOne).not.toHaveBeenCalled();
+	});
+	it('rejects invalid or stale duplicate requests before creating anything', async () => {
+		const invalid = fields();
+		invalid.set('version', '0');
+		await expect(duplicateSlide(invalid, userId)).rejects.toThrow('Invalid slide version');
+		vi.mocked(Slide.findOne).mockReturnValue(
+			query(null) as unknown as ReturnType<typeof Slide.findOne>
+		);
+		await expect(duplicateSlide(fields(), userId)).rejects.toThrow('changed or no longer exists');
+		expect(Slide.create).not.toHaveBeenCalled();
+	});
 	it('uses the unsaved slide asset scope as the newly created slide ID', async () => {
 		const form = fields();
 		form.set('id', '');

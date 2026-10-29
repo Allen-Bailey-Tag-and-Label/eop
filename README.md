@@ -50,6 +50,13 @@ For an existing database, add `/admin/monitors/slides` and
 `/admin/monitors/playlists` in **Admin → Routes**, then assign the routes to the
 appropriate roles. New databases include both in the initial admin seed.
 
+The slides list uses the shared Datatable for sorting, filtering, and pagination.
+Its **Actions** column offers **Edit**, **Duplicate**, and **Delete**. Duplicate
+opens an unpublished copy of the saved draft with a unique slug and keeps its
+media references; files remain protected while either slide uses them. Delete
+requires confirmation and is blocked while any draft or published playlist uses
+the slide. Uploaded assets remain after slide deletion.
+
 1. Open **Admin → Monitors → Slides** and create a slide. The editor fills the
    available application height without page scrolling. Use **Settings** in the
    top toolbar for title, unique slug, reference dimensions, background, and duration.

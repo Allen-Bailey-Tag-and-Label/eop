@@ -83,6 +83,32 @@ export async function listSlides() {
 		publishedAt: row.publishedAt?.toISOString() ?? null
 	}));
 }
+
+export async function duplicateSlide(fields: FormData, userId: string) {
+	const id = fields.get('id');
+	const version = Number(fields.get('version'));
+	if (!isId(id) || !Number.isInteger(version) || version < 1)
+		throw new SlideValidationError('Invalid slide version. Reload the slide list.');
+	const source = await Slide.findOne({ _id: id, version }).select('slug title draft').lean();
+	if (!source)
+		throw new SlideValidationError(
+			'This slide changed or no longer exists. Reload the slide list.'
+		);
+	const copyId = new Types.ObjectId();
+	const key = `${source.slug.slice(0, 50).replace(/-+$/, '')}-copy-${copyId.toHexString()}`;
+	const draft = validateSlide(withResponsiveDefaults(source.draft));
+	// Retain media references just as imported/copied artwork does. Asset reference checks
+	// keep those files available to both slides, including media in nested templates.
+	await Slide.create({
+		_id: copyId,
+		slug: key,
+		title: `${source.title.slice(0, 153)} (copy)`,
+		version: 1,
+		draft,
+		_createdById: userId
+	});
+	return key;
+}
 export async function listPlaylists() {
 	const rows = await Playlist.find()
 		.select('slug title publishedAt')

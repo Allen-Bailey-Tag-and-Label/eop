@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T17:01:57.176Z
+## 2026-10-29T17:11:57.564Z
+
+feat: Use Datatable for slides with edit, duplicate and confirmed delete actions
+
+## 2026-10-29T13:03:23-04:00
 
 fix: Show playlist loading correctly and hold repeater animation final poses
 
