@@ -25,6 +25,95 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('drags layers in both directions, retains selection and content, and ignores cancelled or external drops', async () => {
+		vi.stubGlobal(
+			'DragEvent',
+			class extends MouseEvent {
+				dataTransfer: DataTransfer | null;
+				constructor(type: string, init: DragEventInit = {}) {
+					super(type, init);
+					this.dataTransfer = init.dataTransfer ?? null;
+				}
+			}
+		);
+		const draft = blankSlide();
+		draft.elements = ['First', 'Second', 'Third'].map((name) => ({
+			...newElement('text', name),
+			text: name
+		}));
+		draft.elements[0].keyframes = [
+			{ ...draft.elements[0], atMs: 1000, easing: 'linear', rotation: 45 }
+		];
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		const order = () => definition().elements.map((element: { id: string }) => element.id);
+		const original = definition().elements[0];
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		const first = view.getByRole('button', { name: 'Layer 1: text: First' });
+		const third = view.getByRole('button', { name: 'Layer 3: text: Third' });
+		const dataTransfer = { setData: vi.fn(), effectAllowed: '', dropEffect: '' };
+		await fireEvent.dragStart(first, { dataTransfer });
+		await fireEvent.dragOver(third, { clientY: 1, dataTransfer });
+		expect(third).toHaveClass('border-b-sky-500');
+		await fireEvent.drop(third, { clientY: 1, dataTransfer });
+		expect(order()).toEqual(['Second', 'Third', 'First']);
+		expect(view.getByRole('button', { name: 'Layer 3: text: First' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		expect(definition().elements[2]).toEqual(original);
+		await fireEvent.dragStart(first, { dataTransfer });
+		await fireEvent.drop(view.getByRole('button', { name: 'Layer 1: text: Second' }), {
+			clientY: -1
+		});
+		expect(order()).toEqual(['First', 'Second', 'Third']);
+		await fireEvent.dragStart(first, { dataTransfer });
+		await fireEvent.dragEnd(first);
+		await fireEvent.drop(third, { clientY: 1 });
+		expect(order()).toEqual(['First', 'Second', 'Third']);
+		await fireEvent.keyDown(first, { key: 'ArrowUp', altKey: true });
+		expect(order()).toEqual(['First', 'Second', 'Third']);
+		await fireEvent.keyDown(first, { key: 'ArrowDown', altKey: true });
+		expect(order()).toEqual(['Second', 'First', 'Third']);
+	});
+	it('reorders repeater template layers without changing the slide stack', async () => {
+		vi.useFakeTimers();
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		const before = definition();
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		const layers = view.getAllByRole('button', { name: /^Layer \d+:/ });
+		await fireEvent.keyDown(layers[0], { key: 'ArrowDown', altKey: true });
+		const after = definition();
+		expect(after.elements.map((element: { id: string }) => element.id)).toEqual(
+			before.elements.map((element: { id: string }) => element.id)
+		);
+		const children = before.elements[1].repeater.template.elements;
+		expect(after.elements[1].repeater.template.elements).toEqual([
+			children[1],
+			children[0],
+			...children.slice(2)
+		]);
+	});
 	it('adds a generic data list, previews server data, and saves only its source configuration', async () => {
 		vi.useFakeTimers();
 		const fetch = vi.fn<typeof globalThis.fetch>(

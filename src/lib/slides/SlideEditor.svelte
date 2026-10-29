@@ -40,6 +40,7 @@
 		AlignCenter,
 		AlignRight,
 		BringToFront,
+		GripVertical,
 		Database
 	} from '@lucide/svelte';
 	import {
@@ -77,7 +78,7 @@
 		type SlideData
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
-	import { rotateElement } from './editor';
+	import { rotateElement, reorderLayers } from './editor';
 	import { withResponsiveDefaults } from './layout';
 	import { poseAt, slideContentTime, slideTiming } from './timeline';
 	let {
@@ -165,6 +166,59 @@
 	function setElements(elements: SlideElement[]) {
 		if (editingRepeater?.repeater) editingRepeater.repeater.template.elements = elements;
 		else draft.elements = elements;
+	}
+	let draggedLayerId = $state('');
+	let layerDropTarget = $state<{ id: string; after: boolean } | null>(null);
+	let layerDragContext = '';
+	let layerAnnouncement = $state('');
+	function clearLayerDrag() {
+		draggedLayerId = '';
+		layerDropTarget = null;
+		layerDragContext = '';
+	}
+	function startLayerDrag(event: DragEvent, id: string) {
+		draggedLayerId = id;
+		layerDragContext = editingRepeaterId;
+		selectedId = id;
+		playing = false;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', id);
+		}
+	}
+	function hoverLayer(event: DragEvent, id: string) {
+		if (!draggedLayerId || layerDragContext !== editingRepeaterId) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		layerDropTarget = { id, after: event.clientY >= bounds.top + bounds.height / 2 };
+	}
+	function reorderLayer(id: string, targetId: string, after: boolean) {
+		const reordered = reorderLayers(activeElements, id, targetId, after);
+		if (reordered === activeElements) return;
+		setElements(reordered);
+		selectedId = id;
+		playing = false;
+		layerAnnouncement = `Moved ${reordered.find((element) => element.id === id)?.text.slice(0, 32) || 'layer'} to position ${reordered.findIndex((element) => element.id === id) + 1} of ${reordered.length}.`;
+	}
+	function dropLayer(event: DragEvent, id: string) {
+		if (!draggedLayerId || layerDragContext !== editingRepeaterId) {
+			clearLayerDrag();
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		reorderLayer(draggedLayerId, id, event.clientY >= bounds.top + bounds.height / 2);
+		clearLayerDrag();
+	}
+	function layerKeydown(event: KeyboardEvent, id: string) {
+		if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+		event.preventDefault();
+		const index = activeElements.findIndex((element) => element.id === id);
+		const next = index + (event.key === 'ArrowUp' ? -1 : 1);
+		if (next >= 0 && next < activeElements.length)
+			reorderLayer(id, activeElements[next].id, event.key === 'ArrowDown');
 	}
 	function editTemplate() {
 		const parent = selected;
@@ -774,16 +828,33 @@
 					class="slide-inspector-controls min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
 				>
 					{#if inspectorTab === 'layers'}
-						<H2 class="text-sm">Layers</H2><P class="text-xs opacity-60"
-							>Later elements appear in front.</P
+						<H2 class="text-sm">Layers</H2>
+						<P id={`${uid}-layer-help`} class="text-xs opacity-60"
+							>Drag to reorder. Later layers appear in front. Alt+Up/Down also moves the focused
+							layer.</P
 						>
-						{#each activeElements as element, index (element.id)}<Button
-								class="w-full min-w-0 justify-start truncate px-3 py-2 text-left text-xs"
+						<P role="status" aria-live="polite" class="sr-only">{layerAnnouncement}</P>
+						{#each activeElements as element, index (element.id)}
+							<Button
+								draggable="true"
+								aria-label={`Layer ${index + 1}: ${element.type}: ${element.text.slice(0, 32)}`}
+								aria-describedby={`${uid}-layer-help`}
 								aria-pressed={selectedId === element.id}
 								variants={selectedId === element.id ? [] : ['ghost']}
+								class={`flex w-full min-w-0 cursor-grab items-center justify-start gap-1.5 rounded border-y-2 border-transparent px-2 py-1 text-left text-xs active:cursor-grabbing ${draggedLayerId === element.id ? 'opacity-50' : ''} ${layerDropTarget?.id === element.id && draggedLayerId !== element.id ? (layerDropTarget.after ? 'border-b-sky-500' : 'border-t-sky-500') : ''}`}
 								onclick={() => (selectedId = element.id)}
-								>{index + 1}. {element.type}: {element.text.slice(0, 32)}</Button
-							>{/each}
+								ondragstart={(event) => startLayerDrag(event, element.id)}
+								ondragover={(event) => hoverLayer(event, element.id)}
+								ondrop={(event) => dropLayer(event, element.id)}
+								ondragend={clearLayerDrag}
+								onkeydown={(event) => layerKeydown(event, element.id)}
+							>
+								<GripVertical size={13} aria-hidden="true" class="shrink-0 opacity-50" /><span
+									class="min-w-0 truncate"
+									>{index + 1}. {element.type}: {element.text.slice(0, 32)}</span
+								>
+							</Button>
+						{/each}
 						{#if !activeElements.length}<P class="text-sm opacity-60"
 								>Use Add or the left rail to create your first element.</P
 							>{/if}

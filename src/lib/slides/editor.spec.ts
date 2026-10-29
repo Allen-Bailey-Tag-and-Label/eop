@@ -5,10 +5,45 @@ import {
 	resizeDimensions,
 	resizeElement,
 	rotateElement,
-	rotationDelta
+	rotationDelta,
+	reorderLayers
 } from './editor';
 
 describe('canvas editing', () => {
+	it('inserts layers before or after a target without changing objects or the original order', () => {
+		const elements = ['a', 'b', 'c', 'd'].map((id) => newElement('text', id));
+		expect(reorderLayers(elements, 'a', 'c').map((element) => element.id)).toEqual([
+			'b',
+			'a',
+			'c',
+			'd'
+		]);
+		const reordered = reorderLayers(elements, 'a', 'd', true);
+		expect(reordered.map((element) => element.id)).toEqual(['b', 'c', 'd', 'a']);
+		expect(reordered[3]).toBe(elements[0]);
+		expect(reorderLayers(elements, 'd', 'a').map((element) => element.id)).toEqual([
+			'd',
+			'a',
+			'b',
+			'c'
+		]);
+		expect(reorderLayers(elements, 'd', 'b', true).map((element) => element.id)).toEqual([
+			'a',
+			'b',
+			'd',
+			'c'
+		]);
+		expect(elements.map((element) => element.id)).toEqual(['a', 'b', 'c', 'd']);
+		for (const [source, target, after] of [
+			['a', 'a', false],
+			['a', 'b', false],
+			['b', 'a', true],
+			['missing', 'a', false],
+			['a', 'missing', true]
+		] as const) {
+			expect(reorderLayers(elements, source, target, after)).toBe(elements);
+		}
+	});
 	it('rotates animated objects together, bounds the entire path, and crosses angle seams', () => {
 		const element = newElement('text', 'headline');
 		element.keyframes = [{ ...element, rotation: 30, atMs: 1000, easing: 'linear' }];

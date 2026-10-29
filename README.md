@@ -256,6 +256,11 @@ value; fixed and light/dark modes remain available. The color toolbar shortcut
 opens Fill before activating its picker. These density styles are limited to the
 inspector; document dialogs and other application forms keep their normal sizing.
 
+In **Layers**, drag a row above or below another row to change the stacking order.
+The insertion marker shows where it will land; later rows appear in front.
+With a layer focused, **Alt+Up/Down** moves it one position. The same controls
+reorder layers inside a repeater item template without changing the slide's layers.
+
 **Object appearance and rotation:** select an element to edit its rotation in
 degrees, rotate left/right by 90?, or reset its visible angle. Drag the circular
 handle above the selected object to rotate on the canvas; hold Shift to snap to

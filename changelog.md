@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T12:07:20.635Z
+## 2026-10-29T12:21:00.507Z
+
+feat: Add drag-and-drop layer reordering to the slide editor
+
+## 2026-10-29T08:08:46-04:00
 
 fix: Constrain inspector inputs and shrink color swatches
 

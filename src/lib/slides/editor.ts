@@ -78,3 +78,22 @@ export function rotateElement(element: SlideElement, degrees: number) {
 export function rotationDelta(previous: number, next: number) {
 	return ((((next - previous + 540) % 360) + 360) % 360) - 180;
 }
+
+// Return a new stacking order; element identities, animation paths, and styles stay intact.
+export function reorderLayers(
+	elements: SlideElement[],
+	sourceId: string,
+	targetId: string,
+	after = false
+) {
+	const source = elements.findIndex((element) => element.id === sourceId);
+	const target = elements.findIndex((element) => element.id === targetId);
+	if (source < 0 || target < 0 || source === target) return elements;
+	let destination = target + (after ? 1 : 0);
+	if (source < destination) destination--;
+	if (source === destination) return elements;
+	const reordered = [...elements];
+	const [element] = reordered.splice(source, 1);
+	reordered.splice(destination, 0, element);
+	return reordered;
+}
