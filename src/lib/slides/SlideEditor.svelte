@@ -1249,8 +1249,24 @@
 								/>
 								<Select
 									label="Image fit"
+									aria-label="Image fit"
 									bind:value={selected.fit}
 									options={['contain', 'cover'].map((value) => ({ value, label: value }))}
+								/>
+								<Input
+									label="Image opacity (%)"
+									aria-label="Image opacity"
+									class="h-8 text-xs"
+									type="number"
+									min={0}
+									max={100}
+									step={1}
+									value={String(Math.round((selected.imageOpacity ?? 1) * 100))}
+									oninput={(event) => {
+										const value = event.currentTarget.valueAsNumber;
+										if (selected && Number.isFinite(value))
+											selected.imageOpacity = Math.max(0, Math.min(100, value)) / 100;
+									}}
 								/>
 							</InspectorSection>
 						{:else}<InspectorSection title="Content" open={selected.type === 'qr'}

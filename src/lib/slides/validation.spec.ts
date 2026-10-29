@@ -4,6 +4,17 @@ import { parseJson, slug, validatePlaylist, validateSlide } from './validation';
 import { poseAt } from './timeline';
 
 describe('slide definitions', () => {
+	it('preserves image opacity and rejects values outside the supported range', () => {
+		const image = { ...newElement('image', 'image'), assetId: 'a'.repeat(24), imageOpacity: 0.4 };
+		expect(validateSlide({ ...blankSlide(), elements: [image] }).elements[0].imageOpacity).toBe(
+			0.4
+		);
+		for (const imageOpacity of [-0.1, 1.1, NaN]) {
+			expect(() =>
+				validateSlide({ ...blankSlide(), elements: [{ ...image, imageOpacity }] })
+			).toThrow('Image opacity');
+		}
+	});
 	it('preserves vertical text alignment and rejects unsupported alignment values', () => {
 		const element = newElement('text', 'text');
 		for (const verticalAlign of ['top', 'middle', 'bottom']) {

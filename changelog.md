@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T20:09:42.808Z
+## 2026-10-29T20:49:22.423Z
+
+feat: Default slide images to cover and add image opacity controls
+
+## 2026-10-29T16:37:04-04:00
 
 feat: Move transitions into playlists with crossfades and entry overrides
 

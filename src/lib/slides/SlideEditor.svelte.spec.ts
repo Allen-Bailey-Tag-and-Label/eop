@@ -36,6 +36,27 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('defaults new graphics to cover and saves independent image opacity', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: [{ id: 'a'.repeat(24), name: 'Photo', contentType: 'image/png' }]
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: /Add image \/ graphic/i }));
+		expect(view.getByRole('combobox', { name: 'Image fit' })).toHaveValue('cover');
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Image opacity' }), {
+			target: { value: '35' }
+		});
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(validateSlide(definition).elements[0]).toMatchObject({
+			fit: 'cover',
+			imageOpacity: 0.35,
+			opacity: 1
+		});
+	});
 	it('authors aggregate data links and exposes computed output fields to item templates', async () => {
 		vi.stubGlobal(
 			'fetch',

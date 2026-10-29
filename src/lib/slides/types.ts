@@ -129,6 +129,7 @@ export type SlideElement = Pose & {
 	verticalAlign?: 'top' | 'middle' | 'bottom';
 	assetId: string;
 	fit: 'contain' | 'cover';
+	imageOpacity?: number;
 	keyframes: Keyframe[];
 	dataSource?: SlideDataSource;
 	repeater?: RepeaterDefinition;
@@ -240,7 +241,7 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		fontFamily: 'sans-serif',
 		align: 'left',
 		assetId: '',
-		fit: 'contain',
+		fit: type === 'image' || type === 'svg' ? 'cover' : 'contain',
 		...(type === 'frame' ? { frame: defaultFrame(), text: 'Frame', color: 'transparent' } : {}),
 		...(type === 'qr'
 			? {

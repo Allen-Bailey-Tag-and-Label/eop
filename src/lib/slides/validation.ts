@@ -251,6 +251,9 @@ export function validateSlide(
 			type,
 			assetId,
 			keyframes,
+			...((type === 'image' || type === 'svg') && e.imageOpacity !== undefined
+				? { imageOpacity: number(e.imageOpacity, 0, 1, 'Image opacity') }
+				: {}),
 			...(type === 'list'
 				? {
 						dataSource: validateDataSource(e.dataSource, !e.repeater),

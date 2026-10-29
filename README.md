@@ -228,6 +228,11 @@ accepts PNG, JPEG, WebP, and SVG assets through one tool and one asset selector.
 If no asset is available, it opens the upload dialog instead of inserting an empty
 element. After uploading, choose **Add ? Image / Graphic** again. Existing image
 and SVG elements can switch between both formats in Properties.
+New images and SVGs default to **cover**; existing elements retain their saved fit.
+Under **Graphic**, **Image opacity (%)** adjusts the artwork from 0–100% independently
+of object opacity keyframes. For example, 40% image opacity stays at 40% after an
+object fade reaches its final fully visible keyframe. Existing images default to
+100% image opacity.
 
 **Asset organization:** uploads belong to the current slide by default, including
 uploads made while editing a repeater template. The asset selector starts on

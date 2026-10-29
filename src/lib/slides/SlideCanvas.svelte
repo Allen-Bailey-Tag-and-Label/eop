@@ -178,7 +178,7 @@
 					{#if element.assetId}<img
 							src={assetUrls[element.assetId] ?? `${assetBase}/${element.assetId}`}
 							alt={element.text}
-							style={`width:100%;height:100%;object-fit:${element.fit};`}
+							style={`width:100%;height:100%;object-fit:${element.fit};opacity:${element.imageOpacity ?? 1};`}
 						/>{/if}
 				{:else}
 					<Div

@@ -22,6 +22,35 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('applies image opacity independently of animated object opacity and preserves legacy fit', async () => {
+		const image = { ...newElement('image', 'photo'), assetId: 'a'.repeat(24), imageOpacity: 0.25 };
+		image.keyframes = [
+			{ ...image, opacity: 0, atMs: 0, easing: 'linear' },
+			{ ...image, opacity: 1, atMs: 1000, easing: 'linear' }
+		];
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [image] },
+			assetBase: '/assets',
+			timeMs: 500
+		});
+		const photo = view.container.querySelector('img')!;
+		expect(photo).toHaveStyle({ objectFit: 'cover', opacity: '0.25' });
+		expect(view.container.querySelector('[data-slide-element="photo"]')).toHaveStyle({
+			opacity: '0.5'
+		});
+		await view.rerender({ timeMs: 1000 });
+		expect(photo).toHaveStyle({ opacity: '0.25' });
+		expect(view.container.querySelector('[data-slide-element="photo"]')).toHaveStyle({
+			opacity: '1'
+		});
+		await view.rerender({
+			definition: {
+				...blankSlide(),
+				elements: [{ ...image, fit: 'contain', imageOpacity: undefined }]
+			}
+		});
+		expect(photo).toHaveStyle({ objectFit: 'contain', opacity: '1' });
+	});
 	for (const depth of [1, 3]) {
 		it(`keeps heading and staggered repeater timing identical in root and frame previews at depth ${depth}`, async () => {
 			const upcoming = { ...newElement('text', 'upcoming'), text: 'UPCOMING' };
@@ -458,6 +487,6 @@ describe('responsive slide rendering', () => {
 			height: '1080px'
 		});
 		expect(getByText('Your text here', { selector: 'div' })).toHaveStyle({ fontSize: '80px' });
-		expect(getByRole('img', { name: 'Your text here' })).toHaveStyle({ objectFit: 'contain' });
+		expect(getByRole('img', { name: 'Your text here' })).toHaveStyle({ objectFit: 'cover' });
 	});
 });
