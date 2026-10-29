@@ -14,6 +14,7 @@ export type ElementPadding =
 export type FrameDefinition = {
 	layout: 'free' | 'row' | 'column' | 'grid';
 	columns: number;
+	gapMode?: 'uniform' | 'axis';
 	columnGap: number;
 	rowGap: number;
 	justify: 'start' | 'center' | 'end' | 'space-between';

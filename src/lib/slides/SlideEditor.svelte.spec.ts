@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import SlideEditor from './SlideEditor.svelte';
 import { blankSlide, newElement } from './types';
 import { validateSlide } from './validation';
+import { frameLayoutStyle } from './frames';
 
 vi.mock('$app/forms', () => ({
 	enhance: vi.fn(() => ({ destroy: vi.fn() })),
@@ -31,6 +32,68 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	for (const layout of ['row', 'column', 'grid'] as const) {
+		it(`saves uniform and separate gaps for ${layout} frames`, async () => {
+			vi.stubGlobal(
+				'matchMedia',
+				vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+			);
+			const frame = newElement('frame', 'frame');
+			frame.frame!.layout = layout;
+			frame.frame!.columnGap = 8;
+			frame.frame!.rowGap = 20;
+			const view = render(SlideEditor, {
+				data: {
+					slide: {
+						id: '',
+						title: '',
+						slug: '',
+						version: 0,
+						publishedAt: null,
+						draft: { ...blankSlide(), elements: [frame] }
+					},
+					assets: []
+				}
+			});
+			const definition = () =>
+				validateSlide(
+					JSON.parse(
+						(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+					)
+				);
+			await fireEvent.click(view.getByRole('button', { name: 'Select element 1: frame' }));
+			expect(view.getByLabelText('Frame gap mode')).toHaveValue('axis');
+			await fireEvent.change(view.getByLabelText('Frame gap mode'), {
+				target: { value: 'uniform' }
+			});
+			await fireEvent.input(view.getByLabelText('Frame gap'), { target: { value: '24' } });
+			expect(frameLayoutStyle(definition().elements[0].frame, 2)).toContain(
+				'column-gap:48px;row-gap:48px'
+			);
+			await fireEvent.change(view.getByLabelText('Frame gap mode'), { target: { value: 'axis' } });
+			await fireEvent.input(view.getByLabelText('Frame horizontal gap'), {
+				target: { value: '12' }
+			});
+			await fireEvent.input(view.getByLabelText('Frame vertical gap'), { target: { value: '32' } });
+			expect(definition().elements[0].frame).toMatchObject({
+				gapMode: 'axis',
+				columnGap: 12,
+				rowGap: 32
+			});
+			expect(frameLayoutStyle(definition().elements[0].frame, 2)).toContain(
+				'column-gap:24px;row-gap:64px'
+			);
+			await fireEvent.change(view.getByLabelText('Frame gap mode'), {
+				target: { value: 'uniform' }
+			});
+			expect(view.getByLabelText('Frame gap')).toHaveValue(12);
+			expect(definition().elements[0].frame).toMatchObject({
+				gapMode: 'uniform',
+				columnGap: 12,
+				rowGap: 12
+			});
+		});
+	}
 	it('keeps Layers on the left and Properties on the right with an independently accessible canvas toolbar', async () => {
 		vi.stubGlobal(
 			'matchMedia',

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T15:05:26.769Z
+## 2026-10-29T15:51:37.248Z
+
+feat: Add uniform and axis gap controls for flex and grid frames
+
+## 2026-10-29T11:43:54-04:00
 
 feat: Improve editor panels, nested layer moves, handle contrast and Tabs styling
 

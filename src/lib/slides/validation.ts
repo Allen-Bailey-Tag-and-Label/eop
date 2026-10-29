@@ -177,6 +177,9 @@ function validateFrame(
 	return {
 		layout: choice(frame.layout, ['free', 'row', 'column', 'grid'], 'frame layout'),
 		columns: integer(frame.columns, 1, 12, 'Frame columns'),
+		...(frame.gapMode === undefined
+			? {}
+			: { gapMode: choice(frame.gapMode, ['uniform', 'axis'] as const, 'frame gap mode') }),
 		columnGap: number(frame.columnGap, 0, 512, 'Column gap'),
 		rowGap: number(frame.rowGap, 0, 512, 'Row gap'),
 		justify: choice(

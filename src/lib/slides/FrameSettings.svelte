@@ -3,6 +3,15 @@
 	import InspectorInput from './InspectorInput.svelte';
 	import type { FrameDefinition } from './types';
 	let { settings = $bindable() }: { settings: FrameDefinition } = $props();
+	const gapMode = $derived(
+		settings.gapMode ?? (settings.columnGap === settings.rowGap ? 'uniform' : 'axis')
+	);
+	function setGap(axis: 'all' | 'x' | 'y', value: number) {
+		if (!Number.isFinite(value)) return;
+		value = Math.max(0, Math.min(512, value));
+		if (axis !== 'y') settings.columnGap = value;
+		if (axis !== 'x') settings.rowGap = value;
+	}
 </script>
 
 <Select
@@ -26,26 +35,51 @@
 			value={String(settings.columns)}
 			oninput={(event) => (settings.columns = event.currentTarget.valueAsNumber)}
 		/>{/if}
-	<Div class="grid grid-cols-2 gap-2">
+	<Select
+		label="Gap"
+		aria-label="Frame gap mode"
+		value={gapMode}
+		options={[
+			{ value: 'uniform', label: 'Uniform' },
+			{ value: 'axis', label: 'Horizontal / Vertical' }
+		]}
+		onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+			settings.gapMode = event.currentTarget.value as 'uniform' | 'axis';
+			if (settings.gapMode === 'uniform') setGap('all', settings.columnGap);
+		}}
+	/>
+	{#if gapMode === 'uniform'}
 		<InspectorInput
-			label="Frame horizontal gap"
-			prefix="GX"
+			label="Frame gap"
+			prefix="Gap"
 			type="number"
 			min={0}
 			max={512}
 			value={String(settings.columnGap)}
-			oninput={(event) => (settings.columnGap = event.currentTarget.valueAsNumber)}
+			oninput={(event) => setGap('all', event.currentTarget.valueAsNumber)}
 		/>
-		<InspectorInput
-			label="Frame vertical gap"
-			prefix="GY"
-			type="number"
-			min={0}
-			max={512}
-			value={String(settings.rowGap)}
-			oninput={(event) => (settings.rowGap = event.currentTarget.valueAsNumber)}
-		/>
-	</Div>
+	{:else}
+		<Div class="grid min-w-0 grid-cols-2 gap-2">
+			<InspectorInput
+				label="Frame horizontal gap"
+				prefix="GX"
+				type="number"
+				min={0}
+				max={512}
+				value={String(settings.columnGap)}
+				oninput={(event) => setGap('x', event.currentTarget.valueAsNumber)}
+			/>
+			<InspectorInput
+				label="Frame vertical gap"
+				prefix="GY"
+				type="number"
+				min={0}
+				max={512}
+				value={String(settings.rowGap)}
+				oninput={(event) => setGap('y', event.currentTarget.valueAsNumber)}
+			/>
+		</Div>
+	{/if}
 	<Select
 		label="Distribution"
 		aria-label="Frame distribution"
