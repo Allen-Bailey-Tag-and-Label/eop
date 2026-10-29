@@ -86,32 +86,43 @@ describe('slide authoring', () => {
 		const order = () => definition().elements.map((element: { id: string }) => element.id);
 		const original = definition().elements[0];
 		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
-		const first = view.getByRole('button', { name: 'Layer 1: text: First' });
-		const third = view.getByRole('button', { name: 'Layer 3: text: Third' });
+		expect(
+			view
+				.getAllByRole('button', { name: /^Layer \d+:/ })
+				.map((button) => button.getAttribute('aria-label'))
+		).toEqual(['Layer 1: text: Third', 'Layer 2: text: Second', 'Layer 3: text: First']);
+		expect(order()).toEqual(['First', 'Second', 'Third']);
+		const first = view.getByRole('button', { name: 'Layer 3: text: First' });
+		const third = view.getByRole('button', { name: 'Layer 1: text: Third' });
 		const dataTransfer = { setData: vi.fn(), effectAllowed: '', dropEffect: '' };
 		await fireEvent.dragStart(first, { dataTransfer });
-		await fireEvent.dragOver(third, { clientY: 1, dataTransfer });
-		expect(third).toHaveClass('border-b-sky-500');
-		await fireEvent.drop(third, { clientY: 1, dataTransfer });
+		await fireEvent.dragOver(third, { clientY: -1, dataTransfer });
+		expect(third).toHaveClass('border-t-sky-500');
+		await fireEvent.drop(third, { clientY: -1, dataTransfer });
 		expect(order()).toEqual(['Second', 'Third', 'First']);
-		expect(view.getByRole('button', { name: 'Layer 3: text: First' })).toHaveAttribute(
+		expect(view.getByRole('button', { name: 'Layer 1: text: First' })).toHaveAttribute(
 			'aria-pressed',
 			'true'
 		);
 		expect(definition().elements[2]).toEqual(original);
 		await fireEvent.dragStart(first, { dataTransfer });
-		await fireEvent.drop(view.getByRole('button', { name: 'Layer 1: text: Second' }), {
-			clientY: -1
+		await fireEvent.drop(view.getByRole('button', { name: 'Layer 3: text: Second' }), {
+			clientY: 1
 		});
 		expect(order()).toEqual(['First', 'Second', 'Third']);
 		await fireEvent.dragStart(first, { dataTransfer });
 		await fireEvent.dragEnd(first);
 		await fireEvent.drop(third, { clientY: 1 });
 		expect(order()).toEqual(['First', 'Second', 'Third']);
-		await fireEvent.keyDown(first, { key: 'ArrowUp', altKey: true });
-		expect(order()).toEqual(['First', 'Second', 'Third']);
 		await fireEvent.keyDown(first, { key: 'ArrowDown', altKey: true });
+		expect(order()).toEqual(['First', 'Second', 'Third']);
+		await fireEvent.keyDown(first, { key: 'ArrowUp', altKey: true });
 		expect(order()).toEqual(['Second', 'First', 'Third']);
+		expect(view.getByRole('button', { name: 'Layer 2: text: First' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		expect(view.getByRole('status')).toHaveTextContent('position 2 of 3');
 	});
 	it('reorders repeater template layers without changing the slide stack', async () => {
 		vi.useFakeTimers();
@@ -138,9 +149,9 @@ describe('slide authoring', () => {
 		);
 		const children = before.elements[1].repeater.template.elements;
 		expect(after.elements[1].repeater.template.elements).toEqual([
-			children[1],
 			children[0],
-			...children.slice(2)
+			children[2],
+			children[1]
 		]);
 	});
 	it('adds a generic data list, previews server data, and saves only its source configuration', async () => {

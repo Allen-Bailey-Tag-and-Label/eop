@@ -140,6 +140,7 @@
 		draft.elements.find((element) => element.id === editingRepeaterId && element.repeater)
 	);
 	const activeElements = $derived(editingRepeater?.repeater?.template.elements ?? draft.elements);
+	const layers = $derived([...activeElements].reverse());
 	const selected = $derived(activeElements.find((element) => element.id === selectedId));
 	const contentLabel = $derived(
 		selected?.type === 'text'
@@ -197,12 +198,13 @@
 		layerDropTarget = { id, after: event.clientY >= bounds.top + bounds.height / 2 };
 	}
 	function reorderLayer(id: string, targetId: string, after: boolean) {
-		const reordered = reorderLayers(activeElements, id, targetId, after);
+		// The panel is front-to-back; saved elements render back-to-front.
+		const reordered = reorderLayers(activeElements, id, targetId, !after);
 		if (reordered === activeElements) return;
 		setElements(reordered);
 		selectedId = id;
 		playing = false;
-		layerAnnouncement = `Moved ${reordered.find((element) => element.id === id)?.text.slice(0, 32) || 'layer'} to position ${reordered.findIndex((element) => element.id === id) + 1} of ${reordered.length}.`;
+		layerAnnouncement = `Moved ${reordered.find((element) => element.id === id)?.text.slice(0, 32) || 'layer'} to position ${reordered.length - reordered.findIndex((element) => element.id === id)} of ${reordered.length}.`;
 	}
 	function dropLayer(event: DragEvent, id: string) {
 		if (!draggedLayerId || layerDragContext !== editingRepeaterId) {
@@ -218,10 +220,10 @@
 	function layerKeydown(event: KeyboardEvent, id: string) {
 		if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
 		event.preventDefault();
-		const index = activeElements.findIndex((element) => element.id === id);
+		const index = layers.findIndex((element) => element.id === id);
 		const next = index + (event.key === 'ArrowUp' ? -1 : 1);
-		if (next >= 0 && next < activeElements.length)
-			reorderLayer(id, activeElements[next].id, event.key === 'ArrowDown');
+		if (next >= 0 && next < layers.length)
+			reorderLayer(id, layers[next].id, event.key === 'ArrowDown');
 	}
 	function editTemplate() {
 		const parent = selected;
@@ -833,11 +835,11 @@
 					{#if inspectorTab === 'layers'}
 						<H2 class="text-sm">Layers</H2>
 						<P id={`${uid}-layer-help`} class="text-xs opacity-60"
-							>Drag to reorder. Later layers appear in front. Alt+Up/Down also moves the focused
+							>Drag to reorder. Top layers appear in front. Alt+Up/Down also moves the focused
 							layer.</P
 						>
 						<P role="status" aria-live="polite" class="sr-only">{layerAnnouncement}</P>
-						{#each activeElements as element, index (element.id)}
+						{#each layers as element, index (element.id)}
 							<Button
 								draggable="true"
 								aria-label={`Layer ${index + 1}: ${element.type}: ${element.text.slice(0, 32)}`}

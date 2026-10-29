@@ -262,7 +262,7 @@ element's padding and works with multiline text and repeater bindings. Existing
 text defaults to Top.
 
 In **Layers**, drag a row above or below another row to change the stacking order.
-The insertion marker shows where it will land; later rows appear in front.
+The insertion marker shows where it will land; the top row is the frontmost layer.
 With a layer focused, **Alt+Up/Down** moves it one position. The same controls
 reorder layers inside a repeater item template without changing the slide's layers.
 

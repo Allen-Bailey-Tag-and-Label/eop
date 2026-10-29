@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T12:24:55.787Z
+## 2026-10-29T12:40:30.571Z
+
+fix: Show frontmost slide layers first
+
+## 2026-10-29T08:33:06-04:00
 
 feat: Add vertical alignment controls for slide text
 
