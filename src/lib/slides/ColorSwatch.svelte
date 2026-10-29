@@ -20,7 +20,7 @@
 	}
 </script>
 
-<Div class="flex min-w-0 items-center gap-1">
+<Div class="flex w-full min-w-0 items-center gap-1">
 	<Input
 		type="color"
 		aria-label={label}
@@ -28,7 +28,7 @@
 		{value}
 		{disabled}
 		bind:element
-		class="h-8 w-8 shrink-0 rounded-md p-1"
+		class="h-8 w-8 shrink-0 rounded-md p-1 [&::-moz-color-swatch]:mx-auto [&::-moz-color-swatch]:size-4 [&::-webkit-color-swatch]:size-4 [&::-webkit-color-swatch-wrapper]:justify-center"
 		oninput={(event) => onValueChange(event.currentTarget.value)}
 	/>
 	<Input
@@ -37,7 +37,7 @@
 		bind:value={hexValue}
 		{disabled}
 		maxlength={7}
-		class="h-8 min-w-0 flex-1 rounded-md px-1.5 py-1 font-mono text-[11px]"
+		class="h-8 w-0 max-w-full min-w-0 flex-1 rounded-md px-1.5 py-1 font-mono text-[11px]"
 		oninput={(event) => {
 			const next = hex(event.currentTarget.value);
 			if (next) onValueChange(next);

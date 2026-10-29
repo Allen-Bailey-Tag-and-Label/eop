@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T12:00:47.685Z
+## 2026-10-29T12:07:20.635Z
+
+fix: Constrain inspector inputs and shrink color swatches
+
+## 2026-10-29T08:02:48-04:00
 
 refactor: Compact slide inspector controls and group properties
 

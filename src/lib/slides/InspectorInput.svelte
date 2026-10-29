@@ -9,7 +9,7 @@
 	let { label, prefix, unit, value = $bindable(''), ...rest }: Props = $props();
 </script>
 
-<Div class="relative min-w-0" title={label}>
+<Div class="relative w-full max-w-full min-w-0" title={label}>
 	<span
 		aria-hidden="true"
 		class="pointer-events-none absolute inset-y-0 left-2 z-1 flex items-center text-[11px] font-medium text-slate-500 dark:text-gray-400"
@@ -19,7 +19,7 @@
 		{...rest}
 		aria-label={rest['aria-label'] ?? label}
 		bind:value
-		class={`h-8 min-w-0 rounded-md py-1 pl-8 text-xs tabular-nums ${unit ? 'pr-7' : 'pr-2'}`}
+		class={`box-border h-8 w-full max-w-full min-w-0 rounded-md py-1 pl-8 text-xs tabular-nums ${unit ? 'pr-7' : 'pr-2'}`}
 	/>
 	{#if unit}<span
 			aria-hidden="true"
