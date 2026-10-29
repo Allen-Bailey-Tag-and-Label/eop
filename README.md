@@ -8,6 +8,9 @@ browser time zones do not shift birthdays to the previous day. New profiles do
 not get an automatically generated birth date; edit the saved profile to set it.
 Existing profiles require no migration and remain unchanged until edited.
 
+See [slide data links](docs/slide-data-links.md) for aggregation queries and the
+step-by-step active-employee birthdays repeater configuration.
+
 ## Raspberry Pi and monitor approval
 
 1. On the monitor's browser, open `/monitors/pair` (or `/monitors`). No employee

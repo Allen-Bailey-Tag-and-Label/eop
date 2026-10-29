@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T19:10:38.621Z
+## 2026-10-29T19:26:47.309Z
+
+feat: Add aggregation data links with model joins and computed fields
+
+## 2026-10-29T15:16:38-04:00
 
 feat: Add UserProfile birth dates with date-only table editing
 

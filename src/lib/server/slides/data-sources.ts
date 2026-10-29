@@ -1,6 +1,6 @@
 import { blankSlide, newElement } from '$lib/slides/types';
 import { defaultRepeater, allElements } from '$lib/slides/repeater';
-import type { Model, Schema } from 'mongoose';
+import type { Model, Schema, PipelineStage } from 'mongoose';
 import type {
 	DataListResult,
 	SlideData,
@@ -8,7 +8,7 @@ import type {
 	SlideDefinition
 } from '$lib/slides/types';
 import { validateDataSource, SlideValidationError } from '$lib/slides/validation';
-import { dataModels, parseFilter, parseSort } from '$lib/slides/data-link';
+import { dataModels, parseFilter, parseSort, parsePipeline } from '$lib/slides/data-link';
 
 function availableField(schema: Schema, field: string) {
 	const segments = field.split('.');
@@ -21,6 +21,59 @@ function availableField(schema: Schema, field: string) {
 	}
 	return found;
 }
+function sourceFields(model: Model<Record<string, unknown>>, name: string) {
+	// Authentication records expose only the active flag and profile reference.
+	return Object.keys(model.schema.paths).filter((field) =>
+		name === 'User'
+			? ['_id', 'isActive', '_profileId'].includes(field)
+			: availableField(model.schema, field) &&
+				['String', 'Number', 'Boolean', 'Date', 'ObjectId', 'Decimal128'].includes(
+					model.schema.path(field).instance
+				)
+	);
+}
+
+export function buildDataPipeline(
+	config: SlideDataSource,
+	models: Record<string, Model<Record<string, unknown>>>,
+	now: Date
+): PipelineStage[] {
+	const projection = (name: string) =>
+		Object.fromEntries(['_id', ...sourceFields(models[name], name)].map((field) => [field, 1]));
+	const sort = parseSort(config.sort);
+	const stages = parsePipeline(config.pipeline ?? '[]').map((stage) => {
+		if (!stage.$lookup) return stage;
+		const lookup = stage.$lookup as {
+			from: string;
+			localField: string;
+			foreignField: string;
+			as: string;
+		};
+		const target = models[lookup.from];
+		if (!target || !sourceFields(target, lookup.from).includes(lookup.foreignField))
+			throw new Error(`Unavailable lookup field: ${lookup.foreignField}`);
+		return {
+			$lookup: {
+				...lookup,
+				from: target.collection.name,
+				pipeline: [{ $project: projection(lookup.from) }]
+			}
+		};
+	});
+	return [
+		// Strip credentials and hidden/unstructured fields before any user expressions run.
+		{ $project: projection(config.model) },
+		...(resolveDates(stages, now, config.timeZone) as PipelineStage[]),
+		...(Object.keys(sort).length ? [{ $sort: { ...sort, _id: sort._id ?? 1 } }] : []),
+		{ $skip: config.skip },
+		{ $limit: config.limit },
+		{
+			$project: Object.fromEntries(
+				['_id', ...config.select.trim().split(/\s+/)].map((field) => [field, 1])
+			)
+		}
+	] as PipelineStage[];
+}
 export async function getDataFields(): Promise<Record<string, string[]>> {
 	const models = await import('../mongoose/models');
 	return Object.fromEntries(
@@ -28,7 +81,7 @@ export async function getDataFields(): Promise<Record<string, string[]>> {
 			const model = models[name] as Model<Record<string, unknown>>;
 			return [
 				name,
-				Object.keys(model.schema.paths)
+				(name === 'User' ? sourceFields(model, name) : Object.keys(model.schema.paths))
 					.filter((field) => availableField(model.schema, field))
 					.sort()
 			];
@@ -123,17 +176,36 @@ async function queryLink(config: SlideDataSource, now: Date): Promise<DataListRe
 	if (!model) throw new Error('Unsupported model.');
 	const fields = config.select.trim().split(/\s+/);
 	// Explicit schema fields only: no projection expressions or select:false overrides.
-	for (const field of [...fields, ...Object.keys(parseSort(config.sort))]) {
+	for (const field of config.mode === 'aggregate'
+		? []
+		: [...fields, ...Object.keys(parseSort(config.sort))]) {
 		if (!availableField(model.schema, field)) throw new Error(`Unavailable field: ${field}`);
 	}
-	const rows = await model
-		.find(resolveDates(parseFilter(config.filter), now, config.timeZone) as Record<string, unknown>)
-		.select(fields.join(' '))
-		.sort(parseSort(config.sort))
-		.skip(config.skip)
-		.limit(config.limit)
-		.maxTimeMS(4000)
-		.lean();
+	const rows =
+		config.mode === 'aggregate'
+			? await model
+					.aggregate(
+						buildDataPipeline(
+							config,
+							models as unknown as Record<string, Model<Record<string, unknown>>>,
+							now
+						)
+					)
+					.option({ maxTimeMS: 4000, allowDiskUse: false })
+					.exec()
+			: await model
+					.find(
+						resolveDates(parseFilter(config.filter), now, config.timeZone) as Record<
+							string,
+							unknown
+						>
+					)
+					.select(fields.join(' '))
+					.sort(parseSort(config.sort))
+					.skip(config.skip)
+					.limit(config.limit)
+					.maxTimeMS(4000)
+					.lean();
 	return {
 		state: rows.length ? 'ready' : 'empty',
 		items: rows.map((row, index) => ({

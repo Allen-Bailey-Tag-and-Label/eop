@@ -9,7 +9,7 @@ describe('slide model initialization', () => {
 		expect(fields.Holiday).toEqual(expect.arrayContaining(['name', 'date']));
 		expect(fields.Customer.length).toBeGreaterThan(0);
 		expect(fields.UserProfile).toContain('firstName');
-		expect(fields).not.toHaveProperty('User');
+		expect(fields.User).toEqual(['_id', '_profileId', 'isActive']);
 		expect(fields).not.toHaveProperty('UserPasswordReset');
 	});
 	it('registers models without connecting to MongoDB or exposing content through generic CRUD', () => {

@@ -20,6 +20,17 @@
 
 <Div class="flex flex-col gap-2">
 	<Select
+		label="Query mode"
+		aria-label="Data query mode"
+		value={link.mode ?? 'find'}
+		onchange={(event: Event & { currentTarget: HTMLSelectElement }) =>
+			(link.mode = event.currentTarget.value as 'find' | 'aggregate')}
+		options={[
+			{ value: 'find', label: 'Find' },
+			{ value: 'aggregate', label: 'Aggregate' }
+		]}
+	/>
+	<Select
 		label="Model"
 		aria-label="Data model"
 		bind:value={link.model}
@@ -31,21 +42,40 @@
 	{#if fields.length}<Details
 			><summary class="cursor-pointer text-[11px] font-medium">Available fields</summary><P
 				class="text-xs break-words opacity-60"
-				>Available fields: {fields.join(', ')}. Mixed fields accept nested paths.</P
+				>Source fields: {fields.join(', ')}. {link.mode === 'aggregate'
+					? 'Output fields can use aliases created by the pipeline.'
+					: 'Mixed fields accept nested paths.'}</P
 			></Details
 		>{/if}
-	<Textarea
-		label="find — filter (JSON)"
-		aria-label="Data filter"
-		bind:value={link.filter}
-		rows={5}
-	/>
+	{#if link.mode === 'aggregate'}
+		<Textarea
+			label="Pipeline (JSON array)"
+			aria-label="Data pipeline"
+			bind:value={link.pipeline}
+			rows={12}
+		/>
+		<P class="text-xs opacity-60"
+			>Use read-only stages: $match, $lookup, $unwind, $project, $set, $addFields, $group, $sort,
+			$skip, $limit. Lookup from uses a model name (for example UserProfile), not a collection name.
+			User exposes only _id, isActive, and _profileId. Joins expose explicit schema fields; hidden
+			and unstructured fields are excluded.</P
+		>
+	{:else}
+		<Textarea
+			label="find — filter (JSON)"
+			aria-label="Data filter"
+			bind:value={link.filter}
+			rows={5}
+		/>
+	{/if}
 	<P class="text-xs opacity-60"
 		>Relative dates: {JSON.stringify({ $date: 'today' })}, {JSON.stringify({ $date: 'today+30d' })},
 		or {JSON.stringify({ $date: 'now' })}. Dates resolve each time the monitor fetches data.</P
 	>
 	<Input
-		label="select — fields (space separated)"
+		label={link.mode === 'aggregate'
+			? 'Output fields (space separated)'
+			: 'select — fields (space separated)'}
 		aria-label="Data select"
 		bind:value={link.select}
 		placeholder="name date"

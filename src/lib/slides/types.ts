@@ -36,6 +36,8 @@ export const defaultFrame = (): FrameDefinition => ({
 	elements: []
 });
 export type SlideDataSource = {
+	mode?: 'find' | 'aggregate';
+	pipeline?: string;
 	model: string;
 	filter: string;
 	select: string;
@@ -49,6 +51,8 @@ export type SlideDataSource = {
 	emptyMessage: string;
 };
 export const defaultDataSource = (): SlideDataSource => ({
+	mode: 'find',
+	pipeline: '[]',
 	model: '',
 	filter: '{}',
 	select: '',

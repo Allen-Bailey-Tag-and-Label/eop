@@ -36,6 +36,56 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('authors aggregate data links and exposes computed output fields to item templates', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(JSON.stringify({ type: 'success', data: { slideData: {} } })))
+		);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Data query mode' }), {
+			target: { value: 'aggregate' }
+		});
+		expect(view.queryByRole('textbox', { name: 'Data filter' })).not.toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Data model' }), {
+			target: { value: 'User' }
+		});
+		const pipeline =
+			'[{"$match":{"isActive":true}},{"$project":{"displayText":{"$literal":"Example"}}}]';
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data pipeline' }), {
+			target: { value: pipeline }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data select' }), {
+			target: { value: 'displayText' }
+		});
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(validateSlide(definition).elements[0].dataSource).toMatchObject({
+			mode: 'aggregate',
+			model: 'User',
+			pipeline,
+			select: 'displayText'
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		expect(view.getByRole('option', { name: 'row.displayText' })).toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Text data binding' }), {
+			target: { value: 'row.displayText' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
+		const saved = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(saved.elements[0].repeater.template.elements[1].binding).toMatchObject({
+			field: 'row.displayText',
+			format: 'text'
+		});
+	});
 	it('authors QR content and correction settings with whole-slide visibility rules', async () => {
 		const view = render(SlideEditor, {
 			data: {
