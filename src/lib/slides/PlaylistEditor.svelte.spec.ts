@@ -3,6 +3,10 @@ import { cleanup, fireEvent, render } from '@testing-library/svelte';
 import PlaylistEditor from './PlaylistEditor.svelte';
 
 vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
+vi.mock('svelte/transition', async (importOriginal) => ({
+	...(await importOriginal<typeof import('svelte/transition')>()),
+	scale: () => ({ duration: 0 })
+}));
 afterEach(cleanup);
 
 describe('playlist authoring', () => {
@@ -28,6 +32,10 @@ describe('playlist authoring', () => {
 			}
 		});
 		await fireEvent.click(getByRole('button', { name: 'Move slide 2 up' }));
+		await fireEvent.click(getByRole('checkbox', { name: 'Random starting slide' }));
+		await fireEvent.input(getByRole('spinbutton', { name: 'Upcoming slide previews' }), {
+			target: { value: '5' }
+		});
 		const definition = JSON.parse(
 			(container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);
@@ -36,5 +44,7 @@ describe('playlist authoring', () => {
 			{ slideId: id, durationMs: 2000 }
 		]);
 		expect(definition.loop).toBe(true);
+		expect(definition.randomStart).toBe(true);
+		expect(definition.upcomingCount).toBe(5);
 	});
 });

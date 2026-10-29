@@ -1,4 +1,5 @@
 import { safeField } from './data-link';
+import { validateVisibility } from './visibility';
 import { allElements } from './repeater';
 import { normalizeDataSource, validateLink } from './data-link';
 import type { Keyframe, PlaylistDefinition, Pose, SlideDefinition, SlideElement } from './types';
@@ -223,8 +224,8 @@ export function validateSlide(
 		const type = choice(
 			e.type,
 			itemTemplate
-				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame']
-				: ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list', 'frame'],
+				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame', 'qr']
+				: ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list', 'frame', 'qr'],
 			'element type'
 		);
 		const assetId = text(e.assetId, 24, 'Asset ID').toLowerCase();
@@ -256,7 +257,7 @@ export function validateSlide(
 						...(e.repeater ? { repeater: repeater(e.repeater, durationMs, depth, budget) } : {})
 					}
 				: {}),
-			...(itemTemplate && type === 'text' && e.binding
+			...(itemTemplate && (type === 'text' || type === 'qr') && e.binding
 				? (() => {
 						const binding = object(e.binding);
 						const field = text(binding.field, 160, 'Binding field');
@@ -326,6 +327,18 @@ export function validateSlide(
 							e.backgroundColor === 'transparent' ? 'transparent' : color(e.backgroundColor)
 					}
 				: {}),
+			...(type === 'qr'
+				? {
+						qrCorrection: choice(
+							e.qrCorrection ?? 'M',
+							['L', 'M', 'Q', 'H'] as const,
+							'QR error correction'
+						),
+						...(new TextEncoder().encode(String(e.text)).length > 1000
+							? invalid('QR content must be at most 1,000 bytes.')
+							: {})
+					}
+				: {}),
 			...(e.borderRadius !== undefined
 				? { borderRadius: number(e.borderRadius, 0, 512, 'Corner radius') }
 				: {}),
@@ -360,6 +373,21 @@ export function validateSlide(
 		.map((element) => element.id);
 	if (new Set(dataIds).size !== dataIds.length)
 		invalid('Data elements need unique IDs across frames.');
+	let visibility;
+	if (!itemTemplate && !depth && value.visibility !== undefined) {
+		try {
+			visibility = validateVisibility(value.visibility);
+		} catch (cause) {
+			invalid(cause instanceof Error ? cause.message : 'Invalid visibility rules.');
+		}
+		for (const rule of visibility!.rules) {
+			if (
+				(rule.kind === 'dataCount' || rule.kind === 'dataValue') &&
+				!dataIds.includes(rule.elementId)
+			)
+				invalid('Choose an existing data element for visibility rules.');
+		}
+	}
 	if (
 		allElements({ elements }).filter(
 			(element) => element.type === 'image' || element.type === 'svg'
@@ -384,16 +412,27 @@ export function validateSlide(
 		durationMs,
 		transitionIn: transition(value.transitionIn),
 		transitionOut: transition(value.transitionOut),
+		...(visibility ? { visibility } : {}),
 		elements
 	};
 }
 export function validatePlaylist(input: unknown): PlaylistDefinition {
 	const value = object(input);
 	if (typeof value.loop !== 'boolean') invalid('Loop must be true or false.');
+	if (value.randomStart !== undefined && typeof value.randomStart !== 'boolean')
+		invalid('Random start must be true or false.');
 	if (!Array.isArray(value.items) || value.items.length < 1 || value.items.length > 100)
 		invalid('Add between 1 and 100 slides.');
 	return {
 		loop: value.loop as boolean,
+		...(value.randomStart === undefined ? {} : { randomStart: value.randomStart as boolean }),
+		...(value.upcomingCount === undefined
+			? {}
+			: {
+					upcomingCount: Number.isInteger(value.upcomingCount)
+						? number(value.upcomingCount, 1, 5, 'Upcoming preview count')
+						: invalid('Upcoming preview count must be a whole number.')
+				}),
 		items: (value.items as unknown[]).map((raw) => {
 			const item = object(raw);
 			if (!isId(item.slideId)) invalid('Choose a slide for every playlist entry.');

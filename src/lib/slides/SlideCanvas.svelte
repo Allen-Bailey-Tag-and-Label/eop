@@ -6,6 +6,7 @@
 	import { resolveSlideColor } from './colors';
 	import DataList from './DataList.svelte';
 	import Repeater from './Repeater.svelte';
+	import QrCode from './QrCode.svelte';
 	import FrameCanvas from './FrameCanvas.svelte';
 	import { paddingSides, paddingCss } from './padding';
 	import { frameLayoutStyle, elementPositionStyle } from './frames';
@@ -148,6 +149,15 @@
 						{row}
 						{rowIndex}
 						{timeZone}
+					/>
+				{:else if element.type === 'qr'}
+					<QrCode
+						value={element.binding
+							? boundText(element.binding, row, rowIndex, timeZone)
+							: element.text}
+						foreground={resolveSlideColor(element.color, scheme)}
+						background={resolveSlideColor(element.backgroundColor ?? '#ffffff', scheme)}
+						correction={element.qrCorrection ?? 'M'}
 					/>
 				{:else if element.type === 'text'}
 					<Div

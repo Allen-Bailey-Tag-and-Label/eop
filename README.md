@@ -57,6 +57,53 @@ media references; files remain protected while either slide uses them. Delete
 requires confirmation and is blocked while any draft or published playlist uses
 the slide. Uploaded assets remain after slide deletion.
 
+The playlists list uses the same Datatable and **Edit**, **Duplicate**, and
+**Delete** actions. Duplicate creates an unpublished draft with the saved slide
+order, duration overrides, and loop setting; it does not copy slides or monitor
+assignments. Delete requires confirmation and is blocked while approved monitors
+use the playlist. Reassign those monitors in **Monitor management** first. Deleting
+a playlist preserves its slides and assets.
+
+**QR codes:** choose **Add → QR code**, then edit **QR content** (a URL or plain
+text) and **QR settings** in Properties. Codes are generated locally as SVG,
+with a quiet margin, using the existing barcode library; no upload or external QR
+service is required. The default is black on white with medium error correction.
+Content is limited to 1,000 UTF-8 bytes. Use strong contrast and verify scanning at
+the monitor's viewing distance. QR elements support the same positioning,
+transforms, padding, and timeline controls as other artwork. Inside a repeater
+template, **QR data binding** can use a selected `row.field` to give each item its
+own code.
+
+**Conditional visibility:** open slide **Settings → Slide visibility** and enable
+**Conditional visibility**. Choose **All rules match** or **Any rule matches**,
+set an IANA time zone (for example, `America/New_York`), and add up to 20 rules:
+
+- Calendar dates: before, on/before, after, or on/after a date. Inclusive end dates
+  stay eligible through that entire local day.
+- Weekdays and daily time windows. Time windows include their start and exclude
+  their end, can cross midnight, and treat equal start/end as all day.
+- Data row counts or a field comparison on any returned row. These reuse a data
+  element's existing model query, including its filter, selected fields, and limit.
+  Use `label`, `detail`, or `row.field`; numeric comparisons require numeric data.
+  Query errors and missing fields do not match a rule.
+
+For an event, an **On or before** date rule hides the slide after its final day.
+For a holidays slide, a **Data row count > 0** rule hides it when its Holiday query
+returns nothing. Rules are saved with the draft and take effect when published.
+The server reevaluates them on each playback request, including slide boundaries
+and the normal 30-second checks. Ineligible slides remain in the playlist and are
+skipped. If none are eligible, the monitor shows a specific message and resumes
+when a later check finds eligible content.
+
+**Playlist playback options:** enable **Random starting slide** to select a random
+starting point when playback starts or the content changes. The saved order is
+then rotated, not shuffled: A/B/C starting at B plays B/C/A. Non-looping playlists
+still play every entry once before holding the last slide. **Upcoming slide
+previews** controls 1–5 future slots (default 3); loops can preview the next cycle,
+while non-looping playlists stop at the last remaining entry. Publish the playlist
+to apply these options. The monitor footer keeps the current countdown on the
+right and horizontally scrolls the preview strip on smaller screens.
+
 1. Open **Admin → Monitors → Slides** and create a slide. The editor fills the
    available application height without page scrolling. Use **Settings** in the
    top toolbar for title, unique slug, reference dimensions, background, and duration.

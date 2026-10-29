@@ -36,6 +36,38 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('authors QR content and correction settings with whole-slide visibility rules', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: /Add qr code/i }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'QR content' }), {
+			target: { value: 'https://example.com/event' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'QR error correction' }), {
+			target: { value: 'H' }
+		});
+		expect(view.getByRole('img', { name: 'QR code' })).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Conditional visibility' }));
+		await fireEvent.input(view.getByLabelText('Rule 1 date'), { target: { value: '2026-12-31' } });
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(validateSlide(definition).elements[0]).toMatchObject({
+			type: 'qr',
+			text: 'https://example.com/event',
+			qrCorrection: 'H'
+		});
+		expect(definition.visibility).toMatchObject({
+			match: 'all',
+			timeZone: 'America/New_York',
+			rules: [{ kind: 'date', operator: 'on-or-before', value: '2026-12-31' }]
+		});
+	});
 	for (const layout of ['row', 'column', 'grid'] as const) {
 		it(`saves uniform and separate gaps for ${layout} frames`, async () => {
 			vi.stubGlobal(

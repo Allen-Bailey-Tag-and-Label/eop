@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T17:11:57.564Z
+## 2026-10-29T17:44:29.178Z
+
+feat: Add playlist actions, QR codes, visibility rules and playback controls
+
+## 2026-10-29T13:13:50-04:00
 
 feat: Use Datatable for slides with edit, duplicate and confirmed delete actions
 

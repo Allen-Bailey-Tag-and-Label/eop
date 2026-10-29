@@ -1,5 +1,6 @@
 import { validateAssetScope } from './asset-library';
 import { allElements } from '$lib/slides/repeater';
+import { slideIsVisible } from '$lib/slides/visibility';
 import { createHash } from 'node:crypto';
 import { Types } from 'mongoose';
 import { error } from '@sveltejs/kit';
@@ -111,7 +112,7 @@ export async function duplicateSlide(fields: FormData, userId: string) {
 }
 export async function listPlaylists() {
 	const rows = await Playlist.find()
-		.select('slug title publishedAt')
+		.select('slug title version publishedAt')
 		.sort({ title: 1 })
 		.limit(1000)
 		.lean();
@@ -119,8 +120,56 @@ export async function listPlaylists() {
 		id: row._id.toString(),
 		slug: row.slug,
 		title: row.title,
+		version: row.version,
 		publishedAt: row.publishedAt?.toISOString() ?? null
 	}));
+}
+
+export async function duplicatePlaylist(fields: FormData, userId: string) {
+	const id = fields.get('id');
+	const version = Number(fields.get('version'));
+	if (!isId(id) || !Number.isInteger(version) || version < 1)
+		throw new SlideValidationError('Invalid playlist version. Reload the playlist list.');
+	const source = await Playlist.findOne({ _id: id, version }).select('slug title draft').lean();
+	if (!source)
+		throw new SlideValidationError(
+			'This playlist changed or no longer exists. Reload the playlist list.'
+		);
+	const copyId = new Types.ObjectId();
+	const key = `${source.slug.slice(0, 50).replace(/-+$/, '')}-copy-${copyId.toHexString()}`;
+	await Playlist.create({
+		_id: copyId,
+		slug: key,
+		title: `${source.title.slice(0, 153)} (copy)`,
+		version: 1,
+		draft: validatePlaylist(source.draft),
+		_createdById: userId
+	});
+	return key;
+}
+
+export async function deletePlaylist(fields: FormData, userId: string) {
+	const id = fields.get('id');
+	const version = Number(fields.get('version'));
+	if (!isId(id) || !Number.isInteger(version) || version < 1)
+		throw new SlideValidationError('Invalid playlist version. Reload the playlist list.');
+	if (fields.get('confirm') !== 'delete')
+		throw new SlideValidationError('Confirm deletion before deleting this playlist.');
+	const key = slug(fields.get('slug'));
+	const assigned = await MonitorSession.find({ playlistId: id, status: 'approved' })
+		.select('location')
+		.lean();
+	if (assigned.length)
+		return assigned.map((monitor) => ({ id: monitor._id.toString(), location: monitor.location }));
+	const result = await Playlist.deleteOne(
+		{ _id: id, slug: key, version },
+		{ _createdById: userId }
+	);
+	if (!result.deletedCount)
+		throw new SlideValidationError(
+			'This playlist changed or no longer exists. Reload the playlist list.'
+		);
+	return [];
 }
 export function getEditor(kind: 'slide', key: string): Promise<ContentEditor<SlideDefinition>>;
 export function getEditor(
@@ -257,7 +306,7 @@ export async function assignPlaylist(monitorId: unknown, playlistId: unknown) {
 	);
 	return result.matchedCount === 1;
 }
-export async function getPlayback(monitorId: string): Promise<Playback | null> {
+export async function getPlayback(monitorId: string, now = new Date()): Promise<Playback | null> {
 	const monitor = await MonitorSession.findById(monitorId).select('playlistId').lean();
 	if (!monitor?.playlistId) return null;
 	const playlist = await Playlist.findById(monitor.playlistId)
@@ -285,16 +334,26 @@ export async function getPlayback(monitorId: string): Promise<Playback | null> {
 	});
 	if (!slides.length) return null;
 	const resolveData = createSlideDataResolver();
+	const eligible = (
+		await Promise.all(
+			slides.map(async (slide) => ({ ...slide, data: await resolveData(slide.definition) }))
+		)
+	).filter((slide) => slideIsVisible(slide.definition.visibility, slide.data, now));
 	const content = {
 		title: playlist.publishedTitle ?? 'Monitor playlist',
 		loop: playlist.published.loop,
-		slides
+		randomStart: playlist.published.randomStart ?? false,
+		upcomingCount: playlist.published.upcomingCount ?? 3,
+		slides: eligible.map((slide) => ({
+			id: slide.id,
+			title: slide.title,
+			definition: slide.definition,
+			durationMs: slide.durationMs
+		}))
 	};
 	return {
 		...content,
-		slides: await Promise.all(
-			slides.map(async (slide) => ({ ...slide, data: await resolveData(slide.definition) }))
-		),
+		slides: eligible,
 		version: createHash('sha256').update(JSON.stringify(content)).digest('hex')
 	};
 }

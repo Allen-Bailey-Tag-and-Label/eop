@@ -42,7 +42,8 @@
 		AlignVerticalJustifyEnd,
 		BringToFront,
 		Frame,
-		Database
+		Database,
+		QrCode
 	} from '@lucide/svelte';
 	import {
 		A,
@@ -71,6 +72,7 @@
 	import InspectorSection from './InspectorSection.svelte';
 	import DataLinkEditor from './DataLinkEditor.svelte';
 	import RepeaterSettings from './RepeaterSettings.svelte';
+	import VisibilitySettings from './VisibilitySettings.svelte';
 	import AssetLibrary from './AssetLibrary.svelte';
 	import { allElements, defaultRepeater, templateSlide } from './repeater';
 	import type { SlideElement } from './types';
@@ -151,18 +153,22 @@
 	const activeElements = $derived(editingFrame?.frame?.elements ?? rootElements);
 	const selected = $derived(activeElements.find((element) => element.id === selectedId));
 	const contentLabel = $derived(
-		selected?.type === 'text'
-			? 'Text'
-			: selected?.type === 'list' && !selected.repeater
-				? 'Heading'
-				: 'Description'
+		selected?.type === 'qr'
+			? 'QR content (URL or text)'
+			: selected?.type === 'text'
+				? 'Text'
+				: selected?.type === 'list' && !selected.repeater
+					? 'Heading'
+					: 'Description'
 	);
 	const contentAria = $derived(
-		selected?.type === 'list'
-			? selected.repeater
-				? 'Repeater description'
-				: 'Data list heading'
-			: 'Element text'
+		selected?.type === 'qr'
+			? 'QR content'
+			: selected?.type === 'list'
+				? selected.repeater
+					? 'Repeater description'
+					: 'Data list heading'
+				: 'Element text'
 	);
 	const workingDefinition = $derived(
 		editingFrame
@@ -365,6 +371,7 @@
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
+		{ type: 'qr', label: 'QR code', icon: QrCode },
 		{ type: 'image', label: 'Image / Graphic', icon: Image },
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
@@ -422,6 +429,11 @@
 			element.width = Math.max(1, workingDefinition.width - 40);
 			element.height = Math.min(type === 'frame' ? 300 : 80, workingDefinition.height);
 			element.fontSize = 32;
+			if (type === 'qr')
+				element.width = element.height = Math.max(
+					1,
+					Math.min(320, workingDefinition.width - 40, workingDefinition.height - 40)
+				);
 		}
 		if (editingFrame?.frame && editingFrame.frame.layout !== 'free') {
 			element.layoutSizing = 'fill';
@@ -1243,7 +1255,7 @@
 									options={['contain', 'cover'].map((value) => ({ value, label: value }))}
 								/>
 							</InspectorSection>
-						{:else}<InspectorSection title="Content"
+						{:else}<InspectorSection title="Content" open={selected.type === 'qr'}
 								><Textarea
 									label={contentLabel}
 									aria-label={contentAria}
@@ -1251,6 +1263,34 @@
 									rows={2}
 								/></InspectorSection
 							>{/if}
+						{#if selected.type === 'qr'}
+							<InspectorSection title="QR settings" open>
+								<Select
+									label="Error correction"
+									aria-label="QR error correction"
+									value={selected.qrCorrection ?? 'M'}
+									options={['L', 'M', 'Q', 'H'].map((value) => ({ value, label: value }))}
+									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+										if (selected)
+											selected.qrCorrection = event.currentTarget.value as 'L' | 'M' | 'Q' | 'H';
+									}}
+								/>
+								<ColorField
+									compact
+									label="QR background"
+									ariaLabel="QR background"
+									scheme={previewScheme}
+									value={selected.backgroundColor ?? '#ffffff'}
+									onValueChange={(value) => {
+										if (selected) selected.backgroundColor = value;
+									}}
+								/>
+								<P class="text-xs opacity-60"
+									>Use high contrast, leave a clear margin, and test scanning at the monitor's
+									viewing distance.</P
+								>
+							</InspectorSection>
+						{/if}
 						{#if selected.type !== 'image' && selected.type !== 'svg'}<InspectorSection
 								title="Fill"
 								bind:open={fillOpen}
@@ -1371,13 +1411,13 @@
 							></InspectorSection
 						>
 
-						{#if editingRepeater && selected.type === 'text'}<InspectorSection
+						{#if editingRepeater && (selected.type === 'text' || selected.type === 'qr')}<InspectorSection
 								title="Data binding"
 								open
 							>
 								<Select
-									label="Text data binding"
-									aria-label="Text data binding"
+									label={selected.type === 'qr' ? 'QR data binding' : 'Text data binding'}
+									aria-label={selected.type === 'qr' ? 'QR data binding' : 'Text data binding'}
 									value={selected.binding?.field ?? ''}
 									options={[
 										{ value: '', label: 'Static text' },
@@ -1704,6 +1744,8 @@
 						} else draft.background = backgroundColor;
 					}}
 				/>
+				<P class="font-semibold">Slide visibility</P>
+				<VisibilitySettings bind:value={draft.visibility} elements={allElements(draft)} />
 				<P class="font-semibold">Whole-slide transitions</P>
 				{#each transitionDirections as direction (direction)}
 					<Div class="grid grid-cols-2 gap-4">

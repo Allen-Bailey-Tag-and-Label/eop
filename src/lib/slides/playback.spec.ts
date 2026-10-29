@@ -1,10 +1,34 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { watchPlayback } from './playback';
+import { watchPlayback, rotatePlayback, upcomingSlides } from './playback';
+import { blankSlide, type Playback } from './types';
 afterEach(() => {
 	vi.useRealTimers();
 	vi.unstubAllGlobals();
 });
 describe('monitor content refresh', () => {
+	it('rotates random starting points without dropping entries and previews a bounded saved sequence', () => {
+		const playback: Playback = {
+			version: 'one',
+			title: 'Test',
+			loop: false,
+			slides: ['a', 'b', 'c', 'd', 'e'].map((id) => ({
+				id,
+				title: id,
+				durationMs: 1000,
+				definition: blankSlide()
+			}))
+		};
+		const rotated = rotatePlayback(playback, 3);
+		expect(rotated.slides.map((slide) => slide.id)).toEqual(['d', 'e', 'a', 'b', 'c']);
+		expect(playback.slides[0].id).toBe('a');
+		expect(upcomingSlides(rotated, 0).map((slide) => slide.id)).toEqual(['e', 'a', 'b']);
+		expect(upcomingSlides(rotated, 4)).toEqual([]);
+		expect(upcomingSlides({ ...rotated, loop: true }, 4).map((slide) => slide.id)).toEqual([
+			'd',
+			'e',
+			'a'
+		]);
+	});
 	it('refreshes monitor color mode even when no playlist is assigned', async () => {
 		vi.useFakeTimers();
 		let mode = 'light';

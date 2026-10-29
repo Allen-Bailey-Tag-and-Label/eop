@@ -16,6 +16,7 @@ function content(version = 'one', loop = true): Playback {
 		title: 'Break room',
 		version,
 		loop,
+		upcomingCount: 1,
 		slides: ['First', 'Second'].map((text, index) => ({
 			id: String(index),
 			title: `${text} slide`,
@@ -68,6 +69,57 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('recovers from an empty eligible playlist and previews multiple slides in playback order', async () => {
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		receive({ ...content('empty'), slides: [] });
+		await flush();
+		expect(view.getByText('No slides currently meet their visibility rules.')).toBeInTheDocument();
+		const playlist = content('eligible');
+		playlist.upcomingCount = 3;
+		playlist.slides = Array.from({ length: 5 }, (_, index) => ({
+			...structuredClone(playlist.slides[0]),
+			id: String(index),
+			title: `Slide ${index + 1}`
+		}));
+		receive(playlist);
+		await flush();
+		const upcoming = within(view.getByRole('region', { name: 'Up next' }));
+		expect(upcoming.getByText('Slide 2')).toBeInTheDocument();
+		expect(upcoming.getByText('Slide 3')).toBeInTheDocument();
+		expect(upcoming.getByText('Slide 4')).toBeInTheDocument();
+		expect(upcoming.queryByText('Slide 5')).toBeNull();
+		expect(upcoming.getAllByLabelText(/Upcoming slide preview/)).toHaveLength(3);
+		// A short looping playlist still fills the requested future slots.
+		receive({ ...content('short'), upcomingCount: 3 });
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		const shortQueue = within(view.getByRole('region', { name: 'Up next' }));
+		expect(shortQueue.getAllByLabelText(/Upcoming slide preview/)).toHaveLength(3);
+		expect(shortQueue.getAllByText('Second slide')).toHaveLength(2);
+	});
+	it('chooses a random start once per publication and plays every non-looping entry in rotated order', async () => {
+		vi.spyOn(Math, 'random').mockReturnValue(0.75);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		const playlist = content('one', false);
+		playlist.randomStart = true;
+		receive(playlist);
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		vi.mocked(Math.random).mockReturnValue(0);
+		receive(structuredClone(playlist));
+		await flush();
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		expect(current.getByText('one First')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		expect(current.getByText('one First')).toBeInTheDocument();
+		expect(view.getByText('End of playlist')).toBeInTheDocument();
+	});
 	it('shows loading rather than an unassigned playlist while assigned slide media is pending', async () => {
 		let complete!: () => void;
 		vi.spyOn(SlideMediaCache.prototype, 'load').mockImplementation(

@@ -3,7 +3,7 @@
 	import { allElements } from './repeater';
 	import { Div, H1, P } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
-	import { nextSlide, watchPlayback } from './playback';
+	import { nextSlide, watchPlayback, rotatePlayback, upcomingSlides } from './playback';
 	import { mediaIds, SlideMediaCache } from './media';
 	import type {
 		ColorScheme,
@@ -39,24 +39,21 @@
 		data: SlideData;
 	} | null>(null);
 	let preparing = $state<PlaybackSlide | null>(null);
-	let nextPreview = $state<{
-		definition: SlideDefinition;
-		urls: Record<string, string>;
-		data: SlideData;
-	} | null>(null);
+	let nextPreviews = $state<Record<string, { urls: Record<string, string> }>>({});
 	let previewLoading = $state(false);
 	let displayWidth = $state(0);
 	let displayHeight = $state(0);
 	const upcoming = $derived.by(() => {
-		if (!shown) return null;
-		if (preparing) return preparing;
+		if (!shown) return [];
+		if (preparing && playback)
+			return upcomingSlides(playback, index, playback.upcomingCount ?? 3, true);
 		if (queued !== undefined) {
-			if (!queued) return null;
-			if (queued.version !== shown.version) return queued.slides[0] ?? null;
-			const next = nextSlide(queued, index);
-			return queued.loop || next !== index ? queued.slides[next] : null;
+			if (!queued) return [];
+			if (queued.version !== shown.version)
+				return upcomingSlides(queued, 0, queued.upcomingCount ?? 3, true);
+			return upcomingSlides(queued, index);
 		}
-		return shown.next;
+		return playback ? upcomingSlides(playback, index) : [];
 	});
 	const remainingSeconds = $derived(
 		Math.max(0, Math.ceil(((shown?.totalMs ?? 0) - timeMs) / 1000))
@@ -68,15 +65,24 @@
 	let finished = false;
 	let refresh: (() => Promise<void>) | undefined;
 	const cache = new SlideMediaCache();
+	let orderedVersion: string | undefined;
+	let startOffset = 0;
 	onMount(() => {
 		const media = window.matchMedia('(prefers-color-scheme: dark)');
 		const updateScheme = () => (prefersDark = media.matches);
 		updateScheme();
 		media.addEventListener('change', updateScheme);
 		const source = watchPlayback(
-			(content) => {
+			(received) => {
+				if (received?.version !== orderedVersion) {
+					orderedVersion = received?.version;
+					startOffset = received?.randomStart
+						? Math.floor(Math.random() * received.slides.length)
+						: 0;
+				}
+				const content = received ? rotatePlayback(received, startOffset) : null;
 				loading = false;
-				if (!playback || finished) {
+				if (!playback?.slides.length || finished) {
 					if (content?.version !== playback?.version) {
 						index = 0;
 						playback = content;
@@ -178,11 +184,11 @@
 		};
 	});
 	$effect(() => {
-		const slide = upcoming;
-		nextPreview = null;
-		previewLoading = !!slide;
-		if (!slide || preparing) return;
-		const ids = mediaIds(slide.definition);
+		const slides = upcoming;
+		nextPreviews = {};
+		previewLoading = !!slides.length;
+		if (!slides.length || preparing) return;
+		const ids = [...new Set(slides.flatMap((slide) => mediaIds(slide.definition)))];
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 10000);
 		let disposed = false;
@@ -190,9 +196,13 @@
 			clearTimeout(timeout);
 			if (disposed) return;
 			previewLoading = false;
-			const urls = cache.urls(ids);
-			if (Object.keys(urls).length === ids.length)
-				nextPreview = { definition: slide.definition, urls, data: slide.data ?? {} };
+			const previews: typeof nextPreviews = {};
+			for (const slide of slides) {
+				const media = mediaIds(slide.definition),
+					urls = cache.urls(media);
+				if (Object.keys(urls).length === media.length) previews[slide.id] = { urls };
+			}
+			nextPreviews = previews;
 		});
 		return () => {
 			disposed = true;
@@ -235,7 +245,9 @@
 				><P class="text-2xl"
 					>{loading || preparing
 						? 'Loading playlist…'
-						: 'No published playlist is assigned to this monitor.'}</P
+						: playback
+							? 'No slides currently meet their visibility rules.'
+							: 'No published playlist is assigned to this monitor.'}</P
 				></Div
 			>
 		{/if}
@@ -253,37 +265,44 @@
 			role="region"
 			aria-label="Playback information"
 		>
-			<Div class="flex min-w-0 items-center gap-3" role="region" aria-label="Up next">
-				{#if upcoming}
-					<Div
-						class="aspect-video w-24 shrink-0 overflow-hidden rounded border border-current md:w-32"
-						style={`background:${displayBackground(scheme)};`}
-						aria-hidden="true"
-					>
-						{#if nextPreview}
-							<SlideCanvas
-								definition={nextPreview.definition}
-								data={nextPreview.data}
-								{scheme}
-								assetUrls={nextPreview.urls}
-								timeMs={Math.min(2000, upcoming.durationMs / 2)}
-								viewportWidth={displayWidth || upcoming.definition.width}
-								viewportHeight={displayHeight || upcoming.definition.height}
-								assetBase="/monitors/media"
-								label="Next slide preview"
-							/>
-						{:else}<Div class="flex h-full items-center justify-center text-xs opacity-60"
-								>{previewLoading ? 'Preview loading…' : 'Preview unavailable'}</Div
-							>{/if}
+			<Div
+				class="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
+				role="region"
+				aria-label="Up next"
+			>
+				{#each upcoming as slide, position (position)}
+					{@const preview = nextPreviews[slide.id]}
+					<Div class="flex max-w-72 shrink-0 items-center gap-3">
+						<Div
+							class="aspect-video w-24 shrink-0 overflow-hidden rounded border border-current md:w-32"
+							style={`background:${displayBackground(scheme)};`}
+							aria-hidden="true"
+						>
+							{#if preview}
+								<SlideCanvas
+									definition={slide.definition}
+									data={slide.data ?? {}}
+									{scheme}
+									assetUrls={preview.urls}
+									timeMs={Math.min(2000, slide.durationMs / 2)}
+									viewportWidth={displayWidth || slide.definition.width}
+									viewportHeight={displayHeight || slide.definition.height}
+									assetBase="/monitors/media"
+									label={`Upcoming slide preview ${position + 1}`}
+								/>
+							{:else}<Div class="flex h-full items-center justify-center text-xs opacity-60"
+									>{previewLoading ? 'Preview loading…' : 'Preview unavailable'}</Div
+								>{/if}
+						</Div>
+						<Div class="min-w-0"
+							><P class="text-xs tracking-wide uppercase opacity-60"
+								>{position === 0 ? 'Up next' : `Then ${position + 1}`}</P
+							><P class="truncate text-base font-semibold md:text-xl" title={slide.title}
+								>{slide.title || 'Next slide'}</P
+							></Div
+						>
 					</Div>
-				{/if}
-				<Div class="min-w-0"
-					><P class="text-xs tracking-wide uppercase opacity-60">Up next</P><P
-						class="truncate text-base font-semibold md:text-xl"
-						title={upcoming?.title}
-						>{upcoming ? upcoming.title || 'Next slide' : 'End of playlist'}</P
-					></Div
-				>
+				{:else}<P>End of playlist</P>{/each}
 			</Div>
 			<Div class="shrink-0 text-right"
 				><P class="text-xs tracking-wide uppercase opacity-60">Time remaining</P><P

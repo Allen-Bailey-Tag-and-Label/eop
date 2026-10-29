@@ -6,7 +6,8 @@ export type ElementType =
 	| 'ellipse'
 	| 'line'
 	| 'list'
-	| 'frame';
+	| 'frame'
+	| 'qr';
 export type ElementPadding =
 	| number
 	| { mode: 'axis'; x: number; y: number }
@@ -126,7 +127,16 @@ export type SlideElement = Pose & {
 	padding?: ElementPadding;
 	frame?: FrameDefinition;
 	layoutSizing?: 'fixed' | 'fill';
+	qrCorrection?: 'L' | 'M' | 'Q' | 'H';
 };
+export type RuleOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains';
+export type VisibilityRule =
+	| { kind: 'date'; operator: 'before' | 'on-or-before' | 'after' | 'on-or-after'; value: string }
+	| { kind: 'weekdays'; days: number[] }
+	| { kind: 'time'; start: string; end: string }
+	| { kind: 'dataCount'; elementId: string; operator: RuleOperator; value: string }
+	| { kind: 'dataValue'; elementId: string; field: string; operator: RuleOperator; value: string };
+export type SlideVisibility = { match: 'all' | 'any'; timeZone: string; rules: VisibilityRule[] };
 export type SlideDefinition = {
 	schemaVersion: 1;
 	width: number;
@@ -136,9 +146,15 @@ export type SlideDefinition = {
 	transitionIn: SlideTransition;
 	transitionOut: SlideTransition;
 	elements: SlideElement[];
+	visibility?: SlideVisibility;
 };
 export type PlaylistItem = { slideId: string; durationMs: number | null };
-export type PlaylistDefinition = { items: PlaylistItem[]; loop: boolean };
+export type PlaylistDefinition = {
+	items: PlaylistItem[];
+	loop: boolean;
+	randomStart?: boolean;
+	upcomingCount?: number;
+};
 export type SlideReference = {
 	slug: string;
 	title: string;
@@ -157,6 +173,8 @@ export type Playback = {
 	title: string;
 	loop: boolean;
 	slides: PlaybackSlide[];
+	randomStart?: boolean;
+	upcomingCount?: number;
 };
 export type AssetSummary = {
 	id: string;
@@ -206,6 +224,16 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		assetId: '',
 		fit: 'contain',
 		...(type === 'frame' ? { frame: defaultFrame(), text: 'Frame', color: 'transparent' } : {}),
+		...(type === 'qr'
+			? {
+					width: 320,
+					height: 320,
+					text: 'https://example.com',
+					color: '#000000',
+					backgroundColor: '#ffffff',
+					qrCorrection: 'M' as const
+				}
+			: {}),
 		keyframes: [],
 		...(type === 'list'
 			? {

@@ -56,6 +56,26 @@
 				<Checkbox label="Loop playlist" bind:checked={draft.loop} /><P class="text-sm"
 					>With looping off, the last slide remains on screen. Published changes are still received.</P
 				>
+				<Checkbox
+					label="Random starting slide"
+					aria-label="Random starting slide"
+					checked={draft.randomStart ?? false}
+					onchange={(event) => (draft.randomStart = event.currentTarget.checked)}
+				/>
+				<P class="text-sm"
+					>Choose a random starting point when the published playlist starts or changes, then follow
+					the saved order. A non-looping playlist still plays every entry once.</P
+				>
+				<Input
+					label="Upcoming slide previews"
+					aria-label="Upcoming slide previews"
+					type="number"
+					min={1}
+					max={5}
+					step={1}
+					value={String(draft.upcomingCount ?? 3)}
+					oninput={(event) => (draft.upcomingCount = event.currentTarget.valueAsNumber)}
+				/>
 				{#each draft.items as item, index (item)}
 					<Div class="flex flex-wrap items-end gap-4 rounded border border-gray-500 p-4">
 						<Div class="min-w-0 grow basis-64">

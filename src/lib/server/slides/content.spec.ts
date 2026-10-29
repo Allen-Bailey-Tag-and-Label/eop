@@ -5,6 +5,9 @@ import { Types } from 'mongoose';
 import {
 	assignPlaylist,
 	duplicateSlide,
+	duplicatePlaylist,
+	deletePlaylist,
+	listPlaylists,
 	getPlayback,
 	listSlideReferences,
 	manageSlide,
@@ -32,6 +35,8 @@ vi.mock('./models', () => ({
 		findOne: vi.fn()
 	},
 	Playlist: {
+		findOne: vi.fn(),
+		deleteOne: vi.fn(),
 		create: vi.fn(),
 		updateOne: vi.fn(),
 		findById: vi.fn(),
@@ -40,7 +45,9 @@ vi.mock('./models', () => ({
 	},
 	Asset: { find: vi.fn() }
 }));
-vi.mock('../monitors/model', () => ({ MonitorSession: { findById: vi.fn(), updateOne: vi.fn() } }));
+vi.mock('../monitors/model', () => ({
+	MonitorSession: { find: vi.fn(), findById: vi.fn(), updateOne: vi.fn() }
+}));
 const query = (value: unknown) => ({
 	select: vi.fn().mockReturnThis(),
 	sort: vi.fn().mockReturnThis(),
@@ -250,6 +257,186 @@ describe('slide unpublishing and deletion', () => {
 	});
 });
 describe('monitor playlist playback', () => {
+	it('filters published slides by local-date rules on every read and includes playlist playback options', async () => {
+		vi.mocked(MonitorSession.findById).mockReturnValue(
+			query({ playlistId: new Types.ObjectId(id) }) as unknown as ReturnType<
+				typeof MonitorSession.findById
+			>
+		);
+		vi.mocked(Playlist.findById).mockReturnValue(
+			query({
+				publishedTitle: 'Events',
+				published: {
+					loop: true,
+					randomStart: true,
+					upcomingCount: 4,
+					items: [
+						{ slideId: id, durationMs: null },
+						{ slideId: userId, durationMs: 2000 }
+					]
+				}
+			}) as unknown as ReturnType<typeof Playlist.findById>
+		);
+		vi.mocked(Slide.find).mockReturnValue(
+			query([
+				{
+					_id: new Types.ObjectId(id),
+					publishedTitle: 'Event',
+					published: {
+						...blankSlide(),
+						visibility: {
+							match: 'all',
+							timeZone: 'America/New_York',
+							rules: [{ kind: 'date', operator: 'on-or-before', value: '2026-10-29' }]
+						}
+					}
+				},
+				{ _id: new Types.ObjectId(userId), publishedTitle: 'Always', published: blankSlide() }
+			]) as unknown as ReturnType<typeof Slide.find>
+		);
+		const before = await getPlayback(id, new Date('2026-10-30T03:59:59Z'));
+		expect(before?.slides.map((slide) => slide.title)).toEqual(['Event', 'Always']);
+		expect(before).toMatchObject({ randomStart: true, upcomingCount: 4 });
+		const after = await getPlayback(id, new Date('2026-10-30T04:00:00Z'));
+		expect(after?.slides.map((slide) => slide.title)).toEqual(['Always']);
+		expect(after?.version).not.toBe(before?.version);
+	});
+	it('reevaluates data conditions and returns an assigned empty playlist when no slide is eligible', async () => {
+		vi.mocked(MonitorSession.findById).mockReturnValue(
+			query({ playlistId: new Types.ObjectId(id) }) as unknown as ReturnType<
+				typeof MonitorSession.findById
+			>
+		);
+		vi.mocked(Playlist.findById).mockReturnValue(
+			query({
+				published: { loop: true, items: [{ slideId: id, durationMs: null }] }
+			}) as unknown as ReturnType<typeof Playlist.findById>
+		);
+		const calendar = {
+			...newElement('list', 'calendar'),
+			dataSource: { ...defaultDataSource(), model: 'Holiday', select: 'name', labelField: 'name' }
+		};
+		vi.mocked(Slide.find).mockReturnValue(
+			query([
+				{
+					_id: new Types.ObjectId(id),
+					published: {
+						...blankSlide(),
+						elements: [calendar],
+						visibility: {
+							match: 'all',
+							timeZone: 'America/New_York',
+							rules: [{ kind: 'dataCount', elementId: 'calendar', operator: 'gt', value: '0' }]
+						}
+					}
+				}
+			]) as unknown as ReturnType<typeof Slide.find>
+		);
+		vi.mocked(Holiday.find).mockReturnValue(
+			query([]) as unknown as ReturnType<typeof Holiday.find>
+		);
+		const empty = await getPlayback(id);
+		expect(empty).not.toBeNull();
+		expect(empty?.slides).toEqual([]);
+		vi.mocked(Holiday.find).mockReturnValue(
+			query([{ _id: new Types.ObjectId(), name: 'Holiday' }]) as unknown as ReturnType<
+				typeof Holiday.find
+			>
+		);
+		const active = await getPlayback(id);
+		expect(active?.slides).toHaveLength(1);
+		expect(active?.version).not.toBe(empty?.version);
+	});
+	it('includes playlist versions for list actions', async () => {
+		vi.mocked(Playlist.find).mockReturnValue(
+			query([
+				{ _id: new Types.ObjectId(id), slug: 'live', title: 'Live', version: 4 }
+			]) as unknown as ReturnType<typeof Playlist.find>
+		);
+		expect(await listPlaylists()).toEqual([
+			{ id, slug: 'live', title: 'Live', version: 4, publishedAt: null }
+		]);
+	});
+	it('duplicates playlist draft order, overrides and loop settings without publishing or assigning the copy', async () => {
+		const draft = {
+			loop: false,
+			items: [
+				{ slideId: id, durationMs: 5000 },
+				{ slideId: 'c'.repeat(24), durationMs: null },
+				{ slideId: id, durationMs: 2000 }
+			]
+		};
+		vi.mocked(Playlist.findOne).mockReturnValue(
+			query({
+				slug: 'a'.repeat(80),
+				title: 'b'.repeat(160),
+				draft,
+				published: { loop: true, items: [] }
+			}) as unknown as ReturnType<typeof Playlist.findOne>
+		);
+		const key = await duplicatePlaylist(fields(), userId);
+		expect(key).toHaveLength(80);
+		expect(Playlist.findOne).toHaveBeenCalledWith({ _id: id, version: 1 });
+		expect(Playlist.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				slug: key,
+				title: `${'b'.repeat(153)} (copy)`,
+				version: 1,
+				draft,
+				_createdById: userId
+			})
+		);
+		const copy = vi.mocked(Playlist.create).mock.calls[0][0];
+		expect(copy).not.toHaveProperty('published');
+		expect(copy).not.toHaveProperty('publishedAt');
+		expect(copy).not.toHaveProperty('publishedTitle');
+		expect(MonitorSession.updateOne).not.toHaveBeenCalled();
+		expect(Slide.create).not.toHaveBeenCalled();
+	});
+	it('requires a current version for duplicate and delete and explicit confirmation for deletion', async () => {
+		const invalid = fields();
+		invalid.set('version', '0');
+		await expect(duplicatePlaylist(invalid, userId)).rejects.toThrow('Invalid playlist version');
+		await expect(deletePlaylist(invalid, userId)).rejects.toThrow('Invalid playlist version');
+		await expect(deletePlaylist(fields(), userId)).rejects.toThrow('Confirm deletion');
+		vi.mocked(Playlist.findOne).mockReturnValue(
+			query(null) as unknown as ReturnType<typeof Playlist.findOne>
+		);
+		await expect(duplicatePlaylist(fields(), userId)).rejects.toThrow(
+			'changed or no longer exists'
+		);
+		expect(Playlist.create).not.toHaveBeenCalled();
+		expect(Playlist.deleteOne).not.toHaveBeenCalled();
+	});
+	it('blocks playlist deletion while approved monitors are assigned and returns their locations', async () => {
+		vi.mocked(MonitorSession.find).mockReturnValue(
+			query([{ _id: new Types.ObjectId(userId), location: 'Break room' }]) as unknown as ReturnType<
+				typeof MonitorSession.find
+			>
+		);
+		const form = fields();
+		form.set('confirm', 'delete');
+		expect(await deletePlaylist(form, userId)).toEqual([{ id: userId, location: 'Break room' }]);
+		expect(MonitorSession.find).toHaveBeenCalledWith({ playlistId: id, status: 'approved' });
+		expect(Playlist.deleteOne).not.toHaveBeenCalled();
+	});
+	it('deletes unassigned playlists with a version check and preserves slides and assignments', async () => {
+		vi.mocked(MonitorSession.find).mockReturnValue(
+			query([]) as unknown as ReturnType<typeof MonitorSession.find>
+		);
+		vi.mocked(Playlist.deleteOne).mockResolvedValue({ deletedCount: 1, acknowledged: true });
+		const form = fields();
+		form.set('confirm', 'delete');
+		expect(await deletePlaylist(form, userId)).toEqual([]);
+		expect(Playlist.deleteOne).toHaveBeenCalledWith(
+			{ _id: id, slug: 'welcome', version: 1 },
+			{ _createdById: userId }
+		);
+		expect(Slide.deleteOne).not.toHaveBeenCalled();
+		expect(MonitorSession.updateOne).not.toHaveBeenCalled();
+		vi.mocked(Playlist.deleteOne).mockResolvedValue({ deletedCount: 0, acknowledged: true });
+		await expect(deletePlaylist(form, userId)).rejects.toThrow('changed or no longer exists');
+	});
 	it('returns no content until a playlist is assigned', async () => {
 		vi.mocked(MonitorSession.findById).mockReturnValue(
 			query({}) as unknown as ReturnType<typeof MonitorSession.findById>
