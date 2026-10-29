@@ -12,6 +12,7 @@ theme.set.component('div', { base: '', variants: {} });
 const migratedComponents = [
 	'A',
 	'Card',
+	'Tabs',
 	'H1',
 	'H2',
 	'H3',

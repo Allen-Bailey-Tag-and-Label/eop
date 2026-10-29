@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack, tick } from 'svelte';
 	import { Button, Div } from '$lib/components';
+	import { RotateCw } from '@lucide/svelte';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt, slideContentTime } from './timeline';
 	import { displayBackground, hasColorTransparency, resolveSlideColor } from './colors';
@@ -361,13 +362,13 @@
 						onkeydown={(event) => nudge(event, element)}
 					/>
 					{#if selectedId === element.id && tool !== 'pan'}
-						<Div class="pointer-events-none absolute -top-6 left-1/2 h-6 border-l border-sky-500"
+						<Div
+							class="pointer-events-none absolute -top-6 left-1/2 h-6 w-px bg-white ring-1 ring-slate-950"
 						></Div>
 						<Button
 							aria-label="Rotate selected element"
 							title="Drag to rotate; Shift snaps to 15 degrees. Arrow keys rotate."
-							variants={['ghost']}
-							class="pointer-events-auto absolute -top-9 left-1/2 h-5 w-5 -translate-x-1/2 cursor-grab rounded-full border-2 border-white bg-sky-500 p-0 shadow-none"
+							class="pointer-events-auto absolute -top-9 left-1/2 h-6 w-6 -translate-x-1/2 cursor-grab items-center rounded-full border-2 border-white bg-sky-500 p-0 text-white shadow-sm ring-1 shadow-black/50 ring-slate-950 backdrop-blur-none focus-visible:outline-offset-4 dark:border-white dark:bg-sky-500 dark:text-white dark:shadow-sm"
 							onpointerdown={(event) => start(event, element, 'rotate')}
 							onkeydown={(event) => {
 								if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
@@ -380,16 +381,15 @@
 										? -poseAt(element, elementTimeMs).rotation
 										: (event.key === 'ArrowLeft' ? -1 : 1) * (event.shiftKey ? 15 : 1)
 								);
-							}}
-						/>
+							}}><RotateCw size={12} aria-hidden="true" /></Button
+						>
 					{/if}
 					{#if selectedId === element.id && tool !== 'pan'}
 						{#each resizeHandles as handle (handle.name)}
 							<Button
 								aria-label={`Resize selected element from ${handle.name}`}
 								title={`Resize from ${handle.name}`}
-								variants={['ghost']}
-								class="pointer-events-auto absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-white bg-sky-500 p-0 shadow-none backdrop-blur-none"
+								class="pointer-events-auto absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-white bg-sky-500 p-0 shadow-sm ring-1 shadow-black/50 ring-slate-950 backdrop-blur-none focus-visible:outline-offset-4 dark:border-white dark:bg-sky-500 dark:shadow-sm"
 								style={`left:${(handle.x + 1) * 50}%;top:${(handle.y + 1) * 50}%;cursor:${handle.cursor};`}
 								onpointerdown={(event) => start(event, element, 'resize', handle)}
 								onkeydown={(event) => keyboardResize(event, element, handle)}

@@ -44,13 +44,27 @@
 		Frame,
 		Database
 	} from '@lucide/svelte';
-	import { A, Button, Div, Form, H1, H2, Input, Modal, P, Select, Textarea } from '$lib/components';
+	import {
+		A,
+		Button,
+		Card,
+		Div,
+		Form,
+		H1,
+		H2,
+		Input,
+		Modal,
+		P,
+		Select,
+		Tabs,
+		Textarea
+	} from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
 	import AddElementMenu from './AddElementMenu.svelte';
 	import PaddingEditor from './PaddingEditor.svelte';
 	import FrameSettings from './FrameSettings.svelte';
 	import LayerTree from './LayerTree.svelte';
-	import { frameAt, frameSlide, reparentElement } from './frames';
+	import { frameAt, frameSlide, listFrames, moveLayer } from './frames';
 
 	import ColorField from './ColorField.svelte';
 	import InspectorInput from './InspectorInput.svelte';
@@ -172,13 +186,18 @@
 	}
 
 	let layerAnnouncement = $state('');
-	function selectLayer(id: string, path: string[]) {
+	function selectLayer(id: string, path: string[], inspect = true) {
 		if (JSON.stringify(framePath) !== JSON.stringify(path)) {
 			framePath = [...path];
 			fitView();
 		}
 		selectedId = id;
 		playing = false;
+		if (inspect) {
+			inspectorOpen = true;
+			inspectorTab = 'properties';
+			if (!window.matchMedia('(min-width: 1024px)').matches) layersOpen = false;
+		}
 	}
 	function reorderAt(path: string[], id: string, target: string, after: boolean) {
 		const parent = frameAt(rootElements, path);
@@ -188,7 +207,7 @@
 		if (parent?.frame) parent.frame.elements = reordered;
 		else if (editingRepeater?.repeater) editingRepeater.repeater.template.elements = reordered;
 		else draft.elements = reordered;
-		selectLayer(id, path);
+		selectLayer(id, path, false);
 		layerAnnouncement =
 			'Moved layer to position ' +
 			(reordered.length - reordered.findIndex((element) => element.id === id)) +
@@ -210,51 +229,61 @@
 		playing = false;
 		fitView();
 	}
-	function moveIntoFrame(id: string) {
-		const child = selected,
-			parent = activeElements.find((element) => element.id === id && element.frame);
-		if (!child || !parent?.frame || child === parent) return;
-		if (parent.frame.elements.some((element) => element.id === child.id)) {
-			localError =
-				'The destination frame already contains a layer with this ID. Choose a different destination.';
-			return;
-		}
 
-		setElements(activeElements.filter((element) => element !== child));
-		reparentElement(child, parent, true);
-		parent.frame.elements.push(child);
-		enterFrame(parent);
-		selectedId = child.id;
+	const frameChoices = $derived(
+		listFrames(rootElements, selected?.frame ? [...framePath, selected.id] : [])
+	);
+	function moveToFrame(
+		sourcePath: string[],
+		id: string,
+		destinationPath: string[],
+		targetId?: string,
+		after = false
+	) {
+		try {
+			const source = frameAt(rootElements, sourcePath);
+			const moved = moveLayer(rootElements, sourcePath, id, destinationPath, {
+				baseDepth: editingRepeater ? repeaterReturnPath.length + 1 : 0,
+				prepare: (child) => {
+					if (source?.frame?.layout === 'free' || !source?.frame) return;
+					const root = document.querySelector('[aria-label="Slide workspace"] [data-canvas-root]');
+					const node = Array.from(root?.children ?? []).find(
+						(node) => node.getAttribute('data-slide-element') === id
+					) as HTMLElement | undefined;
+					if (node?.clientWidth && node?.clientHeight) {
+						moveElement(child, node.offsetLeft - child.x, node.offsetTop - child.y);
+						child.width = parseFloat(getComputedStyle(node).width) || node.clientWidth;
+						child.height = parseFloat(getComputedStyle(node).height) || node.clientHeight;
+						child.layoutSizing = 'fixed';
+					}
+				}
+			});
+			if (!moved) return;
+			const destination = frameAt(rootElements, destinationPath),
+				elements = destination?.frame?.elements ?? rootElements;
+			if (targetId) {
+				const reordered = reorderLayers(elements, id, targetId, !after);
+				elements.splice(0, elements.length, ...reordered);
+			}
+			localError = '';
+			selectLayer(id, destinationPath);
+			layerAnnouncement =
+				'Moved ' + (moved.text || 'layer') + ' to ' + (destination?.text || 'the root') + '.';
+		} catch (cause) {
+			localError = cause instanceof Error ? cause.message : 'Could not move this layer.';
+		}
+	}
+	function moveIntoFrame(value: string) {
+		try {
+			const path = JSON.parse(value);
+			if (!Array.isArray(path) || path.some((id) => typeof id !== 'string')) throw Error();
+			moveToFrame(framePath, selectedId, path);
+		} catch {
+			localError = 'Choose a destination frame.';
+		}
 	}
 	function moveOutOfFrame() {
-		const child = selected,
-			parent = editingFrame;
-		if (!child || !parent?.frame) return;
-		const destination = frameAt(rootElements, framePath.slice(0, -1));
-		const destinationElements = destination?.frame?.elements ?? rootElements;
-		if (destinationElements.some((element) => element.id === child.id)) {
-			localError =
-				'The parent already contains a layer with this ID. Choose a different destination.';
-			return;
-		}
-		if (parent.frame.layout !== 'free') {
-			const root = document.querySelector('[aria-label="Slide workspace"] [data-canvas-root]');
-			const node = Array.from(root?.children ?? []).find(
-				(node) => node.getAttribute('data-slide-element') === child.id
-			) as HTMLElement | undefined;
-			if (node?.clientWidth && node?.clientHeight) {
-				moveElement(child, node.offsetLeft - child.x, node.offsetTop - child.y);
-				child.width = parseFloat(getComputedStyle(node).width) || node.clientWidth;
-				child.height = parseFloat(getComputedStyle(node).height) || node.clientHeight;
-				child.layoutSizing = 'fixed';
-			}
-		}
-		parent.frame.elements = parent.frame.elements.filter((element) => element !== child);
-
-		reparentElement(child, parent, false);
-		destinationElements.push(child);
-		leaveFrame();
-		selectedId = child.id;
+		moveToFrame(framePath, selectedId, framePath.slice(0, -1));
 	}
 	function editTemplate() {
 		const parent = selected;
@@ -309,9 +338,10 @@
 			: (previewSizes[previewPreset] ?? { width: draft.width, height: draft.height })
 	);
 	let inspectorOpen = $state(false);
+	let layersOpen = $state(false);
 	let fillOpen = $state(true);
 	let fillSection = $state<HTMLDetailsElement | null>(null);
-	let inspectorTab = $state<'properties' | 'layers' | 'animation'>('properties');
+	let inspectorTab = $state<'properties' | 'animation'>('properties');
 	let dialog = $state<
 		'settings' | 'upload' | 'import' | 'export' | 'unpublish' | 'delete' | 'assets'
 	>('settings');
@@ -349,10 +379,17 @@
 	);
 	onMount(() => {
 		inspectorOpen = window.matchMedia('(min-width: 1024px)').matches;
+		layersOpen = inspectorOpen;
 	});
-	function showPanel(tab: typeof inspectorTab) {
+	function showPanel(tab: typeof inspectorTab | 'layers') {
+		if (tab === 'layers') {
+			layersOpen = true;
+			if (!window.matchMedia('(min-width: 1024px)').matches) inspectorOpen = false;
+			return;
+		}
 		inspectorTab = tab;
 		inspectorOpen = true;
+		if (!window.matchMedia('(min-width: 1024px)').matches) layersOpen = false;
 	}
 	function addElement(type: ElementType, chosenAsset?: AssetSummary) {
 		const element = newElement(type, crypto.randomUUID());
@@ -711,11 +748,14 @@
 		</Form>
 		<Button
 			aria-label="Toggle properties panel"
-			title="Properties and layers"
+			title="Properties and animation"
 			aria-pressed={inspectorOpen}
 			variants={['ghost']}
 			class="h-9 w-9 shrink-0 items-center p-0"
-			onclick={() => (inspectorOpen = !inspectorOpen)}><SlidersHorizontal size={18} /></Button
+			onclick={() => {
+				inspectorOpen = !inspectorOpen;
+				if (inspectorOpen && !window.matchMedia('(min-width: 1024px)').matches) layersOpen = false;
+			}}><SlidersHorizontal size={18} /></Button
 		>
 	</Div>
 	{#if !isDialogOpen}
@@ -759,60 +799,40 @@
 		</Div>
 	{/if}
 	<Div class="relative flex min-h-0 flex-1 overflow-hidden">
-		<Div
-			class="z-1 flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-slate-300 py-2 dark:border-gray-700"
-			role="toolbar"
-			aria-label="Canvas tools"
-		>
-			{#each [{ value: 'select', label: 'Select and move', icon: MousePointer2 }, { value: 'pan', label: 'Hand tool', icon: Hand }, { value: 'resize', label: 'Resize tool', icon: Maximize2 }] as item (item.value)}
-				<Button
-					aria-label={item.label}
-					title={item.label}
-					aria-pressed={tool === item.value}
-					variants={tool === item.value ? [] : ['ghost']}
-					class="h-9 w-9 shrink-0 items-center p-0"
-					onclick={() => {
-						tool = item.value as typeof tool;
-					}}><item.icon size={18} /></Button
+		{#if layersOpen}
+			<Div
+				role="region"
+				aria-label="Layers panel"
+				class="absolute inset-y-0 left-0 z-2 flex w-64 max-w-[75%] shrink-0 flex-col border-r border-slate-300 bg-white shadow-lg lg:static lg:max-w-none lg:shadow-none dark:border-gray-700 dark:bg-gray-900"
+			>
+				<Div
+					class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-300 p-3 dark:border-gray-700"
+					><H2 class="text-sm">Layers</H2><Button
+						aria-label="Close layers panel"
+						variants={['ghost']}
+						class="h-7 w-7 items-center p-0"
+						onclick={() => (layersOpen = false)}><X size={15} /></Button
+					></Div
 				>
-			{/each}
-			<Button
-				aria-label="Edit element color"
-				title="Element color"
-				disabled={!selected || selected.type === 'image' || selected.type === 'svg'}
-				variants={['ghost']}
-				class="h-9 w-9 shrink-0 items-center p-0"
-				onclick={editColor}><Palette size={18} /></Button
-			>
-			<Div class="my-1 w-7 border-t border-slate-300 dark:border-gray-700"></Div>
-			{#each availableTools as item (item.type)}<Button
-					aria-label={`Add ${item.label.toLowerCase()}`}
-					title={`Add ${item.label.toLowerCase()}`}
-					variants={['ghost']}
-					class="h-9 w-9 shrink-0 items-center p-0"
-					onclick={() => addElement(item.type)}><item.icon size={18} /></Button
-				>{/each}
-			<Div class="my-1 w-7 border-t border-slate-300 dark:border-gray-700"></Div>
-			<Button
-				aria-label="Show layers"
-				title="Layers"
-				variants={['ghost']}
-				class="h-9 w-9 shrink-0 items-center p-0"
-				onclick={() => showPanel('layers')}><Layers size={18} /></Button
-			>
-			<Button
-				aria-label="Remove selected element"
-				title="Remove selected element"
-				disabled={!selected}
-				variants={['ghost']}
-				class="h-9 w-9 shrink-0 items-center p-0"
-				onclick={() => {
-					setElements(activeElements.filter((element) => element.id !== selectedId));
-					selectedId = '';
-				}}><Trash2 size={18} /></Button
-			>
-		</Div>
-		<Div class="relative min-h-0 min-w-0 flex-1">
+				<Div class="min-h-0 space-y-2 overflow-y-auto p-3"
+					><P class="text-xs opacity-60"
+						>Top layers are in front. Drop on a frame's center to move inside; drop at an edge to
+						reorder. Alt+Up/Down moves one layer.</P
+					><P role="status" aria-live="polite" class="sr-only">{layerAnnouncement}</P>
+					<LayerTree
+						elements={rootElements}
+						selectedPath={framePath}
+						{selectedId}
+						onSelect={selectLayer}
+						onReorder={reorderAt}
+						onMove={moveToFrame}
+					/>
+					{#if !rootElements.length}<P class="text-xs opacity-60"
+							>Add an element or frame to start.</P
+						>{/if}
+				</Div></Div
+			>{/if}
+		<Div class="relative min-h-0 min-w-0 flex-1 pb-20">
 			<SlideWorkspace
 				flow={editingFrame?.frame}
 				definition={workingDefinition}
@@ -834,7 +854,7 @@
 				}}
 			/>
 			<Div
-				class="pointer-events-none absolute right-3 bottom-3 left-3 flex items-end justify-between gap-2 text-xs"
+				class="pointer-events-none absolute right-3 bottom-24 left-3 flex items-end justify-between gap-2 text-xs"
 				><span
 					class="rounded bg-white/85 px-2 py-1 text-slate-700 dark:bg-gray-900/85 dark:text-gray-300"
 					>{viewport.width} × {viewport.height} · {activeElements.length} elements</span
@@ -847,7 +867,63 @@
 							: 'Drag elements to move · Arrow keys to nudge'}</span
 				></Div
 			>
-		</Div>
+			<Div class="pointer-events-none absolute inset-x-0 bottom-3 z-1 flex justify-center px-3"
+				><Card
+					role="toolbar"
+					aria-label="Canvas tools"
+					class="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto p-2"
+				>
+					{#each [{ value: 'select', label: 'Select and move', icon: MousePointer2 }, { value: 'pan', label: 'Hand tool', icon: Hand }, { value: 'resize', label: 'Resize tool', icon: Maximize2 }] as item (item.value)}
+						<Button
+							aria-label={item.label}
+							title={item.label}
+							aria-pressed={tool === item.value}
+							variants={tool === item.value ? [] : ['ghost']}
+							class="h-9 w-9 shrink-0 items-center p-0"
+							onclick={() => {
+								tool = item.value as typeof tool;
+							}}><item.icon size={18} /></Button
+						>
+					{/each}
+					<Button
+						aria-label="Edit element color"
+						title="Element color"
+						disabled={!selected || selected.type === 'image' || selected.type === 'svg'}
+						variants={['ghost']}
+						class="h-9 w-9 shrink-0 items-center p-0"
+						onclick={editColor}><Palette size={18} /></Button
+					>
+					<Div class="mx-1 h-6 shrink-0 border-l border-slate-300 dark:border-gray-700"></Div>
+					{#each availableTools as item (item.type)}<Button
+							aria-label={`Add ${item.label.toLowerCase()}`}
+							title={`Add ${item.label.toLowerCase()}`}
+							variants={['ghost']}
+							class="h-9 w-9 shrink-0 items-center p-0"
+							onclick={() => addElement(item.type)}><item.icon size={18} /></Button
+						>{/each}
+					<Div class="mx-1 h-6 shrink-0 border-l border-slate-300 dark:border-gray-700"></Div>
+					<Button
+						aria-label="Show layers"
+						aria-pressed={layersOpen}
+						title="Layers"
+						variants={['ghost']}
+						class="h-9 w-9 shrink-0 items-center p-0"
+						onclick={() => showPanel('layers')}><Layers size={18} /></Button
+					>
+					<Button
+						aria-label="Remove selected element"
+						title="Remove selected element"
+						disabled={!selected}
+						variants={['ghost']}
+						class="h-9 w-9 shrink-0 items-center p-0"
+						onclick={() => {
+							setElements(activeElements.filter((element) => element.id !== selectedId));
+							selectedId = '';
+						}}><Trash2 size={18} /></Button
+					>
+				</Card></Div
+			></Div
+		>
 		{#if inspectorOpen}
 			<Div
 				class="absolute top-0 right-0 bottom-0 z-2 flex w-72 max-w-[calc(100%_-_3rem)] shrink-0 flex-col border-l border-slate-300 bg-white shadow-lg lg:static lg:shadow-none dark:border-gray-700 dark:bg-gray-900"
@@ -856,12 +932,14 @@
 				<Div
 					class="flex shrink-0 items-center gap-1 border-b border-slate-300 p-2 dark:border-gray-700"
 				>
-					{#each ['properties', 'layers', 'animation'] as tab (tab)}<Button
-							aria-pressed={inspectorTab === tab}
-							variants={inspectorTab === tab ? [] : ['ghost']}
-							class="min-w-0 flex-1 px-2 py-1 text-xs capitalize"
-							onclick={() => (inspectorTab = tab as typeof inspectorTab)}>{tab}</Button
-						>{/each}
+					<Tabs class="min-w-0 flex-1" bind:value={inspectorTab}
+						>{#each ['properties', 'animation'] as tab (tab)}<Button
+								aria-pressed={inspectorTab === tab}
+								variants={inspectorTab === tab ? [] : ['ghost']}
+								class="min-w-0 flex-1 px-2 py-1 text-xs capitalize"
+								onclick={() => (inspectorTab = tab as typeof inspectorTab)}>{tab}</Button
+							>{/each}</Tabs
+					>
 					<Button
 						aria-label="Close properties panel"
 						variants={['ghost']}
@@ -872,24 +950,7 @@
 				<Div
 					class="slide-inspector-controls min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
 				>
-					{#if inspectorTab === 'layers'}
-						<H2 class="text-sm">Layers</H2>
-						<P id={`${uid}-layer-help`} class="text-xs opacity-60"
-							>Drag to reorder. Top layers appear in front. Alt+Up/Down also moves the focused
-							layer.</P
-						>
-						<P role="status" aria-live="polite" class="sr-only">{layerAnnouncement}</P>
-						<LayerTree
-							elements={rootElements}
-							selectedPath={framePath}
-							{selectedId}
-							onSelect={selectLayer}
-							onReorder={reorderAt}
-						/>
-						{#if !activeElements.length}<P class="text-sm opacity-60"
-								>Use Add or the left rail to create your first element.</P
-							>{/if}
-					{:else if !selected}<P class="text-sm opacity-60"
+					{#if !selected}<P class="text-sm opacity-60"
 							>Select an element on the canvas or in Layers to edit its properties and animation.</P
 						>
 					{:else if inspectorTab === 'properties'}
@@ -1020,15 +1081,17 @@
 						<InspectorSection title="Padding" open
 							><PaddingEditor bind:value={selected.padding} /></InspectorSection
 						>
-						<InspectorSection title="Layer parent">
+						<InspectorSection title="Layer parent" open>
 							<Select
 								aria-label="Move into frame"
 								value=""
 								options={[
 									{ value: '', label: 'Move into frame…' },
-									...activeElements
-										.filter((item) => item.frame && item.id !== selected.id)
-										.map((item) => ({ value: item.id, label: item.text || 'Frame' }))
+									{ value: '[]', label: editingRepeater ? 'Template root' : 'Slide root' },
+									...frameChoices.map((item) => ({
+										value: JSON.stringify(item.path),
+										label: item.label
+									}))
 								]}
 								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
 									if (event.currentTarget.value) moveIntoFrame(event.currentTarget.value);

@@ -4,7 +4,23 @@ import { createRawSnippet, tick } from 'svelte';
 import { twMerge } from 'tailwind-merge';
 import { theme } from '$lib/theme';
 import { defaultTheme } from '$lib/theme/themes';
-import { A, Card, H1, H2, H3, Header, Label, P, Table, Tbody, Td, Th, Thead, Tr } from './index';
+import {
+	A,
+	Card,
+	H1,
+	H2,
+	H3,
+	Header,
+	Label,
+	P,
+	Table,
+	Tbody,
+	Td,
+	Th,
+	Thead,
+	Tr,
+	Tabs
+} from './index';
 import Bindings from './fixtures/Bindings.svelte';
 import Adapters from './fixtures/Adapters.svelte';
 import { Button, Em, Form, Hr, Input, Li, Modal, Ol, Option, Spinner, Strong, Ul } from './index';
@@ -216,6 +232,7 @@ describe('migrated application primitives', () => {
 	const cases = [
 		['A', A, 'a'],
 		['Card', Card, 'div'],
+		['Tabs', Tabs, 'div'],
 		['H1', H1, 'h1'],
 		['H2', H2, 'h2'],
 		['H3', H3, 'h3'],

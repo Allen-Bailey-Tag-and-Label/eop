@@ -6,13 +6,61 @@ import {
 	frameSlide,
 	frameLayoutStyle,
 	assetReferencePaths,
-	reparentElement
+	reparentElement,
+	listFrames,
+	moveLayer
 } from './frames';
 import { allElements, defaultRepeater } from './repeater';
 import { mediaIds } from './media';
 import { paddingSides, paddingCss } from './padding';
 
 describe('frames and padding', () => {
+	it('lists full nested destinations and moves through different ancestor chains without losing static transforms', () => {
+		const outer = {
+			...newElement('frame', 'outer'),
+			text: 'Outer',
+			x: 300,
+			y: 200,
+			rotation: 20,
+			scale: 1.5
+		};
+		const inner = { ...newElement('frame', 'inner'), text: 'Inner', x: 40, y: 50, rotation: -15 };
+		outer.frame!.elements = [inner];
+		const sibling = { ...newElement('frame', 'sibling'), text: 'Sibling', x: 500 };
+		const child = { ...newElement('text', 'child'), x: 200, y: 220 },
+			original = structuredClone(child);
+		const elements = [outer, sibling, child];
+		expect(listFrames(elements).map((frame) => frame.label)).toEqual([
+			'Outer',
+			'Outer / Inner',
+			'Sibling'
+		]);
+		expect(listFrames(elements, ['outer']).map((frame) => frame.path)).toEqual([['sibling']]);
+		moveLayer(elements, [], 'child', ['outer', 'inner']);
+		expect(inner.frame!.elements[0]).toBe(child);
+		moveLayer(elements, ['outer', 'inner'], 'child', ['sibling']);
+		moveLayer(elements, ['sibling'], 'child', []);
+		for (const key of ['x', 'y', 'rotation', 'scale'] as const)
+			expect(child[key]).toBeCloseTo(original[key]);
+		expect(inner.frame!.elements).toEqual([]);
+	});
+	it('rejects cycles, duplicate destination IDs and excessive nesting before mutating a layer', () => {
+		const outer = newElement('frame', 'outer'),
+			inner = newElement('frame', 'inner'),
+			child = newElement('text', 'child');
+		outer.frame!.elements = [inner];
+		inner.frame!.elements = [{ ...child }];
+		const elements = [outer, child],
+			before = JSON.stringify(elements);
+		expect(() => moveLayer(elements, [], 'outer', ['outer', 'inner'])).toThrow('itself');
+		expect(() => moveLayer(elements, [], 'child', ['outer', 'inner'])).toThrow('already contains');
+		expect(JSON.stringify(elements)).toBe(before);
+		inner.frame!.elements = [];
+		expect(() => moveLayer(elements, [], 'child', ['outer', 'inner'], { baseDepth: 7 })).toThrow(
+			'eight'
+		);
+		expect(elements.includes(child)).toBe(true);
+	});
 	it('preserves static world transforms when moving through a padded rotated scaled frame', () => {
 		const frame = { ...newElement('frame', 'frame'), rotation: 37, scale: 1.5, padding: 16 };
 		const child = { ...newElement('text', 'child'), x: 300, y: 240, scale: 1.2, rotation: 20 };

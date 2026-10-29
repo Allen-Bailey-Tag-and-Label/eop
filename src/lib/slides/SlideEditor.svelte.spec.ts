@@ -11,6 +11,10 @@ vi.mock('$app/forms', () => ({
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 beforeEach(() => {
 	vi.stubGlobal(
+		'matchMedia',
+		vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+	);
+	vi.stubGlobal(
 		'ResizeObserver',
 		class {
 			observe() {}
@@ -21,11 +25,96 @@ beforeEach(() => {
 });
 afterEach(() => {
 	cleanup();
+	vi.restoreAllMocks();
 	vi.useRealTimers();
 	vi.unstubAllGlobals();
 });
 
 describe('slide authoring', () => {
+	it('keeps Layers on the left and Properties on the right with an independently accessible canvas toolbar', async () => {
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+		);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		expect(view.getByRole('region', { name: 'Layers panel' })).toBeInTheDocument();
+		expect(view.getByLabelText('Inspector')).toBeInTheDocument();
+		expect(
+			within(view.getByRole('toolbar', { name: 'Canvas tools' })).getByRole('button', {
+				name: 'Add text'
+			})
+		).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Close layers panel' }));
+		expect(view.queryByRole('region', { name: 'Layers panel' })).toBeNull();
+		expect(view.getByLabelText('Inspector')).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		expect(view.getByRole('region', { name: 'Layers panel' })).toBeInTheDocument();
+	});
+	it('drops a layer into a nested frame and can move it back to the slide root through the parent selector', async () => {
+		vi.stubGlobal(
+			'DragEvent',
+			class extends MouseEvent {
+				dataTransfer: DataTransfer | null;
+				constructor(type: string, init: DragEventInit = {}) {
+					super(type, init);
+					this.dataTransfer = init.dataTransfer ?? null;
+				}
+			}
+		);
+		vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			left: 0,
+			top: 0,
+			right: 200,
+			bottom: 40,
+			width: 200,
+			height: 40,
+			toJSON: () => ({})
+		});
+		const outer = { ...newElement('frame', 'outer'), text: 'Outer' },
+			inner = { ...newElement('frame', 'inner'), text: 'Inner' },
+			child = { ...newElement('text', 'loose'), text: 'Loose' };
+		outer.frame!.elements = [inner];
+		const view = render(SlideEditor, {
+			data: {
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: { ...blankSlide(), elements: [child, outer] }
+				},
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		const source = view.getByRole('button', { name: 'Layer 2: text: Loose' }),
+			target = view.getByRole('button', { name: 'Layer 1: frame: Inner' });
+		const dataTransfer = { setData: vi.fn(), effectAllowed: '', dropEffect: '' };
+		await fireEvent.dragStart(source, { dataTransfer });
+		await fireEvent.dragOver(target, { clientY: 20, dataTransfer });
+		expect(target).toHaveClass('ring-2');
+		await fireEvent.drop(target, { clientY: 20, dataTransfer });
+		expect(definition().elements).toHaveLength(1);
+		expect(definition().elements[0].frame.elements[0].frame.elements[0].id).toBe('loose');
+		expect(view.getByLabelText('Frame editing')).toHaveTextContent('Inner');
+		expect(view.getByRole('option', { name: 'Outer / Inner' })).toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Move into frame' }), {
+			target: { value: '[]' }
+		});
+		expect(definition().elements[1]).toEqual(child);
+	});
 	it('authors grid frames with nested layers, axis padding and individual child padding, then saves the whole hierarchy', async () => {
 		const view = render(SlideEditor, {
 			data: {
@@ -100,7 +189,7 @@ describe('slide authoring', () => {
 		await fireEvent.click(view.getByRole('button', { name: 'Layer 2: text: Your text here' }));
 		await fireEvent.click(view.getByRole('button', { name: 'properties' }));
 		await fireEvent.change(view.getByRole('combobox', { name: 'Move into frame' }), {
-			target: { value: frameId }
+			target: { value: JSON.stringify([frameId]) }
 		});
 		expect(definition().elements).toHaveLength(1);
 		expect(definition().elements[0].frame.elements[0].id).toBe(child.id);

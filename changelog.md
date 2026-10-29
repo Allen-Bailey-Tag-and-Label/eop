@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T14:32:33.721Z
+## 2026-10-29T15:05:26.769Z
+
+feat: Improve editor panels, nested layer moves, handle contrast and Tabs styling
+
+## 2026-10-29T10:38:12-04:00
 
 feat: Add frame layouts, padding controls, resize handles and asset library styling
 

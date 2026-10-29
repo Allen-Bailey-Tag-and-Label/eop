@@ -24,6 +24,76 @@ export function frameAt(elements: SlideElement[], path: string[]): SlideElement 
 	}
 	return frame;
 }
+
+export const sameFramePath = (a: string[], b: string[]) =>
+	a.length === b.length && a.every((part, index) => part === b[index]);
+export const framePathStartsWith = (path: string[], prefix: string[]) =>
+	prefix.length <= path.length && prefix.every((part, index) => part === path[index]);
+export function listFrames(
+	elements: SlideElement[],
+	excluded: string[] = [],
+	path: string[] = [],
+	names: string[] = []
+): { path: string[]; label: string }[] {
+	return elements.flatMap((element) => {
+		if (!element.frame) return [];
+		const next = [...path, element.id],
+			labels = [...names, element.text || 'Frame'];
+		if (excluded.length && framePathStartsWith(next, excluded)) return [];
+		return [
+			{ path: next, label: labels.join(' / ') },
+			...listFrames(element.frame.elements, excluded, next, labels)
+		];
+	});
+}
+function nestedDepth(element: SlideElement): number {
+	const children = element.frame?.elements ?? element.repeater?.template.elements;
+	return children ? 1 + Math.max(0, ...children.map(nestedDepth)) : 0;
+}
+export function moveLayer(
+	elements: SlideElement[],
+	sourcePath: string[],
+	id: string,
+	destinationPath: string[],
+	options: { baseDepth?: number; prepare?: (element: SlideElement) => void } = {}
+) {
+	if (sameFramePath(sourcePath, destinationPath)) return;
+	if (framePathStartsWith(destinationPath, [...sourcePath, id]))
+		throw new Error('A frame cannot be moved inside itself or one of its children.');
+	const sourceFrame = frameAt(elements, sourcePath),
+		destinationFrame = frameAt(elements, destinationPath);
+	if (
+		(sourcePath.length && !sourceFrame?.frame) ||
+		(destinationPath.length && !destinationFrame?.frame)
+	)
+		throw new Error('This frame no longer exists.');
+	const source = sourceFrame?.frame?.elements ?? elements,
+		destination = destinationFrame?.frame?.elements ?? elements;
+	const index = source.findIndex((element) => element.id === id),
+		element = source[index];
+	if (!element) throw new Error('This layer no longer exists.');
+	if (destination.some((item) => item.id === id))
+		throw new Error(
+			'The destination already contains a layer with this ID. Choose a different frame.'
+		);
+	if (destinationPath.length + nestedDepth(element) + (options.baseDepth ?? 0) > 8)
+		throw new Error('Use at most eight nested frame/template levels.');
+	options.prepare?.(element);
+	let shared = 0;
+	while (
+		shared < sourcePath.length &&
+		shared < destinationPath.length &&
+		sourcePath[shared] === destinationPath[shared]
+	)
+		shared++;
+	for (let i = sourcePath.length; i > shared; i--)
+		reparentElement(element, frameAt(elements, sourcePath.slice(0, i))!, false);
+	for (let i = shared + 1; i <= destinationPath.length; i++)
+		reparentElement(element, frameAt(elements, destinationPath.slice(0, i))!, true);
+	source.splice(index, 1);
+	destination.push(element);
+	return element;
+}
 export function frameSlide(element: SlideElement, durationMs: number): SlideDefinition {
 	const p = paddingSides(element.padding);
 	return {

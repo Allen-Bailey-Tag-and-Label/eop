@@ -3,6 +3,7 @@
 	import { GripVertical, ChevronDown, ChevronRight } from '@lucide/svelte';
 	import LayerTree from './LayerTree.svelte';
 	import type { SlideElement } from './types';
+	import { framePathStartsWith } from './frames';
 	let {
 		elements,
 		path = [],
@@ -10,29 +11,55 @@
 		selectedId,
 		onSelect,
 		onReorder,
+		onMove,
 		drag = $bindable(null)
 	}: {
 		elements: SlideElement[];
 		path?: string[];
 		selectedPath: string[];
 		selectedId: string;
-		onSelect: (id: string, path: string[]) => void;
+		onSelect: (id: string, path: string[], inspect?: boolean) => void;
 		onReorder: (path: string[], id: string, target: string, after: boolean) => void;
+		onMove: (
+			sourcePath: string[],
+			id: string,
+			destinationPath: string[],
+			targetId?: string,
+			after?: boolean
+		) => void;
 		drag?: { id: string; path: string[] } | null;
 	} = $props();
 	let collapsed = $state<string[]>([]);
-	let target = $state<{ id: string; after: boolean } | null>(null);
+	let target = $state<{ id: string; after: boolean; inside: boolean } | null>(null);
 	const layers = $derived([...elements].reverse());
 	const same = (a: string[], b: string[]) => JSON.stringify(a) === JSON.stringify(b);
 	$effect(() => {
 		if (!drag) target = null;
 	});
-	function hover(event: DragEvent, id: string) {
-		if (!drag || !same(path, drag.path)) return;
+	function destination(event: DragEvent, element: SlideElement) {
+		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		return {
+			id: element.id,
+			after: event.clientY >= rect.top + rect.height / 2,
+			inside: Boolean(
+				element.frame &&
+					event.clientY > rect.top + rect.height / 4 &&
+					event.clientY < rect.top + (rect.height * 3) / 4
+			)
+		};
+	}
+	function hover(event: DragEvent, element: SlideElement) {
+		if (!drag) return;
+		const next = destination(event, element),
+			destinationPath = next.inside ? [...path, element.id] : path;
+		if (framePathStartsWith(destinationPath, [...drag.path, drag.id])) {
+			target = null;
+			if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
+			return;
+		}
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-		target = { id, after: event.clientY >= rect.top + rect.height / 2 };
+		target = next;
 	}
 </script>
 
@@ -57,26 +84,32 @@
 				draggable="true"
 				aria-label={`Layer ${index + 1}: ${element.type}: ${element.text.slice(0, 32)}`}
 				aria-pressed={selectedId === element.id && same(path, selectedPath)}
-				title="Drag to reorder within this frame; Alt+Up/Down moves one layer"
+				title={element.frame
+					? 'Drop in the center to move inside this frame; drop at an edge to reorder'
+					: 'Drag between layers to reorder or move between frames; Alt+Up/Down moves one layer'}
 				variants={selectedId === element.id && same(path, selectedPath) ? [] : ['ghost']}
-				class={`flex w-full min-w-0 cursor-grab items-center justify-start gap-1.5 rounded border-y-2 border-transparent px-2 py-1 text-left text-xs active:cursor-grabbing ${drag?.id === element.id && same(path, drag.path) ? 'opacity-50' : ''} ${drag && same(path, drag.path) && target?.id === element.id && drag.id !== element.id ? (target.after ? 'border-b-sky-500' : 'border-t-sky-500') : ''}`}
+				class={`flex w-full min-w-0 cursor-grab items-center justify-start gap-1.5 rounded border-y-2 border-transparent px-2 py-1 text-left text-xs active:cursor-grabbing ${drag?.id === element.id && same(path, drag.path) ? 'opacity-50' : ''} ${drag && target?.id === element.id && !(drag.id === element.id && same(path, drag.path)) ? (target.inside ? 'bg-sky-100 ring-2 ring-sky-500 dark:bg-sky-950' : target.after ? 'border-b-sky-500' : 'border-t-sky-500') : ''}`}
 				onclick={() => onSelect(element.id, path)}
 				ondragstart={(event) => {
-					drag = { id: element.id, path };
+					drag = { id: element.id, path: [...path] };
 					target = null;
-					onSelect(element.id, path);
+					onSelect(element.id, path, false);
 					if (event.dataTransfer) {
 						event.dataTransfer.effectAllowed = 'move';
 						event.dataTransfer.setData('text/plain', element.id);
 					}
 				}}
-				ondragover={(event) => hover(event, element.id)}
+				ondragover={(event) => hover(event, element)}
 				ondrop={(event) => {
-					if (!drag || !same(path, drag.path)) return;
+					if (!drag) return;
 					event.preventDefault();
 					event.stopPropagation();
-					const rect = event.currentTarget.getBoundingClientRect();
-					onReorder(path, drag.id, element.id, event.clientY >= rect.top + rect.height / 2);
+					const next = destination(event, element);
+					if (next.inside) {
+						onMove(drag.path, drag.id, [...path, element.id]);
+						collapsed = collapsed.filter((id) => id !== element.id);
+					} else if (same(path, drag.path)) onReorder(path, drag.id, element.id, next.after);
+					else onMove(drag.path, drag.id, path, element.id, next.after);
 					drag = null;
 				}}
 				ondragend={() => (drag = null)}
@@ -102,6 +135,7 @@
 					{selectedId}
 					{onSelect}
 					{onReorder}
+					{onMove}
 					bind:drag
 				/>
 			</Div>{/if}

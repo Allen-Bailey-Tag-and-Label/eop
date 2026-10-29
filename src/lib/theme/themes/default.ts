@@ -40,6 +40,7 @@ export const defaultTheme = {
 	Card: {
 		default: twMerge(glass, 'p-6 rounded-xl')
 	},
+	Tabs: { default: twMerge(glass, 'flex min-w-0 flex-wrap items-center gap-1 rounded-lg p-1') },
 	Checkbox: {
 		default: twMerge(
 			InputDefault,

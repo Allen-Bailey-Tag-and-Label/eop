@@ -55,12 +55,13 @@ appropriate roles. New databases include both in the initial admin seed.
    top toolbar for title, unique slug, reference dimensions, background, and duration.
    The default reference is 1920 × 1080. Playback always fills the available screen;
    element constraints adapt the layout without letterboxing the slide.
-2. Use **Add** or the left tool rail for text, images, SVG assets, rectangles,
-   ellipses, or lines. Select and drag elements to move them; arrow keys nudge by
-   one reference unit (Shift for ten). The resize tool provides a corner handle. Moving an
+2. Use **Add** or the floating bottom toolbar for text, images, SVG assets, rectangles,
+   ellipses, lines, repeaters, or frames. Select and drag elements to move them; arrow keys nudge by
+   one reference unit (Shift for ten). Selected objects have corner and side resize handles. Moving an
    animated element shifts its complete animation path. Use the hand tool to pan
    the view, and the bottom zoom/fit controls to navigate without changing the slide.
-   The right inspector has Properties, Layers, and Animation tabs and scrolls
+   Layers has a dedicated pane on the left; the right inspector has Properties
+   and Animation tabs. Each pane can be closed independently and scrolls
    independently. It can be hidden for more canvas space. Upload assets through
    **Upload asset** in the top toolbar:
    PNG/JPEG/WebP images under 3 MB or SVGs under 300 KB. SVG scripts, external
@@ -293,10 +294,16 @@ Free positioning, Flex row, Flex column, and Grid layouts, with column count,
 horizontal/vertical gaps, distribution, alignment, wrapping, and clipping.
 Children in auto layouts offer Fixed size or Fill available space. Positions are
 managed by the layout; resize handles switch a filled child to fixed sizing.
-The Layers tab shows expandable frame hierarchies, with frontmost layers first.
+The left Layers pane shows expandable frame hierarchies, with frontmost layers first.
 Select a nested layer to edit its frame; **Back to parent** returns one level.
-Use **Layer parent → Move into frame** or **Move out of frame** to reparent
-existing elements. Reorder siblings by dragging or using Alt+Up/Down; in auto
+Use **Layer parent → Move into frame** to choose any nested destination by its
+full path (for example, Outer / Inner), or choose Slide root / Template root.
+**Move out of frame** returns one level. Alternatively, drag a layer onto the
+center of a frame row to move inside it; the highlighted frame is the destination.
+Drop near a row's top or bottom edge to place the layer beside it, including
+moving between parents. Moves stay within the current slide/template, preserve
+reference transforms, and reject cycles, duplicate IDs and excessive nesting.
+Reorder siblings by dragging or using Alt+Up/Down; in auto
 layouts the top layer is also the first item. Frame transforms and animations
 apply to their children, while child animations remain editable.
 
@@ -310,6 +317,9 @@ Selected elements expose eight resize handles in both selection and resize
 modes: all four corners and all four side midpoints. Opposite edges remain fixed
 for free-positioned elements, including rotated/scaled objects. Arrow keys on a
 handle resize the corresponding axes; Shift increases the step to ten units.
+Resize and rotate handles use solid blue fills with white borders and dark rings
+to remain visible over light or dark artwork regardless of the application theme.
+The rotation stem has the same light/dark contrast treatment.
 
 **Object appearance and rotation:** select an element to edit its rotation in
 degrees, rotate left/right by 90?, or reset its visible angle. Drag the circular
@@ -409,6 +419,8 @@ from Sveltewind. Local adapters reuse Sveltewind components while preserving the
 application's defaults, styles, bindings, and custom snippets.
 
 The application theme bridge preserves styles for direct library exports.
+Sveltewind Tabs containers use the application's glass surface, rounding and
+spacing through that bridge, matching the site's other controls.
 Adapters pass `unstyledTheme` when supplying their existing application classes,
 so package preset classes do not change the portal's appearance.
 
