@@ -69,6 +69,7 @@ export type DataRow = {
 };
 export type DataBinding = { field: string; format: 'text' | 'date' | 'number'; fallback: string };
 export type RepeaterDefinition = {
+	staggerMs?: number;
 	columns: number;
 	minItemWidth: number;
 	itemHeight: number;

@@ -147,6 +147,13 @@ text content. Nested repeaters are not supported.
 
 Scrub or play the timeline to preview pagination and scrolling. Item animations
 use slide display time, and whole-slide fades still wrap the complete grid.
+Set **Item stagger (ms)** in the repeater properties to delay each item's template
+animations (for example, 200 starts each item 0.2 seconds after the previous one).
+Items stay hidden until their turn. Zero preserves simultaneous playback. Animate
+the template elements first using **Edit item template**. Pagination restarts the
+sequence on every page; scrolling uses the original result order and does not
+restart animations as items scroll into view. Allow enough page/slide time for the
+last item's delay plus its animation duration.
 Existing data lists retain their layout until **Convert to grid repeater** is
 chosen in Properties. Query configuration and templates are saved/exported;
 resolved row values are transient and are never written into the slide definition.
@@ -300,6 +307,8 @@ Use **Layer parent → Move into frame** to choose any nested destination by its
 full path (for example, Outer / Inner), or choose Slide root / Template root.
 **Move out of frame** returns one level. Alternatively, drag a layer onto the
 center of a frame row to move inside it; the highlighted frame is the destination.
+Expanded frames also show a **Drop layers into frame** area while dragging;
+empty frames always show it. Drop there to nest the layer without aiming at the row.
 Drop near a row's top or bottom edge to place the layer beside it, including
 moving between parents. Moves stay within the current slide/template, preserve
 reference transforms, and reject cycles, duplicate IDs and excessive nesting.

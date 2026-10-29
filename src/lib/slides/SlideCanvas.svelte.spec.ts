@@ -22,6 +22,39 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('delays each repeater template animation and restarts staggering on each page', async () => {
+		const settings = { ...defaultRepeater(), staggerMs: 200 };
+		const label = settings.template.elements[1];
+		label.keyframes = [
+			{ ...label, atMs: 0, opacity: 0, easing: 'linear' },
+			{ ...label, atMs: 1000, opacity: 1, easing: 'linear' }
+		];
+		const element = { ...newElement('list', 'grid'), width: 1000, height: 400, repeater: settings };
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), width: 1000, height: 400, elements: [element] },
+			assetBase: '/assets',
+			timeMs: 100,
+			data: {
+				grid: {
+					state: 'ready',
+					message: '',
+					items: Array.from({ length: 8 }, (_, index) => ({
+						id: String(index),
+						label: `Item ${index + 1}`,
+						detail: ''
+					}))
+				}
+			}
+		});
+		const item = (number: number) => view.getByLabelText(`Repeater item ${number}`);
+		expect(item(2).parentElement).toHaveStyle({ visibility: 'hidden' });
+		await view.rerender({ timeMs: 500 });
+		expect(item(1).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '0.5' });
+		expect(item(2).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '0.3' });
+		await view.rerender({ timeMs: 5000 });
+		expect(item(5).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '0' });
+		expect(item(6).parentElement).toHaveStyle({ visibility: 'hidden' });
+	});
 	it('renders nested frame content with CSS grid/flex layout and applies padding to images and frame content', async () => {
 		const frame = {
 			...newElement('frame', 'frame'),

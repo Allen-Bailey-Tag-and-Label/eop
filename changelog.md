@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T15:51:37.248Z
+## 2026-10-29T16:03:33.094Z
+
+feat: Improve frame drag targets and add staggered repeater animations
+
+## 2026-10-29T11:57:06-04:00
 
 feat: Add uniform and axis gap controls for flex and grid frames
 

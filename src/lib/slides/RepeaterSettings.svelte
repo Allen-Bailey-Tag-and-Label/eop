@@ -28,6 +28,25 @@
 			1000
 		).toFixed(1)} seconds.</P
 	>
+	<InspectorInput
+		label="Item stagger (ms)"
+		prefix="ms"
+		type="number"
+		min={0}
+		max={10000}
+		step={50}
+		value={String(settings.staggerMs ?? 0)}
+		oninput={(event) => {
+			const value = event.currentTarget.valueAsNumber;
+			if (Number.isFinite(value))
+				settings.staggerMs = Math.max(0, Math.min(10000, Math.round(value)));
+		}}
+	/>
+	<P class="text-xs opacity-60"
+		>Delay between item animations. Animate elements in Edit item template, then set a stagger here.
+		Zero plays all items together. Each page restarts the sequence; scrolling keeps each item's
+		original timing. Allow enough page and slide time for all items to appear.</P
+	>
 	<Div class="grid grid-cols-2 gap-2">
 		{#each numbers as field (field.key)}
 			<InspectorInput

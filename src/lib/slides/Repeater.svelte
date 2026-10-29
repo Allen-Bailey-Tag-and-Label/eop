@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
-	import { gridLayout, templateSlide } from './repeater';
+	import { gridLayout, templateSlide, repeaterItemTime } from './repeater';
 	import type { ColorScheme, DataListResult, RepeaterDefinition } from './types';
 	let {
 		settings,
@@ -36,12 +36,13 @@
 <Div class="relative h-full w-full overflow-hidden" aria-label="Repeater grid">
 	{#if result?.state === 'ready' && items.length}
 		{#each items.slice(grid.start, grid.start + grid.visibleCount) as row, index (row.id)}
+			{@const itemTime = repeaterItemTime(settings, timeMs, index, grid.start)}
 			<Div
-				style={`position:absolute;left:${(index % grid.columns) * (grid.itemWidth + grid.gapX)}px;top:${Math.floor(index / grid.columns) * (grid.itemHeight + grid.gapY) + grid.offsetY}px;width:${grid.itemWidth}px;height:${grid.itemHeight}px;`}
+				style={`position:absolute;left:${(index % grid.columns) * (grid.itemWidth + grid.gapX)}px;top:${Math.floor(index / grid.columns) * (grid.itemHeight + grid.gapY) + grid.offsetY}px;width:${grid.itemWidth}px;height:${grid.itemHeight}px;visibility:${itemTime < 0 ? 'hidden' : 'visible'};`}
 			>
 				<SlideCanvas
 					{definition}
-					{timeMs}
+					timeMs={Math.max(0, itemTime)}
 					{scheme}
 					{assetBase}
 					{assetUrls}

@@ -61,6 +61,9 @@
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
 		target = next;
 	}
+	function canNest(id: string) {
+		return drag && !framePathStartsWith([...path, id], [...drag.path, drag.id]);
+	}
 </script>
 
 <Div class="min-w-0 space-y-1">
@@ -91,9 +94,9 @@
 				class={`flex w-full min-w-0 cursor-grab items-center justify-start gap-1.5 rounded border-y-2 border-transparent px-2 py-1 text-left text-xs active:cursor-grabbing ${drag?.id === element.id && same(path, drag.path) ? 'opacity-50' : ''} ${drag && target?.id === element.id && !(drag.id === element.id && same(path, drag.path)) ? (target.inside ? 'bg-sky-100 ring-2 ring-sky-500 dark:bg-sky-950' : target.after ? 'border-b-sky-500' : 'border-t-sky-500') : ''}`}
 				onclick={() => onSelect(element.id, path)}
 				ondragstart={(event) => {
+					event.stopPropagation();
 					drag = { id: element.id, path: [...path] };
 					target = null;
-					onSelect(element.id, path, false);
 					if (event.dataTransfer) {
 						event.dataTransfer.effectAllowed = 'move';
 						event.dataTransfer.setData('text/plain', element.id);
@@ -138,6 +141,28 @@
 					{onMove}
 					bind:drag
 				/>
+				{#if !element.frame.elements.length || (drag && canNest(element.id))}
+					<Button
+						variants={['ghost']}
+						aria-label={`Move dragged layer into frame ${element.text}`}
+						class={`my-1 min-h-9 w-full border border-dashed border-slate-400 px-2 py-2 text-xs dark:border-gray-500 ${target?.id === element.id && target.inside ? 'bg-sky-100 ring-2 ring-sky-500 dark:bg-sky-950' : ''}`}
+						ondragover={(event) => {
+							event.stopPropagation();
+							if (!canNest(element.id)) return;
+							event.preventDefault();
+							if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+							target = { id: element.id, inside: true, after: false };
+						}}
+						ondragleave={() => (target = null)}
+						ondrop={(event) => {
+							event.stopPropagation();
+							if (!drag || !canNest(element.id)) return;
+							event.preventDefault();
+							onMove(drag.path, drag.id, [...path, element.id]);
+							drag = null;
+						}}>Drop layers into frame</Button
+					>
+				{/if}
 			</Div>{/if}
 	{/each}
 </Div>

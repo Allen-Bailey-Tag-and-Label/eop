@@ -246,6 +246,8 @@
 				baseDepth: editingRepeater ? repeaterReturnPath.length + 1 : 0,
 				prepare: (child) => {
 					if (source?.frame?.layout === 'free' || !source?.frame) return;
+					// A layer drag can start outside the frame currently shown on the canvas.
+					if (JSON.stringify(sourcePath) !== JSON.stringify(framePath)) return;
 					const root = document.querySelector('[aria-label="Slide workspace"] [data-canvas-root]');
 					const node = Array.from(root?.children ?? []).find(
 						(node) => node.getAttribute('data-slide-element') === id

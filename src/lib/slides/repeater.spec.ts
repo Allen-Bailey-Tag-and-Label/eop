@@ -1,10 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { boundText, defaultRepeater, gridLayout, templateSlide } from './repeater';
+import {
+	boundText,
+	defaultRepeater,
+	gridLayout,
+	templateSlide,
+	repeaterItemTime
+} from './repeater';
 import { blankSlide, defaultDataSource, newElement } from './types';
 import { validateSlide } from './validation';
 import { mediaIds } from './media';
 
 describe('grid repeaters', () => {
+	it('staggered item clocks restart per page and remain stable across scroll virtualization', () => {
+		const settings = { ...defaultRepeater(), staggerMs: 200 };
+		expect(repeaterItemTime(settings, 100, 1, 0)).toBe(-100);
+		expect(repeaterItemTime(settings, 5500, 1, 4)).toBe(300);
+		expect(repeaterItemTime(settings, 10000, 1, 0)).toBe(-200);
+		settings.overflow = 'scroll';
+		expect(repeaterItemTime(settings, 1500, 5, 0)).toBe(500);
+		expect(repeaterItemTime(settings, 1500, 1, 4)).toBe(500);
+		settings.staggerMs = 0;
+		expect(repeaterItemTime(settings, 5500, 1, 4)).toBe(5500);
+	});
 	it('paginates at deterministic times without shrinking items', () => {
 		const settings = defaultRepeater();
 		const first = gridLayout(settings, 1000, 400, 7, 0);
@@ -74,7 +91,15 @@ describe('grid repeaters', () => {
 		};
 		const definition = { ...blankSlide(), elements: [repeater] };
 		expect(validateSlide(definition).elements[0].repeater?.template.elements).toHaveLength(3);
-		for (const update of [{ columns: -1 }, { columns: 1.5 }, { pageDurationMs: 0 }, { rowGap: -1 }])
+		for (const update of [
+			{ columns: -1 },
+			{ columns: 1.5 },
+			{ pageDurationMs: 0 },
+			{ rowGap: -1 },
+			{ staggerMs: -1 },
+			{ staggerMs: 10001 },
+			{ staggerMs: 1.5 }
+		])
 			expect(() =>
 				validateSlide({
 					...definition,

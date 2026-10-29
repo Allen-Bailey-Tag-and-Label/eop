@@ -124,6 +124,9 @@ function repeater(
 		align: choice(value.align, ['start', 'center', 'end'], 'grid alignment'),
 		overflow: choice(value.overflow, ['paginate', 'scroll', 'clip'], 'grid overflow'),
 		pageDurationMs: integer(value.pageDurationMs, 500, 600000, 'Page duration'),
+		...(value.staggerMs === undefined
+			? {}
+			: { staggerMs: integer(value.staggerMs, 0, 10000, 'Item stagger') }),
 		template: { width: validated.width, height: validated.height, elements: validated.elements }
 	};
 }

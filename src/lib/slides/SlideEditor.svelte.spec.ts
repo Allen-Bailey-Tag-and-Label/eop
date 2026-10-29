@@ -177,6 +177,16 @@ describe('slide authoring', () => {
 			target: { value: '[]' }
 		});
 		expect(definition().elements[1]).toEqual(child);
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		await fireEvent.dragStart(view.getByRole('button', { name: /Layer \d+: text: Loose/ }), {
+			dataTransfer
+		});
+		const dropArea = view.getByRole('button', { name: 'Move dragged layer into frame Inner' });
+		await fireEvent.dragOver(dropArea, { dataTransfer });
+		expect(dropArea).toHaveClass('ring-2');
+		await fireEvent.drop(dropArea, { dataTransfer });
+		expect(definition().elements).toHaveLength(1);
+		expect(definition().elements[0].frame.elements[0].frame.elements[0].id).toBe('loose');
 	});
 	it('authors grid frames with nested layers, axis padding and individual child padding, then saves the whole hierarchy', async () => {
 		const view = render(SlideEditor, {
@@ -534,6 +544,9 @@ describe('slide authoring', () => {
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Columns (0 = automatic)' }), {
 			target: { value: '3' }
 		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Item stagger (ms)' }), {
+			target: { value: '200' }
+		});
 		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
 		expect(view.getByText('Editing repeater item template')).toBeInTheDocument();
 		expect(view.queryByRole('button', { name: 'Add repeater' })).not.toBeInTheDocument();
@@ -545,6 +558,7 @@ describe('slide authoring', () => {
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
 		expect(definition().elements[0].repeater.columns).toBe(3);
+		expect(validateSlide(definition()).elements[0].repeater?.staggerMs).toBe(200);
 		expect(definition().elements[0].repeater.template.elements[1]).toMatchObject({
 			fontSize: 52,
 			binding: { field: 'row.name', format: 'text' }
