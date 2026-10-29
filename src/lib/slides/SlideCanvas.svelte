@@ -83,7 +83,7 @@
 			>
 				{#if element.type === 'text'}
 					<Div
-						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};box-sizing:border-box;padding:${((element.padding ?? 0) * box.fontSize) / element.fontSize}px;`}
+						style={`display:grid;grid-template-columns:minmax(0,1fr);align-content:${element.verticalAlign === 'middle' ? 'center' : element.verticalAlign === 'bottom' ? 'end' : 'start'};width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};box-sizing:border-box;padding:${((element.padding ?? 0) * box.fontSize) / element.fontSize}px;`}
 						>{element.binding
 							? boundText(element.binding, row, rowIndex, timeZone)
 							: element.text}</Div

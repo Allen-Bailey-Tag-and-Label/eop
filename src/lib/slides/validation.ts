@@ -193,6 +193,15 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 					}
 				: {}),
 			...(e.padding !== undefined ? { padding: number(e.padding, 0, 256, 'Text padding') } : {}),
+			...(e.verticalAlign !== undefined
+				? {
+						verticalAlign: choice(
+							e.verticalAlign,
+							['top', 'middle', 'bottom'] as const,
+							'vertical alignment'
+						)
+					}
+				: {}),
 			...(e.borderWidth !== undefined
 				? { borderWidth: number(e.borderWidth, 0, 128, 'Border width') }
 				: {}),

@@ -39,6 +39,9 @@
 		AlignLeft,
 		AlignCenter,
 		AlignRight,
+		AlignVerticalJustifyStart,
+		AlignVerticalJustifyCenter,
+		AlignVerticalJustifyEnd,
 		BringToFront,
 		GripVertical,
 		Database
@@ -1048,6 +1051,23 @@
 											}}><item.icon size={14} /></Button
 										>{/each}
 								</Div>
+								{#if selected.type === 'text'}
+									<Div class="flex gap-1" role="group" aria-label="Text vertical alignment">
+										{#each [{ value: 'top', icon: AlignVerticalJustifyStart }, { value: 'middle', icon: AlignVerticalJustifyCenter }, { value: 'bottom', icon: AlignVerticalJustifyEnd }] as item (item.value)}
+											<Button
+												aria-label={`Align text ${item.value}`}
+												title={`Align ${item.value}`}
+												aria-pressed={(selected.verticalAlign ?? 'top') === item.value}
+												variants={(selected.verticalAlign ?? 'top') === item.value ? [] : ['ghost']}
+												class="h-7 flex-1 items-center p-0"
+												onclick={() => {
+													if (selected)
+														selected.verticalAlign = item.value as SlideElement['verticalAlign'];
+												}}><item.icon size={14} /></Button
+											>
+										{/each}
+									</Div>
+								{/if}
 							</InspectorSection>
 						{:else if selected.type === 'image' || selected.type === 'svg'}<InspectorSection
 								title="Graphic"

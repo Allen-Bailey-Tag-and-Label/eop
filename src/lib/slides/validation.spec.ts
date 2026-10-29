@@ -4,6 +4,21 @@ import { parseJson, slug, validatePlaylist, validateSlide } from './validation';
 import { poseAt } from './timeline';
 
 describe('slide definitions', () => {
+	it('preserves vertical text alignment and rejects unsupported alignment values', () => {
+		const element = newElement('text', 'text');
+		for (const verticalAlign of ['top', 'middle', 'bottom']) {
+			expect(
+				validateSlide({ ...blankSlide(), elements: [{ ...element, verticalAlign }] }).elements[0]
+					.verticalAlign
+			).toBe(verticalAlign);
+		}
+		expect(
+			validateSlide({ ...blankSlide(), elements: [element] }).elements[0].verticalAlign
+		).toBeUndefined();
+		expect(() =>
+			validateSlide({ ...blankSlide(), elements: [{ ...element, verticalAlign: 'invalid' }] })
+		).toThrow('vertical alignment');
+	});
 	it('preserves object decorations and rejects invalid or executable styles', () => {
 		const element = {
 			...newElement('text', 'box'),

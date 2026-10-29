@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T12:21:00.507Z
+## 2026-10-29T12:24:55.787Z
+
+feat: Add vertical alignment controls for slide text
+
+## 2026-10-29T08:22:19-04:00
 
 feat: Add drag-and-drop layer reordering to the slide editor
 

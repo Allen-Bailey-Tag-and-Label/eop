@@ -256,6 +256,11 @@ value; fixed and light/dark modes remain available. The color toolbar shortcut
 opens Fill before activating its picker. These density styles are limited to the
 inspector; document dialogs and other application forms keep their normal sizing.
 
+Text elements also have **Top**, **Middle**, and **Bottom** vertical alignment
+buttons in Typography. Alignment positions the entire text block inside the
+element's padding and works with multiline text and repeater bindings. Existing
+text defaults to Top.
+
 In **Layers**, drag a row above or below another row to change the stacking order.
 The insertion marker shows where it will land; later rows appear in front.
 With a layer focused, **Alt+Up/Down** moves it one position. The same controls

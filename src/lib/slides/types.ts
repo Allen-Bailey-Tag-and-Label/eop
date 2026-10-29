@@ -73,6 +73,7 @@ export type SlideElement = Pose & {
 	fontSize: number;
 	fontFamily: 'sans-serif' | 'serif' | 'monospace';
 	align: 'left' | 'center' | 'right';
+	verticalAlign?: 'top' | 'middle' | 'bottom';
 	assetId: string;
 	fit: 'contain' | 'cover';
 	keyframes: Keyframe[];

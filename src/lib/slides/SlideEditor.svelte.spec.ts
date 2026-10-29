@@ -25,6 +25,35 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('edits and saves vertical text alignment for slide and repeater template text', async () => {
+		vi.useFakeTimers();
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		expect(view.getByRole('button', { name: 'Align text top' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Align text middle' }));
+		expect(view.getByRole('button', { name: 'Align text middle' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		expect(definition().elements[0].verticalAlign).toBe('middle');
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Align text bottom' }));
+		expect(definition().elements[1].repeater.template.elements[1].verticalAlign).toBe('bottom');
+		expect(definition().elements[0].verticalAlign).toBe('middle');
+	});
 	it('drags layers in both directions, retains selection and content, and ignores cancelled or external drops', async () => {
 		vi.stubGlobal(
 			'DragEvent',

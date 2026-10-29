@@ -22,6 +22,37 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('positions multiline text at the top, middle or bottom within its padded box', async () => {
+		const element = {
+			...newElement('text', 'aligned'),
+			text: 'First line\nSecond line',
+			padding: 12,
+			align: 'right' as const
+		};
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [element] },
+			assetBase: '/assets'
+		});
+		const text = () => view.container.querySelector('[data-slide-element="aligned"] > div')!;
+		expect(text()).toHaveStyle({
+			display: 'grid',
+			alignContent: 'start',
+			padding: '12px',
+			textAlign: 'right',
+			whiteSpace: 'pre-wrap'
+		});
+		for (const [verticalAlign, alignContent] of [
+			['middle', 'center'],
+			['bottom', 'end'],
+			['top', 'start']
+		] as const) {
+			await view.rerender({
+				definition: { ...blankSlide(), elements: [{ ...element, verticalAlign }] }
+			});
+			expect(text()).toHaveStyle({ alignContent });
+			expect(text().textContent).toBe('First line\nSecond line');
+		}
+	});
 	it('renders resolved holiday rows and explicit empty/error states without hiding other elements', async () => {
 		const view = render(SlideCanvas, {
 			definition: { ...blankSlide(), elements: [newElement('list', 'calendar')] },
@@ -55,6 +86,7 @@ describe('responsive slide rendering', () => {
 	});
 	it('renders bound item templates, preserves styling, and changes grid pages on the timeline', async () => {
 		const settings = defaultRepeater();
+		settings.template.elements[1].verticalAlign = 'middle';
 		settings.template.elements[1].binding = {
 			field: 'row.name',
 			format: 'text',
@@ -85,6 +117,7 @@ describe('responsive slide rendering', () => {
 		expect(view.getByText('Item 1')).toBeInTheDocument();
 		expect(view.queryByText('Item 5')).not.toBeInTheDocument();
 		expect(view.getByText('Item 1')).toHaveStyle({ fontWeight: '700' });
+		expect(view.getByText('Item 1')).toHaveStyle({ alignContent: 'center' });
 		expect(view.getAllByText('Nov 26, 2026')).toHaveLength(4);
 		await view.rerender({ timeMs: 5000 });
 		expect(view.getByText('Item 5')).toBeInTheDocument();
