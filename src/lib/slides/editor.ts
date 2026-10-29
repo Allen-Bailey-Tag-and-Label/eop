@@ -62,3 +62,19 @@ export function resizeElement(
 	);
 	Object.assign(element, dimensions);
 }
+
+// Rotate the full animation path so keyframes cannot undo an object-property edit.
+export function rotateElement(element: SlideElement, degrees: number) {
+	if (!Number.isFinite(degrees)) return;
+	const poses = [element, ...element.keyframes];
+	const bounded = Math.max(
+		-3600 - Math.min(...poses.map((pose) => pose.rotation)),
+		Math.min(degrees, 3600 - Math.max(...poses.map((pose) => pose.rotation)))
+	);
+	for (const pose of poses) pose.rotation += bounded;
+}
+
+// Short signed angle changes allow dragging across the -180/180 degree boundary.
+export function rotationDelta(previous: number, next: number) {
+	return ((((next - previous + 540) % 360) + 360) % 360) - 180;
+}

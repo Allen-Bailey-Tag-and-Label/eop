@@ -192,6 +192,26 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 							: invalid('Invalid font weight.')
 					}
 				: {}),
+			...(e.padding !== undefined ? { padding: number(e.padding, 0, 256, 'Text padding') } : {}),
+			...(e.borderWidth !== undefined
+				? { borderWidth: number(e.borderWidth, 0, 128, 'Border width') }
+				: {}),
+			...(e.borderStyle !== undefined
+				? {
+						borderStyle: choice(
+							e.borderStyle,
+							['solid', 'dashed', 'dotted', 'double'] as const,
+							'border style'
+						)
+					}
+				: {}),
+			...(e.borderColor !== undefined ? { borderColor: color(e.borderColor) } : {}),
+			...(e.backgroundColor !== undefined
+				? {
+						backgroundColor:
+							e.backgroundColor === 'transparent' ? 'transparent' : color(e.backgroundColor)
+					}
+				: {}),
 			...(e.borderRadius !== undefined
 				? { borderRadius: number(e.borderRadius, 0, 512, 'Corner radius') }
 				: {}),

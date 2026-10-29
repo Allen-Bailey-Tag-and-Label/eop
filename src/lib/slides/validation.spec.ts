@@ -4,6 +4,36 @@ import { parseJson, slug, validatePlaylist, validateSlide } from './validation';
 import { poseAt } from './timeline';
 
 describe('slide definitions', () => {
+	it('preserves object decorations and rejects invalid or executable styles', () => {
+		const element = {
+			...newElement('text', 'box'),
+			borderWidth: 4,
+			borderStyle: 'dashed',
+			borderColor: { light: '#111111', dark: '#eeeeee' },
+			backgroundColor: { light: '#ffffff', dark: '#111827' },
+			borderRadius: 24,
+			padding: 12
+		};
+		expect(validateSlide({ ...blankSlide(), elements: [element] }).elements[0]).toMatchObject(
+			element
+		);
+		for (const changes of [
+			{ borderWidth: -1 },
+			{ borderWidth: 129 },
+			{ borderStyle: 'url(bad)' },
+			{ borderColor: 'red' },
+			{ backgroundColor: 'url(bad)' },
+			{ borderRadius: 513 },
+			{ padding: 257 }
+		])
+			expect(() =>
+				validateSlide({ ...blankSlide(), elements: [{ ...element, ...changes }] })
+			).toThrow();
+		expect(
+			validateSlide({ ...blankSlide(), elements: [{ ...element, backgroundColor: 'transparent' }] })
+				.elements[0].backgroundColor
+		).toBe('transparent');
+	});
 	it('accepts transparent backgrounds while keeping element colors restricted to hex colors', () => {
 		expect(validateSlide({ ...blankSlide(), background: 'transparent' }).background).toBe(
 			'transparent'

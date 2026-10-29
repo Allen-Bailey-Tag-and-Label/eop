@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { newElement } from './types';
-import { moveElement, resizeDimensions, resizeElement } from './editor';
+import {
+	moveElement,
+	resizeDimensions,
+	resizeElement,
+	rotateElement,
+	rotationDelta
+} from './editor';
 
 describe('canvas editing', () => {
+	it('rotates animated objects together, bounds the entire path, and crosses angle seams', () => {
+		const element = newElement('text', 'headline');
+		element.keyframes = [{ ...element, rotation: 30, atMs: 1000, easing: 'linear' }];
+		rotateElement(element, 90);
+		expect(element.rotation).toBe(90);
+		expect(element.keyframes[0].rotation).toBe(120);
+		rotateElement(element, 4000);
+		expect(element.rotation).toBe(3570);
+		expect(element.keyframes[0].rotation).toBe(3600);
+		expect(rotationDelta(179, -179)).toBe(2);
+		expect(rotationDelta(-179, 179)).toBe(-2);
+	});
 	it('moves the base pose and animation together, clamping the entire path to valid coordinates', () => {
 		const element = newElement('text', 'headline');
 		element.keyframes = [{ ...element, x: 8000, y: 100, atMs: 1000, easing: 'linear' }];

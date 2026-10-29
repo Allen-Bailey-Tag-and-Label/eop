@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T20:30:25.162Z
+## 2026-10-29T10:57:00.075Z
+
+feat: Add object rotation and appearance controls to slides
+
+## 2026-10-29T06:44:09-04:00
 
 fix: Reload Mongoose models safely during development
 

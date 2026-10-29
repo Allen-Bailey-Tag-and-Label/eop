@@ -96,6 +96,53 @@ describe('responsive slide rendering', () => {
 		await view.rerender({ data: { grid: { state: 'empty', items: [], message: 'No rows' } } });
 		expect(view.getByText('No rows')).toBeInTheDocument();
 	});
+	it('renders themed borders, rounded clipping, text backgrounds and padding without resizing objects', async () => {
+		const text = {
+			...newElement('text', 'text'),
+			text: 'Styled',
+			rotation: 30,
+			borderWidth: 4,
+			borderStyle: 'dashed' as const,
+			borderColor: { light: '#123456', dark: '#abcdef' },
+			backgroundColor: { light: '#ffffff', dark: '#111827' },
+			borderRadius: 24,
+			padding: 12
+		};
+		const image = {
+			...newElement('image', 'image'),
+			assetId: 'a'.repeat(24),
+			borderRadius: 32,
+			borderWidth: 2
+		};
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [text, image] },
+			assetBase: '/assets',
+			scheme: 'light'
+		});
+		const frame = () => view.container.querySelector('[data-slide-element="text"]') as HTMLElement;
+		expect(frame()).toHaveStyle({
+			width: '800px',
+			height: '240px',
+			background: '#ffffff',
+			borderRadius: '24px',
+			overflow: 'hidden'
+		});
+		expect(frame().style.transform).toContain('rotate(30deg)');
+		expect(view.getByText('Styled')).toHaveStyle({ padding: '12px' });
+		expect(frame().lastElementChild).toHaveStyle({
+			borderWidth: '4px',
+			borderStyle: 'dashed',
+			borderColor: '#123456',
+			boxSizing: 'border-box'
+		});
+		expect(view.container.querySelector('[data-slide-element="image"]')).toHaveStyle({
+			borderRadius: '32px',
+			overflow: 'hidden'
+		});
+		await view.rerender({ scheme: 'dark' });
+		expect(frame()).toHaveStyle({ background: '#111827' });
+		expect(frame().lastElementChild).toHaveStyle({ borderColor: '#abcdef' });
+	});
 	it('holds element keyframes during entrance, plays them during display, and holds their final pose on exit', async () => {
 		const element = newElement('text', 'headline');
 		element.opacity = 0;

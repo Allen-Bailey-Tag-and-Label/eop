@@ -53,6 +53,7 @@ export type SlideData = Record<string, DataListResult>;
 export type ColorScheme = 'light' | 'dark';
 export type DisplayMode = ColorScheme | 'system';
 export type SlideColor = string | { light: string; dark: string };
+export const defaultBorderColor: SlideColor = { light: '#111827', dark: '#f9fafb' };
 export type Easing = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
 export type HorizontalAnchor = 'scale' | 'left' | 'right' | 'center' | 'stretch';
 export type VerticalAnchor = 'scale' | 'top' | 'bottom' | 'center' | 'stretch';
@@ -80,6 +81,11 @@ export type SlideElement = Pose & {
 	binding?: DataBinding;
 	fontWeight?: 400 | 600 | 700;
 	borderRadius?: number;
+	borderWidth?: number;
+	borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
+	borderColor?: SlideColor;
+	backgroundColor?: SlideColor;
+	padding?: number;
 };
 export type SlideDefinition = {
 	schemaVersion: 1;

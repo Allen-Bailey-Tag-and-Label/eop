@@ -280,6 +280,66 @@ describe('slide authoring', () => {
 		await vi.advanceTimersByTimeAsync(400);
 		expect(view.getByText('Select fields must be space separated.')).toBeInTheDocument();
 	});
+	it('saves rotation, borders, text backgrounds and corner radius through properties and templates', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: [{ id: 'a'.repeat(24), name: 'Photo', contentType: 'image/png' }]
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Rotation (degrees)' }), {
+			target: { value: '45' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Rotate right 90 degrees' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Border width' }), {
+			target: { value: '4' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'Border style' }), {
+			target: { value: 'dashed' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'Text background' }), {
+			target: { value: 'color' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Corner radius' }), {
+			target: { value: '24' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Text padding' }), {
+			target: { value: '12' }
+		});
+		expect(definition().elements[0]).toMatchObject({
+			rotation: 135,
+			borderWidth: 4,
+			borderStyle: 'dashed',
+			borderRadius: 24,
+			padding: 12,
+			backgroundColor: { light: '#ffffff', dark: '#111827' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Reset object rotation' }));
+		expect(definition().elements[0].rotation).toBe(0);
+		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Corner radius' }), {
+			target: { value: '30' }
+		});
+		expect(definition().elements[1].borderRadius).toBe(30);
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Border width' }), {
+			target: { value: '2' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Corner radius' }), {
+			target: { value: '10' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
+		expect(definition().elements[2].repeater.template.elements[1]).toMatchObject({
+			borderWidth: 2,
+			borderRadius: 10
+		});
+	});
 	it('edits light/dark colors, previews each mode, and can lock the chosen color as fixed', async () => {
 		const view = render(SlideEditor, {
 			data: {

@@ -58,6 +58,7 @@
 	import type { SlideElement } from './types';
 	import {
 		newElement,
+		defaultBorderColor,
 		type AssetSummary,
 		type ContentEditor,
 		type ElementType,
@@ -67,8 +68,9 @@
 		type SlideData
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
+	import { rotateElement } from './editor';
 	import { withResponsiveDefaults } from './layout';
-	import { slideContentTime, slideTiming } from './timeline';
+	import { poseAt, slideContentTime, slideTiming } from './timeline';
 	let {
 		data,
 		form
@@ -209,7 +211,7 @@
 	let colorInput = $state<HTMLInputElement | null>(null);
 	const uid = $props.id();
 	const transitionDirections = ['transitionIn', 'transitionOut'] as const;
-	const geometry = ['x', 'y', 'width', 'height', 'rotation', 'scale', 'opacity'] as const;
+	const geometry = ['x', 'y', 'width', 'height', 'scale', 'opacity'] as const;
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
@@ -872,6 +874,118 @@
 									}}
 								/>{/each}</Div
 						>
+						<Input
+							label="Rotation (degrees)"
+							aria-label="Rotation (degrees)"
+							type="number"
+							min={-3600}
+							max={3600}
+							step={1}
+							value={String(poseAt(selected, contentTimeMs).rotation)}
+							oninput={(event) => {
+								if (selected)
+									rotateElement(
+										selected,
+										Number(event.currentTarget.value) - poseAt(selected, contentTimeMs).rotation
+									);
+							}}
+						/>
+						<Div class="flex flex-wrap gap-2">
+							<Button
+								aria-label="Rotate left 90 degrees"
+								onclick={() => {
+									if (selected) rotateElement(selected, -90);
+								}}>-90?</Button
+							>
+							<Button
+								aria-label="Rotate right 90 degrees"
+								onclick={() => {
+									if (selected) rotateElement(selected, 90);
+								}}>+90?</Button
+							>
+							<Button
+								aria-label="Reset object rotation"
+								onclick={() => {
+									if (selected) rotateElement(selected, -poseAt(selected, contentTimeMs).rotation);
+								}}>Reset</Button
+							>
+						</Div>
+						<Input
+							label="Border width"
+							aria-label="Border width"
+							type="number"
+							min={0}
+							max={128}
+							step={1}
+							value={String(selected.borderWidth ?? 0)}
+							oninput={(event) => {
+								if (selected) selected.borderWidth = Number(event.currentTarget.value);
+							}}
+						/>
+						<Select
+							label="Border style"
+							aria-label="Border style"
+							value={selected.borderStyle ?? 'solid'}
+							options={['solid', 'dashed', 'dotted', 'double'].map((value) => ({
+								value,
+								label: value
+							}))}
+							onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+								if (selected)
+									selected.borderStyle = event.currentTarget.value as NonNullable<
+										SlideElement['borderStyle']
+									>;
+							}}
+						/>
+						<ColorField
+							label="Border color"
+							ariaLabel="Object border color"
+							value={selected.borderColor ?? defaultBorderColor}
+							scheme={previewScheme}
+							onValueChange={(value) => {
+								if (selected) selected.borderColor = value;
+							}}
+						/>
+						{#if selected.type === 'text'}
+							<Input
+								label="Text padding"
+								aria-label="Text padding"
+								type="number"
+								min={0}
+								max={256}
+								value={String(selected.padding ?? 0)}
+								oninput={(event) => {
+									if (selected) selected.padding = Number(event.currentTarget.value);
+								}}
+							/>
+							<Select
+								label="Text background"
+								aria-label="Text background"
+								value={selected.backgroundColor && selected.backgroundColor !== 'transparent'
+									? 'color'
+									: 'transparent'}
+								options={[
+									{ value: 'transparent', label: 'Transparent' },
+									{ value: 'color', label: 'Color' }
+								]}
+								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+									if (selected)
+										selected.backgroundColor =
+											event.currentTarget.value === 'transparent'
+												? 'transparent'
+												: { light: '#ffffff', dark: '#111827' };
+								}}
+							/>
+							{#if selected.backgroundColor && selected.backgroundColor !== 'transparent'}<ColorField
+									label="Background color"
+									ariaLabel="Text box background"
+									value={selected.backgroundColor}
+									scheme={previewScheme}
+									onValueChange={(value) => {
+										if (selected) selected.backgroundColor = value;
+									}}
+								/>{/if}
+						{/if}
 						<ColorField
 							bind:element={colorInput}
 							ariaLabel="Element color"
@@ -958,7 +1072,7 @@
 								options={['contain', 'cover'].map((value) => ({ value, label: value }))}
 							/>
 						{/if}
-						{#if selected.type === 'rectangle'}<Input
+						{#if ['text', 'image', 'svg', 'rectangle'].includes(selected.type)}<Input
 								label="Corner radius"
 								aria-label="Corner radius"
 								type="number"

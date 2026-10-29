@@ -244,6 +244,24 @@ require republishing and do not restart the playlist. Held final slides refresh
 their data too. Resolved rows are never saved in drafts or exports. Previously
 saved upcoming-holiday sources are upgraded to generic data links automatically.
 
+**Object appearance and rotation:** select an element to edit its rotation in
+degrees, rotate left/right by 90?, or reset its visible angle. Drag the circular
+handle above the selected object to rotate on the canvas; hold Shift to snap to
+15? increments. With that handle focused, Left/Right rotate by 1? (Shift: 15?),
+and Home resets the angle. Rotation edits shift the entire keyframe path so
+animation does not override the change. Individual keyframe angles remain editable
+in the Animation panel.
+
+All objects support **Border width**, solid/dashed/dotted/double **Border style**,
+and fixed or light/dark **Border color**. Borders render inside the object bounds,
+without changing its size, grid spacing, or anchors. Border colors default to a
+light/dark contrast pair. Text boxes offer a transparent or colored **Text
+background**, including light/dark swatches, and optional **Text padding**.
+**Corner radius** applies to text, images/SVGs, and rectangles, clipping their
+contents to the rounded frame. These controls also apply to repeater item-template
+elements and are saved/exported with the slide. Existing objects remain borderless
+and text backgrounds remain transparent until configured.
+
 Element and background color fields offer **Fixed** (one color in both modes) or
 **Light / Dark** (separate swatches). Existing hexadecimal colors stay fixed.
 New slides, text, and shapes start with matching light/dark color pairs. Images

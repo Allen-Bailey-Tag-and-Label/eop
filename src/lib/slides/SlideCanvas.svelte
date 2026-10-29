@@ -2,7 +2,7 @@
 	import { Div } from '$lib/components';
 	import { poseAt, slideContentTime, slideOpacityAt } from './timeline';
 	import { elementLayout } from './layout';
-	import type { ColorScheme, SlideDefinition } from './types';
+	import { defaultBorderColor, type ColorScheme, type SlideDefinition } from './types';
 	import { resolveSlideColor } from './colors';
 	import DataList from './DataList.svelte';
 	import Repeater from './Repeater.svelte';
@@ -78,11 +78,12 @@
 			{@const pose = poseAt(element, elementTimeMs)}
 			{@const box = elementLayout(definition, element, pose, renderWidth, renderHeight)}
 			<Div
-				style={`position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;opacity:${pose.opacity};transform:translate(${box.x}px,${box.y}px) rotate(${pose.rotation}deg) scale(${pose.scale});transform-origin:center;overflow:hidden;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};`}
+				data-slide-element={element.id}
+				style={`position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;opacity:${pose.opacity};transform:translate(${box.x}px,${box.y}px) rotate(${pose.rotation}deg) scale(${pose.scale});transform-origin:center;overflow:hidden;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};${element.borderRadius !== undefined || element.type === 'ellipse' ? `border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};` : ''}${element.backgroundColor !== undefined ? `background:${resolveSlideColor(element.backgroundColor, scheme)};` : ''}`}
 			>
 				{#if element.type === 'text'}
 					<Div
-						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};`}
+						style={`width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};box-sizing:border-box;padding:${((element.padding ?? 0) * box.fontSize) / element.fontSize}px;`}
 						>{element.binding
 							? boundText(element.binding, row, rowIndex, timeZone)
 							: element.text}</Div
@@ -131,6 +132,12 @@
 				{:else}
 					<Div
 						style={`width:100%;height:100%;background:${resolveSlideColor(element.color, scheme)};border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};`}
+					></Div>
+				{/if}
+				{#if (element.borderWidth ?? 0) > 0}
+					<Div
+						aria-hidden="true"
+						style={`position:absolute;inset:0;pointer-events:none;box-sizing:border-box;border:${Math.min(((element.borderWidth ?? 0) * box.fontSize) / element.fontSize, Math.min(box.width, box.height) / 2)}px ${element.borderStyle ?? 'solid'} ${resolveSlideColor(element.borderColor ?? defaultBorderColor, scheme)};border-radius:inherit;`}
 					></Div>
 				{/if}
 			</Div>

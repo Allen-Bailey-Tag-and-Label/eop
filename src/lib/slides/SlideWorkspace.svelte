@@ -4,7 +4,14 @@
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt, slideContentTime } from './timeline';
 	import { displayBackground } from './colors';
-	import { moveElement, resizeDimensions, resizeDelta, resizeElement } from './editor';
+	import {
+		moveElement,
+		resizeDimensions,
+		resizeDelta,
+		resizeElement,
+		rotateElement,
+		rotationDelta
+	} from './editor';
 	import { elementLayout, type LayoutScales } from './layout';
 	import type { DataRow, ColorScheme, SlideData, SlideDefinition, SlideElement } from './types';
 	let {
@@ -61,7 +68,7 @@
 	let gesture:
 		| {
 				pointerId: number;
-				kind: 'pan' | 'move' | 'resize';
+				kind: 'pan' | 'move' | 'resize' | 'rotate';
 				x: number;
 				y: number;
 				startPanX: number;
@@ -72,6 +79,10 @@
 				rotation: number;
 				scale: number;
 				layout: LayoutScales;
+				centerX: number;
+				centerY: number;
+				angle: number;
+				angleDelta: number;
 		  }
 		| undefined;
 	$effect(() => {
@@ -81,7 +92,11 @@
 				panY = 0;
 			});
 	});
-	function start(event: PointerEvent, element?: SlideElement, resize = false) {
+	function start(
+		event: PointerEvent,
+		element?: SlideElement,
+		mode: 'move' | 'resize' | 'rotate' = 'move'
+	) {
 		if (event.button !== 0) return;
 		if (tool !== 'pan' && !element) {
 			selectedId = '';
@@ -96,9 +111,14 @@
 			element && pose
 				? elementLayout(definition, element, pose, viewportWidth, viewportHeight)
 				: { positionScaleX: 1, positionScaleY: 1, sizeScaleX: 1, sizeScaleY: 1 };
+		const bounds = (event.currentTarget as HTMLElement)
+			.closest('[data-element-overlay]')
+			?.getBoundingClientRect();
+		const centerX = bounds ? bounds.left + bounds.width / 2 : 0;
+		const centerY = bounds ? bounds.top + bounds.height / 2 : 0;
 		gesture = {
 			pointerId: event.pointerId,
-			kind: tool === 'pan' ? 'pan' : resize ? 'resize' : 'move',
+			kind: tool === 'pan' ? 'pan' : mode,
 			x: event.clientX,
 			y: event.clientY,
 			startPanX: panX,
@@ -108,7 +128,11 @@
 			height: element?.height ?? 0,
 			rotation: pose?.rotation ?? 0,
 			scale: pose?.scale ?? 1,
-			layout
+			layout,
+			centerX,
+			centerY,
+			angle: (Math.atan2(event.clientY - centerY, event.clientX - centerX) * 180) / Math.PI,
+			angleDelta: 0
 		};
 		dragging = true;
 		workspace.setPointerCapture(event.pointerId);
@@ -120,6 +144,15 @@
 		if (gesture.kind === 'pan') {
 			panX = gesture.startPanX + dx;
 			panY = gesture.startPanY + dy;
+		} else if (gesture.element && gesture.kind === 'rotate') {
+			const angle =
+				(Math.atan2(event.clientY - gesture.centerY, event.clientX - gesture.centerX) * 180) /
+				Math.PI;
+			gesture.angleDelta += rotationDelta(gesture.angle, angle);
+			gesture.angle = angle;
+			const desired = gesture.rotation + gesture.angleDelta;
+			const target = event.shiftKey ? Math.round(desired / 15) * 15 : desired;
+			rotateElement(gesture.element, target - poseAt(gesture.element, elementTimeMs).rotation);
 		} else if (gesture.element && gesture.kind === 'move') {
 			moveElement(
 				gesture.element,
@@ -242,6 +275,7 @@
 				{@const box = elementLayout(definition, element, pose, viewportWidth, viewportHeight)}
 				<Div
 					class="absolute"
+					data-element-overlay={element.id}
 					style={`left:0;top:0;width:${box.width * scale}px;height:${box.height * scale}px;transform:translate(${box.x * scale}px,${box.y * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`}
 				>
 					<Button
@@ -253,12 +287,35 @@
 						onpointerdown={(event) => start(event, element)}
 						onkeydown={(event) => nudge(event, element)}
 					/>
+					{#if selectedId === element.id && tool !== 'pan'}
+						<Div class="pointer-events-none absolute -top-6 left-1/2 h-6 border-l border-sky-500"
+						></Div>
+						<Button
+							aria-label="Rotate selected element"
+							title="Drag to rotate; Shift snaps to 15 degrees. Arrow keys rotate."
+							variants={['ghost']}
+							class="pointer-events-auto absolute -top-9 left-1/2 h-5 w-5 -translate-x-1/2 cursor-grab rounded-full border-2 border-white bg-sky-500 p-0 shadow-none"
+							onpointerdown={(event) => start(event, element, 'rotate')}
+							onkeydown={(event) => {
+								if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+								event.preventDefault();
+								event.stopPropagation();
+								onEdit();
+								rotateElement(
+									element,
+									event.key === 'Home'
+										? -poseAt(element, elementTimeMs).rotation
+										: (event.key === 'ArrowLeft' ? -1 : 1) * (event.shiftKey ? 15 : 1)
+								);
+							}}
+						/>
+					{/if}
 					{#if selectedId === element.id && tool === 'resize'}
 						<Button
 							aria-label="Resize selected element"
 							variants={['ghost']}
 							class="pointer-events-auto absolute -right-2 -bottom-2 h-4 w-4 cursor-nwse-resize rounded-sm border-2 border-white bg-sky-500 p-0 shadow-none"
-							onpointerdown={(event) => start(event, element, true)}
+							onpointerdown={(event) => start(event, element, 'resize')}
 							onkeydown={(event) => keyboardResize(event, element)}
 						/>
 					{/if}
