@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Div, Input, P, Select, Textarea } from '$lib/components';
+	import InspectorInput from './InspectorInput.svelte';
+	import { Details, Div, Input, P, Select, Textarea } from '$lib/components';
 	import { dataModels, validateLink } from './data-link';
 	import type { SlideDataSource } from './types';
 	let {
@@ -17,8 +18,7 @@
 	});
 </script>
 
-<Div class="flex flex-col gap-3">
-	<P class="text-sm font-semibold">Data link</P>
+<Div class="flex flex-col gap-2">
 	<Select
 		label="Model"
 		aria-label="Data model"
@@ -28,8 +28,11 @@
 			...dataModels.map((value) => ({ value, label: value }))
 		]}
 	/>
-	{#if fields.length}<P class="text-xs break-words opacity-60"
-			>Available fields: {fields.join(', ')}. Mixed fields accept nested paths.</P
+	{#if fields.length}<Details
+			><summary class="cursor-pointer text-[11px] font-medium">Available fields</summary><P
+				class="text-xs break-words opacity-60"
+				>Available fields: {fields.join(', ')}. Mixed fields accept nested paths.</P
+			></Details
 		>{/if}
 	<Textarea
 		label="find — filter (JSON)"
@@ -55,8 +58,9 @@
 	/>
 	<Div class="grid grid-cols-2 gap-3">
 		{#each ['skip', 'limit'] as field (field)}
-			<Input
+			<InspectorInput
 				label={field}
+				prefix={field === 'skip' ? 'Skip' : 'Max'}
 				aria-label={`Data ${field}`}
 				type="number"
 				min={field === 'limit' ? 1 : 0}

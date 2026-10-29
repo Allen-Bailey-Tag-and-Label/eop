@@ -296,6 +296,7 @@ describe('slide authoring', () => {
 			target: { value: '45' }
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Rotate right 90 degrees' }));
+		await fireEvent.click(view.getByText('Stroke', { selector: 'summary' }));
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Border width' }), {
 			target: { value: '4' }
 		});
@@ -328,6 +329,7 @@ describe('slide authoring', () => {
 		expect(definition().elements[1].borderRadius).toBe(30);
 		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		await fireEvent.click(view.getByText('Stroke', { selector: 'summary' }));
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Border width' }), {
 			target: { value: '2' }
 		});
@@ -339,6 +341,54 @@ describe('slide authoring', () => {
 			borderWidth: 2,
 			borderRadius: 10
 		});
+	});
+	it('groups properties in collapsible Details and preserves compact percent, hex, and icon controls', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		const stroke = view.getByText('Stroke', { selector: 'summary' }).closest('details')!;
+		expect(stroke.open).toBe(false);
+		await fireEvent.click(view.getByText('Stroke', { selector: 'summary' }));
+		expect(stroke.open).toBe(true);
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Border width' }), {
+			target: { value: '3' }
+		});
+		await fireEvent.click(view.getByText('Stroke', { selector: 'summary' }));
+		expect(stroke.open).toBe(false);
+		expect(definition().elements[0].borderWidth).toBe(3);
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'scale' }), {
+			target: { value: '125' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'opacity' }), {
+			target: { value: '50' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Align text right' }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'Element color in light mode hex' }), {
+			target: { value: '112233' }
+		});
+		expect(definition().elements[0]).toMatchObject({
+			scale: 1.25,
+			opacity: 0.5,
+			align: 'right',
+			color: { light: '#112233' }
+		});
+		const hex = view.getByRole('textbox', { name: 'Element color in light mode hex' });
+		await fireEvent.input(hex, { target: { value: 'INVALID' } });
+		await fireEvent.blur(hex);
+		expect(hex).toHaveValue('112233');
+		const fill = view.getByText('Fill', { selector: 'summary' }).closest('details')!;
+		await fireEvent.click(view.getByText('Fill', { selector: 'summary' }));
+		expect(fill.open).toBe(false);
+		await fireEvent.click(view.getByRole('button', { name: 'Edit element color' }));
+		expect(fill.open).toBe(true);
 	});
 	it('edits light/dark colors, previews each mode, and can lock the chosen color as fixed', async () => {
 		const view = render(SlideEditor, {
@@ -516,6 +566,11 @@ describe('slide authoring', () => {
 			}
 		});
 		await fireEvent.click(getByRole('button', { name: 'Add text' }));
+		await fireEvent.click(
+			Array.from(container.querySelectorAll('summary')).find((summary) =>
+				summary.textContent?.includes('Responsive anchoring')
+			)!
+		);
 		await fireEvent.change(getByRole('combobox', { name: 'Horizontal anchoring' }), {
 			target: { value: 'right' }
 		});

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Div, Input, P, Select } from '$lib/components';
+	import InspectorInput from './InspectorInput.svelte';
+	import { Div, P, Select } from '$lib/components';
 	import { gridLayout } from './repeater';
 	import type { RepeaterDefinition } from './types';
 	let {
@@ -19,8 +20,7 @@
 	] as const;
 </script>
 
-<Div class="flex flex-col gap-3">
-	<P class="text-sm font-semibold">Repeater grid</P>
+<Div class="flex flex-col gap-2">
 	<P class="text-xs opacity-60"
 		>Reference layout: {grid.columns} columns, {grid.capacity} items per page, {grid.pages} pages for
 		the current results. One full page cycle takes {(
@@ -28,18 +28,28 @@
 			1000
 		).toFixed(1)} seconds.</P
 	>
-	{#each numbers as field (field.key)}
-		<Input
-			label={field.label}
-			aria-label={field.label}
-			type="number"
-			min={field.min}
-			max={field.max}
-			step={1}
-			value={String(settings[field.key])}
-			oninput={(event) => (settings[field.key] = Number(event.currentTarget.value))}
-		/>
-	{/each}
+	<Div class="grid grid-cols-2 gap-2">
+		{#each numbers as field (field.key)}
+			<InspectorInput
+				label={field.label}
+				prefix={{
+					columns: 'Cols',
+					minItemWidth: 'Min',
+					itemHeight: 'H',
+					columnGap: 'GX',
+					rowGap: 'GY',
+					pageDurationMs: 'ms'
+				}[field.key]}
+				aria-label={field.label}
+				type="number"
+				min={field.min}
+				max={field.max}
+				step={1}
+				value={String(settings[field.key])}
+				oninput={(event) => (settings[field.key] = Number(event.currentTarget.value))}
+			/>
+		{/each}</Div
+	>
 	<Select
 		label="Grid vertical alignment"
 		bind:value={settings.align}
@@ -56,16 +66,18 @@
 		Set the slide display duration long enough to show all pages; held final slides continue
 		cycling.</P
 	>
-	{#each ['width', 'height'] as field (field)}
-		<Input
-			label={`Template ${field}`}
-			aria-label={`Template ${field}`}
-			type="number"
-			min={1}
-			max={4096}
-			value={String(settings.template[field as 'width' | 'height'])}
-			oninput={(event) =>
-				(settings.template[field as 'width' | 'height'] = Number(event.currentTarget.value))}
-		/>
-	{/each}
+	<Div class="grid grid-cols-2 gap-2">
+		{#each ['width', 'height'] as field (field)}
+			<InspectorInput
+				label={`Template ${field}`}
+				prefix={field === 'width' ? 'W' : 'H'}
+				type="number"
+				min={1}
+				max={4096}
+				value={String(settings.template[field as 'width' | 'height'])}
+				oninput={(event) =>
+					(settings.template[field as 'width' | 'height'] = Number(event.currentTarget.value))}
+			/>
+		{/each}</Div
+	>
 </Div>

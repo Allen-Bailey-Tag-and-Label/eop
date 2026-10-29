@@ -244,6 +244,18 @@ require republishing and do not restart the playlist. Held final slides refresh
 their data too. Resolved rows are never saved in drafts or exports. Previously
 saved upcoming-holiday sources are upgraded to generic data links automatically.
 
+The element inspector uses Sveltewind **Details** groups for Position,
+Appearance, Typography/Graphic content, Fill, Stroke, Responsive anchoring, data
+bindings, and repeater settings. Each group can be expanded or collapsed. Primary
+editing groups start open; Stroke and anchoring start collapsed until needed.
+Compact 32-pixel controls pair X/Y and W/H, with icon buttons for rotation,
+alignment, and layer order. Prefixes have full labels/tooltips and keyboard access.
+Scale and opacity display percentages while saved definitions retain their
+existing numeric values. Color rows pair a swatch with an editable six-digit hex
+value; fixed and light/dark modes remain available. The color toolbar shortcut
+opens Fill before activating its picker. These density styles are limited to the
+inspector; document dialogs and other application forms keep their normal sizing.
+
 **Object appearance and rotation:** select an element to edit its rotation in
 degrees, rotate left/right by 90?, or reset its visible angle. Drag the circular
 handle above the selected object to rotate on the canvas; hold Shift to snap to

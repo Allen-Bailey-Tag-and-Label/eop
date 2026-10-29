@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T10:57:00.075Z
+## 2026-10-29T12:00:47.685Z
+
+refactor: Compact slide inspector controls and group properties
+
+## 2026-10-29T07:38:50-04:00
 
 feat: Add object rotation and appearance controls to slides
 

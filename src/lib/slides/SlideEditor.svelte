@@ -33,6 +33,13 @@
 		Download,
 		ChevronDown,
 		FolderOpen,
+		RotateCw,
+		RotateCcw,
+		Undo2,
+		AlignLeft,
+		AlignCenter,
+		AlignRight,
+		BringToFront,
 		Database
 	} from '@lucide/svelte';
 	import {
@@ -51,6 +58,8 @@
 	} from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
 	import ColorField from './ColorField.svelte';
+	import InspectorInput from './InspectorInput.svelte';
+	import InspectorSection from './InspectorSection.svelte';
 	import DataLinkEditor from './DataLinkEditor.svelte';
 	import RepeaterSettings from './RepeaterSettings.svelte';
 	import AssetLibrary from './AssetLibrary.svelte';
@@ -128,6 +137,20 @@
 	);
 	const activeElements = $derived(editingRepeater?.repeater?.template.elements ?? draft.elements);
 	const selected = $derived(activeElements.find((element) => element.id === selectedId));
+	const contentLabel = $derived(
+		selected?.type === 'text'
+			? 'Text'
+			: selected?.type === 'list' && !selected.repeater
+				? 'Heading'
+				: 'Description'
+	);
+	const contentAria = $derived(
+		selected?.type === 'list'
+			? selected.repeater
+				? 'Repeater description'
+				: 'Data list heading'
+			: 'Element text'
+	);
 	const workingDefinition = $derived(
 		editingRepeater?.repeater ? templateSlide(editingRepeater.repeater, draft.durationMs) : draft
 	);
@@ -193,6 +216,8 @@
 			: (previewSizes[previewPreset] ?? { width: draft.width, height: draft.height })
 	);
 	let inspectorOpen = $state(false);
+	let fillOpen = $state(true);
+	let fillSection = $state<HTMLDetailsElement | null>(null);
 	let inspectorTab = $state<'properties' | 'layers' | 'animation'>('properties');
 	let dialog = $state<
 		'settings' | 'upload' | 'import' | 'export' | 'unpublish' | 'delete' | 'assets'
@@ -211,7 +236,7 @@
 	let colorInput = $state<HTMLInputElement | null>(null);
 	const uid = $props.id();
 	const transitionDirections = ['transitionIn', 'transitionOut'] as const;
-	const geometry = ['x', 'y', 'width', 'height', 'scale', 'opacity'] as const;
+	const geometry = ['x', 'y', 'width', 'height'] as const;
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
@@ -337,7 +362,9 @@
 	}
 	async function editColor() {
 		showPanel('properties');
+		fillOpen = true;
 		await tick();
+		if (fillSection) fillSection.open = true;
 		colorInput?.click();
 	}
 	function preset(value: string) {
@@ -654,7 +681,7 @@
 			<Button
 				aria-label="Edit element color"
 				title="Element color"
-				disabled={!selected}
+				disabled={!selected || selected.type === 'image' || selected.type === 'svg'}
 				variants={['ghost']}
 				class="h-9 w-9 shrink-0 items-center p-0"
 				onclick={editColor}><Palette size={18} /></Button
@@ -743,7 +770,9 @@
 						onclick={() => (inspectorOpen = false)}><X size={15} /></Button
 					>
 				</Div>
-				<Div class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
+				<Div
+					class="slide-inspector-controls min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
+				>
 					{#if inspectorTab === 'layers'}
 						<H2 class="text-sm">Layers</H2><P class="text-xs opacity-60"
 							>Later elements appear in front.</P
@@ -761,335 +790,432 @@
 					{:else if !selected}<P class="text-sm opacity-60"
 							>Select an element on the canvas or in Layers to edit its properties and animation.</P
 						>
-					{:else if inspectorTab === 'properties'}<H2 class="text-sm">Element properties</H2>
-						<Select
-							label="Horizontal anchoring"
-							aria-label="Horizontal anchoring"
-							bind:value={selected.horizontalAnchor}
-							options={[
-								{ value: 'scale', label: 'Scale' },
-								{ value: 'left', label: 'Left' },
-								{ value: 'right', label: 'Right' },
-								{ value: 'center', label: 'Center' },
-								{ value: 'stretch', label: 'Left & right' }
-							]}
-						/>
-						<Select
-							label="Vertical anchoring"
-							aria-label="Vertical anchoring"
-							bind:value={selected.verticalAnchor}
-							options={[
-								{ value: 'scale', label: 'Scale' },
-								{ value: 'top', label: 'Top' },
-								{ value: 'bottom', label: 'Bottom' },
-								{ value: 'center', label: 'Center' },
-								{ value: 'stretch', label: 'Top & bottom' }
-							]}
-						/>
-						<P class="text-xs opacity-60"
-							>Anchors preserve the reference design and control other screen shapes. Scale follows
-							screen proportions; edge and center anchors keep spacing and size proportional.
-							Opposite edges stretch the box. X/Y are reference coordinates.</P
+					{:else if inspectorTab === 'properties'}
+						<Div class="flex items-center justify-between px-1"
+							><H2 class="text-xs font-semibold">Element properties</H2><Button
+								aria-label="Bring to front"
+								title="Bring to front"
+								variants={['ghost']}
+								class="h-7 w-7 items-center p-0"
+								onclick={() => {
+									if (selected)
+										setElements([
+											...activeElements.filter((item) => item.id !== selected.id),
+											selected
+										]);
+								}}><BringToFront size={14} /></Button
+							></Div
 						>
-						<Textarea
-							label={selected.type === 'text'
-								? 'Text'
-								: selected.type === 'list'
-									? selected.repeater
-										? 'Description'
-										: 'Heading'
-									: 'Description'}
-							aria-label={selected.type === 'list'
-								? selected.repeater
-									? 'Repeater description'
-									: 'Data list heading'
-								: 'Element text'}
-							bind:value={selected.text}
-							rows={3}
-						/>
-						{#if selected.type === 'list' && selected.dataSource}
-							<DataLinkEditor
-								bind:link={selected.dataSource}
-								templateMode={!!selected.repeater}
-								fields={data.dataFields?.[selected.dataSource.model] ?? []}
-							/>
-							<Button onclick={() => previewRevision++}>Refresh data preview</Button>
-							{#if selected.repeater}
-								<RepeaterSettings
-									bind:settings={selected.repeater}
-									width={selected.width}
-									height={selected.height}
-									count={slideData[selected.id]?.items.length ?? 0}
+						<InspectorSection title="Position" open>
+							<Div class="grid grid-cols-2 gap-2">
+								{#each geometry as field (field)}<InspectorInput
+										label={field}
+										prefix={{ x: 'X', y: 'Y', width: 'W', height: 'H' }[field]}
+										type="number"
+										step={0.1}
+										value={String(selected[field])}
+										oninput={(event) => {
+											if (selected) selected[field] = Number(event.currentTarget.value);
+										}}
+									/>{/each}
+							</Div>
+							<Div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+								<InspectorInput
+									label="Rotation (degrees)"
+									prefix="R"
+									unit="deg"
+									type="number"
+									min={-3600}
+									max={3600}
+									step={1}
+									value={String(poseAt(selected, contentTimeMs).rotation)}
+									oninput={(event) => {
+										if (selected)
+											rotateElement(
+												selected,
+												Number(event.currentTarget.value) - poseAt(selected, contentTimeMs).rotation
+											);
+									}}
 								/>
-								<Button onclick={editTemplate}>Edit item template</Button>
-							{:else}<Button
+								<Div class="flex gap-0.5" role="group" aria-label="Rotation shortcuts">
+									<Button
+										aria-label="Rotate left 90 degrees"
+										title="Rotate left 90 degrees"
+										variants={['ghost']}
+										class="h-7 w-7 items-center p-0"
+										onclick={() => {
+											if (selected) rotateElement(selected, -90);
+										}}><RotateCcw size={14} /></Button
+									>
+									<Button
+										aria-label="Rotate right 90 degrees"
+										title="Rotate right 90 degrees"
+										variants={['ghost']}
+										class="h-7 w-7 items-center p-0"
+										onclick={() => {
+											if (selected) rotateElement(selected, 90);
+										}}><RotateCw size={14} /></Button
+									>
+									<Button
+										aria-label="Reset object rotation"
+										title="Reset rotation"
+										variants={['ghost']}
+										class="h-7 w-7 items-center p-0"
+										onclick={() => {
+											if (selected)
+												rotateElement(selected, -poseAt(selected, contentTimeMs).rotation);
+										}}><Undo2 size={14} /></Button
+									>
+								</Div></Div
+							>
+						</InspectorSection>
+						<InspectorSection title="Appearance" open>
+							<Div class="grid grid-cols-2 gap-2">
+								<InspectorInput
+									label="scale"
+									prefix="S"
+									unit="%"
+									type="number"
+									min={0}
+									max={1000}
+									step={1}
+									value={String(selected.scale * 100)}
+									oninput={(event) => {
+										if (selected) selected.scale = Number(event.currentTarget.value) / 100;
+									}}
+								/>
+								<InspectorInput
+									label="opacity"
+									prefix="O"
+									unit="%"
+									type="number"
+									min={0}
+									max={100}
+									step={1}
+									value={String(selected.opacity * 100)}
+									oninput={(event) => {
+										if (selected) selected.opacity = Number(event.currentTarget.value) / 100;
+									}}
+								/>
+								{#if ['text', 'image', 'svg', 'rectangle'].includes(selected.type)}<InspectorInput
+										label="Corner radius"
+										prefix="R"
+										type="number"
+										min={0}
+										max={512}
+										value={String(selected.borderRadius ?? 0)}
+										oninput={(event) => {
+											if (selected) selected.borderRadius = Number(event.currentTarget.value);
+										}}
+									/>{/if}
+								{#if selected.type === 'text'}<InspectorInput
+										label="Text padding"
+										prefix="Pad"
+										type="number"
+										min={0}
+										max={256}
+										value={String(selected.padding ?? 0)}
+										oninput={(event) => {
+											if (selected) selected.padding = Number(event.currentTarget.value);
+										}}
+									/>{/if}
+							</Div>
+						</InspectorSection>
+						{#if selected.type === 'text' || (selected.type === 'list' && !selected.repeater)}
+							<InspectorSection title="Typography" open>
+								<Textarea
+									label={contentLabel}
+									aria-label={contentAria}
+									bind:value={selected.text}
+									rows={2}
+								/>
+								<Select
+									aria-label="Font"
+									title="Font family"
+									bind:value={selected.fontFamily}
+									options={['sans-serif', 'serif', 'monospace'].map((value) => ({
+										value,
+										label: value
+									}))}
+								/>
+								<Div class="grid grid-cols-2 gap-2">
+									<InspectorInput
+										label="Font size"
+										prefix="Aa"
+										type="number"
+										min={8}
+										max={500}
+										value={String(selected.fontSize)}
+										oninput={(event) => {
+											if (selected) selected.fontSize = Number(event.currentTarget.value);
+										}}
+									/>
+									<Select
+										aria-label="Font weight"
+										title="Font weight"
+										value={String(selected.fontWeight ?? 400)}
+										options={[
+											{ value: '400', label: 'Normal' },
+											{ value: '600', label: 'Semibold' },
+											{ value: '700', label: 'Bold' }
+										]}
+										onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+											if (selected)
+												selected.fontWeight = Number(event.currentTarget.value) as 400 | 600 | 700;
+										}}
+									/>
+								</Div>
+								<Div class="flex gap-1" role="group" aria-label="Text alignment">
+									{#each [{ value: 'left', label: 'Left', icon: AlignLeft }, { value: 'center', label: 'Center', icon: AlignCenter }, { value: 'right', label: 'Right', icon: AlignRight }] as item (item.value)}<Button
+											aria-label={`Align text ${item.value}`}
+											title={`Align ${item.value}`}
+											aria-pressed={selected.align === item.value}
+											variants={selected.align === item.value ? [] : ['ghost']}
+											class="h-7 flex-1 items-center p-0"
+											onclick={() => {
+												if (selected) selected.align = item.value as SlideElement['align'];
+											}}><item.icon size={14} /></Button
+										>{/each}
+								</Div>
+							</InspectorSection>
+						{:else if selected.type === 'image' || selected.type === 'svg'}<InspectorSection
+								title="Graphic"
+								open
+								><Textarea
+									label={contentLabel}
+									aria-label={contentAria}
+									bind:value={selected.text}
+									rows={2}
+								/>
+								<Div class="flex gap-2" role="group" aria-label="Graphic asset source">
+									<Button
+										aria-pressed={assetTab === 'slide'}
+										variants={assetTab === 'slide' ? [] : ['ghost']}
+										onclick={() => (assetTab = 'slide')}>This slide</Button
+									>
+									<Button
+										aria-pressed={assetTab === 'shared'}
+										variants={assetTab === 'shared' ? [] : ['ghost']}
+										onclick={() => (assetTab = 'shared')}>Shared library</Button
+									>
+								</Div>
+								<Select
+									label="Asset"
+									aria-label="Graphic asset"
+									value={selected.assetId}
+									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+										if (!selected) return;
+										const asset = allAvailableAssets.find(
+											(asset) => asset.id === event.currentTarget.value
+										);
+										selected.assetId = asset?.id ?? '';
+										if (asset)
+											selected.type = asset.contentType === 'image/svg+xml' ? 'svg' : 'image';
+									}}
+									options={[
+										{ value: '', label: 'Choose an asset' },
+										...availableAssets.map((asset) => ({ value: asset.id, label: asset.name }))
+									]}
+								/>
+								<Select
+									label="Image fit"
+									bind:value={selected.fit}
+									options={['contain', 'cover'].map((value) => ({ value, label: value }))}
+								/>
+							</InspectorSection>
+						{:else}<InspectorSection title="Content"
+								><Textarea
+									label={contentLabel}
+									aria-label={contentAria}
+									bind:value={selected.text}
+									rows={2}
+								/></InspectorSection
+							>{/if}
+						{#if selected.type !== 'image' && selected.type !== 'svg'}<InspectorSection
+								title="Fill"
+								bind:open={fillOpen}
+								bind:element={fillSection}
+							>
+								<ColorField
+									compact
+									bind:element={colorInput}
+									ariaLabel="Element color"
+									label={selected.type === 'text' ? 'Text color' : 'Color'}
+									value={selected.color}
+									scheme={previewScheme}
+									onValueChange={(value) => {
+										if (selected) selected.color = value;
+									}}
+								/>
+								{#if selected.type === 'text'}
+									<Select
+										aria-label="Text background"
+										title="Text background"
+										value={selected.backgroundColor && selected.backgroundColor !== 'transparent'
+											? 'color'
+											: 'transparent'}
+										options={[
+											{ value: 'transparent', label: 'Transparent background' },
+											{ value: 'color', label: 'Colored background' }
+										]}
+										onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+											if (selected)
+												selected.backgroundColor =
+													event.currentTarget.value === 'transparent'
+														? 'transparent'
+														: { light: '#ffffff', dark: '#111827' };
+										}}
+									/>
+									{#if selected.backgroundColor && selected.backgroundColor !== 'transparent'}<ColorField
+											compact
+											label="Background"
+											ariaLabel="Text box background"
+											value={selected.backgroundColor}
+											scheme={previewScheme}
+											onValueChange={(value) => {
+												if (selected) selected.backgroundColor = value;
+											}}
+										/>{/if}
+								{/if}
+							</InspectorSection>{/if}
+						<InspectorSection title="Stroke" open={(selected.borderWidth ?? 0) > 0}>
+							<Div class="grid grid-cols-2 gap-2">
+								<InspectorInput
+									label="Border width"
+									prefix="W"
+									type="number"
+									min={0}
+									max={128}
+									step={1}
+									value={String(selected.borderWidth ?? 0)}
+									oninput={(event) => {
+										if (selected) selected.borderWidth = Number(event.currentTarget.value);
+									}}
+								/>
+								<Select
+									aria-label="Border style"
+									title="Border style"
+									value={selected.borderStyle ?? 'solid'}
+									options={['solid', 'dashed', 'dotted', 'double'].map((value) => ({
+										value,
+										label: value
+									}))}
+									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+										if (selected)
+											selected.borderStyle = event.currentTarget.value as NonNullable<
+												SlideElement['borderStyle']
+											>;
+									}}
+								/>
+							</Div>
+							<ColorField
+								compact
+								label="Color"
+								ariaLabel="Object border color"
+								value={selected.borderColor ?? defaultBorderColor}
+								scheme={previewScheme}
+								onValueChange={(value) => {
+									if (selected) selected.borderColor = value;
+								}}
+							/>
+						</InspectorSection>
+						<InspectorSection title="Responsive anchoring"
+							><Select
+								label="Horizontal anchoring"
+								aria-label="Horizontal anchoring"
+								bind:value={selected.horizontalAnchor}
+								options={[
+									{ value: 'scale', label: 'Scale' },
+									{ value: 'left', label: 'Left' },
+									{ value: 'right', label: 'Right' },
+									{ value: 'center', label: 'Center' },
+									{ value: 'stretch', label: 'Left & right' }
+								]}
+							/>
+							<Select
+								label="Vertical anchoring"
+								aria-label="Vertical anchoring"
+								bind:value={selected.verticalAnchor}
+								options={[
+									{ value: 'scale', label: 'Scale' },
+									{ value: 'top', label: 'Top' },
+									{ value: 'bottom', label: 'Bottom' },
+									{ value: 'center', label: 'Center' },
+									{ value: 'stretch', label: 'Top & bottom' }
+								]}
+							/>
+							<P class="text-xs opacity-60"
+								>Anchors preserve the reference design and control other screen shapes. Scale
+								follows screen proportions; edge and center anchors keep spacing and size
+								proportional. Opposite edges stretch the box. X/Y are reference coordinates.</P
+							></InspectorSection
+						>
+
+						{#if editingRepeater && selected.type === 'text'}<InspectorSection
+								title="Data binding"
+								open
+							>
+								<Select
+									label="Text data binding"
+									aria-label="Text data binding"
+									value={selected.binding?.field ?? ''}
+									options={[
+										{ value: '', label: 'Static text' },
+										{ value: 'label', label: 'Label (legacy mapping)' },
+										{ value: 'detail', label: 'Detail (legacy mapping)' },
+										{ value: '$index', label: 'Row number' },
+										...(
+											editingRepeater.dataSource?.select.trim().split(/\s+/).filter(Boolean) ?? []
+										).map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
+									]}
+									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+										if (selected)
+											selected.binding = event.currentTarget.value
+												? { field: event.currentTarget.value, format: 'text', fallback: '' }
+												: undefined;
+									}}
+								/>
+								{#if selected.binding}
+									<Select
+										label="Binding format"
+										aria-label="Binding format"
+										bind:value={selected.binding.format}
+										options={['text', 'date', 'number'].map((value) => ({ value, label: value }))}
+									/>
+									<Input
+										label="Binding fallback"
+										aria-label="Binding fallback"
+										bind:value={selected.binding.fallback}
+									/>
+								{/if}
+							</InspectorSection>{/if}
+						{#if selected.type === 'list' && selected.dataSource}<InspectorSection
+								title="Data link"
+								open
+							>
+								<DataLinkEditor
+									bind:link={selected.dataSource}
+									templateMode={!!selected.repeater}
+									fields={data.dataFields?.[selected.dataSource.model] ?? []}
+								/>
+								<Button onclick={() => previewRevision++}>Refresh data preview</Button>
+							</InspectorSection>{#if selected.repeater}<InspectorSection
+									title="Repeater layout"
+									open
+								>
+									<RepeaterSettings
+										bind:settings={selected.repeater}
+										width={selected.width}
+										height={selected.height}
+										count={slideData[selected.id]?.items.length ?? 0}
+									/>
+									<Button onclick={editTemplate}>Edit item template</Button>
+								</InspectorSection>{:else}<Button
 									onclick={() => {
 										if (selected) selected.repeater = defaultRepeater();
 									}}>Convert to grid repeater</Button
 								>{/if}
 						{/if}
-						{#if editingRepeater && selected.type === 'text'}
-							<Select
-								label="Text data binding"
-								aria-label="Text data binding"
-								value={selected.binding?.field ?? ''}
-								options={[
-									{ value: '', label: 'Static text' },
-									{ value: 'label', label: 'Label (legacy mapping)' },
-									{ value: 'detail', label: 'Detail (legacy mapping)' },
-									{ value: '$index', label: 'Row number' },
-									...(
-										editingRepeater.dataSource?.select.trim().split(/\s+/).filter(Boolean) ?? []
-									).map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
-								]}
-								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-									if (selected)
-										selected.binding = event.currentTarget.value
-											? { field: event.currentTarget.value, format: 'text', fallback: '' }
-											: undefined;
-								}}
-							/>
-							{#if selected.binding}
-								<Select
-									label="Binding format"
-									aria-label="Binding format"
-									bind:value={selected.binding.format}
-									options={['text', 'date', 'number'].map((value) => ({ value, label: value }))}
-								/>
-								<Input
-									label="Binding fallback"
-									aria-label="Binding fallback"
-									bind:value={selected.binding.fallback}
-								/>
-							{/if}
-						{/if}
-						<Div class="grid grid-cols-2 gap-3"
-							>{#each geometry as field (field)}<Input
-									label={field}
-									type="number"
-									step={0.1}
-									value={String(selected[field])}
-									oninput={(event) => {
-										if (selected) selected[field] = Number(event.currentTarget.value);
-									}}
-								/>{/each}</Div
-						>
-						<Input
-							label="Rotation (degrees)"
-							aria-label="Rotation (degrees)"
-							type="number"
-							min={-3600}
-							max={3600}
-							step={1}
-							value={String(poseAt(selected, contentTimeMs).rotation)}
-							oninput={(event) => {
-								if (selected)
-									rotateElement(
-										selected,
-										Number(event.currentTarget.value) - poseAt(selected, contentTimeMs).rotation
-									);
-							}}
-						/>
-						<Div class="flex flex-wrap gap-2">
-							<Button
-								aria-label="Rotate left 90 degrees"
-								onclick={() => {
-									if (selected) rotateElement(selected, -90);
-								}}>-90?</Button
-							>
-							<Button
-								aria-label="Rotate right 90 degrees"
-								onclick={() => {
-									if (selected) rotateElement(selected, 90);
-								}}>+90?</Button
-							>
-							<Button
-								aria-label="Reset object rotation"
-								onclick={() => {
-									if (selected) rotateElement(selected, -poseAt(selected, contentTimeMs).rotation);
-								}}>Reset</Button
-							>
-						</Div>
-						<Input
-							label="Border width"
-							aria-label="Border width"
-							type="number"
-							min={0}
-							max={128}
-							step={1}
-							value={String(selected.borderWidth ?? 0)}
-							oninput={(event) => {
-								if (selected) selected.borderWidth = Number(event.currentTarget.value);
-							}}
-						/>
-						<Select
-							label="Border style"
-							aria-label="Border style"
-							value={selected.borderStyle ?? 'solid'}
-							options={['solid', 'dashed', 'dotted', 'double'].map((value) => ({
-								value,
-								label: value
-							}))}
-							onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-								if (selected)
-									selected.borderStyle = event.currentTarget.value as NonNullable<
-										SlideElement['borderStyle']
-									>;
-							}}
-						/>
-						<ColorField
-							label="Border color"
-							ariaLabel="Object border color"
-							value={selected.borderColor ?? defaultBorderColor}
-							scheme={previewScheme}
-							onValueChange={(value) => {
-								if (selected) selected.borderColor = value;
-							}}
-						/>
-						{#if selected.type === 'text'}
-							<Input
-								label="Text padding"
-								aria-label="Text padding"
-								type="number"
-								min={0}
-								max={256}
-								value={String(selected.padding ?? 0)}
-								oninput={(event) => {
-									if (selected) selected.padding = Number(event.currentTarget.value);
-								}}
-							/>
-							<Select
-								label="Text background"
-								aria-label="Text background"
-								value={selected.backgroundColor && selected.backgroundColor !== 'transparent'
-									? 'color'
-									: 'transparent'}
-								options={[
-									{ value: 'transparent', label: 'Transparent' },
-									{ value: 'color', label: 'Color' }
-								]}
-								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-									if (selected)
-										selected.backgroundColor =
-											event.currentTarget.value === 'transparent'
-												? 'transparent'
-												: { light: '#ffffff', dark: '#111827' };
-								}}
-							/>
-							{#if selected.backgroundColor && selected.backgroundColor !== 'transparent'}<ColorField
-									label="Background color"
-									ariaLabel="Text box background"
-									value={selected.backgroundColor}
-									scheme={previewScheme}
-									onValueChange={(value) => {
-										if (selected) selected.backgroundColor = value;
-									}}
-								/>{/if}
-						{/if}
-						<ColorField
-							bind:element={colorInput}
-							ariaLabel="Element color"
-							label="Color"
-							value={selected.color}
-							scheme={previewScheme}
-							onValueChange={(value) => {
-								if (selected) selected.color = value;
-							}}
-						/>
-						{#if selected.type === 'text' || (selected.type === 'list' && !selected.repeater)}
-							<Select
-								label="Font weight"
-								aria-label="Font weight"
-								value={String(selected.fontWeight ?? 400)}
-								options={[
-									{ value: '400', label: 'Normal' },
-									{ value: '600', label: 'Semibold' },
-									{ value: '700', label: 'Bold' }
-								]}
-								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-									if (selected)
-										selected.fontWeight = Number(event.currentTarget.value) as 400 | 600 | 700;
-								}}
-							/>
-							<Input
-								label="Font size"
-								aria-label="Font size"
-								type="number"
-								min={8}
-								max={500}
-								value={String(selected.fontSize)}
-								oninput={(e) => {
-									if (selected) selected.fontSize = Number(e.currentTarget.value);
-								}}
-							/>
-							<Select
-								label="Font"
-								bind:value={selected.fontFamily}
-								options={['sans-serif', 'serif', 'monospace'].map((value) => ({
-									value,
-									label: value
-								}))}
-							/>
-							<Select
-								label="Alignment"
-								bind:value={selected.align}
-								options={['left', 'center', 'right'].map((value) => ({ value, label: value }))}
-							/>
-						{:else if selected.type === 'image' || selected.type === 'svg'}
-							<Div class="flex gap-2" role="group" aria-label="Graphic asset source">
-								<Button
-									aria-pressed={assetTab === 'slide'}
-									variants={assetTab === 'slide' ? [] : ['ghost']}
-									onclick={() => (assetTab = 'slide')}>This slide</Button
-								>
-								<Button
-									aria-pressed={assetTab === 'shared'}
-									variants={assetTab === 'shared' ? [] : ['ghost']}
-									onclick={() => (assetTab = 'shared')}>Shared library</Button
-								>
-							</Div>
-							<Select
-								label="Asset"
-								aria-label="Graphic asset"
-								value={selected.assetId}
-								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-									if (!selected) return;
-									const asset = allAvailableAssets.find(
-										(asset) => asset.id === event.currentTarget.value
-									);
-									selected.assetId = asset?.id ?? '';
-									if (asset)
-										selected.type = asset.contentType === 'image/svg+xml' ? 'svg' : 'image';
-								}}
-								options={[
-									{ value: '', label: 'Choose an asset' },
-									...availableAssets.map((asset) => ({ value: asset.id, label: asset.name }))
-								]}
-							/>
-							<Select
-								label="Image fit"
-								bind:value={selected.fit}
-								options={['contain', 'cover'].map((value) => ({ value, label: value }))}
-							/>
-						{/if}
-						{#if ['text', 'image', 'svg', 'rectangle'].includes(selected.type)}<Input
-								label="Corner radius"
-								aria-label="Corner radius"
-								type="number"
-								min={0}
-								max={512}
-								value={String(selected.borderRadius ?? 0)}
-								oninput={(event) => {
-									if (selected) selected.borderRadius = Number(event.currentTarget.value);
-								}}
-							/>{/if}
-						<Button
-							onclick={() => {
-								if (!selected) return;
-								const element = selected;
-								setElements([...activeElements.filter((item) => item.id !== element.id), element]);
-							}}>Bring to front</Button
-						>
 					{:else}
 						<H2>Animation timeline</H2><P class="text-sm"
 							>Keyframes specify complete poses at times in milliseconds. Values interpolate between
@@ -1561,3 +1687,48 @@
 		</Div>
 	</Modal>
 {/if}
+
+<style>
+	:global(.slide-inspector-controls input:not([type='hidden']):not([type='color'])),
+	:global(.slide-inspector-controls select) {
+		min-height: 0;
+		height: 2rem;
+		padding-top: 0.25rem;
+		padding-bottom: 0.25rem;
+		font-size: 0.75rem;
+		line-height: 1rem;
+	}
+	:global(.slide-inspector-controls select) {
+		padding-left: 0.5rem;
+		padding-right: 1.5rem;
+		min-width: 0;
+	}
+	:global(.slide-inspector-controls textarea) {
+		min-height: 3.5rem;
+		padding: 0.5rem;
+		font-size: 0.75rem;
+		line-height: 1.25rem;
+	}
+	:global(.slide-inspector-controls label) {
+		margin: 0;
+		font-size: 0.6875rem;
+		line-height: 1rem;
+	}
+	:global(.slide-inspector-controls button) {
+		font-size: 0.75rem;
+	}
+	:global(.slide-inspector-controls button:not([title])) {
+		min-height: 1.75rem;
+		padding: 0.25rem 0.5rem;
+		line-height: 1rem;
+	}
+	:global(.slide-inspector-controls input[type='number']) {
+		appearance: textfield;
+		-moz-appearance: textfield;
+	}
+	:global(.slide-inspector-controls input[type='number']::-webkit-inner-spin-button),
+	:global(.slide-inspector-controls input[type='number']::-webkit-outer-spin-button) {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+</style>
