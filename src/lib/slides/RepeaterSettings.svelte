@@ -1,6 +1,6 @@
 <script lang="ts">
 	import InspectorInput from './InspectorInput.svelte';
-	import { Div, P, Select } from '$lib/components';
+	import { Div, Label, P, Select } from '$lib/components';
 	import { gridLayout } from './repeater';
 	import type { RepeaterDefinition } from './types';
 	let {
@@ -28,7 +28,9 @@
 			1000
 		).toFixed(1)} seconds.</P
 	>
+	<Label for="repeater-item-stagger" class="text-xs font-medium">Item stagger (ms)</Label>
 	<InspectorInput
+		id="repeater-item-stagger"
 		label="Item stagger (ms)"
 		prefix="ms"
 		type="number"

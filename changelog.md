@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T16:03:33.094Z
+## 2026-10-29T16:09:45.136Z
+
+fix: Make the repeater item stagger control visibly labeled
+
+## 2026-10-29T12:08:37-04:00
 
 feat: Improve frame drag targets and add staggered repeater animations
 
