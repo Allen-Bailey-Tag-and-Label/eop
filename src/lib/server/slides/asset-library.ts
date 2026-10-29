@@ -16,9 +16,10 @@ export async function assetReferences() {
 			if (!definition?.elements) continue;
 			for (const element of allElements(definition)) {
 				if (!isId(element.assetId)) continue;
-				const owners = uses.get(element.assetId) ?? new Set<string>();
+				const assetId = new Types.ObjectId(element.assetId).toHexString();
+				const owners = uses.get(assetId) ?? new Set<string>();
 				owners.add(slide._id.toString());
-				uses.set(element.assetId, owners);
+				uses.set(assetId, owners);
 			}
 		}
 	}
@@ -102,17 +103,40 @@ export async function listAssetLibrary(slideId: string) {
 
 export async function manageAsset(fields: FormData, currentSlideId: string, userId: string) {
 	await reconcileAssetScopes();
-	const id = fields.get('assetId');
+	const rawId = fields.get('assetId');
 	const operation = fields.get('operation');
-	if (!isId(id) || !['share', 'copy', 'assign'].includes(String(operation)))
+	if (!isId(rawId) || !['share', 'copy', 'assign', 'move', 'delete'].includes(String(operation)))
 		throw new SlideValidationError('Choose an asset and action.');
-	const { uses } = await assetReferences();
+	const id = new Types.ObjectId(rawId).toHexString();
+	const { uses, slides } = await assetReferences();
 	const asset = await Asset.findById(id).select('+data');
 	if (!asset) throw new SlideValidationError('This asset no longer exists.');
 	const owned = asset.scope === 'slide' && asset.slideId?.toString() === currentSlideId;
 	const unused = !uses.get(id)?.size;
 	if (!(owned || asset.scope === 'shared' || uses.get(id)?.has(currentSlideId) || unused))
-		throw new SlideValidationError('Open the slide that owns this asset to share or copy it.');
+		throw new SlideValidationError('Open the slide that owns this asset to manage it.');
+	const filter = { _id: id, scope: asset.scope, slideId: asset.slideId ?? { $exists: false } };
+	if (operation === 'delete') {
+		if (fields.get('confirm') !== 'delete')
+			throw new SlideValidationError('Confirm deletion before deleting this asset.');
+		if (!unused) {
+			const titles = slides
+				.filter((slide) => uses.get(id)?.has(slide._id.toString()))
+				.map((slide) => slide.title || slide.slug)
+				.join(', ');
+			throw new SlideValidationError(
+				`This asset is used by: ${titles}. Remove it from all saved drafts and published slides before deleting it.`
+			);
+		}
+		const deleted = await Asset.deleteOne(filter);
+		if (!deleted.deletedCount)
+			throw new SlideValidationError('This asset changed. Reload the library.');
+		return { success: 'Asset deleted.' };
+	}
+	if (operation === 'move' && asset.scope !== 'shared')
+		throw new SlideValidationError(
+			'Only shared assets can be moved to this slide. Reload the library.'
+		);
 	if (operation === 'copy') {
 		const target = fields.get('targetSlideId') || currentSlideId;
 		if (!isId(target) || (target !== currentSlideId && !(await Slide.exists({ _id: target }))))
@@ -140,15 +164,16 @@ export async function manageAsset(fields: FormData, currentSlideId: string, user
 		operation === 'share'
 			? { $set: { scope: 'shared' }, $unset: { slideId: 1 } }
 			: { $set: { scope: 'slide', slideId: new Types.ObjectId(currentSlideId) } };
-	const changed = await Asset.updateOne(
-		{ _id: id, scope: asset.scope, slideId: asset.slideId ?? { $exists: false } },
-		change
-	);
-	if (!changed.modifiedCount && asset.scope !== 'shared')
+	const changed = await Asset.updateOne(filter, change);
+	if (!changed.modifiedCount && !(operation === 'share' && asset.scope === 'shared'))
 		throw new SlideValidationError('This asset changed. Reload the library.');
 	return {
 		success:
-			operation === 'share' ? 'Asset added to the shared library.' : 'Asset assigned to this slide.'
+			operation === 'share'
+				? 'Asset added to the shared library.'
+				: operation === 'move'
+					? 'Asset moved from the shared library to this slide. Existing slide uses are preserved.'
+					: 'Asset assigned to this slide.'
 	};
 }
 

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T13:30:13.778Z
+## 2026-10-29T13:46:10.608Z
+
+feat: Add confirmed asset deletion and shared asset moves
+
+## 2026-10-29T09:34:05-04:00
 
 fix: Animate the Add menu and keep asset actions on one row
 

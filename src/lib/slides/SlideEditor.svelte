@@ -1680,6 +1680,10 @@
 					>{/if}
 				{#if form?.success}<P role="status" class="text-sm">{form.success}</P>{/if}
 				<AssetLibrary
+					onUpload={() => openDialog('upload')}
+					usedAssetIds={allElements(draft)
+						.map((element) => element.assetId)
+						.filter(Boolean)}
 					assets={localAssets}
 					sharedAssets={data.sharedAssets ?? []}
 					unusedAssets={(data.unusedAssets ?? []).filter(
@@ -1693,7 +1697,6 @@
 						closeDialog();
 					}}
 				/>
-				<Button onclick={() => openDialog('upload')}>Upload to this slide</Button>
 			{:else if dialog === 'upload'}
 				{#if form?.error}<P role="alert" class="text-sm text-red-600 dark:text-red-400"
 						>{form.error}</P

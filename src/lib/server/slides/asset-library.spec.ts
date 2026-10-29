@@ -17,6 +17,7 @@ vi.mock('./models', () => ({
 		findById: vi.fn(),
 		bulkWrite: vi.fn(),
 		updateOne: vi.fn(),
+		deleteOne: vi.fn(),
 		create: vi.fn()
 	},
 	Slide: { find: vi.fn(), findOne: vi.fn(), exists: vi.fn() }
@@ -55,6 +56,86 @@ beforeEach(() => {
 	>);
 });
 describe('slide asset library', () => {
+	it('requires explicit confirmation and deletes only unreferenced assets with the checked scope', async () => {
+		mockAsset(asset('shared'));
+		const fields = new FormData();
+		fields.set('assetId', id);
+		fields.set('operation', 'delete');
+		await expect(manageAsset(fields, owner, user)).rejects.toThrow('Confirm deletion');
+		expect(Asset.deleteOne).not.toHaveBeenCalled();
+		fields.set('confirm', 'delete');
+		vi.mocked(Asset.deleteOne).mockResolvedValue({ deletedCount: 1, acknowledged: true });
+		await expect(manageAsset(fields, owner, user)).resolves.toMatchObject({
+			success: 'Asset deleted.'
+		});
+		expect(Asset.deleteOne).toHaveBeenCalledWith({
+			_id: id,
+			scope: 'shared',
+			slideId: { $exists: false }
+		});
+		vi.mocked(Asset.deleteOne).mockResolvedValue({ deletedCount: 0, acknowledged: true });
+		await expect(manageAsset(fields, owner, user)).rejects.toThrow('changed');
+	});
+	it('blocks deleting assets used in drafts, published slides or repeater templates, including uppercase IDs', async () => {
+		mockAsset(asset('shared'));
+		const fields = new FormData();
+		fields.set('assetId', id.toUpperCase());
+		fields.set('operation', 'delete');
+		fields.set('confirm', 'delete');
+		const template = defaultRepeater();
+		template.template.elements.push({ ...newElement('svg', 'nested'), assetId: id.toUpperCase() });
+		for (const definition of [
+			{ ...blankSlide(), elements: [{ ...newElement('image', 'image'), assetId: id }] },
+			{ ...blankSlide(), elements: [{ ...newElement('list', 'repeater'), repeater: template }] }
+		]) {
+			for (const snapshot of ['draft', 'published']) {
+				vi.mocked(Slide.find).mockReturnValue(
+					query([
+						{ _id: objectId(other), title: 'Other slide', slug: 'other', [snapshot]: definition }
+					]) as unknown as ReturnType<typeof Slide.find>
+				);
+				await expect(manageAsset(fields, owner, user)).rejects.toThrow('Other slide');
+			}
+		}
+		expect(Asset.deleteOne).not.toHaveBeenCalled();
+	});
+	it('moves shared assets to the current slide without changing their IDs or existing slide references', async () => {
+		mockAsset(asset('shared'));
+		const existing = {
+			_id: objectId(other),
+			draft: { ...blankSlide(), elements: [{ ...newElement('image', 'image'), assetId: id }] }
+		};
+		vi.mocked(Slide.find).mockReturnValue(
+			query([existing]) as unknown as ReturnType<typeof Slide.find>
+		);
+		const fields = new FormData();
+		fields.set('assetId', id);
+		fields.set('operation', 'move');
+		fields.set('targetSlideId', other);
+		await expect(manageAsset(fields, owner, user)).resolves.toMatchObject({
+			success: expect.stringContaining('moved')
+		});
+		expect(Asset.updateOne).toHaveBeenCalledWith(
+			{ _id: id, scope: 'shared', slideId: { $exists: false } },
+			{ $set: { scope: 'slide', slideId: objectId(owner) } }
+		);
+		expect(Asset.create).not.toHaveBeenCalled();
+		expect(Asset.deleteOne).not.toHaveBeenCalled();
+		vi.mocked(Asset.find).mockImplementation(
+			(filter?: unknown) =>
+				query(
+					filter && typeof filter === 'object' && '_id' in filter ? [asset()] : []
+				) as unknown as ReturnType<typeof Asset.find>
+		);
+		await expect(validateAssetScope(existing.draft, other)).resolves.toBeUndefined();
+		await expect(validateAssetScope(existing.draft, 'e'.repeat(24))).rejects.toThrow('Copy');
+		vi.mocked(Asset.updateOne).mockResolvedValue({ modifiedCount: 0 } as Awaited<
+			ReturnType<typeof Asset.updateOne>
+		>);
+		await expect(manageAsset(fields, owner, user)).rejects.toThrow('changed');
+		mockAsset();
+		await expect(manageAsset(fields, owner, user)).rejects.toThrow('Only shared');
+	});
 	it('classifies legacy assets by distinct draft and published slide references including templates', async () => {
 		const shared = 'e'.repeat(24),
 			unused = 'f'.repeat(24),

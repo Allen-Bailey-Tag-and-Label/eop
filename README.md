@@ -168,12 +168,21 @@ top toolbar opens the library with search and file preview links:
 - **This slide:** add a local file to the canvas, **Share asset**, or select another
   saved slide as the **Copy destination** and create an independent copy there.
 - **Shared library:** add an intentionally reusable file, or copy it into a slide
-  to get an independent slide-specific asset.
+  to get an independent slide-specific asset. **Move to this slide** removes it
+  from the shared library and transfers ownership to the current slide without
+  changing its file ID. Slides already using it keep working.
 - **Unused assets:** review slide-specific/unassigned files not referenced by saved
   drafts or published slides. Files used by the current unsaved edit are hidden
   here. Other unfinished edits may still reference listed files. Unassigned files
   can be assigned to this slide or shared; other unused files can be copied.
-  This review does not delete files automatically or offer destructive cleanup.
+  Files are never deleted automatically.
+
+Each asset has a **Delete asset** action with confirmation. Deletion is blocked
+while any saved draft or published slide uses the file, including repeater item
+templates; the error identifies the affected slides. Remove those uses and save
+(and republish or unpublish where needed) before deleting. The editor also blocks
+deleting files used in its current unsaved canvas. Shared assets can be deleted
+under the same rules or moved into the current slide with confirmation.
 
 A new slide receives a stable `assetScope` ID in its URL before its first upload.
 The same ID is used when it is first saved, so uploads survive action reloads and
