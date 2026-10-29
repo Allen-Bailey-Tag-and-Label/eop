@@ -150,9 +150,10 @@ use slide display time, and whole-slide fades still wrap the complete grid.
 Set **Item stagger (ms)** in the repeater properties to delay each item's template
 animations (for example, 200 starts each item 0.2 seconds after the previous one).
 Items stay hidden until their turn. Zero preserves simultaneous playback. Animate
-the template elements first using **Edit item template**. Pagination restarts the
-sequence on every page; scrolling uses the original result order and does not
-restart animations as items scroll into view. Allow enough page/slide time for the
+the template elements first using **Edit item template**. Each page animates on its
+first appearance, then retains its final keyframes on later page cycles. A single
+page never restarts at the page interval. Scrolling uses the original result order
+and does not restart animations as items scroll into view. Allow enough page/slide time for the
 last item's delay plus its animation duration.
 Turn off **Clip repeater contents** to let template artwork and animations extend
 outside their cells and the repeater bounds. This preserves the grid's pagination,

@@ -4,6 +4,7 @@ import { cleanup, render, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import SlidePlayer from './SlidePlayer.svelte';
 import { watchPlayback } from './playback';
+import { SlideMediaCache } from './media';
 import { blankSlide, newElement, type Playback } from './types';
 
 vi.mock('./playback', async (original) => ({
@@ -67,6 +68,32 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('shows loading rather than an unassigned playlist while assigned slide media is pending', async () => {
+		let complete!: () => void;
+		vi.spyOn(SlideMediaCache.prototype, 'load').mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					complete = resolve;
+				})
+		);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const playlist = content();
+		playlist.slides[0].definition.elements.push({
+			...newElement('image', 'image'),
+			assetId: 'a'.repeat(24)
+		});
+		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
+		await flush();
+		expect(view.getByText(/Loading playlist/)).toBeInTheDocument();
+		expect(
+			view.queryByText('No published playlist is assigned to this monitor.')
+		).not.toBeInTheDocument();
+		complete();
+		await flush();
+		expect(
+			within(view.getByRole('region', { name: 'Current slide' })).getByText('one First')
+		).toBeInTheDocument();
+	});
 	it('continues repeater pages after a non-looping final slide is held', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
 		const playlist = content('grid', false);

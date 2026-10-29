@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T16:47:25.289Z
+## 2026-10-29T17:01:57.176Z
+
+fix: Show playlist loading correctly and hold repeater animation final poses
+
+## 2026-10-29T12:55:32-04:00
 
 fix: Synchronize nested repeater animations with the slide display timeline
 

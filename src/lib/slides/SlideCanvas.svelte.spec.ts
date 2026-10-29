@@ -102,14 +102,14 @@ describe('responsive slide rendering', () => {
 			expect(item(2)).toHaveStyle({ opacity: '0.25' });
 			// During the root exit, data and element clocks both stop at display end.
 			await view.rerender({ definition, animateTransitions: true, timeMs: 59000 });
-			expect(item(3)).toHaveStyle({ opacity: '0' });
+			expect(item(3)).toHaveStyle({ opacity: '1' });
 			// A held final slide freezes headings but keeps paging, using the same time origin.
 			await view.rerender({ includeExit: false, timeMs: 58000, dataTimeMs: 62000 });
 			expect(text('holidays')).toHaveStyle({ opacity: '1' });
-			expect(item(1)).toHaveStyle({ opacity: '0' });
+			expect(item(1)).toHaveStyle({ opacity: '1' });
 			await view.rerender({ dataTimeMs: 64000 });
-			expect(item(1)).toHaveStyle({ opacity: '0.5' });
-			expect(item(2)).toHaveStyle({ opacity: '0.25' });
+			expect(item(1)).toHaveStyle({ opacity: '1' });
+			expect(item(2)).toHaveStyle({ opacity: '1' });
 		});
 	}
 	it('allows repeater overflow through the element, grid and item template while preserving legacy clipping', async () => {
@@ -140,7 +140,7 @@ describe('responsive slide rendering', () => {
 			overflow: 'visible'
 		});
 	});
-	it('delays each repeater template animation and restarts staggering on each page', async () => {
+	it('staggers each page on its first visit and holds final poses when pages cycle', async () => {
 		const settings = { ...defaultRepeater(), staggerMs: 200 };
 		const label = settings.template.elements[1];
 		label.keyframes = [
@@ -172,6 +172,21 @@ describe('responsive slide rendering', () => {
 		await view.rerender({ timeMs: 5000 });
 		expect(item(5).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '0' });
 		expect(item(6).parentElement).toHaveStyle({ visibility: 'hidden' });
+		await view.rerender({ timeMs: 10000 });
+		expect(item(1).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '1' });
+		expect(item(2).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '1' });
+		// A single page must never restart its animation at the page interval either.
+		await view.rerender({
+			timeMs: 5000,
+			data: {
+				grid: {
+					state: 'ready',
+					message: '',
+					items: [{ id: 'only', label: 'Only item', detail: '' }]
+				}
+			}
+		});
+		expect(item(1).querySelector('[data-slide-element="label"]')).toHaveStyle({ opacity: '1' });
 	});
 	it('renders nested frame content with CSS grid/flex layout and applies padding to images and frame content', async () => {
 		const frame = {

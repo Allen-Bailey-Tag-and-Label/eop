@@ -11,11 +11,12 @@ import { validateSlide } from './validation';
 import { mediaIds } from './media';
 
 describe('grid repeaters', () => {
-	it('staggered item clocks restart per page and remain stable across scroll virtualization', () => {
+	it('staggered item clocks start on first page visits and hold across cycles and scroll virtualization', () => {
 		const settings = { ...defaultRepeater(), staggerMs: 200 };
 		expect(repeaterItemTime(settings, 100, 1, 0)).toBe(-100);
-		expect(repeaterItemTime(settings, 5500, 1, 4)).toBe(300);
-		expect(repeaterItemTime(settings, 10000, 1, 0)).toBe(-200);
+		expect(repeaterItemTime(settings, 5500, 1, 4, 1)).toBe(300);
+		expect(repeaterItemTime(settings, 10000, 1, 0)).toBe(9800);
+		expect(repeaterItemTime(settings, 15500, 1, 4, 1)).toBe(10300);
 		settings.overflow = 'scroll';
 		expect(repeaterItemTime(settings, 1500, 5, 0)).toBe(500);
 		expect(repeaterItemTime(settings, 1500, 1, 4)).toBe(500);

@@ -233,7 +233,9 @@
 				><P class="text-2xl">Allen-Bailey Tag &amp; Label</P><H1
 					class="text-5xl text-current dark:text-current">{location}</H1
 				><P class="text-2xl"
-					>{loading ? 'Loading playlist…' : 'No published playlist is assigned to this monitor.'}</P
+					>{loading || preparing
+						? 'Loading playlist…'
+						: 'No published playlist is assigned to this monitor.'}</P
 				></Div
 			>
 		{/if}

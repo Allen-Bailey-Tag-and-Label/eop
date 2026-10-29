@@ -70,16 +70,17 @@ export function templateSlide(repeater: RepeaterDefinition, durationMs: number):
 }
 
 // Use the full row index when scrolling so virtualization cannot restart animations.
-// Paginated items restart together at each page boundary, then stagger within the page.
+// Each page's items animate on their first appearance and hold their final pose on later cycles.
 export function repeaterItemTime(
 	settings: RepeaterDefinition,
 	timeMs: number,
 	index: number,
-	start: number
+	start: number,
+	page = 0
 ) {
 	const stagger = settings.staggerMs ?? 0;
 	if (!stagger) return Math.max(0, timeMs);
-	const clock = settings.overflow === 'paginate' ? timeMs % settings.pageDurationMs : timeMs;
+	const clock = settings.overflow === 'paginate' ? timeMs - page * settings.pageDurationMs : timeMs;
 	return clock - (settings.overflow === 'scroll' ? start + index : index) * stagger;
 }
 

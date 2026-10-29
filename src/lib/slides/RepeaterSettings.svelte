@@ -46,8 +46,8 @@
 	/>
 	<P class="text-xs opacity-60"
 		>Delay between item animations. Animate elements in Edit item template, then set a stagger here.
-		Zero plays all items together. Each page restarts the sequence; scrolling keeps each item's
-		original timing. Allow enough page and slide time for all items to appear.</P
+		Zero plays all items together. Items animate on their first appearance, then hold their last
+		keyframe when pages cycle. Allow enough page and slide time for all items to appear.</P
 	>
 	<Div class="grid grid-cols-2 gap-2">
 		{#each numbers as field (field.key)}
