@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T18:36:09.683Z
+## 2026-10-29T19:10:38.621Z
+
+feat: Add UserProfile birth dates with date-only table editing
+
+## 2026-10-29T14:38:35-04:00
 
 fix: Style monitor slide and playlist navigation links as buttons
 

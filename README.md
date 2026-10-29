@@ -1,5 +1,13 @@
 # sv
 
+## Employee birth dates
+
+`UserProfile.birthDate` is optional and stores a calendar date at UTC midnight.
+The User profiles table uses a date-only control and UTC calendar formatting so
+browser time zones do not shift birthdays to the previous day. New profiles do
+not get an automatically generated birth date; edit the saved profile to set it.
+Existing profiles require no migration and remain unchanged until edited.
+
 ## Raspberry Pi and monitor approval
 
 1. On the monitor's browser, open `/monitors/pair` (or `/monitors`). No employee
