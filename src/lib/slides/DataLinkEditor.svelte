@@ -1,7 +1,7 @@
 <script lang="ts">
 	import InspectorInput from './InspectorInput.svelte';
 	import { Details, Div, Input, P, Select, Textarea } from '$lib/components';
-	import { dataModels, validateLink } from './data-link';
+	import { dataModels, normalizeDataSource, validateLink } from './data-link';
 	import type { SlideDataSource } from './types';
 	let {
 		link = $bindable(),
@@ -24,7 +24,7 @@
 		aria-label="Data query mode"
 		value={link.mode ?? 'find'}
 		onchange={(event: Event & { currentTarget: HTMLSelectElement }) =>
-			(link.mode = event.currentTarget.value as 'find' | 'aggregate')}
+			(link = normalizeDataSource({ ...link, mode: event.currentTarget.value }))}
 		options={[
 			{ value: 'find', label: 'Find' },
 			{ value: 'aggregate', label: 'Aggregate' }

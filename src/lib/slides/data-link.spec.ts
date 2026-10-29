@@ -3,6 +3,33 @@ import { normalizeDataSource, parsePipeline, validateLink } from './data-link';
 import { defaultDataSource } from './types';
 
 describe('aggregation data links', () => {
+	it('recovers filter-stored pipelines without replacing an explicitly configured pipeline', () => {
+		const pipeline = '[{"$match":{"isActive":true}}]';
+		const value = {
+			...defaultDataSource(),
+			mode: 'aggregate' as const,
+			model: 'User',
+			filter: pipeline
+		};
+		for (const missing of [undefined, '', '[]', '[  ]']) {
+			expect(normalizeDataSource({ ...value, pipeline: missing })).toMatchObject({
+				pipeline,
+				filter: '{}'
+			});
+		}
+		expect(normalizeDataSource({ ...value, pipeline: '[{"$limit":1}]' }).pipeline).toBe(
+			'[{"$limit":1}]'
+		);
+		expect(normalizeDataSource({ ...value, mode: 'find' }).filter).toBe(pipeline);
+		expect(value.filter).toBe(pipeline);
+		const unsafe = normalizeDataSource({
+			...value,
+			filter: '[{"$out":"users"}]',
+			select: 'isActive',
+			labelField: 'isActive'
+		});
+		expect(() => validateLink(unsafe)).toThrow();
+	});
 	it('keeps saved find links compatible and persists aggregate configuration', () => {
 		const old = { ...defaultDataSource(), model: 'Holiday', select: 'name', labelField: 'name' };
 		delete old.mode;

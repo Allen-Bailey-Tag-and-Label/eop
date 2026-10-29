@@ -12,16 +12,31 @@ export type LayoutScales = {
 // Missing constraints on pre-existing slides use proportional placement and sizing.
 // Normalize editor data without modifying stored drafts or published snapshots.
 export function withResponsiveDefaults(definition: SlideDefinition): SlideDefinition {
+	const normalizeElement = (element: SlideElement): SlideElement => ({
+		...element,
+		...(element.dataSource ? { dataSource: normalizeDataSource(element.dataSource) } : {}),
+		...(element.frame
+			? { frame: { ...element.frame, elements: element.frame.elements.map(normalizeElement) } }
+			: {}),
+		...(element.repeater
+			? {
+					repeater: {
+						...element.repeater,
+						template: {
+							...element.repeater.template,
+							elements: element.repeater.template.elements.map(normalizeElement)
+						}
+					}
+				}
+			: {}),
+		horizontalAnchor: element.horizontalAnchor ?? 'scale',
+		verticalAnchor: element.verticalAnchor ?? 'scale'
+	});
 	return {
 		...definition,
 		transitionIn: definition.transitionIn ?? defaultSlideTransition(),
 		transitionOut: definition.transitionOut ?? defaultSlideTransition(),
-		elements: definition.elements.map((element) => ({
-			...element,
-			...(element.dataSource ? { dataSource: normalizeDataSource(element.dataSource) } : {}),
-			horizontalAnchor: element.horizontalAnchor ?? 'scale',
-			verticalAnchor: element.verticalAnchor ?? 'scale'
-		}))
+		elements: definition.elements.map(normalizeElement)
 	};
 }
 

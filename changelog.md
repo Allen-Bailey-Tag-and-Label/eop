@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T19:26:47.309Z
+## 2026-10-29T19:34:56.002Z
+
+fix: Recover nested aggregation pipelines stored in data filters
+
+## 2026-10-29T15:31:48-04:00
 
 feat: Add aggregation data links with model joins and computed fields
 

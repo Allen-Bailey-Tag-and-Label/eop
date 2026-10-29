@@ -56,13 +56,24 @@ export function normalizeDataSource(input: unknown): SlideDataSource {
 		};
 	}
 	const defaults = defaultDataSource();
-	return Object.fromEntries(
+	const normalized = Object.fromEntries(
 		Object.keys(defaults).map((key) => [
 			key,
 			value?.[key] ??
 				(key === 'mode' || key === 'pipeline' ? defaults[key as keyof SlideDataSource] : undefined)
 		])
 	) as SlideDataSource;
+	// Recover pipelines pasted into the Find filter before switching query modes.
+	if (
+		normalized.mode === 'aggregate' &&
+		(!normalized.pipeline?.trim() || /^\[\s*\]$/.test(normalized.pipeline.trim())) &&
+		typeof normalized.filter === 'string' &&
+		normalized.filter.trim().startsWith('[')
+	) {
+		normalized.pipeline = normalized.filter;
+		normalized.filter = '{}';
+	}
+	return normalized;
 }
 
 export const fieldPath = /^[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*$/;

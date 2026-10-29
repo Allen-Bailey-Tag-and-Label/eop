@@ -113,7 +113,11 @@ describe('server aggregation execution', () => {
 				{
 					...newElement('list', 'birthdays'),
 					repeater: defaultRepeater(),
-					dataSource: { ...config(), pipeline: '[]' }
+					dataSource: {
+						...config(),
+						pipeline: undefined,
+						filter: '[{"$project":{"displayText":{"$literal":"Example"}}}]'
+					}
 				}
 			]
 		};
@@ -125,6 +129,9 @@ describe('server aggregation execution', () => {
 		});
 		expect(JSON.stringify(result)).not.toContain('private');
 		expect(option).toHaveBeenCalledWith({ maxTimeMS: 4000, allowDiskUse: false });
+		expect(vi.mocked(User.aggregate).mock.calls[0][0]).toContainEqual({
+			$project: { displayText: { $literal: 'Example' } }
+		});
 		await createSlideDataResolver()(definition);
 		expect(User.aggregate).toHaveBeenCalledTimes(2);
 	});

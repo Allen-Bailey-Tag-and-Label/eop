@@ -1,11 +1,45 @@
 import { describe, expect, it } from 'vitest';
-import { blankSlide, newElement, type HorizontalAnchor, type VerticalAnchor } from './types';
+import {
+	blankSlide,
+	defaultDataSource,
+	newElement,
+	type HorizontalAnchor,
+	type VerticalAnchor
+} from './types';
+import { defaultRepeater } from './repeater';
 import { elementLayout, withResponsiveDefaults } from './layout';
 import { poseAt } from './timeline';
 import { moveElement, resizeElement } from './editor';
 import { validateSlide } from './validation';
 
 describe('responsive slide layout', () => {
+	it('normalizes data links nested in frames and repeater templates without mutating saved data', () => {
+		const pipeline = '[{"$match":{"isActive":true}}]';
+		const list = newElement('list', 'birthdays');
+		list.dataSource = {
+			...defaultDataSource(),
+			model: 'User',
+			mode: 'aggregate',
+			filter: pipeline
+		};
+		delete list.dataSource.pipeline;
+		const frame = newElement('frame', 'frame');
+		frame.frame!.elements = [list];
+		const outer = newElement('list', 'outer');
+		outer.repeater = defaultRepeater();
+		outer.repeater.template.elements = [structuredClone(list)];
+		const result = withResponsiveDefaults({ ...blankSlide(), elements: [frame, outer] });
+		expect(result.elements[0].frame!.elements[0].dataSource).toMatchObject({
+			pipeline,
+			filter: '{}'
+		});
+		expect(result.elements[1].repeater!.template.elements[0].dataSource).toMatchObject({
+			pipeline,
+			filter: '{}'
+		});
+		expect(list.dataSource).not.toHaveProperty('pipeline');
+		expect(list.dataSource.filter).toBe(pipeline);
+	});
 	it('preserves the reference design for every anchor combination', () => {
 		const definition = blankSlide();
 		const element = newElement('text', 'headline');

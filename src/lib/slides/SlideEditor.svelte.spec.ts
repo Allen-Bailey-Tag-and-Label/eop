@@ -48,6 +48,11 @@ describe('slide authoring', () => {
 			}
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		const pipeline =
+			'[{"$match":{"isActive":true}},{"$project":{"displayText":{"$literal":"Example"}}}]';
+		await fireEvent.input(view.getByRole('textbox', { name: 'Data filter' }), {
+			target: { value: pipeline }
+		});
 		await fireEvent.change(view.getByRole('combobox', { name: 'Data query mode' }), {
 			target: { value: 'aggregate' }
 		});
@@ -55,8 +60,7 @@ describe('slide authoring', () => {
 		await fireEvent.change(view.getByRole('combobox', { name: 'Data model' }), {
 			target: { value: 'User' }
 		});
-		const pipeline =
-			'[{"$match":{"isActive":true}},{"$project":{"displayText":{"$literal":"Example"}}}]';
+		expect(view.getByRole('textbox', { name: 'Data pipeline' })).toHaveValue(pipeline);
 		await fireEvent.input(view.getByRole('textbox', { name: 'Data pipeline' }), {
 			target: { value: pipeline }
 		});

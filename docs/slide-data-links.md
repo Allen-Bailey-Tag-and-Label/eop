@@ -6,6 +6,12 @@ projections. Both modes use the same preview and monitor resolver, select explic
 output fields, and apply the outer sort, skip, and limit after the query pipeline.
 An empty outer sort preserves the pipeline's own ordering.
 
+Paste aggregation arrays in **Pipeline (JSON array)**, not the Find filter.
+If a saved Aggregate link has an array in its filter and an empty or missing
+pipeline, it is recovered into the pipeline automatically, including links nested
+inside frames. An existing nonempty pipeline always takes precedence. Reload the
+editor, then save and publish to persist the corrected field names.
+
 Supported stages: `$match`, `$lookup`, `$unwind`, `$project`, `$set`, `$addFields`,
 `$group`, `$sort`, `$skip`, and `$limit`. Use at most 20 stages, three lookups,
 and 20 KB of pipeline JSON. Queries have a four-second execution limit, disabled
