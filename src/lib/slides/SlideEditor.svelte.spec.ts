@@ -10,6 +10,10 @@ vi.mock('$app/forms', () => ({
 	deserialize: (value: string) => JSON.parse(value)
 }));
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
+vi.mock('svelte/transition', async (importOriginal) => ({
+	...(await importOriginal<typeof import('svelte/transition')>()),
+	scale: () => ({ duration: 0 })
+}));
 beforeEach(() => {
 	vi.stubGlobal(
 		'matchMedia',
@@ -547,6 +551,7 @@ describe('slide authoring', () => {
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Item stagger (ms)' }), {
 			target: { value: '200' }
 		});
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Clip repeater contents' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
 		expect(view.getByText('Editing repeater item template')).toBeInTheDocument();
 		expect(view.queryByRole('button', { name: 'Add repeater' })).not.toBeInTheDocument();
@@ -559,6 +564,7 @@ describe('slide authoring', () => {
 		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
 		expect(definition().elements[0].repeater.columns).toBe(3);
 		expect(validateSlide(definition()).elements[0].repeater?.staggerMs).toBe(200);
+		expect(validateSlide(definition()).elements[0].repeater?.clip).toBe(false);
 		expect(definition().elements[0].repeater.template.elements[1]).toMatchObject({
 			fontSize: 52,
 			binding: { field: 'row.name', format: 'text' }

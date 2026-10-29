@@ -102,6 +102,8 @@ function repeater(
 		return n;
 	};
 	const template = object(value.template);
+	if (value.clip !== undefined && typeof value.clip !== 'boolean')
+		invalid('Repeater clip must be a boolean.');
 	const validated = validateSlide(
 		{
 			schemaVersion: 1,
@@ -127,6 +129,7 @@ function repeater(
 		...(value.staggerMs === undefined
 			? {}
 			: { staggerMs: integer(value.staggerMs, 0, 10000, 'Item stagger') }),
+		...(value.clip === undefined ? {} : { clip: value.clip as boolean }),
 		template: { width: validated.width, height: validated.height, elements: validated.elements }
 	};
 }

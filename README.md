@@ -154,6 +154,10 @@ the template elements first using **Edit item template**. Pagination restarts th
 sequence on every page; scrolling uses the original result order and does not
 restart animations as items scroll into view. Allow enough page/slide time for the
 last item's delay plus its animation duration.
+Turn off **Clip repeater contents** to let template artwork and animations extend
+outside their cells and the repeater bounds. This preserves the grid's pagination,
+scrolling, and item count behavior. Clipping stays on for existing repeaters, and
+parent frames and the slide viewport can still clip overflowing content.
 Existing data lists retain their layout until **Convert to grid repeater** is
 chosen in Properties. Query configuration and templates are saved/exported;
 resolved row values are transient and are never written into the slide definition.

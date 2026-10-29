@@ -98,7 +98,8 @@ describe('grid repeaters', () => {
 			{ rowGap: -1 },
 			{ staggerMs: -1 },
 			{ staggerMs: 10001 },
-			{ staggerMs: 1.5 }
+			{ staggerMs: 1.5 },
+			{ clip: 'visible' }
 		])
 			expect(() =>
 				validateSlide({

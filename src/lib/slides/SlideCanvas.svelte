@@ -107,6 +107,7 @@
 			{@const base = elementLayout(definition, element, element, renderWidth, renderHeight)}
 			{@const unit = box.fontSize / element.fontSize}
 			{@const p = paddingSides(element.padding)}
+			{@const clipElement = (element.frame?.clip ?? element.repeater?.clip) !== false}
 			{@const contentWidth = Math.max(
 				1,
 				(flow && flow.layout !== 'free' ? (measured[element.id]?.width ?? box.width) : box.width) -
@@ -193,7 +194,7 @@
 			<Div
 				{@attach (node) => observe(node, element.id)}
 				data-slide-element={element.id}
-				style={`${elementPositionStyle(element, box, base, flow)}order:${-index};z-index:${index};opacity:${pose.opacity};overflow:${element.frame?.clip === false ? 'visible' : 'hidden'};color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};${element.borderRadius !== undefined || element.type === 'ellipse' ? `border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};` : ''}${element.backgroundColor !== undefined || element.frame ? `background:${resolveSlideColor(element.backgroundColor ?? element.color, scheme)};` : ''}`}
+				style={`${elementPositionStyle(element, box, base, flow)}order:${-index};z-index:${index};opacity:${pose.opacity};overflow:${clipElement ? 'hidden' : 'visible'};color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};${element.borderRadius !== undefined || element.type === 'ellipse' ? `border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};` : ''}${element.backgroundColor !== undefined || element.frame ? `background:${resolveSlideColor(element.backgroundColor ?? element.color, scheme)};` : ''}`}
 			>
 				{#if element.type === 'text'}{@render content()}{:else}<Div
 						style={`position:absolute;inset:${paddingCss(element.padding, unit)};`}

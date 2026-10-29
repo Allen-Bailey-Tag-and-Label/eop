@@ -22,6 +22,34 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('allows repeater overflow through the element, grid and item template while preserving legacy clipping', async () => {
+		const settings = defaultRepeater();
+		const element = { ...newElement('list', 'grid'), repeater: settings };
+		const definition = { ...blankSlide(), elements: [element] };
+		const view = render(SlideCanvas, {
+			definition,
+			assetBase: '/assets',
+			data: {
+				grid: { state: 'ready', message: '', items: [{ id: 'one', label: 'Item', detail: '' }] }
+			}
+		});
+		const outer = () => view.container.querySelector('[data-slide-element="grid"]');
+		expect(outer()).toHaveStyle({ overflow: 'hidden' });
+		expect(view.getByLabelText('Repeater grid')).toHaveClass('overflow-hidden');
+		expect(view.getByLabelText('Repeater item 1')).toHaveClass('overflow-hidden');
+		await view.rerender({
+			definition: {
+				...definition,
+				elements: [{ ...element, repeater: { ...settings, clip: false } }]
+			}
+		});
+		expect(outer()).toHaveStyle({ overflow: 'visible' });
+		expect(view.getByLabelText('Repeater grid')).toHaveClass('overflow-visible');
+		expect(view.getByLabelText('Repeater item 1')).toHaveClass('overflow-visible');
+		expect(view.getByLabelText('Repeater item 1').firstElementChild).toHaveStyle({
+			overflow: 'visible'
+		});
+	});
 	it('delays each repeater template animation and restarts staggering on each page', async () => {
 		const settings = { ...defaultRepeater(), staggerMs: 200 };
 		const label = settings.template.elements[1];

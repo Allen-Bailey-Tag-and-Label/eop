@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T16:09:45.136Z
+## 2026-10-29T16:17:05.493Z
+
+feat: Add configurable clipping for repeater content
+
+## 2026-10-29T12:14:55-04:00
 
 fix: Make the repeater item stagger control visibly labeled
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import InspectorInput from './InspectorInput.svelte';
-	import { Div, Label, P, Select } from '$lib/components';
+	import { Checkbox, Div, Label, P, Select } from '$lib/components';
 	import { gridLayout } from './repeater';
 	import type { RepeaterDefinition } from './types';
 	let {
@@ -82,6 +82,16 @@
 		bind:value={settings.overflow}
 		options={['paginate', 'scroll', 'clip'].map((value) => ({ value, label: value }))}
 	/>
+	<Checkbox
+		label="Clip repeater contents"
+		aria-label="Clip repeater contents"
+		checked={settings.clip ?? true}
+		onchange={(event) => (settings.clip = event.currentTarget.checked)}
+	/>
+	<P class="text-xs opacity-60"
+		>Turn off clipping to let item content and animations extend outside their cells and the
+		repeater bounds. Parent frames can still clip their contents.</P
+	>
 	<P class="text-xs opacity-60"
 		>Pagination changes pages at the selected interval. Scrolling moves automatically down and back.
 		Set the slide display duration long enough to show all pages; held final slides continue

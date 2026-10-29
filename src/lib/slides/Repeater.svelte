@@ -33,7 +33,10 @@
 	const definition = $derived(templateSlide(settings, durationMs));
 </script>
 
-<Div class="relative h-full w-full overflow-hidden" aria-label="Repeater grid">
+<Div
+	class={`relative h-full w-full ${settings.clip === false ? 'overflow-visible' : 'overflow-hidden'}`}
+	aria-label="Repeater grid"
+>
 	{#if result?.state === 'ready' && items.length}
 		{#each items.slice(grid.start, grid.start + grid.visibleCount) as row, index (row.id)}
 			{@const itemTime = repeaterItemTime(settings, timeMs, index, grid.start)}
@@ -41,6 +44,7 @@
 				style={`position:absolute;left:${(index % grid.columns) * (grid.itemWidth + grid.gapX)}px;top:${Math.floor(index / grid.columns) * (grid.itemHeight + grid.gapY) + grid.offsetY}px;width:${grid.itemWidth}px;height:${grid.itemHeight}px;visibility:${itemTime < 0 ? 'hidden' : 'visible'};`}
 			>
 				<SlideCanvas
+					clip={settings.clip ?? true}
 					{definition}
 					timeMs={Math.max(0, itemTime)}
 					{scheme}
