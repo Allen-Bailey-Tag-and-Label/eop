@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { allElements } from './repeater';
 	import { Div, H1, P } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { nextSlide, watchPlayback } from './playback';
@@ -141,7 +142,7 @@
 			};
 			frame = requestAnimationFrame(tick);
 			timer = setTimeout(async () => {
-				if (!slide.definition.elements.some((element) => element.repeater))
+				if (!allElements(slide.definition).some((element) => element.repeater))
 					cancelAnimationFrame(frame);
 				timeMs = timing.totalMs;
 				// Revalidate published content before every new slide, including single-slide loops.

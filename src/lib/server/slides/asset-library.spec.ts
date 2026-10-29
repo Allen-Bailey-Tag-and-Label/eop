@@ -84,7 +84,10 @@ describe('slide asset library', () => {
 		fields.set('confirm', 'delete');
 		const template = defaultRepeater();
 		template.template.elements.push({ ...newElement('svg', 'nested'), assetId: id.toUpperCase() });
+		const frame = newElement('frame', 'frame');
+		frame.frame!.elements = [{ ...newElement('image', 'framed-image'), assetId: id }];
 		for (const definition of [
+			{ ...blankSlide(), elements: [frame] },
 			{ ...blankSlide(), elements: [{ ...newElement('image', 'image'), assetId: id }] },
 			{ ...blankSlide(), elements: [{ ...newElement('list', 'repeater'), repeater: template }] }
 		]) {

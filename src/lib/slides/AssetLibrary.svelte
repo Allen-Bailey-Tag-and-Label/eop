@@ -2,7 +2,7 @@
 	import { tick } from 'svelte';
 	import { subtleReveal } from 'sveltewind/transitions';
 	import { focusTrap } from '$lib/attachments';
-	import { A, Button, Div, Form, H2, Input, P, Select } from '$lib/components';
+	import { A, Button, Card, Div, Form, H2, Input, P, Select, Tabs } from '$lib/components';
 	import type { AssetSummary } from './types';
 	let {
 		assets,
@@ -26,6 +26,11 @@
 		usedAssetIds?: string[];
 	} = $props();
 	let tab = $state<'slide' | 'shared' | 'unused'>('slide');
+	const sections = [
+		['slide', 'This slide'],
+		['shared', 'Shared library'],
+		['unused', 'Unused assets']
+	] as const;
 	let search = $state('');
 	let destination = $state('');
 	let busy = $state(false);
@@ -148,16 +153,36 @@
 	inert={pending ? true : undefined}
 	class={pending ? 'hidden' : 'space-y-4'}
 >
-	<Div class="flex flex-wrap gap-2" role="tablist" aria-label="Asset library sections">
-		{#each [['slide', 'This slide'], ['shared', 'Shared library'], ['unused', 'Unused assets']] as [value, label] (value)}
+	<Tabs bind:value={tab} role="tablist" aria-label="Asset library sections" class="flex-wrap gap-1">
+		{#each sections as [value, label], index (value)}
 			<Button
 				role="tab"
 				aria-selected={tab === value}
+				tabindex={tab === value ? 0 : -1}
 				variants={tab === value ? [] : ['ghost']}
-				onclick={() => (tab = value as typeof tab)}>{label}</Button
+				onclick={() => (tab = value as typeof tab)}
+				onkeydown={(event) => {
+					const next =
+						event.key === 'ArrowRight'
+							? (index + 1) % sections.length
+							: event.key === 'ArrowLeft'
+								? (index + sections.length - 1) % sections.length
+								: event.key === 'Home'
+									? 0
+									: event.key === 'End'
+										? sections.length - 1
+										: -1;
+					if (next < 0) return;
+					event.preventDefault();
+					tab = sections[next][0];
+					event.currentTarget
+						.closest('[role="tablist"]')
+						?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+						[next]?.focus();
+				}}>{label}</Button
 			>
 		{/each}
-	</Div>
+	</Tabs>
 	<Input label="Search assets" aria-label="Search assets" bind:value={search} />
 	{#if tab === 'unused'}<P class="text-sm opacity-70"
 			>Slide-specific and unassigned files not referenced by saved drafts or published slides. They
@@ -176,7 +201,7 @@
 		]}
 	/>
 	{#each visible as asset (asset.id)}
-		<Div class="space-y-2 rounded-lg border border-slate-300 p-3 dark:border-gray-700">
+		<Card class="min-w-0 space-y-2 p-3">
 			<P class="font-semibold break-words">{asset.name}</P>
 			<P class="text-xs opacity-60"
 				>{asset.contentType} · {asset.scope === 'shared'
@@ -250,7 +275,7 @@
 					onclick={() => requestAction(asset, 'delete')}>Delete asset</Button
 				>
 			</Div>
-		</Div>
+		</Card>
 	{:else}<P class="text-sm opacity-60">No assets in this section.</P>{/each}
 	<P class="text-xs opacity-60"
 		>Each section lists up to 500 assets, plus files already used by this slide. Repeater templates

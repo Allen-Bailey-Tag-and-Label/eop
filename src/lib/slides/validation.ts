@@ -2,6 +2,7 @@ import { safeField } from './data-link';
 import { allElements } from './repeater';
 import { normalizeDataSource, validateLink } from './data-link';
 import type { Keyframe, PlaylistDefinition, Pose, SlideDefinition, SlideElement } from './types';
+import type { ElementPadding, FrameDefinition } from './types';
 import {
 	defaultSlideTransition,
 	type SlideTransition,
@@ -88,7 +89,12 @@ export function validateDataSource(input: unknown, requireLabel = true): SlideDa
 		return invalid(cause instanceof Error ? cause.message : 'Invalid data link.');
 	}
 }
-function repeater(input: unknown, durationMs: number): RepeaterDefinition {
+function repeater(
+	input: unknown,
+	durationMs: number,
+	depth: number,
+	budget: { count: number }
+): RepeaterDefinition {
 	const value = object(input);
 	const integer = (raw: unknown, min: number, max: number, label: string) => {
 		const n = number(raw, min, max, label);
@@ -105,7 +111,9 @@ function repeater(input: unknown, durationMs: number): RepeaterDefinition {
 			background: 'transparent',
 			elements: template.elements
 		},
-		true
+		true,
+		depth + 1,
+		budget
 	);
 	return {
 		columns: integer(value.columns, 0, 12, 'Columns'),
@@ -119,7 +127,76 @@ function repeater(input: unknown, durationMs: number): RepeaterDefinition {
 		template: { width: validated.width, height: validated.height, elements: validated.elements }
 	};
 }
-export function validateSlide(input: unknown, itemTemplate = false): SlideDefinition {
+function padding(input: unknown): ElementPadding {
+	if (typeof input === 'number') return number(input, 0, 256, 'Padding');
+	const value = object(input);
+	if (value.mode === 'axis')
+		return {
+			mode: 'axis',
+			x: number(value.x, 0, 256, 'Horizontal padding'),
+			y: number(value.y, 0, 256, 'Vertical padding')
+		};
+	if (value.mode !== 'sides') return invalid('Invalid padding mode.');
+	return {
+		mode: 'sides',
+		top: number(value.top, 0, 256, 'Top padding'),
+		right: number(value.right, 0, 256, 'Right padding'),
+		bottom: number(value.bottom, 0, 256, 'Bottom padding'),
+		left: number(value.left, 0, 256, 'Left padding')
+	};
+}
+function validateFrame(
+	input: unknown,
+	width: unknown,
+	height: unknown,
+	durationMs: number,
+	itemTemplate: boolean,
+	depth: number,
+	budget: { count: number }
+): FrameDefinition {
+	const frame = object(input);
+	const integer = (value: unknown, min: number, max: number, label: string) => {
+		const result = number(value, min, max, label);
+		return Number.isInteger(result) ? result : invalid(`${label} must be an integer.`);
+	};
+	if (typeof frame.wrap !== 'boolean' || typeof frame.clip !== 'boolean')
+		invalid('Frame wrap and clip must be booleans.');
+	const children = validateSlide(
+		{
+			schemaVersion: 1,
+			width,
+			height,
+			background: 'transparent',
+			durationMs,
+			elements: frame.elements
+		},
+		itemTemplate,
+		depth + 1,
+		budget
+	);
+	return {
+		layout: choice(frame.layout, ['free', 'row', 'column', 'grid'], 'frame layout'),
+		columns: integer(frame.columns, 1, 12, 'Frame columns'),
+		columnGap: number(frame.columnGap, 0, 512, 'Column gap'),
+		rowGap: number(frame.rowGap, 0, 512, 'Row gap'),
+		justify: choice(
+			frame.justify,
+			['start', 'center', 'end', 'space-between'],
+			'frame distribution'
+		),
+		align: choice(frame.align, ['start', 'center', 'end', 'stretch'], 'frame alignment'),
+		wrap: frame.wrap as boolean,
+		clip: frame.clip as boolean,
+		elements: children.elements
+	};
+}
+export function validateSlide(
+	input: unknown,
+	itemTemplate = false,
+	depth = 0,
+	budget = { count: 0 }
+): SlideDefinition {
+	if (depth > 8) invalid('Use at most eight nested frame/template levels.');
 	const value = object(input);
 	if (value.schemaVersion !== 1) invalid('Unsupported slide version.');
 	const durationMs = number(value.durationMs, 1000, 600000, 'Duration in milliseconds');
@@ -127,6 +204,8 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 		invalid('Use at most 100 elements.');
 	const ids = new Set<string>();
 	const elements = (value.elements as unknown[]).map((raw): SlideElement => {
+		if (++budget.count > 500)
+			invalid('Use at most 500 elements including frame and template contents.');
 		const e = object(raw);
 		const id = text(e.id, 80, 'Element ID');
 		if (!/^[a-zA-Z0-9_-]+$/.test(id) || ids.has(id))
@@ -135,8 +214,8 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 		const type = choice(
 			e.type,
 			itemTemplate
-				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line']
-				: ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list'],
+				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame']
+				: ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list', 'frame'],
 			'element type'
 		);
 		const assetId = text(e.assetId, 24, 'Asset ID').toLowerCase();
@@ -165,7 +244,7 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 			...(type === 'list'
 				? {
 						dataSource: validateDataSource(e.dataSource, !e.repeater),
-						...(e.repeater ? { repeater: repeater(e.repeater, durationMs) } : {})
+						...(e.repeater ? { repeater: repeater(e.repeater, durationMs, depth, budget) } : {})
 					}
 				: {}),
 			...(itemTemplate && type === 'text' && e.binding
@@ -193,7 +272,23 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 							: invalid('Invalid font weight.')
 					}
 				: {}),
-			...(e.padding !== undefined ? { padding: number(e.padding, 0, 256, 'Text padding') } : {}),
+			...(e.padding !== undefined ? { padding: padding(e.padding) } : {}),
+			...(type === 'frame'
+				? {
+						frame: validateFrame(
+							e.frame,
+							e.width,
+							e.height,
+							durationMs,
+							itemTemplate,
+							depth,
+							budget
+						)
+					}
+				: {}),
+			...(e.layoutSizing !== undefined
+				? { layoutSizing: choice(e.layoutSizing, ['fixed', 'fill'] as const, 'layout sizing') }
+				: {}),
 			...(e.verticalAlign !== undefined
 				? {
 						verticalAlign: choice(
@@ -251,6 +346,11 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 			fit: choice(e.fit, ['contain', 'cover'], 'image fit')
 		};
 	});
+	const dataIds = allElements({ elements })
+		.filter((element) => element.type === 'list')
+		.map((element) => element.id);
+	if (new Set(dataIds).size !== dataIds.length)
+		invalid('Data elements need unique IDs across frames.');
 	if (
 		allElements({ elements }).filter(
 			(element) => element.type === 'image' || element.type === 'svg'
@@ -259,8 +359,18 @@ export function validateSlide(input: unknown, itemTemplate = false): SlideDefini
 		invalid('Use at most 20 media elements per slide.');
 	return {
 		schemaVersion: 1,
-		width: number(value.width, itemTemplate ? 1 : 320, 4096, 'Canvas width'),
-		height: number(value.height, itemTemplate ? 1 : 240, 4096, 'Canvas height'),
+		width: number(
+			value.width,
+			itemTemplate || depth ? 1 : 320,
+			depth ? 8192 : 4096,
+			'Canvas width'
+		),
+		height: number(
+			value.height,
+			itemTemplate || depth ? 1 : 240,
+			depth ? 8192 : 4096,
+			'Canvas height'
+		),
 		background: value.background === 'transparent' ? 'transparent' : color(value.background),
 		durationMs,
 		transitionIn: transition(value.transitionIn),

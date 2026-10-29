@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T13:46:10.608Z
+## 2026-10-29T14:32:33.721Z
+
+feat: Add frame layouts, padding controls, resize handles and asset library styling
+
+## 2026-10-29T09:49:08-04:00
 
 feat: Add confirmed asset deletion and shared asset moves
 

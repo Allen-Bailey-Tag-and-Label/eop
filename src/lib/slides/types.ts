@@ -1,4 +1,38 @@
-export type ElementType = 'text' | 'image' | 'svg' | 'rectangle' | 'ellipse' | 'line' | 'list';
+export type ElementType =
+	| 'text'
+	| 'image'
+	| 'svg'
+	| 'rectangle'
+	| 'ellipse'
+	| 'line'
+	| 'list'
+	| 'frame';
+export type ElementPadding =
+	| number
+	| { mode: 'axis'; x: number; y: number }
+	| { mode: 'sides'; top: number; right: number; bottom: number; left: number };
+export type FrameDefinition = {
+	layout: 'free' | 'row' | 'column' | 'grid';
+	columns: number;
+	columnGap: number;
+	rowGap: number;
+	justify: 'start' | 'center' | 'end' | 'space-between';
+	align: 'start' | 'center' | 'end' | 'stretch';
+	wrap: boolean;
+	clip: boolean;
+	elements: SlideElement[];
+};
+export const defaultFrame = (): FrameDefinition => ({
+	layout: 'free',
+	columns: 2,
+	columnGap: 16,
+	rowGap: 16,
+	justify: 'start',
+	align: 'start',
+	wrap: false,
+	clip: true,
+	elements: []
+});
 export type SlideDataSource = {
 	model: string;
 	filter: string;
@@ -86,7 +120,9 @@ export type SlideElement = Pose & {
 	borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
 	borderColor?: SlideColor;
 	backgroundColor?: SlideColor;
-	padding?: number;
+	padding?: ElementPadding;
+	frame?: FrameDefinition;
+	layoutSizing?: 'fixed' | 'fill';
 };
 export type SlideDefinition = {
 	schemaVersion: 1;
@@ -166,6 +202,7 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		align: 'left',
 		assetId: '',
 		fit: 'contain',
+		...(type === 'frame' ? { frame: defaultFrame(), text: 'Frame', color: 'transparent' } : {}),
 		keyframes: [],
 		...(type === 'list'
 			? {

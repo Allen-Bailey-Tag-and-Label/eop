@@ -51,5 +51,11 @@ describe('slide assets', () => {
 		vi.mocked(Slide.exists).mockResolvedValue(null);
 		await expect(serveAsset('a'.repeat(24), true)).rejects.toMatchObject({ status: 404 });
 		expect(Asset.findById).not.toHaveBeenCalled();
+		expect(Slide.exists).toHaveBeenCalledWith({
+			$or: expect.arrayContaining([
+				{ 'published.elements.frame.elements.assetId': 'a'.repeat(24) },
+				{ 'published.elements.repeater.template.elements.frame.elements.assetId': 'a'.repeat(24) }
+			])
+		});
 	});
 });

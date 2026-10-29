@@ -22,6 +22,50 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('renders nested frame content with CSS grid/flex layout and applies padding to images and frame content', async () => {
+		const frame = {
+			...newElement('frame', 'frame'),
+			width: 800,
+			height: 400,
+			padding: { mode: 'axis' as const, x: 12, y: 8 },
+			color: '#123456'
+		};
+		frame.frame!.layout = 'grid';
+		frame.frame!.columns = 2;
+		const child = {
+			...newElement('text', 'bound'),
+			text: 'Example',
+			binding: { field: 'label', format: 'text' as const, fallback: '' }
+		};
+		const image = {
+			...newElement('image', 'image'),
+			assetId: 'a'.repeat(24),
+			padding: { mode: 'sides' as const, top: 1, right: 2, bottom: 3, left: 4 }
+		};
+		frame.frame!.elements = [child, image];
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [frame] },
+			assetBase: '/assets',
+			row: { id: 'row', label: 'Bound nested text', detail: '' }
+		});
+		expect(view.getByText('Bound nested text')).toBeInTheDocument();
+		const outer = view.container.querySelector('[data-slide-element="frame"]')!;
+		expect(outer).toHaveStyle({ background: '#123456' });
+		expect(outer.querySelector('[data-canvas-root]')).toHaveStyle({
+			display: 'grid',
+			gridTemplateColumns: 'repeat(2,minmax(0,1fr))'
+		});
+		expect(outer.firstElementChild).toHaveStyle({ inset: '8px 12px 8px 12px' });
+		expect(
+			view.container.querySelector('[data-slide-element="image"]')!.firstElementChild
+		).toHaveStyle({ inset: '1px 2px 3px 4px' });
+		frame.frame!.layout = 'row';
+		await view.rerender({ definition: { ...blankSlide(), elements: [frame] } });
+		expect(outer.querySelector('[data-canvas-root]')).toHaveStyle({
+			display: 'flex',
+			flexDirection: 'row'
+		});
+	});
 	it('positions multiline text at the top, middle or bottom within its padded box', async () => {
 		const element = {
 			...newElement('text', 'aligned'),

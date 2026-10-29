@@ -10,6 +10,48 @@ import {
 } from './editor';
 
 describe('canvas editing', () => {
+	it('keeps the opposite edge or corner fixed for all eight resize handles, including rotated scaled objects', () => {
+		for (const handle of [
+			{ x: -1, y: -1 },
+			{ x: 0, y: -1 },
+			{ x: 1, y: -1 },
+			{ x: -1, y: 0 },
+			{ x: 1, y: 0 },
+			{ x: -1, y: 1 },
+			{ x: 0, y: 1 },
+			{ x: 1, y: 1 }
+		] as const) {
+			for (const rotation of [0, 37, 90]) {
+				const element = {
+					...newElement('rectangle', 'box'),
+					width: 100,
+					height: 80,
+					rotation,
+					scale: 1.5
+				};
+				const point = () => {
+					const x = (-handle.x * element.width) / 2,
+						y = (-handle.y * element.height) / 2,
+						r = (rotation * Math.PI) / 180;
+					return {
+						x: element.x + element.width / 2 + element.scale * (x * Math.cos(r) - y * Math.sin(r)),
+						y: element.y + element.height / 2 + element.scale * (x * Math.sin(r) + y * Math.cos(r))
+					};
+				};
+				const before = point();
+				resizeElement(
+					element,
+					{ width: handle.x ? 120 : 100, height: handle.y ? 110 : 80 },
+					rotation,
+					1.5,
+					undefined,
+					handle
+				);
+				expect(point().x).toBeCloseTo(before.x);
+				expect(point().y).toBeCloseTo(before.y);
+			}
+		}
+	});
 	it('inserts layers before or after a target without changing objects or the original order', () => {
 		const elements = ['a', 'b', 'c', 'd'].map((id) => newElement('text', id));
 		expect(reorderLayers(elements, 'a', 'c').map((element) => element.id)).toEqual([

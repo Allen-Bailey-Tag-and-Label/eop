@@ -1,5 +1,16 @@
 import type { SlideElement } from './types';
 import type { LayoutScales } from './layout';
+export type ResizeHandle = { x: -1 | 0 | 1; y: -1 | 0 | 1 };
+export const resizeHandles = [
+	{ x: -1, y: -1, name: 'top left', cursor: 'nwse-resize' },
+	{ x: 0, y: -1, name: 'top', cursor: 'ns-resize' },
+	{ x: 1, y: -1, name: 'top right', cursor: 'nesw-resize' },
+	{ x: -1, y: 0, name: 'left', cursor: 'ew-resize' },
+	{ x: 1, y: 0, name: 'right', cursor: 'ew-resize' },
+	{ x: -1, y: 1, name: 'bottom left', cursor: 'nesw-resize' },
+	{ x: 0, y: 1, name: 'bottom', cursor: 'ns-resize' },
+	{ x: 1, y: 1, name: 'bottom right', cursor: 'nwse-resize' }
+] as const;
 
 // Move the whole animation path, rather than changing a base pose that keyframes override.
 export function moveElement(element: SlideElement, dx: number, dy: number) {
@@ -48,16 +59,19 @@ export function resizeElement(
 	dimensions: { width: number; height: number },
 	rotation: number,
 	scale: number,
-	layout: LayoutScales = { positionScaleX: 1, positionScaleY: 1, sizeScaleX: 1, sizeScaleY: 1 }
+	layout: LayoutScales = { positionScaleX: 1, positionScaleY: 1, sizeScaleX: 1, sizeScaleY: 1 },
+	handle: ResizeHandle = { x: 1, y: 1 }
 ) {
 	const radians = (rotation * Math.PI) / 180;
 	const halfWidth = ((dimensions.width - element.width) * layout.sizeScaleX) / 2;
 	const halfHeight = ((dimensions.height - element.height) * layout.sizeScaleY) / 2;
 	moveElement(
 		element,
-		((scale * Math.cos(radians) - 1) * halfWidth - scale * Math.sin(radians) * halfHeight) /
+		((scale * Math.cos(radians) * handle.x - 1) * halfWidth -
+			scale * Math.sin(radians) * halfHeight * handle.y) /
 			Math.max(0.0001, layout.positionScaleX),
-		(scale * Math.sin(radians) * halfWidth + (scale * Math.cos(radians) - 1) * halfHeight) /
+		(scale * Math.sin(radians) * halfWidth * handle.x +
+			(scale * Math.cos(radians) * handle.y - 1) * halfHeight) /
 			Math.max(0.0001, layout.positionScaleY)
 	);
 	Object.assign(element, dimensions);

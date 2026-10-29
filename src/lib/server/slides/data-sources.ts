@@ -1,5 +1,5 @@
 import { blankSlide, newElement } from '$lib/slides/types';
-import { defaultRepeater } from '$lib/slides/repeater';
+import { defaultRepeater, allElements } from '$lib/slides/repeater';
 import type { Model, Schema } from 'mongoose';
 import type {
 	DataListResult,
@@ -174,7 +174,7 @@ export function createSlideDataResolver(now = new Date(), preview = false) {
 	return async (definition: SlideDefinition): Promise<SlideData> =>
 		Object.fromEntries(
 			await Promise.all(
-				definition.elements
+				allElements(definition)
 					.filter((element) => element.type === 'list')
 					.map(async (element) => {
 						let result: DataListResult;
@@ -209,8 +209,20 @@ export async function previewSlideData(input: unknown, now = new Date()): Promis
 		!Array.isArray((input as { elements?: unknown }).elements)
 	)
 		throw new SlideValidationError('Preview requires a slide with elements.');
-	const rawElements = (input as { elements: unknown[] }).elements;
-	if (rawElements.length > 100) throw new SlideValidationError('Use at most 100 elements.');
+	let count = 0;
+	const collect = (rows: unknown[], depth = 0): unknown[] => {
+		if (rows.length > 100)
+			throw new SlideValidationError('Use at most 100 elements per container.');
+		if (depth > 8) throw new SlideValidationError('Use at most eight nested frame levels.');
+		return rows.flatMap((raw) => {
+			if (++count > 500) throw new SlideValidationError('Use at most 500 elements.');
+			if (!raw || typeof raw !== 'object') return [raw];
+			const frame = (raw as { frame?: { elements?: unknown } }).frame;
+			return [raw, ...(Array.isArray(frame?.elements) ? collect(frame.elements, depth + 1) : [])];
+		});
+	};
+	const rawElements = collect((input as { elements: unknown[] }).elements);
+	if (rawElements.length > 500) throw new SlideValidationError('Use at most 500 elements.');
 	const ids = new Set<string>();
 	const elements = rawElements
 		.filter(

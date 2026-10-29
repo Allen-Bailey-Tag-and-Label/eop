@@ -165,6 +165,10 @@ uploads made while editing a repeater template. The asset selector starts on
 already used by the current slide also appear under This slide. **Assets** in the
 top toolbar opens the library with search and file preview links:
 
+The library uses Sveltewind Tabs (including arrow-key navigation) and the site's
+shared Card appearance. Asset actions stay in one row, scrolling horizontally
+when the available width is narrow.
+
 - **This slide:** add a local file to the canvas, **Share asset**, or select another
   saved slide as the **Copy destination** and create an independent copy there.
 - **Shared library:** add an intentionally reusable file, or copy it into a slide
@@ -282,6 +286,31 @@ The insertion marker shows where it will land; the top row is the frontmost laye
 With a layer focused, **Alt+Up/Down** moves it one position. The same controls
 reorder layers inside a repeater item template without changing the slide's layers.
 
+**Frames and auto layout:** use **Add → Frame**, name the frame, then choose
+**Edit frame contents** to add its child elements. Frames can contain other
+frames, text, images/SVGs, shapes, or data repeaters. A frame's controls offer
+Free positioning, Flex row, Flex column, and Grid layouts, with column count,
+horizontal/vertical gaps, distribution, alignment, wrapping, and clipping.
+Children in auto layouts offer Fixed size or Fill available space. Positions are
+managed by the layout; resize handles switch a filled child to fixed sizing.
+The Layers tab shows expandable frame hierarchies, with frontmost layers first.
+Select a nested layer to edit its frame; **Back to parent** returns one level.
+Use **Layer parent → Move into frame** or **Move out of frame** to reparent
+existing elements. Reorder siblings by dragging or using Alt+Up/Down; in auto
+layouts the top layer is also the first item. Frame transforms and animations
+apply to their children, while child animations remain editable.
+
+Every element has a **Padding** group. Uniform is the default; choose
+Horizontal / Vertical to edit X and Y padding, or Individual sides for separate
+top, right, bottom, and left values. Padding insets content while borders and
+backgrounds retain the outer bounds. Numeric padding in existing exports remains
+supported. Frames and repeater templates share the same padding controls.
+
+Selected elements expose eight resize handles in both selection and resize
+modes: all four corners and all four side midpoints. Opposite edges remain fixed
+for free-positioned elements, including rotated/scaled objects. Arrow keys on a
+handle resize the corresponding axes; Shift increases the step to ten units.
+
 **Object appearance and rotation:** select an element to edit its rotation in
 degrees, rotate left/right by 90?, or reset its visible angle. Drag the circular
 handle above the selected object to rotate on the canvas; hold Shift to snap to
@@ -294,7 +323,7 @@ All objects support **Border width**, solid/dashed/dotted/double **Border style*
 and fixed or light/dark **Border color**. Borders render inside the object bounds,
 without changing its size, grid spacing, or anchors. Border colors default to a
 light/dark contrast pair. Text boxes offer a transparent or colored **Text
-background**, including light/dark swatches, and optional **Text padding**.
+background**, including light/dark swatches, and the shared **Padding** settings.
 **Corner radius** applies to text, images/SVGs, and rectangles, clipping their
 contents to the rounded frame. These controls also apply to repeater item-template
 elements and are saved/exported with the slide. Existing objects remain borderless
@@ -367,7 +396,8 @@ slide.elements.push(headline);
 console.log(JSON.stringify(slide));
 ```
 
-V1 supports up to 100 elements (20 media elements) per slide, 100 keyframes per
+V1 supports up to 100 elements per container, 500 total across frames/templates,
+eight nested frame/template levels, 20 media elements per slide, and 100 keyframes per
 element, 100 entries per playlist, and 250 KB slide/playlist definitions. Scheduling
 by date/time, additional slide transition styles, custom live-data templates, asset deletion,
 and playlist deletion are future work.

@@ -54,6 +54,30 @@ afterEach(() => {
 	});
 });
 describe('canvas rotation controls', () => {
+	it('offers all eight resize handles in selection mode and resizes from the corresponding anchored edge', async () => {
+		const view = render(SlideWorkspace, {
+			definition: { ...blankSlide(), elements: [newElement('rectangle', 'shape')] },
+			selectedId: 'shape',
+			timeMs: 0,
+			tool: 'select',
+			zoom: 1,
+			resetView: 0,
+			viewportWidth: 1920,
+			viewportHeight: 1080,
+			onEdit: vi.fn()
+		});
+		expect(view.getAllByRole('button', { name: /^Resize selected element from / })).toHaveLength(8);
+		const left = view.getByRole('button', { name: 'Resize selected element from left' });
+		await fireEvent.keyDown(left, { key: 'ArrowLeft' });
+		const overlay = view.container.querySelector('[data-element-overlay="shape"]') as HTMLElement;
+		expect(overlay.style.transform).toContain('translate(1.59px,1.6px)');
+		expect(overlay.style.width).toBe('8.01px');
+		await fireEvent.keyDown(
+			view.getByRole('button', { name: 'Resize selected element from top' }),
+			{ key: 'ArrowUp' }
+		);
+		expect(overlay.style.transform).toContain('translate(1.59px,1.59px)');
+	});
 	it('rotates around the object center with pointer dragging, snapping, and keyboard control', async () => {
 		const element = newElement('rectangle', 'shape');
 		const definition = { ...blankSlide(), elements: [element] };

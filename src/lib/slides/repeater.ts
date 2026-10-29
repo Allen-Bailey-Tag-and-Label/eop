@@ -168,6 +168,7 @@ export function gridLayout(
 export function allElements(definition: Pick<SlideDefinition, 'elements'>): SlideElement[] {
 	return definition.elements.flatMap((element) => [
 		element,
-		...(element.repeater?.template.elements ?? [])
+		...allElements({ elements: element.frame?.elements ?? [] }),
+		...allElements({ elements: element.repeater?.template.elements ?? [] })
 	]);
 }

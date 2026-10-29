@@ -32,6 +32,19 @@ const query = (rows: unknown[]) => ({
 });
 beforeEach(() => vi.resetAllMocks());
 describe('generic slide data links', () => {
+	it('resolves and previews data links nested inside frames', async () => {
+		const rows = query([
+			{ _id: 'one', name: 'Nested holiday', date: new Date('2026-03-08T05:00:00Z') }
+		]);
+		vi.mocked(Holiday.find).mockReturnValue(rows as unknown as ReturnType<typeof Holiday.find>);
+		const frame = newElement('frame', 'frame');
+		frame.frame!.elements = [element()];
+		const definition = { ...blankSlide(), elements: [frame] };
+		expect((await createSlideDataResolver(now)(definition)).data.items[0].label).toBe(
+			'Nested holiday'
+		);
+		expect((await previewSlideData(definition, now)).data.items[0].label).toBe('Nested holiday');
+	});
 	it('previews valid links despite unfinished SVGs, templates, and other invalid links', async () => {
 		const rows = query([{ _id: 'one', name: 'Holiday', date: new Date('2026-03-08T05:00:00Z') }]);
 		vi.mocked(Holiday.find).mockReturnValue(rows as unknown as ReturnType<typeof Holiday.find>);

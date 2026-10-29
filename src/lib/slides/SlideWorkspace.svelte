@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, tick } from 'svelte';
 	import { Button, Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt, slideContentTime } from './timeline';
 	import { displayBackground, hasColorTransparency, resolveSlideColor } from './colors';
 	import {
 		moveElement,
-		resizeDimensions,
+		resizeHandles,
+		type ResizeHandle,
 		resizeDelta,
 		resizeElement,
 		rotateElement,
@@ -14,6 +15,7 @@
 	} from './editor';
 	import { elementLayout, type LayoutScales } from './layout';
 	import type { DataRow, ColorScheme, SlideData, SlideDefinition, SlideElement } from './types';
+	import type { FrameDefinition } from './types';
 	let {
 		definition = $bindable(),
 		selectedId = $bindable(''),
@@ -29,7 +31,8 @@
 		onEdit,
 		row,
 		rowIndex = 0,
-		timeZone = 'America/New_York'
+		timeZone = 'America/New_York',
+		flow
 	}: {
 		definition: SlideDefinition;
 		selectedId?: string;
@@ -46,8 +49,41 @@
 		row?: DataRow;
 		rowIndex?: number;
 		timeZone?: string;
+		flow?: FrameDefinition;
 	} = $props();
 	let workspace: HTMLDivElement;
+	let flowBoxes = $state<Record<string, { x: number; y: number; width: number; height: number }>>(
+		{}
+	);
+	$effect(() => {
+		if (!flow || flow.layout === 'free') {
+			flowBoxes = {};
+			return;
+		}
+		JSON.stringify(definition);
+		void scale;
+		void timeMs;
+		void tick().then(() => {
+			const root = workspace?.querySelector('[data-canvas-root]');
+			if (!root) return;
+			flowBoxes = Object.fromEntries(
+				Array.from(root.children)
+					.filter((node) => node.hasAttribute('data-slide-element'))
+					.map((node) => {
+						const item = node as HTMLElement;
+						return [
+							node.getAttribute('data-slide-element')!,
+							{
+								x: item.offsetLeft,
+								y: item.offsetTop,
+								width: item.clientWidth,
+								height: item.clientHeight
+							}
+						];
+					})
+			);
+		});
+	});
 	const elementTimeMs = $derived(
 		animateTransitions ? slideContentTime(definition, timeMs) : timeMs
 	);
@@ -69,6 +105,7 @@
 		| {
 				pointerId: number;
 				kind: 'pan' | 'move' | 'resize' | 'rotate';
+				handle: ResizeHandle;
 				x: number;
 				y: number;
 				startPanX: number;
@@ -92,10 +129,29 @@
 				panY = 0;
 			});
 	});
+	function fixFlowSize(element: SlideElement, layout: LayoutScales) {
+		if (!flow || flow.layout === 'free') return;
+		const root = workspace.querySelector('[data-canvas-root]');
+		const node = Array.from(root?.children ?? []).find(
+			(node) => node.getAttribute('data-slide-element') === element.id
+		) as HTMLElement | undefined;
+		if (node?.clientWidth && node?.clientHeight) {
+			element.width = Math.max(
+				1,
+				Math.min(8192, node.clientWidth / Math.max(0.0001, layout.sizeScaleX))
+			);
+			element.height = Math.max(
+				1,
+				Math.min(8192, node.clientHeight / Math.max(0.0001, layout.sizeScaleY))
+			);
+		}
+		element.layoutSizing = 'fixed';
+	}
 	function start(
 		event: PointerEvent,
 		element?: SlideElement,
-		mode: 'move' | 'resize' | 'rotate' = 'move'
+		mode: 'move' | 'resize' | 'rotate' = 'move',
+		handle: ResizeHandle = { x: 1, y: 1 }
 	) {
 		if (event.button !== 0) return;
 		if (tool !== 'pan' && !element) {
@@ -106,6 +162,7 @@
 		event.stopPropagation();
 		if (element) selectedId = element.id;
 		onEdit();
+		if (flow && flow.layout !== 'free' && mode === 'move' && tool !== 'pan') return;
 		const pose = element ? poseAt(element, elementTimeMs) : null;
 		const layout =
 			element && pose
@@ -114,10 +171,12 @@
 		const bounds = (event.currentTarget as HTMLElement)
 			.closest('[data-element-overlay]')
 			?.getBoundingClientRect();
+		if (element && mode === 'resize') fixFlowSize(element, layout);
 		const centerX = bounds ? bounds.left + bounds.width / 2 : 0;
 		const centerY = bounds ? bounds.top + bounds.height / 2 : 0;
 		gesture = {
 			pointerId: event.pointerId,
+			handle,
 			kind: tool === 'pan' ? 'pan' : mode,
 			x: event.clientX,
 			y: event.clientY,
@@ -170,20 +229,23 @@
 						1,
 						Math.min(
 							8192,
-							gesture.width + delta.width / Math.max(0.0001, gesture.layout.sizeScaleX)
+							gesture.width +
+								(delta.width * gesture.handle.x) / Math.max(0.0001, gesture.layout.sizeScaleX)
 						)
 					),
 					height: Math.max(
 						1,
 						Math.min(
 							8192,
-							gesture.height + delta.height / Math.max(0.0001, gesture.layout.sizeScaleY)
+							gesture.height +
+								(delta.height * gesture.handle.y) / Math.max(0.0001, gesture.layout.sizeScaleY)
 						)
 					)
 				},
 				gesture.rotation,
 				gesture.scale,
-				gesture.layout
+				gesture.layout,
+				gesture.handle
 			);
 		}
 	}
@@ -195,6 +257,7 @@
 		dragging = false;
 	}
 	function nudge(event: KeyboardEvent, element: SlideElement) {
+		if (flow && flow.layout !== 'free' && tool !== 'pan') return;
 		const vectors: Record<string, [number, number]> = {
 			ArrowLeft: [-1, 0],
 			ArrowRight: [1, 0],
@@ -216,7 +279,7 @@
 			vector[1] * (event.shiftKey ? 10 : 1)
 		);
 	}
-	function keyboardResize(event: KeyboardEvent, element: SlideElement) {
+	function keyboardResize(event: KeyboardEvent, element: SlideElement, handle: ResizeHandle) {
 		const vectors: Record<string, [number, number]> = {
 			ArrowLeft: [-1, 0],
 			ArrowRight: [1, 0],
@@ -229,12 +292,17 @@
 		onEdit();
 		const step = event.shiftKey ? 10 : 1;
 		const pose = poseAt(element, elementTimeMs);
+		fixFlowSize(element, elementLayout(definition, element, pose, viewportWidth, viewportHeight));
 		resizeElement(
 			element,
-			resizeDimensions(element.width, element.height, vector[0] * step, vector[1] * step, 0, 1),
+			{
+				width: Math.max(1, Math.min(8192, element.width + vector[0] * step * handle.x)),
+				height: Math.max(1, Math.min(8192, element.height + vector[1] * step * handle.y))
+			},
 			pose.rotation,
 			pose.scale,
-			elementLayout(definition, element, pose, viewportWidth, viewportHeight)
+			elementLayout(definition, element, pose, viewportWidth, viewportHeight),
+			handle
 		);
 	}
 </script>
@@ -257,6 +325,8 @@
 		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));background:${hasColorTransparency(resolveSlideColor(definition.background, scheme)) ? `repeating-conic-gradient(${scheme === 'dark' ? '#1f2937 0% 25%,#374151' : '#e5e7eb 0% 25%,#f3f4f6'} 0% 50%) 0 0 / 20px 20px` : displayBackground(scheme)};`}
 	>
 		<SlideCanvas
+			{flow}
+			clip={flow?.clip ?? true}
 			{definition}
 			{timeMs}
 			{animateTransitions}
@@ -273,10 +343,13 @@
 			{#each definition.elements as element, index (element.id)}
 				{@const pose = poseAt(element, elementTimeMs)}
 				{@const box = elementLayout(definition, element, pose, viewportWidth, viewportHeight)}
+				{@const flowBox = flow && flow.layout !== 'free' ? flowBoxes[element.id] : undefined}
 				<Div
 					class="absolute"
 					data-element-overlay={element.id}
-					style={`left:0;top:0;width:${box.width * scale}px;height:${box.height * scale}px;transform:translate(${box.x * scale}px,${box.y * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`}
+					style={flowBox
+						? `left:0;top:0;width:${flowBox.width * scale}px;height:${flowBox.height * scale}px;transform:translate(${(flowBox.x + box.x - elementLayout(definition, element, element, viewportWidth, viewportHeight).x) * scale}px,${(flowBox.y + box.y - elementLayout(definition, element, element, viewportWidth, viewportHeight).y) * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`
+						: `left:0;top:0;width:${box.width * scale}px;height:${box.height * scale}px;transform:translate(${box.x * scale}px,${box.y * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`}
 				>
 					<Button
 						aria-label={`Select element ${index + 1}: ${element.type}`}
@@ -310,14 +383,18 @@
 							}}
 						/>
 					{/if}
-					{#if selectedId === element.id && tool === 'resize'}
-						<Button
-							aria-label="Resize selected element"
-							variants={['ghost']}
-							class="pointer-events-auto absolute -right-2 -bottom-2 h-4 w-4 cursor-nwse-resize rounded-sm border-2 border-white bg-sky-500 p-0 shadow-none"
-							onpointerdown={(event) => start(event, element, 'resize')}
-							onkeydown={(event) => keyboardResize(event, element)}
-						/>
+					{#if selectedId === element.id && tool !== 'pan'}
+						{#each resizeHandles as handle (handle.name)}
+							<Button
+								aria-label={`Resize selected element from ${handle.name}`}
+								title={`Resize from ${handle.name}`}
+								variants={['ghost']}
+								class="pointer-events-auto absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-white bg-sky-500 p-0 shadow-none backdrop-blur-none"
+								style={`left:${(handle.x + 1) * 50}%;top:${(handle.y + 1) * 50}%;cursor:${handle.cursor};`}
+								onpointerdown={(event) => start(event, element, 'resize', handle)}
+								onkeydown={(event) => keyboardResize(event, element, handle)}
+							/>
+						{/each}
 					{/if}
 				</Div>
 			{/each}

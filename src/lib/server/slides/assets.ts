@@ -80,10 +80,7 @@ export async function serveAsset(id: string, publishedOnly = false) {
 	if (
 		publishedOnly &&
 		!(await Slide.exists({
-			$or: [
-				{ 'published.elements.assetId': id },
-				{ 'published.elements.repeater.template.elements.assetId': id }
-			]
+			$or: assetReferencePaths('published.elements').map((path) => ({ [path]: id }))
 		}))
 	)
 		error(404, 'Asset not found.');
@@ -98,3 +95,5 @@ export async function serveAsset(id: string, publishedOnly = false) {
 		}
 	});
 }
+
+import { assetReferencePaths } from '$lib/slides/frames';

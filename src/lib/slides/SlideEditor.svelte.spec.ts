@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import SlideEditor from './SlideEditor.svelte';
 import { blankSlide, newElement } from './types';
+import { validateSlide } from './validation';
 
 vi.mock('$app/forms', () => ({
 	enhance: vi.fn(() => ({ destroy: vi.fn() })),
@@ -25,6 +26,87 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('authors grid frames with nested layers, axis padding and individual child padding, then saves the whole hierarchy', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add frame' }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'Frame name' }), {
+			target: { value: 'Cards' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'Frame layout' }), {
+			target: { value: 'grid' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'Padding mode' }), {
+			target: { value: 'axis' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Horizontal padding' }), {
+			target: { value: '12' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Vertical padding' }), {
+			target: { value: '8' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Edit frame contents' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'Element text' }), {
+			target: { value: 'Inside' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'Padding mode' }), {
+			target: { value: 'sides' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Left padding' }), {
+			target: { value: '6' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Back to parent' }));
+		const saved = definition();
+		expect(saved.elements[0]).toMatchObject({
+			type: 'frame',
+			text: 'Cards',
+			padding: { mode: 'axis', x: 12, y: 8 },
+			frame: {
+				layout: 'grid',
+				elements: [{ text: 'Inside', layoutSizing: 'fill', padding: { mode: 'sides', left: 6 } }]
+			}
+		});
+		expect(validateSlide(saved)).toEqual(saved);
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		expect(view.getByRole('button', { name: 'Layer 1: frame: Cards' })).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Layer 1: text: Inside' }));
+		expect(view.getByLabelText('Frame editing')).toHaveTextContent('Cards');
+	});
+	it('moves existing objects into and out of a frame without dropping their content', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		const child = definition().elements[0];
+		await fireEvent.click(view.getByRole('button', { name: 'Add frame' }));
+		const frameId = definition().elements[1].id;
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Layer 2: text: Your text here' }));
+		await fireEvent.click(view.getByRole('button', { name: 'properties' }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Move into frame' }), {
+			target: { value: frameId }
+		});
+		expect(definition().elements).toHaveLength(1);
+		expect(definition().elements[0].frame.elements[0].id).toBe(child.id);
+		await fireEvent.click(view.getByRole('button', { name: 'Move out of frame' }));
+		expect(definition().elements[1]).toEqual(child);
+	});
 	it('edits opacity for text, borders, text backgrounds and slide backgrounds without losing RGB or theme variants', async () => {
 		const view = render(SlideEditor, {
 			data: {
@@ -495,7 +577,7 @@ describe('slide authoring', () => {
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Corner radius' }), {
 			target: { value: '24' }
 		});
-		await fireEvent.input(view.getByRole('spinbutton', { name: 'Text padding' }), {
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Padding' }), {
 			target: { value: '12' }
 		});
 		expect(definition().elements[0]).toMatchObject({
@@ -824,10 +906,13 @@ describe('slide authoring', () => {
 		expect(saved.elements[0].x).toBe(170);
 		expect(saved.elements[0].keyframes[0].x).toBe(210);
 		await fireEvent.click(getByRole('button', { name: 'Resize tool' }));
-		await fireEvent.keyDown(getByRole('button', { name: 'Resize selected element' }), {
-			key: 'ArrowRight',
-			shiftKey: true
-		});
+		await fireEvent.keyDown(
+			getByRole('button', { name: 'Resize selected element from bottom right' }),
+			{
+				key: 'ArrowRight',
+				shiftKey: true
+			}
+		);
 		saved = JSON.parse(
 			(container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);

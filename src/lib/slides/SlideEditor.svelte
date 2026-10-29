@@ -41,12 +41,17 @@
 		AlignVerticalJustifyCenter,
 		AlignVerticalJustifyEnd,
 		BringToFront,
-		GripVertical,
+		Frame,
 		Database
 	} from '@lucide/svelte';
 	import { A, Button, Div, Form, H1, H2, Input, Modal, P, Select, Textarea } from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
 	import AddElementMenu from './AddElementMenu.svelte';
+	import PaddingEditor from './PaddingEditor.svelte';
+	import FrameSettings from './FrameSettings.svelte';
+	import LayerTree from './LayerTree.svelte';
+	import { frameAt, frameSlide, reparentElement } from './frames';
+
 	import ColorField from './ColorField.svelte';
 	import InspectorInput from './InspectorInput.svelte';
 	import InspectorSection from './InspectorSection.svelte';
@@ -67,7 +72,7 @@
 		type SlideData
 	} from './types';
 	import { parseJson, validateSlide } from './validation';
-	import { rotateElement, reorderLayers } from './editor';
+	import { moveElement, rotateElement, reorderLayers } from './editor';
 	import { withResponsiveDefaults } from './layout';
 	import { poseAt, slideContentTime, slideTiming } from './timeline';
 	let {
@@ -123,10 +128,13 @@
 	let editingRepeaterId = $state('');
 	let previewRow = $state(0);
 	const editingRepeater = $derived(
-		draft.elements.find((element) => element.id === editingRepeaterId && element.repeater)
+		allElements(draft).find((element) => element.id === editingRepeaterId && element.repeater)
 	);
-	const activeElements = $derived(editingRepeater?.repeater?.template.elements ?? draft.elements);
-	const layers = $derived([...activeElements].reverse());
+	const rootElements = $derived(editingRepeater?.repeater?.template.elements ?? draft.elements);
+	let framePath = $state<string[]>([]);
+	let repeaterReturnPath: string[] = [];
+	const editingFrame = $derived(frameAt(rootElements, framePath));
+	const activeElements = $derived(editingFrame?.frame?.elements ?? rootElements);
 	const selected = $derived(activeElements.find((element) => element.id === selectedId));
 	const contentLabel = $derived(
 		selected?.type === 'text'
@@ -143,7 +151,11 @@
 			: 'Element text'
 	);
 	const workingDefinition = $derived(
-		editingRepeater?.repeater ? templateSlide(editingRepeater.repeater, draft.durationMs) : draft
+		editingFrame
+			? frameSlide(editingFrame, draft.durationMs)
+			: editingRepeater?.repeater
+				? templateSlide(editingRepeater.repeater, draft.durationMs)
+				: draft
 	);
 	const templateRows = $derived(slideData[editingRepeaterId]?.items ?? []);
 	const currentRow = $derived(
@@ -154,67 +166,102 @@
 		}
 	);
 	function setElements(elements: SlideElement[]) {
-		if (editingRepeater?.repeater) editingRepeater.repeater.template.elements = elements;
+		if (editingFrame?.frame) editingFrame.frame.elements = elements;
+		else if (editingRepeater?.repeater) editingRepeater.repeater.template.elements = elements;
 		else draft.elements = elements;
 	}
-	let draggedLayerId = $state('');
-	let layerDropTarget = $state<{ id: string; after: boolean } | null>(null);
-	let layerDragContext = '';
+
 	let layerAnnouncement = $state('');
-	function clearLayerDrag() {
-		draggedLayerId = '';
-		layerDropTarget = null;
-		layerDragContext = '';
-	}
-	function startLayerDrag(event: DragEvent, id: string) {
-		draggedLayerId = id;
-		layerDragContext = editingRepeaterId;
-		selectedId = id;
-		playing = false;
-		if (event.dataTransfer) {
-			event.dataTransfer.effectAllowed = 'move';
-			event.dataTransfer.setData('text/plain', id);
+	function selectLayer(id: string, path: string[]) {
+		if (JSON.stringify(framePath) !== JSON.stringify(path)) {
+			framePath = [...path];
+			fitView();
 		}
-	}
-	function hoverLayer(event: DragEvent, id: string) {
-		if (!draggedLayerId || layerDragContext !== editingRepeaterId) return;
-		event.preventDefault();
-		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-		layerDropTarget = { id, after: event.clientY >= bounds.top + bounds.height / 2 };
-	}
-	function reorderLayer(id: string, targetId: string, after: boolean) {
-		// The panel is front-to-back; saved elements render back-to-front.
-		const reordered = reorderLayers(activeElements, id, targetId, !after);
-		if (reordered === activeElements) return;
-		setElements(reordered);
 		selectedId = id;
 		playing = false;
-		layerAnnouncement = `Moved ${reordered.find((element) => element.id === id)?.text.slice(0, 32) || 'layer'} to position ${reordered.length - reordered.findIndex((element) => element.id === id)} of ${reordered.length}.`;
 	}
-	function dropLayer(event: DragEvent, id: string) {
-		if (!draggedLayerId || layerDragContext !== editingRepeaterId) {
-			clearLayerDrag();
+	function reorderAt(path: string[], id: string, target: string, after: boolean) {
+		const parent = frameAt(rootElements, path);
+		const elements = parent?.frame?.elements ?? rootElements;
+		const reordered = reorderLayers(elements, id, target, !after);
+		if (reordered === elements) return;
+		if (parent?.frame) parent.frame.elements = reordered;
+		else if (editingRepeater?.repeater) editingRepeater.repeater.template.elements = reordered;
+		else draft.elements = reordered;
+		selectLayer(id, path);
+		layerAnnouncement =
+			'Moved layer to position ' +
+			(reordered.length - reordered.findIndex((element) => element.id === id)) +
+			' of ' +
+			reordered.length +
+			'.';
+	}
+	function enterFrame(element = selected) {
+		if (!element?.frame) return;
+		framePath = [...framePath, element.id];
+		selectedId = '';
+		playing = false;
+		fitView();
+	}
+	function leaveFrame() {
+		const id = framePath.at(-1) ?? '';
+		framePath = framePath.slice(0, -1);
+		selectedId = id;
+		playing = false;
+		fitView();
+	}
+	function moveIntoFrame(id: string) {
+		const child = selected,
+			parent = activeElements.find((element) => element.id === id && element.frame);
+		if (!child || !parent?.frame || child === parent) return;
+		if (parent.frame.elements.some((element) => element.id === child.id)) {
+			localError =
+				'The destination frame already contains a layer with this ID. Choose a different destination.';
 			return;
 		}
-		event.preventDefault();
-		event.stopPropagation();
-		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-		reorderLayer(draggedLayerId, id, event.clientY >= bounds.top + bounds.height / 2);
-		clearLayerDrag();
+
+		setElements(activeElements.filter((element) => element !== child));
+		reparentElement(child, parent, true);
+		parent.frame.elements.push(child);
+		enterFrame(parent);
+		selectedId = child.id;
 	}
-	function layerKeydown(event: KeyboardEvent, id: string) {
-		if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
-		event.preventDefault();
-		const index = layers.findIndex((element) => element.id === id);
-		const next = index + (event.key === 'ArrowUp' ? -1 : 1);
-		if (next >= 0 && next < layers.length)
-			reorderLayer(id, layers[next].id, event.key === 'ArrowDown');
+	function moveOutOfFrame() {
+		const child = selected,
+			parent = editingFrame;
+		if (!child || !parent?.frame) return;
+		const destination = frameAt(rootElements, framePath.slice(0, -1));
+		const destinationElements = destination?.frame?.elements ?? rootElements;
+		if (destinationElements.some((element) => element.id === child.id)) {
+			localError =
+				'The parent already contains a layer with this ID. Choose a different destination.';
+			return;
+		}
+		if (parent.frame.layout !== 'free') {
+			const root = document.querySelector('[aria-label="Slide workspace"] [data-canvas-root]');
+			const node = Array.from(root?.children ?? []).find(
+				(node) => node.getAttribute('data-slide-element') === child.id
+			) as HTMLElement | undefined;
+			if (node?.clientWidth && node?.clientHeight) {
+				moveElement(child, node.offsetLeft - child.x, node.offsetTop - child.y);
+				child.width = parseFloat(getComputedStyle(node).width) || node.clientWidth;
+				child.height = parseFloat(getComputedStyle(node).height) || node.clientHeight;
+				child.layoutSizing = 'fixed';
+			}
+		}
+		parent.frame.elements = parent.frame.elements.filter((element) => element !== child);
+
+		reparentElement(child, parent, false);
+		destinationElements.push(child);
+		leaveFrame();
+		selectedId = child.id;
 	}
 	function editTemplate() {
 		const parent = selected;
 		if (!parent?.repeater) return;
 		const child = parent.repeater.template.elements.find((element) => element.type === 'text');
+		repeaterReturnPath = [...framePath];
+		framePath = [];
 		editingRepeaterId = parent.id;
 		selectedId = child?.id ?? '';
 		previewRow = 0;
@@ -225,6 +272,7 @@
 	function leaveTemplate() {
 		const parent = editingRepeaterId;
 		editingRepeaterId = '';
+		framePath = repeaterReturnPath;
 		selectedId = parent;
 		playing = false;
 		fitView();
@@ -253,10 +301,10 @@
 		portrait: { width: 1080, height: 1920 }
 	};
 	const viewport = $derived(
-		editingRepeater?.repeater
+		editingFrame || editingRepeater?.repeater
 			? {
-					width: editingRepeater.repeater.template.width,
-					height: editingRepeater.repeater.template.height
+					width: workingDefinition.width,
+					height: workingDefinition.height
 				}
 			: (previewSizes[previewPreset] ?? { width: draft.width, height: draft.height })
 	);
@@ -289,7 +337,8 @@
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
 		{ type: 'line', label: 'Line', icon: Minus },
-		{ type: 'list', label: 'Repeater', icon: Database }
+		{ type: 'list', label: 'Repeater', icon: Database },
+		{ type: 'frame', label: 'Frame', icon: Frame }
 	] as const;
 	const availableTools = $derived(
 		editingRepeater ? elementTools.filter((item) => item.type !== 'list') : elementTools
@@ -328,12 +377,16 @@
 			element.repeater = defaultRepeater();
 			element.text = 'Repeater';
 		}
-		if (editingRepeater?.repeater) {
+		if (editingFrame || editingRepeater?.repeater) {
 			element.x = 20;
 			element.y = 20;
-			element.width = Math.max(1, editingRepeater.repeater.template.width - 40);
-			element.height = Math.min(80, editingRepeater.repeater.template.height);
+			element.width = Math.max(1, workingDefinition.width - 40);
+			element.height = Math.min(type === 'frame' ? 300 : 80, workingDefinition.height);
 			element.fontSize = 32;
+		}
+		if (editingFrame?.frame && editingFrame.frame.layout !== 'free') {
+			element.layoutSizing = 'fill';
+			element.width = workingDefinition.width;
 		}
 		activeElements.push(element);
 		selectedId = element.id;
@@ -369,6 +422,8 @@
 	function importJson() {
 		try {
 			draft = validateSlide(parseJson(json));
+			framePath = [];
+			repeaterReturnPath = [];
 			editingRepeaterId = '';
 			selectedId = '';
 			playing = false;
@@ -470,7 +525,7 @@
 	});
 	const dataSourceSignature = $derived(
 		JSON.stringify(
-			draft.elements
+			allElements(draft)
 				.filter((element) => element.type === 'list')
 				.map(({ id, dataSource, repeater }) => ({ id, dataSource, templateMode: !!repeater }))
 		)
@@ -693,6 +748,16 @@
 			/>
 		</Div>
 	{/if}
+	{#if editingFrame}
+		<Div
+			class="flex shrink-0 items-center gap-3 border-b border-current/15 px-3 py-2"
+			aria-label="Frame editing"
+		>
+			<Button onclick={leaveFrame}>Back to parent</Button><P class="text-sm font-semibold"
+				>Editing frame: {editingFrame.text}</P
+			>
+		</Div>
+	{/if}
 	<Div class="relative flex min-h-0 flex-1 overflow-hidden">
 		<Div
 			class="z-1 flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-slate-300 py-2 dark:border-gray-700"
@@ -749,11 +814,12 @@
 		</Div>
 		<Div class="relative min-h-0 min-w-0 flex-1">
 			<SlideWorkspace
+				flow={editingFrame?.frame}
 				definition={workingDefinition}
 				bind:selectedId
-				timeMs={editingRepeater ? contentTimeMs : timeMs}
+				timeMs={editingRepeater || editingFrame ? contentTimeMs : timeMs}
 				{tool}
-				animateTransitions={!editingRepeater && (playing || timeMs > 0)}
+				animateTransitions={!editingRepeater && !editingFrame && (playing || timeMs > 0)}
 				scheme={previewScheme}
 				data={slideData}
 				row={editingRepeater ? currentRow : undefined}
@@ -777,7 +843,7 @@
 					>{tool === 'pan'
 						? 'Drag to pan the canvas'
 						: tool === 'resize'
-							? 'Select an element, then drag its corner handle'
+							? 'Drag any corner or side handle to resize'
 							: 'Drag elements to move · Arrow keys to nudge'}</span
 				></Div
 			>
@@ -813,27 +879,13 @@
 							layer.</P
 						>
 						<P role="status" aria-live="polite" class="sr-only">{layerAnnouncement}</P>
-						{#each layers as element, index (element.id)}
-							<Button
-								draggable="true"
-								aria-label={`Layer ${index + 1}: ${element.type}: ${element.text.slice(0, 32)}`}
-								aria-describedby={`${uid}-layer-help`}
-								aria-pressed={selectedId === element.id}
-								variants={selectedId === element.id ? [] : ['ghost']}
-								class={`flex w-full min-w-0 cursor-grab items-center justify-start gap-1.5 rounded border-y-2 border-transparent px-2 py-1 text-left text-xs active:cursor-grabbing ${draggedLayerId === element.id ? 'opacity-50' : ''} ${layerDropTarget?.id === element.id && draggedLayerId !== element.id ? (layerDropTarget.after ? 'border-b-sky-500' : 'border-t-sky-500') : ''}`}
-								onclick={() => (selectedId = element.id)}
-								ondragstart={(event) => startLayerDrag(event, element.id)}
-								ondragover={(event) => hoverLayer(event, element.id)}
-								ondrop={(event) => dropLayer(event, element.id)}
-								ondragend={clearLayerDrag}
-								onkeydown={(event) => layerKeydown(event, element.id)}
-							>
-								<GripVertical size={13} aria-hidden="true" class="shrink-0 opacity-50" /><span
-									class="min-w-0 truncate"
-									>{index + 1}. {element.type}: {element.text.slice(0, 32)}</span
-								>
-							</Button>
-						{/each}
+						<LayerTree
+							elements={rootElements}
+							selectedPath={framePath}
+							{selectedId}
+							onSelect={selectLayer}
+							onReorder={reorderAt}
+						/>
 						{#if !activeElements.length}<P class="text-sm opacity-60"
 								>Use Add or the left rail to create your first element.</P
 							>{/if}
@@ -860,6 +912,11 @@
 							<Div class="grid grid-cols-2 gap-2">
 								{#each geometry as field (field)}<InspectorInput
 										label={field}
+										disabled={Boolean(
+											editingFrame?.frame &&
+												editingFrame.frame.layout !== 'free' &&
+												(field === 'x' || field === 'y')
+										)}
 										prefix={{ x: 'X', y: 'Y', width: 'W', height: 'H' }[field]}
 										type="number"
 										step={0.1}
@@ -947,7 +1004,7 @@
 										if (selected) selected.opacity = Number(event.currentTarget.value) / 100;
 									}}
 								/>
-								{#if ['text', 'image', 'svg', 'rectangle'].includes(selected.type)}<InspectorInput
+								{#if ['text', 'image', 'svg', 'rectangle', 'frame'].includes(selected.type)}<InspectorInput
 										label="Corner radius"
 										prefix="R"
 										type="number"
@@ -958,19 +1015,50 @@
 											if (selected) selected.borderRadius = Number(event.currentTarget.value);
 										}}
 									/>{/if}
-								{#if selected.type === 'text'}<InspectorInput
-										label="Text padding"
-										prefix="Pad"
-										type="number"
-										min={0}
-										max={256}
-										value={String(selected.padding ?? 0)}
-										oninput={(event) => {
-											if (selected) selected.padding = Number(event.currentTarget.value);
-										}}
-									/>{/if}
 							</Div>
 						</InspectorSection>
+						<InspectorSection title="Padding" open
+							><PaddingEditor bind:value={selected.padding} /></InspectorSection
+						>
+						<InspectorSection title="Layer parent">
+							<Select
+								aria-label="Move into frame"
+								value=""
+								options={[
+									{ value: '', label: 'Move into frame…' },
+									...activeElements
+										.filter((item) => item.frame && item.id !== selected.id)
+										.map((item) => ({ value: item.id, label: item.text || 'Frame' }))
+								]}
+								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+									if (event.currentTarget.value) moveIntoFrame(event.currentTarget.value);
+								}}
+							/>
+							{#if editingFrame}<Button onclick={moveOutOfFrame}>Move out of frame</Button>{/if}
+						</InspectorSection>
+						{#if editingFrame?.frame && editingFrame.frame.layout !== 'free'}
+							<Select
+								label="Layout sizing"
+								aria-label="Layout sizing"
+								value={selected.layoutSizing ??
+									(editingFrame.frame.layout === 'grid' ? 'fill' : 'fixed')}
+								options={[
+									{ value: 'fixed', label: 'Fixed size' },
+									{ value: 'fill', label: 'Fill available space' }
+								]}
+								onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+									if (selected)
+										selected.layoutSizing = event.currentTarget.value as 'fixed' | 'fill';
+								}}
+							/>
+						{/if}
+						{#if selected.frame}
+							<InspectorSection title="Frame" open>
+								<Input label="Name" aria-label="Frame name" bind:value={selected.text} />
+								<Button onclick={() => enterFrame()}>Edit frame contents</Button>
+								<FrameSettings bind:settings={selected.frame} />
+							</InspectorSection>
+						{/if}
 						{#if selected.type === 'text' || (selected.type === 'list' && !selected.repeater)}
 							<InspectorSection title="Typography" open>
 								<Textarea

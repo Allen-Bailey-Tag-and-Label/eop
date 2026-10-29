@@ -1,13 +1,19 @@
 import { Types } from 'mongoose';
 import { Asset, Slide } from './models';
 import { allElements } from '$lib/slides/repeater';
+import { assetReferencePaths } from '$lib/slides/frames';
 import type { AssetSummary, SlideDefinition } from '$lib/slides/types';
 import { isId, SlideValidationError } from '$lib/slides/validation';
 
 export async function assetReferences() {
 	const slides = await Slide.find()
 		.select(
-			'slug title draft.elements.assetId draft.elements.repeater.template.elements.assetId published.elements.assetId published.elements.repeater.template.elements.assetId'
+			[
+				'slug',
+				'title',
+				...assetReferencePaths('draft.elements'),
+				...assetReferencePaths('published.elements')
+			].join(' ')
 		)
 		.lean();
 	const uses = new Map<string, Set<string>>();
