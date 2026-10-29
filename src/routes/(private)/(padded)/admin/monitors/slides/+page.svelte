@@ -45,7 +45,11 @@
 
 <Div class="space-y-6"
 	><Div class="flex flex-wrap items-center justify-between gap-4"
-		><H1>Monitor slides</H1><A href="/admin/monitors/slides/new">Create slide</A></Div
+		><H1>Monitor slides</H1><A
+			href="/admin/monitors/slides/new"
+			class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
+			>Create slide</A
+		></Div
 	>
 	<P>Create drafts, preview animation, and publish slides before adding them to a playlist.</P>
 	{#if !isDeleteOpen && form?.error}<P role="alert" class="text-red-600 dark:text-red-400"

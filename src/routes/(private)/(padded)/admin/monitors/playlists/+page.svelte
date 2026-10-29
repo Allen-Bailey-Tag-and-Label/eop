@@ -45,7 +45,11 @@
 
 <Div class="space-y-6"
 	><Div class="flex flex-wrap items-center justify-between gap-4"
-		><H1>Monitor playlists</H1><A href="/admin/monitors/playlists/new">Create playlist</A></Div
+		><H1>Monitor playlists</H1><A
+			href="/admin/monitors/playlists/new"
+			class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
+			>Create playlist</A
+		></Div
 	>
 	<P
 		>Choose slide order and durations, publish, then assign a playlist to a monitor in Monitor

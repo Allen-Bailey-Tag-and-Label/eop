@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { theme } from '$lib/theme';
+	import { twMerge } from 'tailwind-merge';
 	import { A, Button, Card, Checkbox, Div, Form, H1, Input, P, Select } from '$lib/components';
 	import type { ContentEditor, PlaylistDefinition } from './types';
 	let {
@@ -26,6 +28,7 @@
 <Div class="space-y-6">
 	<Div class="flex flex-wrap items-center justify-between gap-4"
 		><H1>{data.playlist.id ? 'Edit playlist' : 'New playlist'}</H1><A
+			class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
 			href="/admin/monitors/playlists">All playlists</A
 		></Div
 	>

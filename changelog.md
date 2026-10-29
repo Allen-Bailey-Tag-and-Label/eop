@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T17:44:29.178Z
+## 2026-10-29T18:36:09.683Z
+
+fix: Style monitor slide and playlist navigation links as buttons
+
+## 2026-10-29T14:18:00-04:00
 
 feat: Add playlist actions, QR codes, visibility rules and playback controls
 
