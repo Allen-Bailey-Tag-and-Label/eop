@@ -3,7 +3,7 @@
 	import { Button, Div } from '$lib/components';
 	import { RotateCw } from '@lucide/svelte';
 	import SlideCanvas from './SlideCanvas.svelte';
-	import { poseAt, slideContentTime } from './timeline';
+	import { poseAt } from './timeline';
 	import { displayBackground, hasColorTransparency, resolveSlideColor } from './colors';
 	import {
 		moveElement,
@@ -21,7 +21,6 @@
 		definition = $bindable(),
 		selectedId = $bindable(''),
 		timeMs,
-		animateTransitions = false,
 		scheme = 'dark',
 		data = {},
 		tool,
@@ -38,7 +37,6 @@
 		definition: SlideDefinition;
 		selectedId?: string;
 		timeMs: number;
-		animateTransitions?: boolean;
 		scheme?: ColorScheme;
 		data?: SlideData;
 		tool: 'select' | 'pan' | 'resize';
@@ -85,9 +83,7 @@
 			);
 		});
 	});
-	const elementTimeMs = $derived(
-		animateTransitions ? slideContentTime(definition, timeMs) : timeMs
-	);
+	const elementTimeMs = $derived(timeMs);
 	let width = $state(0);
 	let height = $state(0);
 	let panX = $state(0);
@@ -330,7 +326,6 @@
 			clip={flow?.clip ?? true}
 			{definition}
 			{timeMs}
-			{animateTransitions}
 			{scheme}
 			{data}
 			{row}

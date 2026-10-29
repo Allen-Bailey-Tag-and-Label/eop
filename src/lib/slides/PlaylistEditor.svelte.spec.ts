@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/svelte';
 import PlaylistEditor from './PlaylistEditor.svelte';
 
@@ -7,7 +7,20 @@ vi.mock('svelte/transition', async (importOriginal) => ({
 	...(await importOriginal<typeof import('svelte/transition')>()),
 	scale: () => ({ duration: 0 })
 }));
-afterEach(cleanup);
+beforeEach(() =>
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	)
+);
+afterEach(() => {
+	cleanup();
+	vi.unstubAllGlobals();
+});
 
 describe('playlist authoring', () => {
 	it('reorders repeated slide references while keeping each duration override', async () => {
@@ -32,6 +45,12 @@ describe('playlist authoring', () => {
 			}
 		});
 		await fireEvent.click(getByRole('button', { name: 'Move slide 2 up' }));
+		await fireEvent.input(getByRole('spinbutton', { name: 'Playlist transition duration (ms)' }), {
+			target: { value: '3500' }
+		});
+		await fireEvent.change(getByRole('combobox', { name: 'Transition into slide 1' }), {
+			target: { value: 'none' }
+		});
 		await fireEvent.click(getByRole('checkbox', { name: 'Random starting slide' }));
 		await fireEvent.input(getByRole('spinbutton', { name: 'Upcoming slide previews' }), {
 			target: { value: '5' }
@@ -40,10 +59,11 @@ describe('playlist authoring', () => {
 			(container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);
 		expect(definition.items).toEqual([
-			{ slideId: id, durationMs: 4000 },
+			{ slideId: id, durationMs: 4000, transition: { type: 'none', durationMs: 2000 } },
 			{ slideId: id, durationMs: 2000 }
 		]);
 		expect(definition.loop).toBe(true);
+		expect(definition.transition).toEqual({ type: 'crossfade', durationMs: 3500 });
 		expect(definition.randomStart).toBe(true);
 		expect(definition.upcomingCount).toBe(5);
 	});

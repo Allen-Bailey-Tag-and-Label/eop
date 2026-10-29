@@ -99,6 +99,7 @@ describe('slide visibility', () => {
 	});
 	it('round-trips playlist options and rejects invalid preview counts and random flags', () => {
 		const playlist = {
+			transition: { type: 'crossfade', durationMs: 2000 },
 			items: [{ slideId: 'a'.repeat(24), durationMs: null }],
 			loop: false,
 			randomStart: true,

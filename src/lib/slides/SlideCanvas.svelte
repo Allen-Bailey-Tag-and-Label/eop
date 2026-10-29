@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Div } from '$lib/components';
-	import { poseAt, slideContentTime, slideOpacityAt } from './timeline';
+	import { poseAt } from './timeline';
 	import { elementLayout } from './layout';
 	import { defaultBorderColor, type ColorScheme, type SlideDefinition } from './types';
 	import { resolveSlideColor } from './colors';
@@ -13,18 +13,16 @@
 	import type { FrameDefinition } from './types';
 	import { boundText } from './repeater';
 	import type { DataRow } from './types';
-	import { slideTiming } from './timeline';
+
 	import type { SlideData } from './types';
 	let {
 		definition,
 		timeMs = 0,
+		durationMs = definition.durationMs,
 		assetBase,
 		assetUrls = {},
 		viewportWidth,
 		viewportHeight,
-		animateTransitions = false,
-		durationMs = definition.durationMs,
-		includeExit = true,
 		scheme = 'dark',
 		data = {},
 		label = 'Slide preview',
@@ -37,13 +35,11 @@
 	}: {
 		definition: SlideDefinition;
 		timeMs?: number;
+		durationMs?: number;
 		assetBase: string;
 		assetUrls?: Record<string, string>;
 		viewportWidth?: number;
 		viewportHeight?: number;
-		animateTransitions?: boolean;
-		durationMs?: number;
-		includeExit?: boolean;
 		scheme?: ColorScheme;
 		data?: SlideData;
 		label?: string;
@@ -55,18 +51,7 @@
 		clip?: boolean;
 	} = $props();
 	const repeaterClock = $derived(dataTimeMs ?? timeMs);
-	// Remove the slide entrance once, before passing the data clock into nested frames.
-	// Held slides keep paging after element keyframes reach their final pose.
-	const repeaterTimeMs = $derived(
-		animateTransitions
-			? Math.max(
-					0,
-					(includeExit
-						? Math.min(repeaterClock, slideTiming(definition, durationMs).entranceMs + durationMs)
-						: repeaterClock) - slideTiming(definition, durationMs).entranceMs
-				)
-			: repeaterClock
-	);
+	const repeaterTimeMs = $derived(repeaterClock);
 	let measured = $state<Record<string, { width: number; height: number }>>({});
 	function observe(node: HTMLDivElement, id: string) {
 		if (!flow || flow.layout === 'free') return;
@@ -86,9 +71,7 @@
 		return () => observer.disconnect();
 	}
 	let containerWidth = $state(0);
-	const elementTimeMs = $derived(
-		animateTransitions ? slideContentTime(definition, timeMs, durationMs) : timeMs
-	);
+	const elementTimeMs = $derived(timeMs);
 	let containerHeight = $state(0);
 	const renderWidth = $derived(viewportWidth ?? (containerWidth || definition.width));
 	const renderHeight = $derived(viewportHeight ?? (containerHeight || definition.height));
@@ -104,7 +87,7 @@
 
 <div
 	class={`relative h-full w-full ${clip ? 'overflow-hidden' : 'overflow-visible'}`}
-	style={`background:${resolveSlideColor(definition.background, scheme)};opacity:${animateTransitions ? slideOpacityAt(definition, timeMs, durationMs, includeExit) : 1};`}
+	style={`background:${resolveSlideColor(definition.background, scheme)};`}
 	role="img"
 	aria-label={label}
 	bind:clientWidth={containerWidth}

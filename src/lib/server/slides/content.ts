@@ -7,6 +7,8 @@ import { error } from '@sveltejs/kit';
 import { Slide, Playlist, Asset } from './models';
 import { MonitorSession } from '../monitors/model';
 import { withResponsiveDefaults } from '$lib/slides/layout';
+import { withPlaylistDefaults } from '$lib/slides/playlist-transitions';
+import { defaultPlaylistTransition } from '$lib/slides/types';
 import { createSlideDataResolver } from './data-sources';
 import {
 	blankSlide,
@@ -184,7 +186,7 @@ export async function getEditor(kind: 'slide' | 'playlist', key: string) {
 			title: '',
 			version: 0,
 			publishedAt: null,
-			draft: kind === 'slide' ? blankSlide() : { items: [], loop: true }
+			draft: kind === 'slide' ? blankSlide() : withPlaylistDefaults({ items: [], loop: true })
 		};
 	const row =
 		kind === 'slide'
@@ -197,7 +199,10 @@ export async function getEditor(kind: 'slide' | 'playlist', key: string) {
 		title: row.title,
 		version: row.version,
 		publishedAt: row.publishedAt?.toISOString() ?? null,
-		draft: kind === 'slide' ? withResponsiveDefaults(row.draft as SlideDefinition) : row.draft
+		draft:
+			kind === 'slide'
+				? withResponsiveDefaults(row.draft as SlideDefinition)
+				: withPlaylistDefaults(row.draft as PlaylistDefinition)
 	};
 }
 export async function validateAssets(definition: SlideDefinition) {
@@ -327,7 +332,8 @@ export async function getPlayback(monitorId: string, now = new Date()): Promise<
 						id: slide._id.toString(),
 						title: slide.publishedTitle ?? `Slide ${index + 1}`,
 						definition: withResponsiveDefaults(slide.published),
-						durationMs: item.durationMs ?? slide.published.durationMs
+						durationMs: item.durationMs ?? slide.published.durationMs,
+						...(item.transition ? { transition: item.transition } : {})
 					}
 				]
 			: [];
@@ -340,6 +346,7 @@ export async function getPlayback(monitorId: string, now = new Date()): Promise<
 		)
 	).filter((slide) => slideIsVisible(slide.definition.visibility, slide.data, now));
 	const content = {
+		transition: playlist.published.transition ?? defaultPlaylistTransition(),
 		title: playlist.publishedTitle ?? 'Monitor playlist',
 		loop: playlist.published.loop,
 		randomStart: playlist.published.randomStart ?? false,
@@ -348,7 +355,8 @@ export async function getPlayback(monitorId: string, now = new Date()): Promise<
 			id: slide.id,
 			title: slide.title,
 			definition: slide.definition,
-			durationMs: slide.durationMs
+			durationMs: slide.durationMs,
+			...(slide.transition ? { transition: slide.transition } : {})
 		}))
 	};
 	return {

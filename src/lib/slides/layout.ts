@@ -1,6 +1,5 @@
 import { normalizeDataSource } from './data-link';
 import type { Pose, SlideDefinition, SlideElement } from './types';
-import { defaultSlideTransition } from './types';
 
 export type LayoutScales = {
 	positionScaleX: number;
@@ -12,6 +11,12 @@ export type LayoutScales = {
 // Missing constraints on pre-existing slides use proportional placement and sizing.
 // Normalize editor data without modifying stored drafts or published snapshots.
 export function withResponsiveDefaults(definition: SlideDefinition): SlideDefinition {
+	const clean = { ...definition } as SlideDefinition & {
+		transitionIn?: unknown;
+		transitionOut?: unknown;
+	};
+	delete clean.transitionIn;
+	delete clean.transitionOut;
 	const normalizeElement = (element: SlideElement): SlideElement => ({
 		...element,
 		...(element.dataSource ? { dataSource: normalizeDataSource(element.dataSource) } : {}),
@@ -33,9 +38,7 @@ export function withResponsiveDefaults(definition: SlideDefinition): SlideDefini
 		verticalAnchor: element.verticalAnchor ?? 'scale'
 	});
 	return {
-		...definition,
-		transitionIn: definition.transitionIn ?? defaultSlideTransition(),
-		transitionOut: definition.transitionOut ?? defaultSlideTransition(),
+		...clean,
 		elements: definition.elements.map(normalizeElement)
 	};
 }

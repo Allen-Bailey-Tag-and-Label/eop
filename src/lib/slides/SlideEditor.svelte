@@ -90,7 +90,7 @@
 	import { parseJson, validateSlide } from './validation';
 	import { moveElement, rotateElement, reorderLayers } from './editor';
 	import { withResponsiveDefaults } from './layout';
-	import { poseAt, slideContentTime, slideTiming } from './timeline';
+	import { poseAt } from './timeline';
 	let {
 		data,
 		form
@@ -315,8 +315,8 @@
 		fitView();
 	}
 	let timeMs = $state(0);
-	const previewTiming = $derived(slideTiming(draft));
-	const contentTimeMs = $derived(slideContentTime(draft, timeMs));
+	const previewTiming = $derived({ entranceMs: 0, totalMs: draft.durationMs });
+	const contentTimeMs = $derived(timeMs);
 	let playing = $state(false);
 	let saving = $state(false);
 	let uploading = $state(false);
@@ -366,7 +366,6 @@
 	let returnFocus: HTMLElement | null = null;
 	let colorInput = $state<HTMLInputElement | null>(null);
 	const uid = $props.id();
-	const transitionDirections = ['transitionIn', 'transitionOut'] as const;
 	const geometry = ['x', 'y', 'width', 'height'] as const;
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
@@ -853,7 +852,6 @@
 				bind:selectedId
 				timeMs={editingRepeater || editingFrame ? contentTimeMs : timeMs}
 				{tool}
-				animateTransitions={!editingRepeater && !editingFrame && (playing || timeMs > 0)}
 				scheme={previewScheme}
 				data={slideData}
 				row={editingRepeater ? currentRow : undefined}
@@ -1746,40 +1744,9 @@
 				/>
 				<P class="font-semibold">Slide visibility</P>
 				<VisibilitySettings bind:value={draft.visibility} elements={allElements(draft)} />
-				<P class="font-semibold">Whole-slide transitions</P>
-				{#each transitionDirections as direction (direction)}
-					<Div class="grid grid-cols-2 gap-4">
-						<Select
-							label={direction === 'transitionIn' ? 'Transition in' : 'Transition out'}
-							aria-label={direction === 'transitionIn'
-								? 'Slide transition in'
-								: 'Slide transition out'}
-							bind:value={draft[direction].type}
-							options={[
-								{ label: 'Fade', value: 'fade' },
-								{ label: 'None', value: 'none' }
-							]}
-						/>
-						<Input
-							label="Duration (ms)"
-							aria-label={direction === 'transitionIn'
-								? 'Slide transition in duration in milliseconds'
-								: 'Slide transition out duration in milliseconds'}
-							type="number"
-							min={0}
-							max={600000}
-							step={100}
-							disabled={draft[direction].type === 'none'}
-							value={String(draft[direction].durationMs)}
-							oninput={(event) => (draft[direction].durationMs = Number(event.currentTarget.value))}
-						/>
-					</Div>
-				{/each}
 				<P class="text-xs opacity-60"
-					>Transitions are added before and after the display duration. Element animations run
-					during the display period, holding their first and last poses during transitions. The
-					preview timeline shows the total time. A non-looping playlist keeps its final slide
-					visible.</P
+					>Transitions between slides are configured in the playlist. This timeline shows the fully
+					visible display period.</P
 				>
 				<P class="text-xs opacity-60"
 					>{data.slide.publishedAt

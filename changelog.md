@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T19:34:56.002Z
+## 2026-10-29T20:09:42.808Z
+
+feat: Move transitions into playlists with crossfades and entry overrides
+
+## 2026-10-29T15:38:43-04:00
 
 fix: Recover nested aggregation pipelines stored in data filters
 

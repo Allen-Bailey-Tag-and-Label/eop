@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/svelte';
 import SlideCanvas from './SlideCanvas.svelte';
 import { blankSlide, newElement } from './types';
-import { resolveSlideColor } from './colors';
 import { frameSlide } from './frames';
 
 beforeEach(() => {
@@ -69,8 +68,7 @@ describe('responsive slide rendering', () => {
 			const view = render(SlideCanvas, {
 				definition,
 				assetBase: '/assets',
-				animateTransitions: true,
-				timeMs: 1000,
+				timeMs: 0,
 				data
 			});
 			const text = (id: string) => view.container.querySelector(`[data-slide-element="${id}"]`);
@@ -80,20 +78,19 @@ describe('responsive slide rendering', () => {
 				);
 			expect(text('upcoming')).toHaveStyle({ opacity: '0' });
 			expect(item(1)).toHaveStyle({ opacity: '0' });
-			await view.rerender({ timeMs: 2400 });
+			await view.rerender({ timeMs: 400 });
 			expect(text('upcoming')).toHaveStyle({ opacity: '0.5' });
 			expect(text('holidays')).toHaveStyle({ opacity: '0' });
 			expect(item(1)).toHaveStyle({ opacity: '0' });
-			await view.rerender({ timeMs: 3600 });
+			await view.rerender({ timeMs: 1600 });
 			expect(text('holidays')).toHaveStyle({ opacity: '1' });
 			expect(item(1)).toHaveStyle({ opacity: '0' });
-			await view.rerender({ timeMs: 4000 });
+			await view.rerender({ timeMs: 2000 });
 			expect(item(1)).toHaveStyle({ opacity: '0.5' });
 			expect(item(2)).toHaveStyle({ opacity: '0.25' });
 			// Frame editing uses display time directly, without the root slide fade.
 			await view.rerender({
 				definition: frameSlide(outer, 56000),
-				animateTransitions: false,
 				timeMs: 2000
 			});
 			expect(text('upcoming')).toHaveStyle({ opacity: '1' });
@@ -101,13 +98,13 @@ describe('responsive slide rendering', () => {
 			expect(item(1)).toHaveStyle({ opacity: '0.5' });
 			expect(item(2)).toHaveStyle({ opacity: '0.25' });
 			// During the root exit, data and element clocks both stop at display end.
-			await view.rerender({ definition, animateTransitions: true, timeMs: 59000 });
+			await view.rerender({ definition, timeMs: 56000 });
 			expect(item(3)).toHaveStyle({ opacity: '1' });
 			// A held final slide freezes headings but keeps paging, using the same time origin.
-			await view.rerender({ includeExit: false, timeMs: 58000, dataTimeMs: 62000 });
+			await view.rerender({ timeMs: 56000, dataTimeMs: 60000 });
 			expect(text('holidays')).toHaveStyle({ opacity: '1' });
 			expect(item(1)).toHaveStyle({ opacity: '1' });
-			await view.rerender({ dataTimeMs: 64000 });
+			await view.rerender({ dataTimeMs: 62000 });
 			expect(item(1)).toHaveStyle({ opacity: '1' });
 			expect(item(2)).toHaveStyle({ opacity: '1' });
 		});
@@ -332,7 +329,7 @@ describe('responsive slide rendering', () => {
 		await view.rerender({ timeMs: 5000 });
 		expect(view.getByText('Item 5')).toBeInTheDocument();
 		expect(view.queryByText('Item 1')).not.toBeInTheDocument();
-		await view.rerender({ animateTransitions: true, timeMs: 0 });
+		await view.rerender({ timeMs: 0 });
 		expect(view.getByText('Item 1')).toBeInTheDocument();
 		await view.rerender({ timeMs: 7000 });
 		expect(view.getByText('Item 5')).toBeInTheDocument();
@@ -386,24 +383,6 @@ describe('responsive slide rendering', () => {
 		expect(frame()).toHaveStyle({ background: '#111827' });
 		expect(frame().lastElementChild).toHaveStyle({ borderColor: '#abcdef' });
 	});
-	it('holds element keyframes during entrance, plays them during display, and holds their final pose on exit', async () => {
-		const element = newElement('text', 'headline');
-		element.opacity = 0;
-		element.keyframes = [{ ...element, atMs: 1000, opacity: 1, easing: 'linear' }];
-		const view = render(SlideCanvas, {
-			definition: { ...blankSlide(), elements: [element] },
-			assetBase: '/assets',
-			animateTransitions: true,
-			timeMs: 1000
-		});
-		const box = () => view.getByText('Your text here').parentElement!;
-		expect(box()).toHaveStyle({ opacity: '0' });
-		await view.rerender({ timeMs: 2500 });
-		expect(box()).toHaveStyle({ opacity: '0.5' });
-		await view.rerender({ timeMs: 13000 });
-		expect(box()).toHaveStyle({ opacity: '1' });
-		expect(view.getByRole('img')).toHaveStyle({ opacity: '0.5' });
-	});
 	it('renders themed text, shapes, and backgrounds independently of the app theme while preserving fixed colors', async () => {
 		const definition = {
 			...blankSlide(),
@@ -430,20 +409,6 @@ describe('responsive slide rendering', () => {
 			background: '#abcdef'
 		});
 		expect(view.getByText('Brand')).toHaveStyle({ color: '#ff0000' });
-	});
-	it('fades the entire canvas including its background while static previews stay visible', async () => {
-		const definition = { ...blankSlide(), elements: [newElement('text', 'headline')] };
-		const view = render(SlideCanvas, { definition, assetBase: '/assets', timeMs: 0 });
-		expect(view.getByRole('img')).toHaveStyle({ opacity: '1' });
-		await view.rerender({ animateTransitions: true, timeMs: 1000 });
-		expect(view.getByRole('img')).toHaveStyle({
-			opacity: '0.5',
-			background: resolveSlideColor(definition.background, 'dark')
-		});
-		await view.rerender({ timeMs: 14000 });
-		expect(view.getByRole('img')).toHaveStyle({ opacity: '0' });
-		await view.rerender({ includeExit: false });
-		expect(view.getByRole('img')).toHaveStyle({ opacity: '1' });
 	});
 	it('fills the actual viewport and anchors a bottom-right element without letterboxing', () => {
 		vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(2520);

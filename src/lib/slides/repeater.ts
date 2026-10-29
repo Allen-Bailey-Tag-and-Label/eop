@@ -63,9 +63,7 @@ export function templateSlide(repeater: RepeaterDefinition, durationMs: number):
 		...blankSlide(),
 		...repeater.template,
 		background: 'transparent',
-		durationMs,
-		transitionIn: { type: 'none', durationMs: 0 },
-		transitionOut: { type: 'none', durationMs: 0 }
+		durationMs
 	};
 }
 

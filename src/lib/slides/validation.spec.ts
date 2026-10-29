@@ -100,7 +100,11 @@ describe('slide definitions', () => {
 			{ slideId: 'a'.repeat(24), durationMs: null },
 			{ slideId: 'a'.repeat(24), durationMs: 5000 }
 		];
-		expect(validatePlaylist({ items, loop: true })).toEqual({ items, loop: true });
+		expect(validatePlaylist({ items, loop: true })).toEqual({
+			items,
+			loop: true,
+			transition: { type: 'crossfade', durationMs: 2000 }
+		});
 		expect(() => validatePlaylist({ items: [], loop: true })).toThrow();
 		expect(() =>
 			validatePlaylist({ items: [{ ...items[0], durationMs: -1 }], loop: true })

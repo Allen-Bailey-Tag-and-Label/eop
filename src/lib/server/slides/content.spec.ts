@@ -359,6 +359,7 @@ describe('monitor playlist playback', () => {
 	});
 	it('duplicates playlist draft order, overrides and loop settings without publishing or assigning the copy', async () => {
 		const draft = {
+			transition: { type: 'crossfade', durationMs: 2000 },
 			loop: false,
 			items: [
 				{ slideId: id, durationMs: 5000 },
@@ -456,8 +457,9 @@ describe('monitor playlist playback', () => {
 				publishedTitle: 'Break room',
 				published: {
 					loop: true,
+					transition: { type: 'crossfade', durationMs: 3500 },
 					items: [
-						{ slideId: id, durationMs: 2500 },
+						{ slideId: id, durationMs: 2500, transition: { type: 'none', durationMs: 0 } },
 						{ slideId: id, durationMs: null }
 					]
 				}
@@ -498,6 +500,9 @@ describe('monitor playlist playback', () => {
 		expect(playback?.slides.map((slide) => slide.durationMs)).toEqual([2500, 10000]);
 		expect(playback?.slides.map((slide) => slide.title)).toEqual(['Welcome', 'Welcome']);
 		expect(playback?.title).toBe('Break room');
+		expect(playback?.transition).toEqual({ type: 'crossfade', durationMs: 3500 });
+		expect(playback?.slides[0].transition).toEqual({ type: 'none', durationMs: 0 });
+		expect(playback?.slides[1].transition).toBeUndefined();
 		expect(JSON.stringify(playback)).not.toContain('SECRET DRAFT');
 		expect((await getPlayback(id))?.version).toBe(playback?.version);
 		expect(playback?.slides[0].data?.calendar.items[0].label).toBe('Thanksgiving');

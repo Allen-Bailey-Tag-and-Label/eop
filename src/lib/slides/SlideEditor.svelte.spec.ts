@@ -993,45 +993,22 @@ describe('slide authoring', () => {
 		expect(definition().background).toBe('#123456');
 		expect(view.getByLabelText('Slide background')).toBeEnabled();
 	});
-	it('saves independent whole-slide transition settings and previews them on the timeline', async () => {
+	it('keeps slide settings and timeline free of playlist transitions', async () => {
 		const view = render(SlideEditor, {
 			data: {
 				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
 				assets: []
 			}
 		});
-		expect(view.getByRole('slider', { name: 'Preview timeline' })).toHaveAttribute('max', '14000');
+		expect(view.getByRole('slider', { name: 'Preview timeline' })).toHaveAttribute('max', '10000');
 		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
-		expect(
-			view.getByRole('spinbutton', { name: 'Slide transition in duration in milliseconds' })
-		).toHaveValue(2000);
-		await fireEvent.input(
-			view.getByRole('spinbutton', { name: 'Slide transition in duration in milliseconds' }),
-			{ target: { value: '4000' } }
-		);
-		expect(view.container.querySelector('input[aria-label="Preview timeline"]')).toHaveAttribute(
-			'max',
-			'16000'
-		);
-		await fireEvent.change(view.getByRole('combobox', { name: 'Slide transition out' }), {
-			target: { value: 'none' }
-		});
-		expect(
-			view.getByRole('spinbutton', { name: 'Slide transition out duration in milliseconds' })
-		).toBeDisabled();
-		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
-		expect(view.getByRole('slider', { name: 'Preview timeline' })).toHaveAttribute('max', '14000');
+		expect(view.queryByRole('combobox', { name: 'Slide transition in' })).not.toBeInTheDocument();
+		expect(view.queryByRole('combobox', { name: 'Slide transition out' })).not.toBeInTheDocument();
 		const definition = JSON.parse(
 			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);
-		expect(definition.transitionIn).toEqual({ type: 'fade', durationMs: 4000 });
-		expect(definition.transitionOut).toEqual({ type: 'none', durationMs: 2000 });
-		const canvas = view.getByRole('img', { name: 'Slide preview' });
-		expect(canvas).toHaveStyle({ opacity: '1' });
-		await fireEvent.input(view.getByRole('slider', { name: 'Preview timeline' }), {
-			target: { value: '1000' }
-		});
-		expect(canvas).toHaveStyle({ opacity: '0.25' });
+		expect(definition).not.toHaveProperty('transitionIn');
+		expect(definition).not.toHaveProperty('transitionOut');
 	});
 	it('requires confirmation to unpublish and lists affected playlists', async () => {
 		const view = render(SlideEditor, {

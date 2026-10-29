@@ -5,8 +5,8 @@ import { normalizeDataSource, validateLink } from './data-link';
 import type { Keyframe, PlaylistDefinition, Pose, SlideDefinition, SlideElement } from './types';
 import type { ElementPadding, FrameDefinition } from './types';
 import {
-	defaultSlideTransition,
-	type SlideTransition,
+	defaultPlaylistTransition,
+	type PlaylistTransition,
 	type SlideDataSource,
 	type RepeaterDefinition
 } from './types';
@@ -73,12 +73,12 @@ function pose(value: Record<string, unknown>): Pose {
 		rotation: number(value.rotation, -3600, 3600, 'Rotation')
 	};
 }
-function transition(value: unknown): SlideTransition {
-	if (value === undefined) return defaultSlideTransition();
+function transition(value: unknown): PlaylistTransition {
+	if (value === undefined) return defaultPlaylistTransition();
 	const settings = object(value);
 	return {
-		type: choice(settings.type, ['fade', 'none'], 'slide transition'),
-		durationMs: number(settings.durationMs, 0, 600000, 'Transition duration in milliseconds')
+		type: choice(settings.type, ['crossfade', 'none'], 'playlist transition'),
+		durationMs: number(settings.durationMs, 0, 60000, 'Transition duration in milliseconds')
 	};
 }
 export function validateDataSource(input: unknown, requireLabel = true): SlideDataSource {
@@ -410,8 +410,6 @@ export function validateSlide(
 		),
 		background: value.background === 'transparent' ? 'transparent' : color(value.background),
 		durationMs,
-		transitionIn: transition(value.transitionIn),
-		transitionOut: transition(value.transitionOut),
 		...(visibility ? { visibility } : {}),
 		elements
 	};
@@ -425,6 +423,7 @@ export function validatePlaylist(input: unknown): PlaylistDefinition {
 		invalid('Add between 1 and 100 slides.');
 	return {
 		loop: value.loop as boolean,
+		transition: transition(value.transition),
 		...(value.randomStart === undefined ? {} : { randomStart: value.randomStart as boolean }),
 		...(value.upcomingCount === undefined
 			? {}
@@ -438,6 +437,7 @@ export function validatePlaylist(input: unknown): PlaylistDefinition {
 			if (!isId(item.slideId)) invalid('Choose a slide for every playlist entry.');
 			return {
 				slideId: (item.slideId as string).toLowerCase(),
+				...(item.transition === undefined ? {} : { transition: transition(item.transition) }),
 				durationMs:
 					item.durationMs === null
 						? null

@@ -17,14 +17,13 @@ function content(version = 'one', loop = true): Playback {
 		version,
 		loop,
 		upcomingCount: 1,
+		transition: { type: 'none', durationMs: 0 },
 		slides: ['First', 'Second'].map((text, index) => ({
 			id: String(index),
 			title: `${text} slide`,
 			durationMs: 1000,
 			definition: {
 				...blankSlide(),
-				transitionIn: { type: 'none', durationMs: 2000 },
-				transitionOut: { type: 'none', durationMs: 2000 },
 				elements: [{ ...newElement('text', `text-${index}`), text: `${version} ${text}` }]
 			}
 		}))
@@ -69,6 +68,54 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('holds the outgoing slide while media is unavailable and crossfades only after the next slide is ready', async () => {
+		let ready = false;
+		const image = 'a'.repeat(24);
+		vi.spyOn(SlideMediaCache.prototype, 'load').mockImplementation(async () => {
+			if (!ready) throw new Error('offline');
+		});
+		vi.spyOn(SlideMediaCache.prototype, 'urls').mockImplementation((ids) =>
+			ready ? Object.fromEntries(ids.map((id) => [id, 'blob:ready'])) : {}
+		);
+		const playlist = content();
+		playlist.slides[0].definition.background = '#ffffff';
+		playlist.slides[1].definition.background = '#000000';
+		playlist.slides[1].transition = { type: 'crossfade', durationMs: 2000 };
+		playlist.slides[1].definition.elements.push({
+			...newElement('image', 'image'),
+			assetId: image
+		});
+		const view = render(SlidePlayer, { location: 'Break room' });
+		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
+		await flush();
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByText('one First')).toBeInTheDocument();
+		expect(current.queryByText('one Second')).not.toBeInTheDocument();
+		ready = true;
+		await vi.advanceTimersByTimeAsync(2000);
+		await flush();
+		expect(view.container.querySelector('[data-playback-layer="outgoing"]')).toBeInTheDocument();
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
+		await flush();
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')).toHaveStyle({
+			opacity: '0.5'
+		});
+		expect(
+			view.container.querySelector('[data-playback-layer="outgoing"] [role="img"]')
+		).toHaveStyle({ background: '#ffffff' });
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		expect(
+			view.container.querySelector('[data-playback-layer="outgoing"]')
+		).not.toBeInTheDocument();
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')).toHaveStyle({
+			opacity: '1'
+		});
+	});
 	it('recovers from an empty eligible playlist and previews multiple slides in playback order', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
 		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
@@ -122,6 +169,10 @@ describe('monitor player', () => {
 	});
 	it('shows loading rather than an unassigned playlist while assigned slide media is pending', async () => {
 		let complete!: () => void;
+		let ready = false;
+		vi.spyOn(SlideMediaCache.prototype, 'urls').mockImplementation((ids) =>
+			ready ? Object.fromEntries(ids.map((id) => [id, 'blob:ready'])) : {}
+		);
 		vi.spyOn(SlideMediaCache.prototype, 'load').mockImplementation(
 			() =>
 				new Promise<void>((resolve) => {
@@ -140,6 +191,7 @@ describe('monitor player', () => {
 		expect(
 			view.queryByText('No published playlist is assigned to this monitor.')
 		).not.toBeInTheDocument();
+		ready = true;
 		complete();
 		await flush();
 		expect(
@@ -252,37 +304,54 @@ describe('monitor player', () => {
 		view.unmount();
 		expect(removeEventListener).toHaveBeenCalledWith('change', change);
 	});
-	it('adds both 2-second fades to a 10-second display and includes them in the countdown', async () => {
+	it('overlaps complete slides during playlist crossfades and counts down to the next start', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
 		const playlist = content();
 		playlist.slides[0].durationMs = 10000;
-		for (const slide of playlist.slides) {
-			slide.definition.transitionIn.type = 'fade';
-			slide.definition.transitionOut.type = 'fade';
-		}
+		playlist.transition = { type: 'crossfade', durationMs: 2000 };
+		const incomingText = playlist.slides[1].definition.elements[0];
+		incomingText.keyframes = [
+			{ ...incomingText, opacity: 0, atMs: 0, easing: 'linear' },
+			{ ...incomingText, opacity: 1, atMs: 1000, easing: 'linear' }
+		];
 		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
 		await flush();
 		const current = within(view.getByRole('region', { name: 'Current slide' }));
-		expect(current.getByRole('img')).toHaveStyle({ opacity: '0' });
-		expect(view.getByRole('timer')).toHaveTextContent('0:14');
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')!).toHaveStyle({
+			opacity: '0'
+		});
+		expect(view.getByRole('timer')).toHaveTextContent('0:12');
 		await vi.advanceTimersByTimeAsync(1000);
 		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
 		await tick();
-		expect(current.getByRole('img')).toHaveStyle({ opacity: '0.5' });
-		await vi.advanceTimersByTimeAsync(11000);
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')!).toHaveStyle({
+			opacity: '0.5'
+		});
+		await vi.advanceTimersByTimeAsync(9000);
 		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
 		await tick();
-		expect(current.getByRole('img')).toHaveStyle({ opacity: '1' });
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')!).toHaveStyle({
+			opacity: '1'
+		});
 		expect(view.getByRole('timer')).toHaveTextContent('0:02');
-		await vi.advanceTimersByTimeAsync(1000);
-		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
-		await tick();
-		expect(current.getByRole('img')).toHaveStyle({ opacity: '0.5' });
-		await vi.advanceTimersByTimeAsync(1000);
+		await vi.advanceTimersByTimeAsync(2000);
 		await flush();
 		expect(current.getByText('one Second')).toBeInTheDocument();
-		expect(current.getByRole('img')).toHaveStyle({ opacity: '0' });
-		expect(view.getByRole('timer')).toHaveTextContent('0:05');
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')!).toHaveStyle({
+			opacity: '0'
+		});
+		expect(view.getByRole('timer')).toHaveTextContent('0:03');
+		await vi.advanceTimersByTimeAsync(1000);
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
+		await flush();
+		expect(current.getByText('one Second').parentElement).toHaveStyle({ opacity: '0' });
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')).toHaveStyle({
+			opacity: '0.5'
+		});
+		await vi.advanceTimersByTimeAsync(1500);
+		vi.mocked(requestAnimationFrame).mock.calls.at(-1)![0](performance.now());
+		await flush();
+		expect(current.getByText('one Second').parentElement).toHaveStyle({ opacity: '0.5' });
 	});
 	it('animates published keyframes on display frames and restarts them for a single-slide loop', async () => {
 		vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1920);
@@ -454,8 +523,6 @@ describe('monitor player', () => {
 	it('shows the end of a non-looping playlist instead of a false next slide', async () => {
 		const view = render(SlidePlayer, { location: 'Break room' });
 		const playlist = content('one', false);
-		playlist.slides[1].definition.transitionIn.type = 'fade';
-		playlist.slides[1].definition.transitionOut.type = 'fade';
 		vi.mocked(watchPlayback).mock.calls[0][0](playlist);
 		await flush();
 		await vi.advanceTimersByTimeAsync(1000);
@@ -463,12 +530,12 @@ describe('monitor player', () => {
 		expect(
 			within(view.getByRole('region', { name: 'Up next' })).getByText('End of playlist')
 		).toBeInTheDocument();
-		expect(view.getByRole('timer')).toHaveTextContent('0:03');
+		expect(view.getByRole('timer')).toHaveTextContent('0:01');
 		await vi.advanceTimersByTimeAsync(3000);
 		await flush();
 		expect(view.getByRole('timer')).toHaveTextContent('0:00');
-		expect(
-			within(view.getByRole('region', { name: 'Current slide' })).getByRole('img')
-		).toHaveStyle({ opacity: '1' });
+		expect(view.container.querySelector('[data-playback-layer="incoming"]')!).toHaveStyle({
+			opacity: '1'
+		});
 	});
 });

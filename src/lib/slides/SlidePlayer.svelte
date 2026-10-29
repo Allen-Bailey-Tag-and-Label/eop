@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import CrossfadeStage from './CrossfadeStage.svelte';
 	import { allElements } from './repeater';
 	import { Div, H1, P } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
@@ -14,7 +15,12 @@
 		SlideDefinition
 	} from './types';
 	import { displayBackground } from './colors';
-	import { slideTiming } from './timeline';
+	import {
+		playlistSlideTiming,
+		playlistContentTime,
+		transitionProgress
+	} from './playlist-transitions';
+	import type { SlideLayer } from './types';
 	let { location }: { location: string } = $props();
 	let playback = $state<Playback | null>(null);
 	let queued = $state<Playback | null | undefined>();
@@ -34,10 +40,12 @@
 		title: string;
 		durationMs: number;
 		totalMs: number;
+		entranceMs: number;
 		version: string;
 		next: PlaybackSlide | null;
 		data: SlideData;
 	} | null>(null);
+	let outgoing = $state<SlideLayer | null>(null);
 	let preparing = $state<PlaybackSlide | null>(null);
 	let nextPreviews = $state<Record<string, { urls: Record<string, string> }>>({});
 	let previewLoading = $state(false);
@@ -104,34 +112,69 @@
 		const slide = current?.slides[index];
 		if (!current || !slide) {
 			shown = null;
+			outgoing = null;
 			preparing = null;
 			mediaMissing = false;
 			return;
 		}
 		const ids = mediaIds(slide.definition);
 		preparing = slide;
-		cache.protectedIds = new Set(ids);
-		const controller = new AbortController();
+		const previous = untrack(() => shown);
+		const previousLayer = untrack(() =>
+			previous
+				? {
+						definition: previous.definition,
+						durationMs: previous.durationMs,
+						data: previous.data,
+						assetUrls: { ...assetUrls },
+						timeMs: playlistContentTime(timeMs, previous.entranceMs, previous.durationMs),
+						dataTimeMs: Math.min(previous.durationMs, Math.max(0, dataTimeMs - previous.entranceMs))
+					}
+				: null
+		);
+		cache.protectedIds = new Set([...ids, ...(previous ? mediaIds(previous.definition) : [])]);
+		let controller = new AbortController();
 		let frame: number;
 		let timer: ReturnType<typeof setTimeout>;
-		const timeout = setTimeout(() => controller.abort(), 5000);
+		let timeout: ReturnType<typeof setTimeout>;
+		let fadeTimer: ReturnType<typeof setTimeout>;
 		let disposed = false;
 		finished = false;
-		void Promise.allSettled(ids.map((id) => cache.load(id, controller.signal))).then(() => {
+		const prepare = async () => {
+			controller = new AbortController();
+			timeout = setTimeout(() => controller.abort(), 5000);
+			await Promise.allSettled(ids.map((id) => cache.load(id, controller.signal)));
 			clearTimeout(timeout);
 			if (disposed) return;
-			assetUrls = cache.urls(ids);
+			// A publication can replace an entry while its assets are still loading.
+			if (queued !== undefined && queued?.version !== current.version) {
+				const replacement = queued;
+				queued = undefined;
+				index = 0;
+				playback = replacement;
+				return;
+			}
+			const readyUrls = cache.urls(ids);
+			if (Object.keys(readyUrls).length !== ids.length) {
+				mediaMissing = true;
+				timer = setTimeout(() => void prepare(), 2000);
+				return;
+			}
+			assetUrls = readyUrls;
 			const next = nextSlide(current, index);
-			const timing = slideTiming(
-				slide.definition,
-				slide.durationMs,
-				current.loop || next !== index
-			);
+			const timing = playlistSlideTiming(slide.durationMs, slide.transition ?? current.transition);
+			outgoing = timing.entranceMs > 0 ? previousLayer : null;
+			fadeTimer = setTimeout(() => {
+				timeMs = Math.max(timeMs, timing.entranceMs);
+				outgoing = null;
+				cache.protectedIds = new Set(ids);
+			}, timing.entranceMs);
 			shown = {
 				definition: slide.definition,
 				title: current.title,
 				durationMs: slide.durationMs,
 				totalMs: timing.totalMs,
+				entranceMs: timing.entranceMs,
 				data: slide.data ?? {},
 				version: current.version,
 				next: current.loop || next !== index ? current.slides[next] : null
@@ -174,12 +217,14 @@
 					playback = { ...updated };
 				}
 			}, timing.totalMs);
-		});
+		};
+		void prepare();
 		return () => {
 			disposed = true;
 			controller.abort();
 			clearTimeout(timeout);
 			clearTimeout(timer);
+			clearTimeout(fadeTimer);
 			cancelAnimationFrame(frame);
 		};
 	});
@@ -225,16 +270,18 @@
 		bind:clientHeight={displayHeight}
 	>
 		{#if shown}
-			<SlideCanvas
-				definition={shown.definition}
-				data={shown.data}
-				{dataTimeMs}
-				{timeMs}
+			<CrossfadeStage
+				incoming={{
+					definition: shown.definition,
+					durationMs: shown.durationMs,
+					data: shown.data,
+					assetUrls,
+					timeMs: playlistContentTime(timeMs, shown.entranceMs, shown.durationMs),
+					dataTimeMs: Math.max(0, dataTimeMs - shown.entranceMs)
+				}}
+				{outgoing}
+				progress={transitionProgress(timeMs, shown.entranceMs)}
 				{scheme}
-				animateTransitions
-				durationMs={shown.durationMs}
-				includeExit={shown.next !== null}
-				{assetUrls}
 				assetBase="/monitors/media"
 				label={`${shown.title} — ${location}`}
 			/>
@@ -256,7 +303,7 @@
 				class="absolute bottom-4 left-4 rounded bg-black/80 px-4 py-2 text-sm text-white"
 				>{!connected
 					? 'Connection lost. Continuing loaded content and retrying…'
-					: 'Some images could not load. Retrying on the next slide.'}</P
+					: 'Waiting for slide images. Retrying without clearing the current slide.'}</P
 			>{/if}
 	</div>
 	{#if shown}

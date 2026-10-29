@@ -4,6 +4,10 @@
 	import { twMerge } from 'tailwind-merge';
 	import { A, Button, Card, Checkbox, Div, Form, H1, Input, P, Select } from '$lib/components';
 	import type { ContentEditor, PlaylistDefinition } from './types';
+	import PlaylistTransitionFields from './PlaylistTransitionFields.svelte';
+	import PlaylistTransitionPreview from './PlaylistTransitionPreview.svelte';
+	import { defaultPlaylistTransition } from './types';
+	import { withPlaylistDefaults } from './playlist-transitions';
 	let {
 		data,
 		form
@@ -14,7 +18,9 @@
 		};
 		form?: { error?: string; success?: string } | null;
 	} = $props();
-	let draft = $state(untrack(() => structuredClone($state.snapshot(data.playlist.draft))));
+	let draft = $state(
+		untrack(() => withPlaylistDefaults(structuredClone($state.snapshot(data.playlist.draft))))
+	);
 	let title = $state(untrack(() => data.playlist.title));
 	let slug = $state(untrack(() => data.playlist.slug));
 	let saving = $state(false);
@@ -38,8 +44,9 @@
 	<Card class="space-y-4"
 		><P
 			>Arrange slides in playback order. Leave a duration override empty to use the slide's display
-			duration. Entrance and exit transitions are additional time. A shorter override clips its
-			element animations. Publish the playlist, then assign it in Monitor management.</P
+			duration. Playlist crossfades overlap adjacent slides and add time around their fully visible
+			display periods. A shorter override clips its element animations. Publish the playlist, then
+			assign it in Monitor management.</P
 		>
 		<Form action="?/save" class="max-w-none" bind:isLoading={saving}>
 			<Input type="hidden" name="id" value={data.playlist.id} /><Input
@@ -79,6 +86,13 @@
 					value={String(draft.upcomingCount ?? 3)}
 					oninput={(event) => (draft.upcomingCount = event.currentTarget.valueAsNumber)}
 				/>
+				<PlaylistTransitionFields bind:value={draft.transition} />
+				<PlaylistTransitionPreview transition={draft.transition ?? defaultPlaylistTransition()} />
+				<P class="text-sm"
+					>A 10-second hold with 2-second crossfades is visible for 14 seconds; the next slide
+					starts every 12 seconds. The countdown shows time until the next slide starts. Missing
+					transition settings use a 2000ms crossfade. The final non-looping slide remains visible.</P
+				>
 				{#each draft.items as item, index (item)}
 					<Div class="flex flex-wrap items-end gap-4 rounded border border-gray-500 p-4">
 						<Div class="min-w-0 grow basis-64">
@@ -122,6 +136,13 @@
 								>Remove</Button
 							></Div
 						>
+						<Div class="w-full min-w-0">
+							<PlaylistTransitionFields
+								bind:value={item.transition}
+								inherit
+								label={`Transition into slide ${index + 1}`}
+							/>
+						</Div>
 					</Div>
 				{/each}
 				<Button

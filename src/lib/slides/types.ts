@@ -92,6 +92,14 @@ export type DataListResult = {
 	message: string;
 };
 export type SlideData = Record<string, DataListResult>;
+export type SlideLayer = {
+	durationMs?: number;
+	definition: SlideDefinition;
+	data: SlideData;
+	assetUrls: Record<string, string>;
+	timeMs: number;
+	dataTimeMs: number;
+};
 export type ColorScheme = 'light' | 'dark';
 export type DisplayMode = ColorScheme | 'system';
 export type SlideColor = string | { light: string; dark: string };
@@ -101,8 +109,11 @@ export type HorizontalAnchor = 'scale' | 'left' | 'right' | 'center' | 'stretch'
 export type VerticalAnchor = 'scale' | 'top' | 'bottom' | 'center' | 'stretch';
 export type Pose = { x: number; y: number; opacity: number; scale: number; rotation: number };
 export type Keyframe = Pose & { atMs: number; easing: Easing };
-export type SlideTransition = { type: 'fade' | 'none'; durationMs: number };
-export const defaultSlideTransition = (): SlideTransition => ({ type: 'fade', durationMs: 2000 });
+export type PlaylistTransition = { type: 'crossfade' | 'none'; durationMs: number };
+export const defaultPlaylistTransition = (): PlaylistTransition => ({
+	type: 'crossfade',
+	durationMs: 2000
+});
 export type SlideElement = Pose & {
 	id: string;
 	type: ElementType;
@@ -147,13 +158,16 @@ export type SlideDefinition = {
 	height: number;
 	background: SlideColor;
 	durationMs: number;
-	transitionIn: SlideTransition;
-	transitionOut: SlideTransition;
 	elements: SlideElement[];
 	visibility?: SlideVisibility;
 };
-export type PlaylistItem = { slideId: string; durationMs: number | null };
+export type PlaylistItem = {
+	slideId: string;
+	durationMs: number | null;
+	transition?: PlaylistTransition;
+};
 export type PlaylistDefinition = {
+	transition?: PlaylistTransition;
 	items: PlaylistItem[];
 	loop: boolean;
 	randomStart?: boolean;
@@ -166,6 +180,7 @@ export type SlideReference = {
 	published: boolean;
 };
 export type PlaybackSlide = {
+	transition?: PlaylistTransition;
 	id: string;
 	title: string;
 	definition: SlideDefinition;
@@ -173,6 +188,7 @@ export type PlaybackSlide = {
 	data?: SlideData;
 };
 export type Playback = {
+	transition?: PlaylistTransition;
 	version: string;
 	title: string;
 	loop: boolean;
@@ -202,8 +218,6 @@ export const blankSlide = (): SlideDefinition => ({
 	height: 1080,
 	background: { light: '#ffffff', dark: '#09090c' },
 	durationMs: 10000,
-	transitionIn: defaultSlideTransition(),
-	transitionOut: defaultSlideTransition(),
 	elements: []
 });
 

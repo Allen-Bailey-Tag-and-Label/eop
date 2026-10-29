@@ -141,17 +141,9 @@ right and horizontally scrolls the preview strip on smaller screens.
    backgrounds show a checkerboard matched to the selected preview mode and reveal
    the monitor's light or dark display background.
    Later elements render in front. The final pose is held until the slide ends.
-   **Whole-slide transitions** in Settings control the entrance and exit separately:
-   choose **Fade** or **None** and set each duration in milliseconds. Both default
-   to a 2000 ms fade, including existing slides. Fades include the background and
-   every element and are added before and after the display duration: a 2000 ms
-   entrance, 10000 ms display, and 2000 ms exit take 14000 ms total. Element
-   keyframes run during the display period, holding their first/last poses during
-   the transitions. Playlist overrides change the display period, with transitions
-   still added in full. The editor timeline and monitor countdown show total time.
-   The final slide of a non-looping playlist omits its exit fade so it stays visible.
-   Play or scrub the timeline to preview fades; the stopped editor at time zero
-   and the upcoming-slide thumbnail remain fully visible for editing and review.
+   Transitions between slides are configured in the playlist. The slide editor's
+   timeline shows only the fully visible display period and element animations.
+   Legacy slide entrance/exit settings are ignored on load and removed on save/export.
 4. Save a draft or publish the current editor content. Draft changes do not affect
    monitors. Publishing updates the saved draft and published snapshot together;
    stale concurrent saves are rejected. The published snapshot is kept until the
@@ -179,7 +171,7 @@ right and horizontally scrolls the preview strip on smaller screens.
    during a network interruption.
    A footer below the slide shows the upcoming slide's thumbnail and published
    title on the left and the current slide's remaining time on the right. The
-   countdown includes transitions and the playlist display-duration override when
+   countdown shows time until the next slide starts, including the incoming transition and the playlist display-duration override when
    set. Non-looping playlists show **End of playlist** and hold at **0:00** after
    the final slide.
    Media uses a bounded 64 MB in-memory cache; offline persistence across browser
@@ -193,7 +185,7 @@ columns (0 for automatic), minimum item width, item height (0 to preserve templa
 aspect ratio), separate gaps, and vertical alignment. Overflow supports pagination
 (default), automatic scrolling down and back, or clipping. Page/scroll duration is
 in milliseconds. Make the slide display duration long enough to show all pages.
-A held final slide continues cycling without replaying the slide transition.
+A held final slide continues cycling without replaying its playlist entrance transition.
 
 Choose **Edit item template** to design one item on the canvas. The same text,
 image, SVG, shape, color, font, anchoring, layers, and animation controls apply.
@@ -211,7 +203,7 @@ SVGs, and shapes provide static template artwork; field bindings currently drive
 text content. Nested repeaters are not supported.
 
 Scrub or play the timeline to preview pagination and scrolling. Item animations
-use slide display time, and whole-slide fades still wrap the complete grid.
+use slide display time, and playlist crossfades wrap the complete grid and slide background.
 Set **Item stagger (ms)** in the repeater properties to delay each item's template
 animations (for example, 200 starts each item 0.2 seconds after the previous one).
 Items stay hidden until their turn. Zero preserves simultaneous playback. Animate
@@ -488,7 +480,7 @@ console.log(JSON.stringify(slide));
 V1 supports up to 100 elements per container, 500 total across frames/templates,
 eight nested frame/template levels, 20 media elements per slide, and 100 keyframes per
 element, 100 entries per playlist, and 250 KB slide/playlist definitions. Scheduling
-by date/time, additional slide transition styles, custom live-data templates, asset deletion,
+by date/time, additional playlist transition styles, custom live-data templates, asset deletion,
 and playlist deletion are future work.
 
 ## Component implementations
@@ -599,3 +591,37 @@ Generic table sanitization also refreshes cached document-array and single-neste
 models when their parent schema changes in development. Repeated requests using
 the same schema reuse the cached child model. These changes affect in-memory
 model registration; they do not delete stored records or drop database collections.
+
+## Playlist transitions
+
+In the playlist editor, set **Playlist transition** to **Crossfade** (the default)
+or **None (cut)**. Set the duration in milliseconds (0-60000; default 2000).
+Each entry has **Transition into slide N**, which inherits the playlist default
+unless explicitly overridden. Overrides follow an entry when it is reordered or
+duplicated, including repeated uses of the same slide. **Transition preview**
+shows two sample slides using the playlist default.
+
+The player overlaps complete slides, including their backgrounds. Each layer
+has the monitor's light/dark base behind any transparency, so a transparent
+incoming slide does not suddenly reveal or remove the old slide at the end.
+The outgoing layer stays opaque underneath the incoming layer as it fades in;
+this avoids an unintended dip through the monitor background between opaque slides.
+The first slide fades from the monitor base. A cut or zero-duration transition
+switches immediately. The last non-looping slide stays visible and its data
+continues updating.
+
+Durations are fully visible hold times. A 10-second hold, 2-second incoming
+crossfade, and 2-second transition into the next slide give 14 seconds of total
+visibility, with the next slide starting every 12 seconds. The countdown resets
+when the incoming slide starts and counts its entrance plus hold time until the
+next transition. Element keyframes and repeater clocks start after entrance;
+outgoing layers hold their final content pose during the overlap. A held final
+slide keeps its repeater paging clock running.
+
+Existing playlists with no transition setting use a 2000ms crossfade in both
+editor and playback. This compatibility default requires no database writes.
+Old per-slide entrance/exit settings no longer control playback; recreate any
+custom timing as a playlist default or entry override, then publish the playlist.
+Published transition changes participate in the playback version so monitors
+receive them at a slide boundary. Each new visit still revalidates published
+content; missing media keeps the outgoing slide visible and retries loading.
