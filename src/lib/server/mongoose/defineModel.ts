@@ -1,4 +1,5 @@
-import { Schema, model, Types, type SchemaDefinition, type SchemaOptions } from 'mongoose';
+import { Schema, model, Types } from 'mongoose';
+import { dev } from '$app/environment';
 import { hooks } from './hooks';
 
 type HookOption<T> = {
@@ -27,5 +28,8 @@ export const defineModel = <T>(name: string, schemaDef: any, hookOptions?: HookO
 
 	hookOptions?.customHooks?.forEach((fn) => fn(schema));
 
-	return model<T>(name, schema);
+	// Vite reloads server modules while Mongoose retains its process-wide registry.
+	// Recompile in development so updated paths, hooks, and virtuals take effect.
+	// Keeping the production guard catches accidental duplicate registrations.
+	return model<T>(name, schema, undefined, { overwriteModels: dev });
 };

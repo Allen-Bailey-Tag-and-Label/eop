@@ -1,5 +1,6 @@
 // sanitizeDataFromSchema.ts
-import mongoose, { Types, type Model, type Schema } from 'mongoose';
+import { Types, type Model, type Schema } from 'mongoose';
+import { dev } from '$app/environment';
 
 const normalizeBoolean = (v: any) => {
 	if (v === true || v === 'true' || v === 'on' || v === 1 || v === '1') return true;
@@ -11,6 +12,9 @@ const normalizeBoolean = (v: any) => {
 const getOrCreateSubModel = (model: Model<any>, name: string, schema: Schema) => {
 	// Use the same connection to avoid model name clashes across connections
 	const conn = model.db;
+	const cached = conn.models[name];
+	// The parent model can be recompiled by Vite without clearing child models.
+	if (dev && cached && cached.schema !== schema) conn.deleteModel(name);
 	return conn.models[name] ?? conn.model(name, schema);
 };
 

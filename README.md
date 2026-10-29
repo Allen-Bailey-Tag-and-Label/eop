@@ -408,3 +408,17 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+## Development model reloads
+
+All application models register through `src/lib/server/mongoose/defineModel.ts`.
+In development, registration recompiles models with Mongoose's `overwriteModels`
+option so Vite server reloads pick up changed fields, middleware, and virtuals
+without duplicate-model errors or stale schema reuse. Both the Mongoose and
+connection registries point to the updated model. Production retains Mongoose's
+normal duplicate-registration guard.
+
+Generic table sanitization also refreshes cached document-array and single-nested
+models when their parent schema changes in development. Repeated requests using
+the same schema reuse the cached child model. These changes affect in-memory
+model registration; they do not delete stored records or drop database collections.

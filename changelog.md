@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-28T20:22:34.658Z
+## 2026-10-28T20:30:25.162Z
+
+fix: Reload Mongoose models safely during development
+
+## 2026-10-28T16:23:41-04:00
 
 feat: Scope slide assets and add a shared library
 
