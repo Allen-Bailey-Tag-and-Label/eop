@@ -3,7 +3,6 @@
 	import { deserialize } from '$app/forms';
 	import {
 		ArrowLeft,
-		Plus,
 		Settings,
 		Upload,
 		Import as ImportIcon,
@@ -31,7 +30,6 @@
 		Diamond,
 		Trash2,
 		Download,
-		ChevronDown,
 		FolderOpen,
 		RotateCw,
 		RotateCcw,
@@ -46,21 +44,9 @@
 		GripVertical,
 		Database
 	} from '@lucide/svelte';
-	import {
-		A,
-		Button,
-		Div,
-		DropdownMenu,
-		Form,
-		H1,
-		H2,
-		Input,
-		Modal,
-		P,
-		Select,
-		Textarea
-	} from '$lib/components';
+	import { A, Button, Div, Form, H1, H2, Input, Modal, P, Select, Textarea } from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
+	import AddElementMenu from './AddElementMenu.svelte';
 	import ColorField from './ColorField.svelte';
 	import InspectorInput from './InspectorInput.svelte';
 	import InspectorSection from './InspectorSection.svelte';
@@ -572,19 +558,7 @@
 				>{dirty ? 'Unsaved changes' : data.slide.id ? 'Draft saved' : 'New slide'}</P
 			></Div
 		>
-		<DropdownMenu
-			class="shrink-0 [&>button]:inline-flex [&>button]:h-9 [&>button]:items-center [&>button]:px-2 [&>button]:py-1 [&>button]:text-sm [&>button]:text-white [&>button]:hover:text-white [&>button]:focus:text-white"
-			label="Add element"
-			items={availableTools.map((item) => ({ value: item.type, label: item.label }))}
-			onSelect={(item) => addElement(item.value as ElementType)}
-		>
-			<span class="inline-flex flex-nowrap items-center gap-1 whitespace-nowrap">
-				<Plus size={18} class="shrink-0" /><span class="hidden md:inline">Add</span><ChevronDown
-					size={14}
-					class="shrink-0"
-				/>
-			</span>
-		</DropdownMenu>
+		<AddElementMenu tools={availableTools} onAdd={addElement} />
 		<Button
 			aria-label="Settings"
 			title="Slide settings"

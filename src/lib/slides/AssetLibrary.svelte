@@ -68,49 +68,59 @@
 						: (slides.find((slide) => slide.id === asset.slideId)?.title ??
 							'Unassigned / abandoned draft')}</P
 			>
-			<A href={`/admin/monitors/slides/assets/${asset.id}`} target="_blank" rel="noreferrer"
-				>Preview file</A
+			<Div
+				class="-m-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain p-1"
 			>
-			{#if tab !== 'unused'}<Button onclick={() => onChoose(asset)}>Add to canvas</Button>{/if}
-			<Form
-				{action}
-				class="space-y-2"
-				submitFunction={() => {
-					busy = true;
-					return async ({ update }) => {
-						try {
-							await update();
-						} finally {
-							busy = false;
-						}
-					};
-				}}
-			>
-				{#snippet inputs()}
+				<A
+					class="shrink-0 text-sm whitespace-nowrap"
+					href={`/admin/monitors/slides/assets/${asset.id}`}
+					target="_blank"
+					rel="noreferrer">Preview file</A
+				>
+				{#if tab !== 'unused'}<Button
+						class="shrink-0 px-3 py-2 text-sm"
+						onclick={() => onChoose(asset)}>Add to canvas</Button
+					>{/if}
+				<Form
+					{action}
+					class="flex w-auto max-w-none shrink-0 items-center gap-2 space-y-0"
+					submitFunction={() => {
+						busy = true;
+						return async ({ update }) => {
+							try {
+								await update();
+							} finally {
+								busy = false;
+							}
+						};
+					}}
+				>
 					<Input type="hidden" name="assetId" value={asset.id} />
 					<Input type="hidden" name="assetScopeId" value={scopeId} />
 					<Input type="hidden" name="targetSlideId" value={destination || scopeId} />
-				{/snippet}
-				{#snippet buttons()}
-					<Div class="flex flex-wrap gap-2">
-						{#if asset.scope !== 'shared' && (asset.slideId === scopeId || asset.scope === 'unassigned')}<Button
-								type="submit"
-								name="operation"
-								value="share"
-								disabled={busy}>Share asset</Button
-							>{/if}
-						<Button type="submit" name="operation" value="copy" disabled={busy}
-							>Copy to destination</Button
-						>
-						{#if asset.scope === 'unassigned'}<Button
-								type="submit"
-								name="operation"
-								value="assign"
-								disabled={busy}>Assign to this slide</Button
-							>{/if}
-					</Div>
-				{/snippet}
-			</Form>
+					{#if asset.scope !== 'shared' && (asset.slideId === scopeId || asset.scope === 'unassigned')}<Button
+							type="submit"
+							class="shrink-0 px-3 py-2 text-sm"
+							name="operation"
+							value="share"
+							disabled={busy}>Share asset</Button
+						>{/if}
+					<Button
+						class="shrink-0 px-3 py-2 text-sm"
+						type="submit"
+						name="operation"
+						value="copy"
+						disabled={busy}>Copy to destination</Button
+					>
+					{#if asset.scope === 'unassigned'}<Button
+							type="submit"
+							class="shrink-0 px-3 py-2 text-sm"
+							name="operation"
+							value="assign"
+							disabled={busy}>Assign to this slide</Button
+						>{/if}
+				</Form>
+			</Div>
 		</Div>
 	{:else}<P class="text-sm opacity-60">No assets in this section.</P>{/each}
 	<P class="text-xs opacity-60"

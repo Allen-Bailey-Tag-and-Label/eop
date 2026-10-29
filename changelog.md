@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T12:54:45.136Z
+## 2026-10-29T13:30:13.778Z
+
+fix: Animate the Add menu and keep asset actions on one row
+
+## 2026-10-29T08:59:12-04:00
 
 feat: Add transparency controls to all slide colors
 
