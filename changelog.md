@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T12:40:30.571Z
+## 2026-10-29T12:54:45.136Z
+
+feat: Add transparency controls to all slide colors
+
+## 2026-10-29T08:48:34-04:00
 
 fix: Show frontmost slide layers first
 

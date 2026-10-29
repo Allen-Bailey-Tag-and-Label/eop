@@ -28,9 +28,10 @@ const text = (value: unknown, max: number, label: string) =>
 const choice = <T extends string>(value: unknown, values: readonly T[], label: string): T =>
 	values.includes(value as T) ? (value as T) : invalid(`Invalid ${label}.`);
 const hexColor = (value: unknown) =>
-	typeof value === 'string' && /^#[a-f\d]{6}$/i.test(value)
+	typeof value === 'string' &&
+	(value === 'transparent' || /^#[a-f\d]{6}([a-f\d]{2})?$/i.test(value))
 		? value
-		: invalid('Use a six-digit hex color.');
+		: invalid('Use a six- or eight-digit hex color, or transparent.');
 const color = (value: unknown) => {
 	if (typeof value === 'string') return hexColor(value);
 	const pair = object(value);

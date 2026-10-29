@@ -25,6 +25,63 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('edits opacity for text, borders, text backgrounds and slide backgrounds without losing RGB or theme variants', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await fireEvent.click(view.getByRole('button', { name: 'Add text' }));
+		await fireEvent.input(
+			view.getByRole('spinbutton', { name: 'Element color in light mode opacity' }),
+			{ target: { value: '0' } }
+		);
+		expect(definition().elements[0].color).toEqual({ light: '#11182700', dark: '#f9fafb' });
+		await fireEvent.input(view.getByLabelText('Element color in light mode'), {
+			target: { value: '#123456' }
+		});
+		expect(definition().elements[0].color.light).toBe('#12345600');
+		const opacity = view.getByRole('spinbutton', { name: 'Element color in light mode opacity' });
+		await fireEvent.input(opacity, { target: { value: '' } });
+		await fireEvent.blur(opacity);
+		expect(opacity).toHaveValue(0);
+		await fireEvent.input(view.getByRole('textbox', { name: 'Element color in light mode hex' }), {
+			target: { value: '11223380' }
+		});
+		expect(
+			view.getByRole('spinbutton', { name: 'Element color in light mode opacity' })
+		).toHaveValue(50);
+		await fireEvent.change(view.getByRole('combobox', { name: 'Text background' }), {
+			target: { value: 'color' }
+		});
+		await fireEvent.input(
+			view.getByRole('spinbutton', { name: 'Text box background in dark mode opacity' }),
+			{ target: { value: '25' } }
+		);
+		expect(definition().elements[0].backgroundColor.dark).toBe('#11182740');
+		await fireEvent.click(view.getByText('Stroke', { selector: 'summary' }));
+		await fireEvent.input(
+			view.getByRole('spinbutton', { name: 'Object border color in light mode opacity' }),
+			{ target: { value: '0' } }
+		);
+		expect(definition().elements[0].borderColor.light).toBe('#11182700');
+		await fireEvent.click(view.getByRole('button', { name: 'Settings' }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Slide background mode' }), {
+			target: { value: 'fixed' }
+		});
+		await fireEvent.input(view.getByLabelText('Slide background'), {
+			target: { value: '#445566' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Slide background opacity' }), {
+			target: { value: '50' }
+		});
+		expect(definition().background).toBe('#44556680');
+	});
 	it('edits and saves vertical text alignment for slide and repeater template text', async () => {
 		vi.useFakeTimers();
 		const view = render(SlideEditor, {

@@ -3,7 +3,7 @@
 	import { Button, Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt, slideContentTime } from './timeline';
-	import { displayBackground } from './colors';
+	import { displayBackground, hasColorTransparency, resolveSlideColor } from './colors';
 	import {
 		moveElement,
 		resizeDimensions,
@@ -254,7 +254,7 @@
 >
 	<Div
 		class="absolute shadow-xl"
-		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));background:${definition.background === 'transparent' ? `repeating-conic-gradient(${scheme === 'dark' ? '#1f2937 0% 25%,#374151' : '#e5e7eb 0% 25%,#f3f4f6'} 0% 50%) 0 0 / 20px 20px` : displayBackground(scheme)};`}
+		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));background:${hasColorTransparency(resolveSlideColor(definition.background, scheme)) ? `repeating-conic-gradient(${scheme === 'dark' ? '#1f2937 0% 25%,#374151' : '#e5e7eb 0% 25%,#f3f4f6'} 0% 50%) 0 0 / 20px 20px` : displayBackground(scheme)};`}
 	>
 		<SlideCanvas
 			{definition}

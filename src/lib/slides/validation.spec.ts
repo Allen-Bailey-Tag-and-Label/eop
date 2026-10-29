@@ -49,16 +49,16 @@ describe('slide definitions', () => {
 				.elements[0].backgroundColor
 		).toBe('transparent');
 	});
-	it('accepts transparent backgrounds while keeping element colors restricted to hex colors', () => {
+	it('accepts transparent backgrounds and element colors', () => {
 		expect(validateSlide({ ...blankSlide(), background: 'transparent' }).background).toBe(
 			'transparent'
 		);
-		expect(() =>
+		expect(
 			validateSlide({
 				...blankSlide(),
 				elements: [{ ...newElement('text', 'headline'), color: 'transparent' }]
-			})
-		).toThrow();
+			}).elements[0].color
+		).toBe('transparent');
 	});
 	it('accepts typed elements and strips executable or unknown fields', () => {
 		const element = {

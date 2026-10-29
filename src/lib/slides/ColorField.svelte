@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Sun, Moon } from '@lucide/svelte';
 	import ColorSwatch from './ColorSwatch.svelte';
-	import { Div, Input, Select } from '$lib/components';
+	import { Div, Select } from '$lib/components';
 	import { resolveSlideColor } from './colors';
 	import type { ColorScheme, SlideColor } from './types';
 	let {
@@ -102,41 +102,41 @@
 			}}
 		/>
 		{#if typeof value === 'string'}
-			<Input
-				{label}
-				aria-label={ariaLabel}
-				type="color"
+			<span class="text-sm font-medium">{label}</span>
+			<ColorSwatch
+				label={ariaLabel}
+				compact={false}
 				{value}
 				{disabled}
 				bind:element={fixedInput}
-				oninput={(event) => onValueChange(event.currentTarget.value)}
+				{onValueChange}
 			/>
 		{:else}
 			<Div class="grid grid-cols-2 gap-2">
-				<Input
-					label="Light"
-					aria-label={`${ariaLabel} in light mode`}
-					type="color"
-					value={value.light}
-					{disabled}
-					bind:element={lightInput}
-					oninput={(event) => {
-						if (typeof value !== 'string')
-							onValueChange({ ...value, light: event.currentTarget.value });
-					}}
-				/>
-				<Input
-					label="Dark"
-					aria-label={`${ariaLabel} in dark mode`}
-					type="color"
-					value={value.dark}
-					{disabled}
-					bind:element={darkInput}
-					oninput={(event) => {
-						if (typeof value !== 'string')
-							onValueChange({ ...value, dark: event.currentTarget.value });
-					}}
-				/>
+				<Div class="min-w-0 space-y-1"
+					><span class="text-sm font-medium">Light</span><ColorSwatch
+						label={`${ariaLabel} in light mode`}
+						compact={false}
+						value={value.light}
+						{disabled}
+						bind:element={lightInput}
+						onValueChange={(color) => {
+							if (typeof value !== 'string') onValueChange({ ...value, light: color });
+						}}
+					/></Div
+				>
+				<Div class="min-w-0 space-y-1"
+					><span class="text-sm font-medium">Dark</span><ColorSwatch
+						label={`${ariaLabel} in dark mode`}
+						compact={false}
+						value={value.dark}
+						{disabled}
+						bind:element={darkInput}
+						onValueChange={(color) => {
+							if (typeof value !== 'string') onValueChange({ ...value, dark: color });
+						}}
+					/></Div
+				>
 			</Div>
 		{/if}
 	</Div>

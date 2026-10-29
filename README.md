@@ -251,10 +251,17 @@ editing groups start open; Stroke and anchoring start collapsed until needed.
 Compact 32-pixel controls pair X/Y and W/H, with icon buttons for rotation,
 alignment, and layer order. Prefixes have full labels/tooltips and keyboard access.
 Scale and opacity display percentages while saved definitions retain their
-existing numeric values. Color rows pair a swatch with an editable six-digit hex
+existing numeric values. Color rows pair a swatch with an editable hex
 value; fixed and light/dark modes remain available. The color toolbar shortcut
 opens Fill before activating its picker. These density styles are limited to the
 inspector; document dialogs and other application forms keep their normal sizing.
+
+All slide color controls include **Opacity (%)**: 0 is fully transparent and 100
+is opaque. Text, shapes, borders, text backgrounds, and the slide background can
+each have their own opacity, including independent light/dark values. Swatches
+show transparency over a checkerboard. Hex fields accept `RRGGBB` or `RRGGBBAA`;
+changing the color picker preserves its opacity. Object opacity still fades the
+entire object, including its fill, text, and border.
 
 Text elements also have **Top**, **Middle**, and **Bottom** vertical alignment
 buttons in Typography. Alignment positions the entire text block inside the
