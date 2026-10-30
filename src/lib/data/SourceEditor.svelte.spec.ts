@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 import { render, cleanup, fireEvent, waitFor } from '@testing-library/svelte';
 import SourceEditor from './SourceEditor.svelte';
-import { blankWorkflow } from './types';
+import { blankWorkflow, type WorkflowDefinition } from './types';
 vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 beforeEach(() => {
@@ -19,6 +19,29 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('workflow authoring', () => {
+	it('opens a persisted source whose empty parameter object was omitted', () => {
+		const stored: Partial<WorkflowDefinition> = blankWorkflow();
+		delete stored.parameters;
+		const view = render(SourceEditor, {
+			data: {
+				source: {
+					id: 'a'.repeat(24),
+					title: 'Saved weather',
+					version: 1,
+					draft: stored as WorkflowDefinition
+				},
+				connections: [],
+				usage: []
+			}
+		});
+		expect(view.getByRole('heading', { name: 'Edit data link' })).toBeInTheDocument();
+		expect(view.getByRole('button', { name: 'Save draft' })).toBeEnabled();
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(definition.parameters).toEqual({});
+		expect(definition.nodes).toEqual(stored.nodes);
+	});
 	it('imports a validated workflow draft and preserves it when another import fails', async () => {
 		const view = render(SourceEditor, {
 			data: {

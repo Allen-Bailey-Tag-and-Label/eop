@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T13:16:05.523Z
+## 2026-10-30T13:20:15.784Z
+
+fix: Handle missing parameters when editing saved data links
+
+## 2026-10-30T09:16:53-04:00
 
 fix: Standardize data dialogs and fix nested API CRUD and workflow editing
 

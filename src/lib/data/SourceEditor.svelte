@@ -63,7 +63,7 @@
 		)
 	);
 	let configErrors = $state<Record<string, string>>({});
-	let parameters = $state(untrack(() => JSON.stringify(draft.parameters, null, 2)));
+	let parameters = $state(untrack(() => JSON.stringify(draft.parameters ?? {}, null, 2)));
 	let previewParameters = $state('{}');
 	let previewNode = $state('');
 	let deleting = $state(false);
