@@ -27,22 +27,47 @@ Removing outputs, fields, or parameters used by existing draft/published slides
 is blocked. Usage links show those slides. A source cannot be deleted while used.
 Updates use optimistic versions to detect conflicting edits.
 
-## Use a source on a slide
+## Repeating content and binding data
 
-1. Select an element and open its **Data source** settings.
-2. Choose the source and named output, then override parameters if needed.
-3. Bind element properties to output fields. A standalone element uses the first
-   row. Text, QR content, uploaded image asset IDs, colors, visibility, and image
-   opacity can be bound. Images use uploaded asset IDs, rather than remote URLs.
-4. To show every row, select an existing object and click **Repeat with data**.
-   This wraps the object in a repeater. Frames let one repeated item contain
-   several objects. Edit the item template to bind its children to `row.field`.
-5. Configure the repeater's columns, gaps, paging, clipping, and stagger as usual.
-   Save and publish the slide.
+Repeaters control copies, layout, paging, and animation. Data links fetch and
+transform rows; property bindings connect those rows to content. An image, text,
+shape, or frame can repeat without using a data link.
 
-Existing inline database links and their item templates remain supported. To
-reuse one, create a database node with the existing query settings, publish an
-output with the same fields, and choose it in the existing repeater's Data link.
+1. Select an existing object and click **Repeat element**, or add a repeater.
+2. In **Repeat items > Items**, choose **Fixed count** and enter the number of
+   copies (0-500), or choose **Data-link output** and select a published output.
+3. Open **Edit item template**. Bind its text, QR content, uploaded image IDs,
+   colors, visibility, or image opacity in **Property bindings**. A data-driven
+   item uses `row.field`; **Row number** works with either mode. Fixed-count
+   items can simply retain their static content.
+4. Configure columns, gaps, paging, clipping, and stagger on the repeater.
+5. Save and publish the slide.
+
+Item templates have no query/source picker. A standalone element can choose a
+source in **Data binding source** and uses its first output row. An existing
+independent source override inside an old item template is preserved and identified
+in the properties so its behavior does not silently change.
+
+## Existing slides and imports
+
+Published legacy slides continue using their original inline queries and renderer.
+Opening an old slide extracts each inline query into a slide-specific data link
+and gives the editable element a reference to it. This creates the supporting
+link record but does not save, republish, or rewrite the slide in the database.
+The imported query is initially available as a published link so previews continue
+working. Its original selection, filtering, sorting, labels, details, date time
+zone, empty message, item template, and animation settings are preserved.
+
+Extraction uses deterministic IDs and insert-only writes: reopening the same old
+slide cannot overwrite subsequent link edits or create another copy. Inline-query
+JSON imports go through the same extraction before replacing the canvas. Saving
+legacy definitions also converts them, including callers outside the editor.
+Legacy named-source repeaters are normalized without creating another source.
+
+Saving a draft leaves the live slide unchanged. Publish the slide when ready to
+switch monitors to the extracted source; edits to that source then follow the
+normal published-source behavior. Old JSON exports remain importable. New exports
+reference portal data-link IDs, just as image exports reference portal asset IDs.
 
 ## Database nodes and birthdays
 
@@ -59,8 +84,9 @@ firstName lastName`, sort by birthdayDay then name, and publish an `employees`
 output with those fields and `_id` as its stable ID field. The database adapter
 preserves each record's `_id` for output identities even when it is not displayed.
 
-On the existing birthday repeater, choose this source and `employees`, edit its
-item template, bind text to `row.displayText`, and use text formatting. Styling,
+On the birthday repeater, set **Items** to **Data-link output**, choose this
+source and `employees`, edit its item template, bind text to `row.displayText`,
+and use text formatting. Styling,
 pagination, and animations remain in the template.
 
 ## API connections

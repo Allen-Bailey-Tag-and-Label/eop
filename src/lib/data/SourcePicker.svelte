@@ -20,7 +20,7 @@
 
 <Div class="space-y-2">
 	<Select
-		label="Data source"
+		label="Data link"
 		aria-label="Reusable data source"
 		value={value?.sourceId ?? ''}
 		options={[

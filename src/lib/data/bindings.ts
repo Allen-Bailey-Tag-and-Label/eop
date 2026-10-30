@@ -35,7 +35,7 @@ export function validateBindings(input: unknown): Partial<Record<BoundProperty, 
 			const field = typeof binding.field === 'string' ? binding.field.replace(/^row\./, '') : '';
 			if (
 				!bindableProperties.includes(property as BoundProperty) ||
-				!safeField(field) ||
+				(!safeField(field) && field !== '$index') ||
 				!['text', 'date', 'number'].includes(String(binding.format)) ||
 				typeof binding.fallback !== 'string' ||
 				binding.fallback.length > 500
@@ -55,7 +55,10 @@ export function boundElement(
 	timeZone: string,
 	data: SlideData
 ): SlideElement & { visible: boolean } {
-	const active = element.dataReference ? data[element.id]?.items[0] : row;
+	const active =
+		element.dataReference || element.repeatItems?.mode === 'source'
+			? data[element.id]?.items[0]
+			: row;
 	const result = { ...element, visible: true };
 	for (const [name, binding] of Object.entries(element.bindings ?? {})) {
 		if (!binding) continue;

@@ -77,6 +77,9 @@ export type DataRow = {
 	fields?: Record<string, DataValue>;
 };
 export type DataBinding = { field: string; format: 'text' | 'date' | 'number'; fallback: string };
+export type RepeatItems =
+	| { mode: 'count'; count: number }
+	| { mode: 'source'; source?: SourceReference };
 export type RepeaterDefinition = {
 	clip?: boolean;
 	staggerMs?: number;
@@ -137,6 +140,9 @@ export type SlideElement = Pose & {
 	keyframes: Keyframe[];
 	dataSource?: SlideDataSource;
 	dataReference?: SourceReference;
+	repeatItems?: RepeatItems;
+	dataTimeZone?: string;
+	dataEmptyMessage?: string;
 	bindings?: Partial<Record<BoundProperty, DataBinding>>;
 	repeater?: RepeaterDefinition;
 	binding?: DataBinding;

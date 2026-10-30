@@ -2,10 +2,12 @@
 	import { Div } from '$lib/components';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { gridLayout, templateSlide, repeaterItemTime } from './repeater';
-	import type { ColorScheme, DataListResult, RepeaterDefinition } from './types';
+	import type { ColorScheme, DataRow, RepeaterDefinition } from './types';
 	let {
 		settings,
-		result,
+		rows = [],
+		message = '',
+		loading = false,
 		data = {},
 		width,
 		height,
@@ -18,7 +20,9 @@
 		unit = 1
 	}: {
 		settings: RepeaterDefinition;
-		result?: DataListResult;
+		rows?: DataRow[];
+		message?: string;
+		loading?: boolean;
 		data?: import('./types').SlideData;
 		width: number;
 		height: number;
@@ -30,7 +34,7 @@
 		timeZone: string;
 		unit?: number;
 	} = $props();
-	const items = $derived(result?.items ?? []);
+	const items = $derived(rows);
 	const grid = $derived(gridLayout(settings, width, height, items.length, timeMs, unit));
 	const definition = $derived(templateSlide(settings, durationMs));
 </script>
@@ -39,7 +43,7 @@
 	class={`relative h-full w-full ${settings.clip === false ? 'overflow-visible' : 'overflow-hidden'}`}
 	aria-label="Repeater grid"
 >
-	{#if result?.state === 'ready' && items.length}
+	{#if items.length}
 		{#each items.slice(grid.start, grid.start + grid.visibleCount) as row, index (row.id)}
 			{@const itemTime = repeaterItemTime(settings, timeMs, index, grid.start, grid.page)}
 			<Div
@@ -63,6 +67,8 @@
 			</Div>
 		{/each}
 	{:else}
-		<Div class="flex h-full items-center justify-center">{result?.message ?? 'Loading data…'}</Div>
+		<Div class="flex h-full items-center justify-center"
+			>{message || (loading ? 'Loading data?' : '')}</Div
+		>
 	{/if}
 </Div>

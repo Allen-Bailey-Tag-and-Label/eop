@@ -3,6 +3,9 @@ import { Holiday, Customer } from '../mongoose/models';
 import { createSlideDataResolver, resolveDates, previewSlideData } from './data-sources';
 import { blankSlide, newElement, defaultDataSource, type SlideDataSource } from '$lib/slides/types';
 import { validateDataSource, validateSlide } from '$lib/slides/validation';
+import { resolveSource } from '../data/sources';
+import { defaultRepeater } from '$lib/slides/repeater';
+vi.mock('../data/sources', () => ({ resolveSource: vi.fn() }));
 vi.mock('../mongoose/models', () => {
 	const schema = {
 		path: (field: string) =>
@@ -32,6 +35,35 @@ const query = (rows: unknown[]) => ({
 });
 beforeEach(() => vi.resetAllMocks());
 describe('generic slide data links', () => {
+	it('resolves collection references separately from fixed copies while preserving migrated labels and details', async () => {
+		const reference = { sourceId: 'a'.repeat(24), output: 'rows', parameters: {} };
+		const linked = {
+			...newElement('repeater', 'linked'),
+			repeater: defaultRepeater(),
+			repeatItems: { mode: 'source' as const, source: reference }
+		};
+		const fixed = {
+			...newElement('repeater', 'fixed'),
+			repeater: defaultRepeater(),
+			repeatItems: { mode: 'count' as const, count: 3 }
+		};
+		vi.mocked(resolveSource).mockResolvedValue({
+			outputs: {
+				rows: [{ _rowId: 'one', name: 'Holiday', _label: 'Holiday', _detail: 'Dec 25, 2026' }]
+			},
+			updatedAt: now.toISOString()
+		});
+		const resolved = await previewSlideData({ ...blankSlide(), elements: [linked, fixed] }, now);
+		expect(resolved.linked.items[0]).toMatchObject({
+			id: 'one',
+			label: 'Holiday',
+			detail: 'Dec 25, 2026',
+			fields: { name: 'Holiday' }
+		});
+		expect(resolved.fixed).toBeUndefined();
+		expect(resolveSource).toHaveBeenCalledOnce();
+		expect(Holiday.find).not.toHaveBeenCalled();
+	});
 	it('resolves and previews data links nested inside frames', async () => {
 		const rows = query([
 			{ _id: 'one', name: 'Nested holiday', date: new Date('2026-03-08T05:00:00Z') }

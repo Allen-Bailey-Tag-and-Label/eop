@@ -15,6 +15,7 @@ import { queryLink } from '../slides/data-sources';
 import { Slide } from '../slides/models';
 import { blankWorkflow } from '$lib/data/types';
 import { blankSlide, defaultDataSource, newElement } from '$lib/slides/types';
+import { defaultRepeater } from '$lib/slides/repeater';
 
 vi.mock('./models', () => ({
 	DataSource: {
@@ -133,7 +134,11 @@ describe('published data source lifecycle', () => {
 		fields.set('id', id);
 		fields.set('version', '1');
 		fields.set('confirm', 'delete');
-		const element = { ...newElement('text', 'text'), dataReference: reference() };
+		const element = {
+			...newElement('repeater', 'text'),
+			repeater: defaultRepeater(),
+			repeatItems: { mode: 'source' as const, source: reference() }
+		};
 		vi.mocked(Slide.find).mockReturnValue(
 			query([
 				{ title: 'Used', slug: 'used', draft: { ...blankSlide(), elements: [element] } }

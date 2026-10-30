@@ -185,3 +185,58 @@ export function allElements(definition: Pick<SlideDefinition, 'elements'>): Slid
 		...allElements({ elements: element.repeater?.template.elements ?? [] })
 	]);
 }
+
+// Compatibility stays at the boundary; the repeater itself only receives rows.
+export function collectionReference(element: SlideElement) {
+	if (element.repeatItems)
+		return element.repeatItems.mode === 'source' ? element.repeatItems.source : undefined;
+	return element.dataReference;
+}
+export function repeatResult(
+	element: SlideElement,
+	data: import('./types').SlideData
+): import('./types').DataListResult | undefined {
+	if (element.repeatItems?.mode === 'count') {
+		const count = Number.isFinite(element.repeatItems.count)
+			? Math.max(0, Math.min(500, Math.floor(element.repeatItems.count)))
+			: 0;
+		return {
+			state: count ? 'ready' : 'empty',
+			message: '',
+			items: Array.from({ length: count }, (_, index) => ({
+				id: `copy-${index}`,
+				label: `Item ${index + 1}`,
+				detail: '',
+				fields: {}
+			}))
+		};
+	}
+	if (element.repeatItems?.mode === 'source' && !element.repeatItems.source)
+		return { state: 'empty', items: [], message: 'Choose a data-link output for these items.' };
+	const result = data[element.id];
+	if (result?.state === 'empty' && element.dataEmptyMessage !== undefined)
+		return { ...result, message: element.dataEmptyMessage };
+	return result;
+}
+export function normalizeRepeaters(definition: SlideDefinition): SlideDefinition {
+	const next = structuredClone(definition);
+	for (const element of allElements(next)) {
+		if (
+			element.binding &&
+			!element.bindings?.text &&
+			(element.type === 'text' || element.type === 'qr')
+		) {
+			element.bindings = { ...element.bindings, text: element.binding };
+			delete element.binding;
+		}
+		if (element.repeater && !element.repeatItems && element.dataReference) {
+			element.repeatItems = { mode: 'source', source: element.dataReference };
+			if (element.dataTimeZone === undefined && element.dataSource)
+				element.dataTimeZone = element.dataSource.timeZone;
+			delete element.dataReference;
+			delete element.dataSource;
+			element.type = 'repeater';
+		}
+	}
+	return next;
+}

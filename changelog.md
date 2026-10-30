@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T11:42:18.494Z
+## 2026-10-30T12:12:07.818Z
+
+refactor: Decouple repeaters with legacy compatibility and standardize data editor styling
+
+## 2026-10-30T07:44:18-04:00
 
 feat: Add scoped slide data workflows, API sources and reusable bindings
 

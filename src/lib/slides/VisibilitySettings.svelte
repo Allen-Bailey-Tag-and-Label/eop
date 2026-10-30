@@ -5,7 +5,10 @@
 		$props();
 	const sources = $derived(
 		elements.filter(
-			(element) => element.dataReference || (element.type === 'list' && element.dataSource)
+			(element) =>
+				element.dataReference ||
+				element.repeatItems?.mode === 'source' ||
+				(element.type === 'list' && element.dataSource)
 		)
 	);
 	const kinds = [

@@ -4,13 +4,43 @@ import {
 	defaultRepeater,
 	gridLayout,
 	templateSlide,
-	repeaterItemTime
+	repeaterItemTime,
+	repeatResult,
+	normalizeRepeaters
 } from './repeater';
 import { blankSlide, defaultDataSource, newElement } from './types';
 import { validateSlide } from './validation';
 import { mediaIds } from './media';
 
 describe('grid repeaters', () => {
+	it('repeats arbitrary content by count without a query and normalizes legacy source references', () => {
+		const element = {
+			...newElement('repeater', 'cards'),
+			repeatItems: { mode: 'count' as const, count: 4 },
+			repeater: defaultRepeater()
+		};
+		expect(
+			repeatResult(
+				validateSlide({ ...blankSlide(), elements: [element] }).elements[0],
+				{}
+			)?.items.map((row) => row.id)
+		).toEqual(['copy-0', 'copy-1', 'copy-2', 'copy-3']);
+		element.repeatItems.count = 0;
+		expect(repeatResult(element, {})?.state).toBe('empty');
+		element.repeatItems.count = 1.5;
+		expect(() => validateSlide({ ...blankSlide(), elements: [element] })).toThrow('whole number');
+		const legacy = {
+			...newElement('list', 'old'),
+			repeater: defaultRepeater(),
+			dataReference: { sourceId: 'a'.repeat(24), output: 'rows', parameters: {} }
+		};
+		const normalized = normalizeRepeaters({ ...blankSlide(), elements: [legacy] });
+		expect(normalized.elements[0].repeatItems).toEqual({
+			mode: 'source',
+			source: legacy.dataReference
+		});
+		expect(legacy.dataReference).toBeDefined();
+	});
 	it('staggered item clocks start on first page visits and hold across cycles and scroll virtualization', () => {
 		const settings = { ...defaultRepeater(), staggerMs: 200 };
 		expect(repeaterItemTime(settings, 100, 1, 0)).toBe(-100);

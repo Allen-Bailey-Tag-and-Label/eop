@@ -1,5 +1,5 @@
 import { blankSlide, newElement } from '$lib/slides/types';
-import { defaultRepeater, allElements } from '$lib/slides/repeater';
+import { defaultRepeater, allElements, collectionReference } from '$lib/slides/repeater';
 import type { Model, Schema, PipelineStage } from 'mongoose';
 import type {
 	DataListResult,
@@ -250,13 +250,18 @@ export function createSlideDataResolver(now = new Date(), preview = false) {
 				allElements(definition)
 					.filter(
 						(element) =>
-							element.type === 'list' || element.type === 'repeater' || element.dataReference
+							(element.type === 'list' && !element.repeatItems) ||
+							element.dataReference ||
+							collectionReference(element)
 					)
 					.map(async (element) => {
 						let result: DataListResult;
 						try {
-							if (element.dataReference) {
-								const reference = validateReference(element.dataReference);
+							const source = element.repeater
+								? collectionReference(element)
+								: element.dataReference;
+							if (source) {
+								const reference = validateReference(source);
 								const key = JSON.stringify(reference);
 								if (!pending.has(key))
 									pending.set(
@@ -270,8 +275,8 @@ export function createSlideDataResolver(now = new Date(), preview = false) {
 												state: rows.length ? ('ready' as const) : ('empty' as const),
 												items: rows.map((fields, index) => ({
 													id: String(fields._rowId ?? fields.id ?? fields._id ?? index),
-													label: String(Object.values(fields)[0] ?? ''),
-													detail: '',
+													label: String(fields._label ?? Object.values(fields)[0] ?? ''),
+													detail: String(fields._detail ?? ''),
 													fields
 												})),
 												message: rows.length
@@ -352,6 +357,9 @@ export async function previewSlideData(input: unknown, now = new Date()): Promis
 			return {
 				...newElement('list', id),
 				dataSource: raw.dataSource as SlideDataSource,
+				...(raw.repeatItems
+					? { repeatItems: raw.repeatItems as import('$lib/slides/types').RepeatItems }
+					: {}),
 				...(raw.dataReference
 					? { dataReference: raw.dataReference as import('$lib/data/types').SourceReference }
 					: {}),

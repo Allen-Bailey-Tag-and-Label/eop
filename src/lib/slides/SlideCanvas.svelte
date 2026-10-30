@@ -11,7 +11,7 @@
 	import { paddingSides, paddingCss } from './padding';
 	import { frameLayoutStyle, elementPositionStyle } from './frames';
 	import type { FrameDefinition } from './types';
-	import { boundText } from './repeater';
+	import { boundText, repeatResult } from './repeater';
 	import { boundElement } from '$lib/data/bindings';
 	import type { DataRow } from './types';
 
@@ -99,7 +99,13 @@
 		style={`position:absolute;left:50%;top:50%;width:${renderWidth}px;height:${renderHeight}px;transform:translate(-50%,-50%) scale(${scale});transform-origin:center;overflow:${clip ? 'hidden' : 'visible'};${frameLayoutStyle(flow, Math.min(renderWidth / definition.width, renderHeight / definition.height))}`}
 	>
 		{#each definition.elements as original, index (original.id)}
-			{@const element = boundElement(original, row, rowIndex, timeZone, data)}
+			{@const element = boundElement(
+				original,
+				row,
+				rowIndex,
+				original.dataTimeZone ?? timeZone,
+				data
+			)}
 			{@const pose = poseAt(element, elementTimeMs)}
 			{@const box = elementLayout(definition, element, pose, renderWidth, renderHeight)}
 			{@const base = elementLayout(definition, element, element, renderWidth, renderHeight)}
@@ -152,10 +158,13 @@
 							: element.text}</Div
 					>
 				{:else if element.repeater}
+					{@const collection = repeatResult(element, data)}
 					<Repeater
 						settings={element.repeater}
 						{data}
-						result={Object.hasOwn(data, element.id) ? data[element.id] : undefined}
+						rows={collection?.items ?? []}
+						message={collection?.message ?? ''}
+						loading={!collection}
 						width={contentWidth}
 						height={contentHeight}
 						timeMs={repeaterTimeMs}
@@ -163,13 +172,13 @@
 						{scheme}
 						{assetBase}
 						{assetUrls}
-						timeZone={element.dataSource?.timeZone ?? timeZone}
+						timeZone={element.dataTimeZone ?? element.dataSource?.timeZone ?? timeZone}
 						unit={box.fontSize / element.fontSize}
 					/>
 				{:else if element.type === 'list'}
 					<DataList
 						heading={element.text}
-						result={Object.hasOwn(data, element.id) ? data[element.id] : undefined}
+						result={repeatResult(element, data)}
 						width={contentWidth}
 						height={contentHeight}
 						fontSize={box.fontSize}

@@ -22,6 +22,27 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('renders fixed copies of an image with no data link or network result', () => {
+		const photo = { ...newElement('image', 'photo'), assetId: 'b'.repeat(24), imageOpacity: 0.4 };
+		const repeat = {
+			...newElement('repeater', 'copies'),
+			repeatItems: { mode: 'count' as const, count: 3 },
+			repeater: {
+				...defaultRepeater(),
+				columns: 3,
+				itemHeight: 100,
+				template: { width: 100, height: 100, elements: [photo] }
+			}
+		};
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [repeat] },
+			assetBase: '/assets'
+		});
+		expect(view.container.querySelectorAll('img')).toHaveLength(3);
+		expect(view.queryByText('Loading data?')).not.toBeInTheDocument();
+		for (const image of view.container.querySelectorAll('img'))
+			expect(image).toHaveStyle({ opacity: '0.4' });
+	});
 	it('binds a standalone element and renders any object from reusable output rows', () => {
 		const reference = { sourceId: 'a'.repeat(24), output: 'employees', parameters: {} };
 		const text = {

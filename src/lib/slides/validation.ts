@@ -20,11 +20,37 @@ function dataSettings(element: Record<string, unknown>) {
 	try {
 		return {
 			...(element.dataReference ? { dataReference: validateReference(element.dataReference) } : {}),
-			...(element.bindings ? { bindings: validateBindings(element.bindings) } : {})
+			...(element.bindings ? { bindings: validateBindings(element.bindings) } : {}),
+			...(element.repeatItems ? { repeatItems: repeatItems(element.repeatItems) } : {}),
+			...(element.dataTimeZone !== undefined
+				? { dataTimeZone: timeZone(element.dataTimeZone) }
+				: {}),
+			...(element.dataEmptyMessage !== undefined
+				? { dataEmptyMessage: text(element.dataEmptyMessage, 500, 'Empty message') }
+				: {})
 		};
 	} catch (cause) {
 		return invalid(cause instanceof Error ? cause.message : 'Invalid data binding.');
 	}
+}
+function timeZone(value: unknown) {
+	const zone = text(value, 100, 'Time zone');
+	try {
+		new Intl.DateTimeFormat('en', { timeZone: zone });
+	} catch {
+		return invalid('Invalid data time zone.');
+	}
+	return zone;
+}
+function repeatItems(input: unknown): import('./types').RepeatItems {
+	const value = object(input);
+	if (value.mode === 'count') {
+		const count = number(value.count, 0, 500, 'Repeat count');
+		if (!Number.isInteger(count)) invalid('Repeat count must be a whole number.');
+		return { mode: 'count', count };
+	}
+	if (value.mode !== 'source') return invalid('Choose fixed count or data-link output.');
+	return { mode: 'source', ...(value.source ? { source: validateReference(value.source) } : {}) };
 }
 const object = (value: unknown): Record<string, unknown> =>
 	value && typeof value === 'object' && !Array.isArray(value)
@@ -281,7 +307,7 @@ export function validateSlide(
 				: {}),
 			...(type === 'list'
 				? {
-						...(e.dataReference
+						...(e.dataReference || e.repeatItems
 							? {}
 							: { dataSource: validateDataSource(e.dataSource, !e.repeater) }),
 						...(e.repeater ? { repeater: repeater(e.repeater, durationMs, depth, budget) } : {})
@@ -400,7 +426,11 @@ export function validateSlide(
 	});
 	const dataIds = allElements({ elements })
 		.filter(
-			(element) => element.type === 'list' || element.type === 'repeater' || element.dataReference
+			(element) =>
+				element.type === 'list' ||
+				element.type === 'repeater' ||
+				element.dataReference ||
+				element.repeatItems?.mode === 'source'
 		)
 		.map((element) => element.id);
 	if (new Set(dataIds).size !== dataIds.length)

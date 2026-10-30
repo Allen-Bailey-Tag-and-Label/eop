@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Div, P } from '$lib/components';
+	import { Button, Card, P } from '$lib/components';
 	import type { WorkflowNode } from './types';
 	let { nodes, selected = $bindable('') }: { nodes: WorkflowNode[]; selected?: string } = $props();
 	let dragging = $state<{
@@ -37,11 +37,7 @@
 	>Drag nodes to arrange the graph. Click a node to choose its preview. Change input connections in
 	the node's settings below.</P
 >
-<Div
-	class="h-80 overflow-auto rounded-lg border border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-950"
-	role="region"
-	aria-label="Workflow graph"
->
+<Card class="h-80 overflow-auto p-0" role="region" aria-label="Workflow graph">
 	<div class="relative" style={`width:${width}px;height:${height}px;`}>
 		<svg
 			aria-hidden="true"
@@ -91,4 +87,4 @@
 			>
 		{/each}
 	</div>
-</Div>
+</Card>

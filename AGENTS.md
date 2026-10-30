@@ -34,6 +34,20 @@ permission checks. Follow the existing centralized enforcement pattern.
 - Preserve the existing appearance through the application theme bridge in
   `src/lib/theme/sveltewind.ts` rather than duplicating simple library components.
 - Follow existing component usage and styling patterns.
+- Before adding or changing UI, inspect a comparable existing screen and the
+  application theme. Reuse its components and variants instead of inventing a
+  separate visual treatment.
+- Use the themed `Card` component for panel surfaces and grouped list entries,
+  including nested configuration sections. Use `Div` for layout, not as a
+  replacement Card with custom borders, backgrounds, shadows, or corner radii.
+  Keep layout/spacing utilities local; let the shared component theme provide
+  appearance. Do not add ad hoc `border-gray-*` panel outlines. Any necessary
+  shared appearance change belongs in the theme bridge.
+- Every icon-only dialog close button must use `Button` with the `icon` variant
+  and an accessible `aria-label`. Combine `ghost` with `icon` when the existing
+  dialog style calls for it; `ghost` alone does not size an icon button. Do not
+  replace or override the variant's sizing with manual width, height, or padding
+  utilities. Apply this rule to all new and modified dialogs.
 - Keep `export * from 'sveltewind/components';` in `src/lib/components/index.ts`
   so new library exports are available automatically. Explicit local exports
   override matching names. Consumers that enumerate components must exclude

@@ -236,7 +236,7 @@ export async function saveContent(kind: 'slide' | 'playlist', fields: FormData, 
 		throw new SlideValidationError('Invalid content version. Reload the editor.');
 	const publish = fields.get('intent') === 'publish';
 	const raw = parseJson(fields.get('definition'));
-	const definition = kind === 'slide' ? validateSlide(raw) : validatePlaylist(raw);
+	let definition = kind === 'slide' ? validateSlide(raw) : validatePlaylist(raw);
 	const scopeInput = fields.get('assetScopeId');
 	if (kind === 'slide' && scopeInput && !isId(scopeInput))
 		throw new SlideValidationError('Invalid asset scope. Reload the editor.');
@@ -249,6 +249,14 @@ export async function saveContent(kind: 'slide' | 'playlist', fields: FormData, 
 	if (kind === 'slide') {
 		await validateAssets(definition as SlideDefinition);
 		await validateAssetScope(definition as SlideDefinition, slideId);
+		if (
+			allElements(definition as SlideDefinition).some(
+				(element) => element.repeater || element.type === 'list'
+			)
+		) {
+			const { extractLegacyLinks } = await import('../data/legacy-links');
+			definition = await extractLegacyLinks(definition as SlideDefinition, slideId, userId);
+		}
 	} else {
 		const items = (definition as PlaylistDefinition).items;
 		const ids = [...new Set(items.map((item) => item.slideId))];

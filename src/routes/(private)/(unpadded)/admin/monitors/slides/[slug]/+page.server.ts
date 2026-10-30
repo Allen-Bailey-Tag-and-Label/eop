@@ -6,7 +6,7 @@ import { manageSlideEditor, saveEditor } from '$lib/server/slides/actions';
 import { uploadAsset } from '$lib/server/slides/assets';
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
-import { previewSlideData, getDataFields } from '$lib/server/slides/data-sources';
+import { previewSlideData } from '$lib/server/slides/data-sources';
 import {
 	sourceOptions,
 	listSources,
@@ -21,14 +21,16 @@ import {
 	deleteConnection
 } from '$lib/server/data/sources';
 import { DataWorkflowError } from '$lib/data/types';
-import { allElements } from '$lib/slides/repeater';
+import { allElements, collectionReference } from '$lib/slides/repeater';
+import { extractLegacyLinks } from '$lib/server/data/legacy-links';
 import { parseJson, SlideValidationError } from '$lib/slides/validation';
 export const config = { maxDuration: 30 };
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, url, locals }) => {
 	if (params.slug === 'new' && !/^[a-f0-9]{24}$/i.test(url.searchParams.get('assetScope') ?? ''))
 		redirect(303, `/admin/monitors/slides/new?assetScope=${new Types.ObjectId()}`);
 	const slide = await getEditor('slide', params.slug);
 	const assetScopeId = slide.id || url.searchParams.get('assetScope')!;
+	slide.draft = await extractLegacyLinks(slide.draft, assetScopeId, locals.user._id);
 	const [library, references] = await Promise.all([
 		listAssetLibrary(assetScopeId),
 		listSlideReferences(slide.id)
@@ -38,11 +40,12 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		...library,
 		references,
 		assetScopeId,
-		dataFields: await getDataFields(),
 		sources: await sourceOptions(
 			assetScopeId,
 			allElements(slide.draft).flatMap((element) =>
-				element.dataReference ? [element.dataReference.sourceId] : []
+				[element.dataReference?.sourceId, collectionReference(element)?.sourceId].filter(
+					(id): id is string => !!id
+				)
 			)
 		),
 		dataSources: await listSources(assetScopeId),
@@ -54,6 +57,16 @@ async function dataAction(event: Parameters<NonNullable<Actions[string]>>[0], op
 		const fields = await event.request.formData();
 		const scope = await assetScope(event.params.slug, fields.get('assetScopeId'));
 		const actor = event.locals.user._id;
+		if (operation === 'migrate')
+			return {
+				definition: await extractLegacyLinks(
+					(await import('$lib/slides/validation')).validateSlide(
+						parseJson(fields.get('definition'))
+					),
+					scope,
+					actor
+				)
+			};
 		if (operation === 'preview') {
 			if (
 				String(fields.get('definition') ?? '').length > 200000 ||
@@ -110,6 +123,7 @@ async function dataAction(event: Parameters<NonNullable<Actions[string]>>[0], op
 	}
 }
 export const actions: Actions = {
+	dataMigrate: (event) => dataAction(event, 'migrate'),
 	dataSave: (event) => dataAction(event, 'save'),
 	dataDelete: (event) => dataAction(event, 'delete'),
 	dataPreview: (event) => dataAction(event, 'preview'),

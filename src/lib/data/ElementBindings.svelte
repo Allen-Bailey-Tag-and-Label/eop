@@ -2,8 +2,15 @@
 	import { Div, Input, P, Select } from '$lib/components';
 	import { bindableProperties, type BoundProperty } from './bindings';
 	import type { DataBinding, SlideElement } from '$lib/slides/types';
-	let { element = $bindable(), fields = [] }: { element: SlideElement; fields?: string[] } =
-		$props();
+	let {
+		element,
+		fields = [],
+		onChange
+	}: {
+		element: SlideElement;
+		fields?: string[];
+		onChange: (bindings: SlideElement['bindings']) => void;
+	} = $props();
 	const properties = $derived(
 		bindableProperties.filter(
 			(property) =>
@@ -24,7 +31,7 @@
 		const next = { ...element.bindings };
 		if (binding) next[property] = binding;
 		else delete next[property];
-		element.bindings = next;
+		onChange(next);
 	}
 </script>
 
@@ -36,6 +43,15 @@
 			value={element.bindings?.[property]?.field ?? ''}
 			options={[
 				{ value: '', label: 'Use element property' },
+				...(property === 'text' ? [{ value: '$index', label: 'Row number' }] : []),
+				...(['label', 'detail'].includes(element.bindings?.[property]?.field ?? '')
+					? [
+							{
+								value: element.bindings![property]!.field,
+								label: `${element.bindings![property]!.field} (legacy mapping)`
+							}
+						]
+					: []),
 				...fields.map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
 			]}
 			onchange={(event: Event & { currentTarget: HTMLSelectElement }) =>

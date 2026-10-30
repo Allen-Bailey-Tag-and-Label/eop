@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
 	import { deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import {
 		ArrowLeft,
 		Settings,
@@ -70,7 +71,7 @@
 	import ColorField from './ColorField.svelte';
 	import InspectorInput from './InspectorInput.svelte';
 	import InspectorSection from './InspectorSection.svelte';
-	import DataLinkEditor from './DataLinkEditor.svelte';
+	import RepeatItemsEditor from './RepeatItemsEditor.svelte';
 	import RepeaterSettings from './RepeaterSettings.svelte';
 	import VisibilitySettings from './VisibilitySettings.svelte';
 	import AssetLibrary from './AssetLibrary.svelte';
@@ -78,7 +79,14 @@
 	import DataLibrary from '$lib/data/DataLibrary.svelte';
 	import ElementBindings from '$lib/data/ElementBindings.svelte';
 	import type { SourceOption, SourceReference } from '$lib/data/types';
-	import { allElements, defaultRepeater, templateSlide } from './repeater';
+	import {
+		allElements,
+		defaultRepeater,
+		templateSlide,
+		collectionReference,
+		repeatResult,
+		normalizeRepeaters
+	} from './repeater';
 	import type { SlideElement } from './types';
 	import {
 		newElement,
@@ -107,7 +115,6 @@
 			assetScopeId?: string;
 			assetSlides?: { id: string; title: string; slug: string }[];
 			references?: SlideReference[];
-			dataFields?: Record<string, string[]>;
 			dataSources?: {
 				id: string;
 				title: string;
@@ -131,7 +138,9 @@
 		} | null;
 	} = $props();
 	let draft = $state(
-		untrack(() => withResponsiveDefaults(structuredClone($state.snapshot(data.slide.draft))))
+		untrack(() =>
+			withResponsiveDefaults(normalizeRepeaters(structuredClone($state.snapshot(data.slide.draft))))
+		)
 	);
 	let title = $state(untrack(() => data.slide.title));
 	let slug = $state(untrack(() => data.slide.slug));
@@ -177,14 +186,30 @@
 				] ?? [])
 			: [];
 	const rowFields = $derived(
-		editingRepeater?.dataReference
-			? referenceFields(editingRepeater.dataReference)
+		editingRepeater && collectionReference(editingRepeater)
+			? referenceFields(collectionReference(editingRepeater))
 			: editingRepeater?.dataSource
 				? editingRepeater.dataSource.select.trim().split(/\s+/).filter(Boolean)
 				: referenceFields(editingFrame?.dataReference)
 	);
 	function repeatSelection() {
 		if (!selected || selected.repeater || editingRepeater) return;
+		if (selected.type === 'list') {
+			selected.repeater = defaultRepeater();
+			for (const child of selected.repeater.template.elements) {
+				if (child.binding) {
+					child.bindings = { text: child.binding };
+					delete child.binding;
+				}
+			}
+			selected.repeatItems = selected.dataReference
+				? { mode: 'source', source: selected.dataReference }
+				: { mode: 'count', count: 3 };
+			delete selected.dataReference;
+			delete selected.dataSource;
+			selected.type = 'repeater';
+			return;
+		}
 		const item = structuredClone($state.snapshot(selected));
 		const reference = item.dataReference;
 		delete item.dataReference;
@@ -211,7 +236,9 @@
 			itemHeight: selected.height,
 			template: { width: selected.width, height: selected.height, elements: [item] }
 		};
-		if (reference) wrapper.dataReference = reference;
+		wrapper.repeatItems = reference
+			? { mode: 'source', source: reference }
+			: { mode: 'count', count: 3 };
 		setElements(activeElements.map((element) => (element.id === selected.id ? wrapper : element)));
 		selectedId = wrapper.id;
 	}
@@ -240,7 +267,9 @@
 				? templateSlide(editingRepeater.repeater, draft.durationMs)
 				: draft
 	);
-	const templateRows = $derived(slideData[editingRepeaterId]?.items ?? []);
+	const templateRows = $derived(
+		editingRepeater ? (repeatResult(editingRepeater, slideData)?.items ?? []) : []
+	);
 	const currentRow = $derived(
 		templateRows[Math.min(previewRow, Math.max(0, templateRows.length - 1))] ?? {
 			id: 'example',
@@ -486,10 +515,10 @@
 		if (type === 'list') {
 			element.repeater = defaultRepeater();
 			element.text = 'Repeater';
-			if (data.sources?.length) {
-				element.type = 'repeater';
-				delete element.dataSource;
-			}
+			element.type = 'repeater';
+			element.repeatItems = { mode: 'count', count: 3 };
+			delete element.dataSource;
+			for (const item of element.repeater.template.elements) delete item.binding;
 		}
 		if (editingFrame || editingRepeater?.repeater) {
 			element.x = 20;
@@ -538,9 +567,33 @@
 			closeDialog();
 		}
 	}
-	function importJson() {
+	async function importJson() {
 		try {
-			draft = validateSlide(parseJson(json));
+			let imported = validateSlide(parseJson(json));
+			if (
+				allElements(imported).some(
+					(element) => element.type === 'list' && element.dataSource && !element.dataReference
+				)
+			) {
+				const fields = new FormData();
+				fields.set('definition', JSON.stringify(imported));
+				fields.set('assetScopeId', scopeId);
+				const response = await fetch(assetAction('dataMigrate'), {
+					method: 'POST',
+					body: fields,
+					headers: { 'x-sveltekit-action': 'true' }
+				});
+				const result = deserialize(await response.text());
+				if (result.type !== 'success' || !result.data?.definition)
+					throw new Error(
+						result.type === 'failure'
+							? String(result.data?.error ?? 'Could not migrate imported data links.')
+							: 'Could not migrate imported data links.'
+					);
+				imported = validateSlide(result.data.definition);
+				await invalidateAll();
+			}
+			draft = normalizeRepeaters(imported);
 			framePath = [];
 			repeaterReturnPath = [];
 			editingRepeaterId = '';
@@ -647,12 +700,15 @@
 			allElements(draft)
 				.filter(
 					(element) =>
-						element.type === 'list' || element.type === 'repeater' || element.dataReference
+						(element.type === 'list' && !element.repeatItems) ||
+						element.dataReference ||
+						collectionReference(element)
 				)
-				.map(({ id, dataSource, dataReference, repeater }) => ({
+				.map(({ id, dataSource, dataReference, repeatItems, repeater }) => ({
 					id,
 					dataSource,
 					dataReference,
+					repeatItems,
 					templateMode: !!repeater
 				}))
 		)
@@ -945,7 +1001,9 @@
 				data={slideData}
 				row={editingRepeater ? currentRow : undefined}
 				rowIndex={previewRow}
-				timeZone={editingRepeater?.dataSource?.timeZone ?? 'America/New_York'}
+				timeZone={editingRepeater?.dataTimeZone ??
+					editingRepeater?.dataSource?.timeZone ??
+					'America/New_York'}
 				{zoom}
 				{resetView}
 				viewportWidth={viewport.width}
@@ -1514,99 +1572,66 @@
 							></InspectorSection
 						>
 
-						{#if editingRepeater && !editingRepeater.dataReference && (selected.type === 'text' || selected.type === 'qr')}<InspectorSection
-								title="Data binding"
-								open
-							>
-								<Select
-									label={selected.type === 'qr' ? 'QR data binding' : 'Text data binding'}
-									aria-label={selected.type === 'qr' ? 'QR data binding' : 'Text data binding'}
-									value={selected.binding?.field ?? ''}
-									options={[
-										{ value: '', label: 'Static text' },
-										{ value: 'label', label: 'Label (legacy mapping)' },
-										{ value: 'detail', label: 'Detail (legacy mapping)' },
-										{ value: '$index', label: 'Row number' },
-										...rowFields.map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
-									]}
-									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-										if (selected)
-											selected.binding = event.currentTarget.value
-												? { field: event.currentTarget.value, format: 'text', fallback: '' }
-												: undefined;
-									}}
-								/>
-								{#if selected.binding}
-									<Select
-										label="Binding format"
-										aria-label="Binding format"
-										bind:value={selected.binding.format}
-										options={['text', 'date', 'number'].map((value) => ({ value, label: value }))}
-									/>
-									<Input
-										label="Binding fallback"
-										aria-label="Binding fallback"
-										bind:value={selected.binding.fallback}
-									/>
-								{/if}
-							</InspectorSection>{/if}
-						<InspectorSection
-							title="Data source"
-							open={!!selected.dataReference || !!selected.repeater}
-						>
-							{#key selected.id}<SourcePicker
-									onManage={() => (dataOpen = true)}
-									bind:value={selected.dataReference}
+						{#if selected.repeater}
+							<InspectorSection title="Repeat items" open>
+								<RepeatItemsEditor
+									bind:value={selected.repeatItems}
 									sources={data.sources ?? []}
+									onManage={() => (dataOpen = true)}
 									onError={(message) => (sourceParameterError = message)}
-								/>{/key}
-							{#if selected.dataReference || editingRepeater || rowFields.length}<ElementBindings
-									element={selected}
-									fields={selected.dataReference
-										? referenceFields(selected.dataReference)
-										: rowFields}
-								/>{/if}
-							<Button onclick={() => previewRevision++}>Refresh source preview</Button>
-							{#if !selected.repeater && !editingRepeater}<Button onclick={repeatSelection}
-									>Repeat with data</Button
-								>{/if}
-						</InspectorSection>
-						{#if selected.type === 'repeater' && selected.repeater}<InspectorSection
-								title="Repeater layout"
-								open
-							>
+								/>
+							</InspectorSection>
+							<InspectorSection title="Repeater layout" open>
 								<RepeaterSettings
 									bind:settings={selected.repeater}
 									width={selected.width}
 									height={selected.height}
-									count={slideData[selected.id]?.items.length ?? 0}
+									count={repeatResult(selected, slideData)?.items.length ?? 0}
 								/>
 								<Button onclick={editTemplate}>Edit item template</Button>
-							</InspectorSection>{/if}
-						{#if selected.type === 'list'}<InspectorSection title="Data link" open>
-								{#if !selected.dataReference && selected.dataSource}<DataLinkEditor
-										bind:link={selected.dataSource}
-										templateMode={!!selected.repeater}
-										fields={data.dataFields?.[selected.dataSource.model] ?? []}
+							</InspectorSection>
+						{:else}
+							{#if !editingRepeater}
+								<InspectorSection title="Data binding source" open={!!selected.dataReference}>
+									{#key selected.id}<SourcePicker
+											bind:value={selected.dataReference}
+											sources={data.sources ?? []}
+											onManage={() => (dataOpen = true)}
+											onError={(message) => (sourceParameterError = message)}
+										/>{/key}
+									<Button onclick={() => previewRevision++}>Refresh source preview</Button>
+									<Button onclick={repeatSelection}
+										>{selected.type === 'list'
+											? 'Convert to grid repeater'
+											: 'Repeat element'}</Button
+									>
+								</InspectorSection>
+							{/if}
+							{#if selected.dataReference || editingRepeater || rowFields.length}
+								<InspectorSection title="Property bindings" open>
+									<P class="text-xs opacity-60"
+										>{selected.dataReference && editingRepeater
+											? 'This existing element has an independent source override. Its bindings continue using that source.'
+											: editingRepeater
+												? 'Values come from the current repeated row.'
+												: 'Values come from the selected data-link output.'}</P
+									>
+									{#if selected.dataReference && editingRepeater}<Button
+											onclick={() => {
+												if (selected) delete selected.dataReference;
+											}}>Use repeated item row</Button
+										>{/if}
+									<ElementBindings
+										element={selected}
+										onChange={(bindings) => {
+											if (selected) selected.bindings = bindings;
+										}}
+										fields={selected.dataReference
+											? referenceFields(selected.dataReference)
+											: rowFields}
 									/>
-								{/if}
-								<Button onclick={() => previewRevision++}>Refresh data preview</Button>
-							</InspectorSection>{#if selected.repeater}<InspectorSection
-									title="Repeater layout"
-									open
-								>
-									<RepeaterSettings
-										bind:settings={selected.repeater}
-										width={selected.width}
-										height={selected.height}
-										count={slideData[selected.id]?.items.length ?? 0}
-									/>
-									<Button onclick={editTemplate}>Edit item template</Button>
-								</InspectorSection>{:else}<Button
-									onclick={() => {
-										if (selected) selected.repeater = defaultRepeater();
-									}}>Convert to grid repeater</Button
-								>{/if}
+								</InspectorSection>
+							{/if}
 						{/if}
 					{:else}
 						<H2>Animation timeline</H2><P class="text-sm"
@@ -1792,14 +1817,16 @@
 		<Div class="flex shrink-0 items-center justify-between gap-4"
 			><H2>Data links</H2><Button
 				aria-label="Close data links"
-				variants={['ghost']}
+				variants={['ghost', 'icon']}
 				onclick={() => (dataOpen = false)}><X size={18} /></Button
 			></Div
 		>
 		<Div class="-m-1 min-h-0 overflow-y-auto overscroll-contain p-1"
 			><DataLibrary
 				usedSourceIds={allElements(draft).flatMap((element) =>
-					element.dataReference ? [element.dataReference.sourceId] : []
+					[element.dataReference?.sourceId, collectionReference(element)?.sourceId].filter(
+						(id): id is string => !!id
+					)
 				)}
 				sources={data.dataSources ?? []}
 				connections={data.dataConnections ?? []}
@@ -1822,8 +1849,7 @@
 		<Div class="flex shrink-0 items-center justify-between gap-4"
 			><H2 id={`${uid}-dialog-title`} class="text-lg">{dialogTitles[dialog]}</H2><Button
 				aria-label="Close dialog"
-				variants={['ghost']}
-				class="h-8 w-8 items-center p-0"
+				variants={['ghost', 'icon']}
 				disabled={uploading || managing}
 				onclick={closeDialog}><X size={18} /></Button
 			></Div

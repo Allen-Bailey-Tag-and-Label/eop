@@ -235,7 +235,7 @@
 			>
 			<WorkflowGraph nodes={draft.nodes} bind:selected={previewNode} />
 			{#each draft.nodes as node, index (node.id)}
-				<Div class="space-y-3 rounded-lg border border-gray-300 p-4 dark:border-gray-700">
+				<Card class="space-y-3">
 					<Div class="flex flex-wrap items-center justify-between gap-2"
 						><P class="font-semibold">{index + 1}. {node.type} — {node.id}</P><Button
 							variants={['error']}
@@ -286,7 +286,7 @@
 					{#if configErrors[node.id]}<P role="alert" class="text-red-600 dark:text-red-400"
 							>{configErrors[node.id]}</P
 						>{/if}
-				</Div>
+				</Card>
 			{/each}
 			<Div class="flex flex-wrap items-end gap-3"
 				><Select
@@ -302,8 +302,7 @@
 				>Only selected output fields reach slides. Set a stable ID field to preserve repeated item
 				identity between refreshes.</P
 			>
-			{#each Object.entries(draft.outputs) as [name, output] (name)}<Div
-					class="space-y-2 rounded-lg border border-gray-300 p-3 dark:border-gray-700"
+			{#each Object.entries(draft.outputs) as [name, output] (name)}<Card class="space-y-2"
 					><Input
 						label="Output name"
 						value={name}
@@ -343,7 +342,7 @@
 							draft.outputs = next;
 						}}>Remove output</Button
 					>
-				</Div>{/each}
+				</Card>{/each}
 			<Button
 				disabled={Object.keys(draft.outputs).length >= 10}
 				onclick={() => {

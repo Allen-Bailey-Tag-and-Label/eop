@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, within, waitFor } from '@testing-library/svelte';
 import SlideEditor from './SlideEditor.svelte';
-import { blankSlide, newElement } from './types';
+import { blankSlide, newElement, defaultDataSource } from './types';
 import { validateSlide } from './validation';
 import { frameLayoutStyle } from './frames';
+import { defaultRepeater } from './repeater';
 
+vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('$app/forms', () => ({
 	enhance: vi.fn(() => ({ destroy: vi.fn() })),
 	deserialize: (value: string) => JSON.parse(value)
@@ -105,13 +107,14 @@ describe('slide authoring', () => {
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Select element 1: text' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Toggle properties panel' }));
-		await fireEvent.click(view.getByRole('button', { name: 'Repeat with data' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Repeat element' }));
 		const definition = JSON.parse(
 			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
 		);
 		const wrapper = validateSlide(definition).elements[0];
 		expect(wrapper.type).toBe('repeater');
-		expect(wrapper.dataReference).toEqual(reference);
+		expect(wrapper.repeatItems).toEqual({ mode: 'source', source: reference });
+		expect(wrapper.dataReference).toBeUndefined();
 		expect(wrapper.repeater!.template.elements[0]).toMatchObject({
 			id: 'birthday',
 			x: 0,
@@ -141,11 +144,63 @@ describe('slide authoring', () => {
 			opacity: 1
 		});
 	});
-	it('authors aggregate data links and exposes computed output fields to item templates', async () => {
+
+	it('chooses a published collection without embedding a query and binds template properties to its rows', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () => new Response(JSON.stringify({ type: 'success', data: { slideData: {} } })))
 		);
+		const sourceId = 'd'.repeat(24);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: [],
+				sources: [
+					{
+						id: sourceId,
+						title: 'Employee birthdays',
+						outputs: { employees: ['displayText'] },
+						parameters: {}
+					}
+				]
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+		expect(view.getByRole('combobox', { name: 'Repeat items' })).toHaveValue('count');
+		expect(view.queryByRole('combobox', { name: 'Data model' })).not.toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Repeat items' }), {
+			target: { value: 'source' }
+		});
+		await fireEvent.change(view.getByRole('combobox', { name: 'Reusable data source' }), {
+			target: { value: sourceId }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
+		expect(view.queryByRole('combobox', { name: 'Reusable data source' })).not.toBeInTheDocument();
+		expect(view.queryByRole('combobox', { name: 'Repeat items' })).not.toBeInTheDocument();
+		await fireEvent.change(view.getByRole('combobox', { name: 'Bind text' }), {
+			target: { value: 'row.displayText' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
+		const saved = validateSlide(
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			)
+		);
+		expect(saved.elements[0].dataSource).toBeUndefined();
+		expect(saved.elements[0].repeatItems).toEqual({
+			mode: 'source',
+			source: { sourceId, output: 'employees', parameters: {} }
+		});
+		expect(saved.elements[0].repeater!.template.elements[1].bindings!.text).toEqual({
+			field: 'row.displayText',
+			format: 'text',
+			fallback: ''
+		});
+	});
+	it('repeats static content by count without fetching data', async () => {
+		vi.useFakeTimers();
+		const fetch = vi.fn();
+		vi.stubGlobal('fetch', fetch);
 		const view = render(SlideEditor, {
 			data: {
 				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
@@ -153,51 +208,19 @@ describe('slide authoring', () => {
 			}
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
-		const pipeline =
-			'[{"$match":{"isActive":true}},{"$project":{"displayText":{"$literal":"Example"}}}]';
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data filter' }), {
-			target: { value: pipeline }
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Repeat count' }), {
+			target: { value: '2' }
 		});
-		await fireEvent.change(view.getByRole('combobox', { name: 'Data query mode' }), {
-			target: { value: 'aggregate' }
-		});
-		expect(view.queryByRole('textbox', { name: 'Data filter' })).not.toBeInTheDocument();
-		await fireEvent.change(view.getByRole('combobox', { name: 'Data model' }), {
-			target: { value: 'User' }
-		});
-		expect(view.getByRole('textbox', { name: 'Data pipeline' })).toHaveValue(pipeline);
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data pipeline' }), {
-			target: { value: pipeline }
-		});
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data select' }), {
-			target: { value: 'displayText' }
-		});
-		const definition = JSON.parse(
-			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		await vi.advanceTimersByTimeAsync(400);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(view.getAllByText('Label')).toHaveLength(2);
+		const saved = validateSlide(
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			)
 		);
-		expect(validateSlide(definition).elements[0].dataSource).toMatchObject({
-			mode: 'aggregate',
-			model: 'User',
-			pipeline,
-			select: 'displayText'
-		});
-		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
-		expect(
-			within(view.getByRole('combobox', { name: 'Text data binding' })).getByRole('option', {
-				name: 'row.displayText'
-			})
-		).toBeInTheDocument();
-		await fireEvent.change(view.getByRole('combobox', { name: 'Text data binding' }), {
-			target: { value: 'row.displayText' }
-		});
-		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
-		const saved = JSON.parse(
-			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
-		);
-		expect(saved.elements[0].repeater.template.elements[1].binding).toMatchObject({
-			field: 'row.displayText',
-			format: 'text'
-		});
+		expect(saved.elements[0].repeatItems).toEqual({ mode: 'count', count: 2 });
+		expect(saved.elements[0].dataReference).toBeUndefined();
 	});
 	it('authors QR content and correction settings with whole-slide visibility rules', async () => {
 		const view = render(SlideEditor, {
@@ -659,51 +682,30 @@ describe('slide authoring', () => {
 			children[1]
 		]);
 	});
-	it('adds a generic data list, previews server data, and saves only its source configuration', async () => {
+
+	it('previews linked rows, preserves layout and stagger, and refreshes only when source parameters change', async () => {
 		vi.useFakeTimers();
 		const fetch = vi.fn<typeof globalThis.fetch>(
-			async () =>
-				new Response(
-					JSON.stringify({
-						type: 'success',
-						data: {
-							slideData: {
-								calendar: {
-									state: 'ready',
-									items: [
-										{
-											id: 'holiday',
-											label: 'Thanksgiving',
-											detail: 'Nov 26, 2026',
-											fields: { name: 'Thanksgiving' }
-										}
-									],
-									message: ''
-								}
-							}
-						}
-					})
-				)
+			async () => new Response(JSON.stringify({ type: 'success', data: { slideData: {} } }))
 		);
 		vi.stubGlobal('fetch', fetch);
+		const sourceId = 'd'.repeat(24);
 		const view = render(SlideEditor, {
 			data: {
 				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
-				assets: [{ id: 'a'.repeat(24), name: 'Test SVG', contentType: 'image/svg+xml' }]
+				assets: [],
+				sources: [
+					{ id: sourceId, title: 'Holidays', outputs: { rows: ['name'] }, parameters: { limit: 5 } }
+				]
 			}
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
-		expect(view.queryByRole('button', { name: 'Add upcoming holidays' })).not.toBeInTheDocument();
-		await fireEvent.change(view.getByRole('combobox', { name: 'Data model' }), {
-			target: { value: 'Holiday' }
+		await fireEvent.change(view.getByRole('combobox', { name: 'Repeat items' }), {
+			target: { value: 'source' }
 		});
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data select' }), {
-			target: { value: 'name date' }
+		await fireEvent.change(view.getByRole('combobox', { name: 'Reusable data source' }), {
+			target: { value: sourceId }
 		});
-		await fireEvent.input(view.getByRole('textbox', { name: 'Data filter' }), {
-			target: { value: '{"date":{"$gte":{"$date":"today"}}}' }
-		});
-
 		const definition = () =>
 			JSON.parse(
 				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
@@ -722,7 +724,7 @@ describe('slide authoring', () => {
 										{
 											id: 'holiday',
 											label: 'Thanksgiving',
-											detail: 'Nov 26, 2026',
+											detail: '',
 											fields: { name: 'Thanksgiving' }
 										}
 									],
@@ -734,17 +736,7 @@ describe('slide authoring', () => {
 				)
 		);
 		await vi.advanceTimersByTimeAsync(400);
-		expect(fetch.mock.calls[0][1]?.headers).toEqual({
-			accept: 'application/json',
-			'x-sveltekit-action': 'true'
-		});
-		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
-		expect(definition().elements[0].dataSource).toMatchObject({
-			model: 'Holiday',
-			filter: '{"date":{"$gte":{"$date":"today"}}}',
-			limit: 5
-		});
-		expect(JSON.stringify(definition())).not.toContain('Thanksgiving');
+		expect(fetch).toHaveBeenCalledTimes(1);
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Columns (0 = automatic)' }), {
 			target: { value: '3' }
 		});
@@ -753,44 +745,38 @@ describe('slide authoring', () => {
 		});
 		await fireEvent.click(view.getByRole('checkbox', { name: 'Clip repeater contents' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
-		expect(view.getByText('Editing repeater item template')).toBeInTheDocument();
-		expect(view.queryByRole('button', { name: 'Add repeater' })).not.toBeInTheDocument();
-		await fireEvent.change(view.getByRole('combobox', { name: 'Text data binding' }), {
+		await fireEvent.change(view.getByRole('combobox', { name: 'Bind text' }), {
 			target: { value: 'row.name' }
 		});
+		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Font size' }), {
 			target: { value: '52' }
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Back to slide' }));
-		expect(definition().elements[0].repeater.columns).toBe(3);
-		expect(validateSlide(definition()).elements[0].repeater?.staggerMs).toBe(200);
-		expect(validateSlide(definition()).elements[0].repeater?.clip).toBe(false);
+		expect(definition().elements[0].repeater).toMatchObject({
+			columns: 3,
+			staggerMs: 200,
+			clip: false
+		});
 		expect(definition().elements[0].repeater.template.elements[1]).toMatchObject({
 			fontSize: 52,
-			binding: { field: 'row.name', format: 'text' }
+			bindings: { text: { field: 'row.name', format: 'text' } }
 		});
-		expect(fetch).toHaveBeenCalledTimes(1);
-
-		await fireEvent.input(view.getByRole('spinbutton', { name: 'Data limit' }), {
-			target: { value: '10' }
+		expect(JSON.stringify(definition())).not.toContain('Thanksgiving');
+		await fireEvent.input(view.getByRole('textbox', { name: 'Source parameters' }), {
+			target: { value: '{"limit":10}' }
 		});
 		await vi.advanceTimersByTimeAsync(400);
 		expect(fetch).toHaveBeenCalledTimes(2);
 		const body = fetch.mock.calls[1][1]?.body as FormData;
-		expect(JSON.parse(body.get('definition') as string).elements[0].dataSource.limit).toBe(10);
+		expect(
+			JSON.parse(String(body.get('definition'))).elements[0].repeatItems.source.parameters.limit
+		).toBe(10);
 		await fireEvent.input(view.getByRole('slider', { name: 'Preview timeline' }), {
 			target: { value: '1000' }
 		});
 		await vi.advanceTimersByTimeAsync(400);
 		expect(fetch).toHaveBeenCalledTimes(2);
-		await fireEvent.click(view.getByRole('button', { name: 'Add image / graphic' }));
-		expect(definition().elements[1]).toMatchObject({ type: 'svg', assetId: 'a'.repeat(24) });
-		expect(view.container.querySelector('img')?.getAttribute('src')).toBe(
-			`/admin/monitors/slides/assets/${'a'.repeat(24)}`
-		);
-		await vi.advanceTimersByTimeAsync(400);
-		expect(fetch).toHaveBeenCalledTimes(2);
-		expect(view.getByText('Thanksgiving')).toBeInTheDocument();
 	});
 	it('asks for an uploaded graphic instead of inserting an invalid empty element', async () => {
 		const view = render(SlideEditor, {
@@ -912,11 +898,30 @@ describe('slide authoring', () => {
 		);
 		const view = render(SlideEditor, {
 			data: {
-				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: {
+						...blankSlide(),
+						elements: [
+							{
+								...newElement('repeater', 'errors'),
+								repeatItems: {
+									mode: 'source',
+									source: { sourceId: 'd'.repeat(24), output: 'rows', parameters: {} }
+								},
+								repeater: defaultRepeater()
+							}
+						]
+					}
+				},
 				assets: []
 			}
 		});
-		await fireEvent.click(view.getByRole('button', { name: 'Add repeater' }));
+
 		await vi.advanceTimersByTimeAsync(400);
 		expect(view.getByText('Select fields must be space separated.')).toBeInTheDocument();
 	});
@@ -1291,6 +1296,81 @@ describe('slide authoring', () => {
 		await fireEvent.click(getByRole('button', { name: 'Close dialog' }));
 		expect(getByRole('button', { name: 'Publish slide' })).toHaveAttribute('name', 'intent');
 		expect(getByRole('button', { name: 'Publish slide' })).toHaveAttribute('value', 'publish');
+	});
+
+	it('migrates old inline-query JSON imports before replacing the canvas and preserves the canvas on failure', async () => {
+		const sourceId = 'e'.repeat(24);
+		const legacy = {
+			...newElement('list', 'legacy'),
+			repeater: defaultRepeater(),
+			dataSource: { ...defaultDataSource(), model: 'Holiday', select: 'name', labelField: 'name' }
+		};
+		const imported = { ...blankSlide(), elements: [legacy] };
+		const converted = {
+			...legacy,
+			type: 'repeater' as const,
+			dataSource: undefined,
+			repeatItems: { mode: 'source' as const, source: { sourceId, output: 'rows', parameters: {} } }
+		};
+		const fetch = vi.fn<typeof globalThis.fetch>(
+			async (url) =>
+				new Response(
+					JSON.stringify(
+						String(url).includes('dataMigrate')
+							? {
+									type: 'success',
+									data: { definition: { ...blankSlide(), elements: [converted] } }
+								}
+							: { type: 'success', data: { slideData: {} } }
+					)
+				)
+		);
+		vi.stubGlobal('fetch', fetch);
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assetScopeId: 'a'.repeat(24),
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Import' }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'Slide JSON' }), {
+			target: { value: JSON.stringify(imported) }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Import from JSON' }));
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await waitFor(() =>
+			expect(definition().elements[0]?.repeatItems).toMatchObject({
+				mode: 'source',
+				source: { sourceId }
+			})
+		);
+		expect(definition().elements[0].dataSource).toBeUndefined();
+		const migration = fetch.mock.calls.find(([url]) => String(url).includes('dataMigrate'))!;
+		expect((migration[1]?.body as FormData).get('assetScopeId')).toBe('a'.repeat(24));
+		const before = definition();
+		fetch.mockImplementation(
+			async () =>
+				new Response(
+					JSON.stringify({
+						type: 'failure',
+						status: 400,
+						data: { error: 'Could not extract this legacy query.' }
+					})
+				)
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Import' }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'Slide JSON' }), {
+			target: { value: JSON.stringify(imported) }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Import from JSON' }));
+		await waitFor(() =>
+			expect(view.getByRole('alert')).toHaveTextContent('Could not extract this legacy query.')
+		);
+		expect(definition()).toEqual(before);
 	});
 	it('reports invalid imported content without replacing the current draft', async () => {
 		const { container, getByRole } = render(SlideEditor, {

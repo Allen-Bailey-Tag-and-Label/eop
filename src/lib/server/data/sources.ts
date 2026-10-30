@@ -17,7 +17,7 @@ import {
 import { normalizeDataSource, validateLink } from '$lib/slides/data-link';
 import { queryLink } from '../slides/data-sources';
 import { Slide } from '../slides/models';
-import { allElements } from '$lib/slides/repeater';
+import { allElements, collectionReference } from '$lib/slides/repeater';
 
 const isId = (value: unknown): value is string =>
 	typeof value === 'string' && /^[a-f0-9]{24}$/i.test(value);
@@ -100,10 +100,14 @@ export async function sourceUsage(id: string) {
 	const slides = await Slide.find().select('title slug draft published').lean();
 	return slides.flatMap((slide) => {
 		const draft = allElements(slide.draft).some(
-			(element) => element.dataReference?.sourceId === id
+			(element) =>
+				element.dataReference?.sourceId === id || collectionReference(element)?.sourceId === id
 		);
 		const published = slide.published
-			? allElements(slide.published).some((element) => element.dataReference?.sourceId === id)
+			? allElements(slide.published).some(
+					(element) =>
+						element.dataReference?.sourceId === id || collectionReference(element)?.sourceId === id
+				)
 			: false;
 		return draft || published ? [{ title: slide.title, slug: slide.slug, draft, published }] : [];
 	});
@@ -149,7 +153,12 @@ export async function previewWorkflow(
 					validateLink(query, false);
 					try {
 						const result = await queryLink(query, now);
-						return result.items.map((row) => ({ _id: row.id, ...row.fields }));
+						return result.items.map((row) => ({
+							_id: row.id,
+							_label: row.label,
+							_detail: row.detail,
+							...row.fields
+						}));
 					} catch {
 						throw new DataWorkflowError(
 							'Database node failed. Check its model, fields, and query.'
@@ -275,7 +284,9 @@ export async function saveSource(fields: FormData, userId: string, scopeId?: str
 					inherited?: SourceReference
 				) => {
 					for (const element of elements) {
-						const reference = element.dataReference ?? inherited;
+						const reference =
+							(element.repeater ? collectionReference(element) : element.dataReference) ??
+							inherited;
 						if (reference?.sourceId === id) {
 							for (const parameter of Object.keys(reference.parameters))
 								if (!Object.hasOwn(draft.parameters, parameter))
