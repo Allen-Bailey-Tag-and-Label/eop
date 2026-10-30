@@ -62,6 +62,7 @@
 		Textarea
 	} from '$lib/components';
 	import SlideWorkspace from './SlideWorkspace.svelte';
+	import SlidePackageDialog from './SlidePackageDialog.svelte';
 	import AddElementMenu from './AddElementMenu.svelte';
 	import PaddingEditor from './PaddingEditor.svelte';
 	import FrameSettings from './FrameSettings.svelte';
@@ -142,6 +143,7 @@
 			withResponsiveDefaults(normalizeRepeaters(structuredClone($state.snapshot(data.slide.draft))))
 		)
 	);
+	let packageMode = $state<'import' | 'export' | null>(null);
 	let title = $state(untrack(() => data.slide.title));
 	let slug = $state(untrack(() => data.slide.slug));
 	let backgroundColor = $state(
@@ -2080,6 +2082,15 @@
 					>PNG, JPEG, WebP under 3 MB; SVG under 300 KB. Uploading keeps your current slide edits.</P
 				>
 			{:else}
+				<Button
+					onclick={() => {
+						closeDialog();
+						packageMode = dialog === 'import' ? 'import' : 'export';
+					}}
+					>{dialog === 'import'
+						? 'Import slide package (ZIP)'
+						: 'Export slide package (ZIP)'}</Button
+				>
 				{#if dialog === 'import'}<Input
 						type="file"
 						aria-label="Import JSON file"
@@ -2107,6 +2118,14 @@
 		</Div>
 	</Modal>
 {/if}
+
+<SlidePackageDialog
+	bind:mode={packageMode}
+	definition={draft}
+	{title}
+	{slug}
+	endpoint={`/admin/monitors/slides/${data.slide.slug || 'new'}/package`}
+/>
 
 <style>
 	:global(

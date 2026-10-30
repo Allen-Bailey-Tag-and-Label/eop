@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T13:20:15.784Z
+## 2026-10-30T14:30:04.097Z
+
+feat: Add portable slide packages with assets and data dependencies
+
+## 2026-10-30T09:38:44-04:00
 
 fix: Handle missing parameters when editing saved data links
 
