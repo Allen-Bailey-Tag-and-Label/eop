@@ -5,6 +5,7 @@ import { User } from '../mongoose/models/User';
 import { PublishedForm } from './models';
 import { listForms, handleFormAction } from './service';
 import { validateDocument, documentFormSlugs, RichTextError } from '$lib/rich-text/document';
+import { listPostImages, uploadPostImage } from '$lib/server/posts/images';
 import {
 	audienceSettings,
 	embeddedFormSlugs,
@@ -38,6 +39,7 @@ export async function loadPostEditor(id?: string) {
 		};
 	}
 	return {
+		images: await listPostImages(id),
 		forms: await listForms(id, linkedIds),
 		roles: roles.map((row) => ({ value: String(row._id), label: row.label })),
 		...(post ? { post } : {})
@@ -61,10 +63,20 @@ export async function savePost(request: Request, userId: string, currentId?: str
 		const mode = fields.get('contentMode') ?? 'markdown';
 		if (!['markdown', 'richtext'].includes(String(mode)))
 			throw new FormValidationError('Choose a supported content format.');
+		const rawContent = String(fields.get('content') ?? '');
+		// A populated document is authoritative even if an old hidden format field is stale.
 		const content =
-			mode === 'richtext'
-				? validateDocument(JSON.parse(String(fields.get('content') ?? '')))
+			rawContent.trim() || mode === 'richtext'
+				? validateDocument(JSON.parse(rawContent))
 				: undefined;
+		if (
+			!content &&
+			currentId &&
+			(await Post.exists({ _id: currentId, 'content.schemaVersion': 1 }))
+		)
+			throw new FormValidationError(
+				'This post already uses rich text. Reload it before saving; its rich text content has been preserved.'
+			);
 		const title = text(fields.get('title'), 'Title'),
 			slug = text(fields.get('slug'), 'Post slug', 160),
 			md = text(fields.get('md') ?? '', 'Post content', 100000, !content);
@@ -82,6 +94,15 @@ export async function savePost(request: Request, userId: string, currentId?: str
 			throw new FormValidationError('Publish each embedded form before saving the post.');
 		if (forms.some((form) => form.postId && String(form.postId) !== currentId))
 			throw new FormValidationError('Use question sets belonging to this post.');
+		for (const form of forms) {
+			if (
+				!form.postId &&
+				(!currentId || !(await Post.exists({ _id: currentId, formIds: form._id })))
+			)
+				throw new FormValidationError(
+					'Create a question set in this post. Existing question sets cannot be shared with another post.'
+				);
+		}
 		const id = currentId ?? '';
 		if (id && !idPattern.test(id)) throw new FormValidationError('Invalid post ID.');
 		if (await Post.exists({ year, month, day, slug, ...(id ? { _id: { $ne: id } } : {}) }))
@@ -101,7 +122,7 @@ export async function savePost(request: Request, userId: string, currentId?: str
 		if (id) {
 			const result = await Post.updateOne(
 				{ _id: id },
-				{ $set: update, ...(!content ? { $unset: { content: 1 } } : {}) },
+				{ $set: update },
 				Object.assign({ runValidators: true }, { _createdById: userId })
 			);
 			if (!result.matchedCount) throw new FormValidationError('This post no longer exists.');
@@ -120,6 +141,8 @@ export async function savePost(request: Request, userId: string, currentId?: str
 	return { success: 'Post saved.' };
 }
 export const formActions = {
+	imageUpload: ({ request, locals, params }: FormActionEvent) =>
+		uploadPostImage(request, params._id, locals.user._id),
 	formPreview: ({ request, locals, params }: FormActionEvent) =>
 		handleFormAction(request, locals.user._id, 'preview', params._id),
 	formSave: ({ request, locals, params }: FormActionEvent) =>

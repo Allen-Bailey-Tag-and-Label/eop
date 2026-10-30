@@ -24,6 +24,7 @@ describe('post rich text documents', () => {
 			'component'
 		]);
 		expect(documentFormSlugs(document)).toEqual(['feedback']);
+		expect(validateDocument(document)).toEqual(document);
 		expect(JSON.stringify(document)).toContain('bold');
 	});
 	it('does not silently drop custom components, raw HTML or task checkboxes', () => {

@@ -32,7 +32,7 @@ export async function authorizeContent(event: RequestEvent): Promise<Response | 
 			actor = { id: String(user._id), roleIds: (user._roleIds ?? []).map(String) };
 	}
 	event.locals.contentActor = actor;
-	const api = !!event.params.formSlug;
+	const api = !!event.params.formSlug || !!event.params.imageId;
 	const deny = () => {
 		if (api)
 			return Response.json(
@@ -54,6 +54,7 @@ export async function authorizeContent(event: RequestEvent): Promise<Response | 
 		if (!post) return missing();
 		if (!canRead({ audience: post.audience, roleIds: (post.roleIds ?? []).map(String) }, actor))
 			return deny();
+		if (event.params.imageId) return;
 		const record = await PublishedForm.findOne({ slug: event.params.formSlug }).lean();
 		if (!record?.published || !record.publishedVersion) return missing();
 		if (

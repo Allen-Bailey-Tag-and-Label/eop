@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { Editor } from '@tiptap/core';
+	import { Editor, getMarkRange } from '@tiptap/core';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import {
@@ -20,10 +20,11 @@
 		AlignCenter,
 		AlignRight
 	} from '@lucide/svelte';
-	import { Button, Card, Div, H2, Input, Modal, P, Select } from '$lib/components';
+	import { Button, Card, Div, H2, Hr, Input, Modal, P, Select, Tabs } from '$lib/components';
 	import { theme } from '$lib/theme';
 	import { editorExtensions } from '$lib/rich-text/extensions';
 	import { emptyDocument, safeUrl, type RichTextDocument } from '$lib/rich-text/document';
+	import type { UploadedPostImage } from '$lib/rich-text/images';
 	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'onchange'> & {
 		value?: RichTextDocument;
 		editor?: Editor | null;
@@ -33,6 +34,8 @@
 		variants?: string[];
 		onChange?: (value: RichTextDocument) => void;
 		onInsertComponent?: () => void;
+		images?: UploadedPostImage[];
+		onUploadImage?: (file: File) => Promise<UploadedPostImage>;
 	};
 	let {
 		value = $bindable(emptyDocument()),
@@ -43,17 +46,32 @@
 		variants = [],
 		onChange,
 		onInsertComponent,
+		images = [],
+		onUploadImage,
 		...restProps
 	}: Props = $props();
 	let element = $state<HTMLDivElement | null>(null),
 		revision = $state(0);
 	let dialog = $state<'link' | 'image' | null>(null),
 		url = $state(''),
+		linkText = $state(''),
+		linkAppearance = $state('text'),
 		alt = $state(''),
 		caption = $state(''),
 		width = $state('100'),
 		imageAlign = $state('center'),
 		error = $state('');
+	let linkRange = { from: 0, to: 0 },
+		originalLinkText = '';
+	let imageSource = $state('url'),
+		file = $state<File | null>(null),
+		uploading = $state(false),
+		addedImages = $state<UploadedPostImage[]>([]);
+	const availableImages = $derived([
+		...new Map([...images, ...addedImages].map((image) => [image.id, image])).values()
+	]);
+	const previewImageSource = (src: string) =>
+		availableImages.find((image) => image.url === src)?.previewUrl ?? src;
 	const selection = $derived.by(() => {
 		void revision;
 		return {
@@ -72,7 +90,12 @@
 	onMount(() => {
 		const instance = new Editor({
 			element: element!,
-			extensions: editorExtensions($theme.Card.default),
+			extensions: editorExtensions(
+				$theme.Card.default,
+				twMerge($theme.Button.default, $theme.RichTextEditor.buttonLink),
+				$theme.A.default,
+				previewImageSource
+			),
 			content: value.doc,
 			editable: !disabled,
 			editorProps: {
@@ -114,12 +137,43 @@
 	function open(kind: 'link' | 'image') {
 		dialog = kind;
 		error = '';
+		imageSource = 'url';
+		file = null;
 		const attrs = editor?.getAttributes(kind) ?? {};
 		url = kind === 'link' ? (attrs.href ?? '') : (attrs.src ?? '');
+		if (kind === 'link' && editor) {
+			const selection = editor.state.selection;
+			linkRange = selection.empty
+				? (getMarkRange(selection.$from, editor.schema.marks.link) ?? {
+						from: selection.from,
+						to: selection.to
+					})
+				: { from: selection.from, to: selection.to };
+			originalLinkText = editor.state.doc.textBetween(linkRange.from, linkRange.to, ' ');
+			linkText = originalLinkText;
+			linkAppearance = attrs.appearance ?? 'text';
+		}
 		alt = attrs.alt ?? '';
 		caption = attrs.caption ?? '';
 		width = String(attrs.width ?? 100);
 		imageAlign = attrs.align ?? 'center';
+	}
+	async function upload() {
+		if (!file || !onUploadImage || uploading) return;
+		uploading = true;
+		error = '';
+		try {
+			const image = await onUploadImage(file);
+			addedImages = [...addedImages, image];
+			url = image.url;
+			if (!alt) alt = image.name;
+			imageSource = 'library';
+			file = null;
+		} catch (cause) {
+			error = cause instanceof Error ? cause.message : 'Could not upload image.';
+		} finally {
+			uploading = false;
+		}
 	}
 	function apply() {
 		if (!editor || !dialog) return;
@@ -128,17 +182,22 @@
 			return;
 		}
 		if (dialog === 'link') {
-			if (editor.state.selection.empty && !editor.isActive('link'))
+			if (!linkText.trim()) {
+				error = 'Enter the link text.';
+				return;
+			}
+			const attrs = { href: url, appearance: linkAppearance };
+			if (linkRange.from === linkRange.to || linkText !== originalLinkText)
 				editor
 					.chain()
 					.focus()
-					.insertContent({
+					.insertContentAt(linkRange, {
 						type: 'text',
-						text: url,
-						marks: [{ type: 'link', attrs: { href: url } }]
+						text: linkText,
+						marks: [{ type: 'link', attrs }]
 					})
 					.run();
-			else editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+			else editor.chain().focus().setTextSelection(linkRange).setMark('link', attrs).run();
 		} else {
 			const size = Number(width);
 			if (!Number.isInteger(size) || size < 10 || size > 100) {
@@ -153,7 +212,7 @@
 	}
 </script>
 
-<Div
+<Card
 	{...restProps}
 	class={twMerge(
 		$theme.RichTextEditor.default,
@@ -161,7 +220,7 @@
 		className
 	)}
 >
-	<Card class="flex flex-wrap items-center gap-1 p-2" role="toolbar" aria-label="Text formatting">
+	<Div class="flex flex-wrap items-center gap-1 p-2" role="toolbar" aria-label="Text formatting">
 		<Select
 			aria-label="Text style"
 			value={selection.heading}
@@ -314,9 +373,10 @@
 			disabled={disabled || !selection.redo}
 			onclick={() => editor?.chain().focus().redo().run()}><Redo2 size={18} /></Button
 		>
-	</Card>
-	<Card class="p-4"><Div bind:element class={$theme.RichTextEditor.content} /></Card>
-</Div>
+	</Div>
+	<Hr class="m-0" />
+	<Div class="p-4"><Div bind:element class={$theme.RichTextEditor.content} /></Div>
+</Card>
 {#if dialog}
 	<Modal
 		bind:isOpen={
@@ -326,17 +386,73 @@
 			}
 		}
 		role="dialog"
+		isCloseable={!uploading}
 		aria-label={dialog === 'link' ? 'Edit link' : 'Image settings'}
-		class="w-full max-w-lg space-y-4 p-5"
+		class="max-h-[90svh] w-full max-w-xl space-y-4 overflow-y-auto p-5"
 	>
 		<Div class="flex items-center justify-between gap-3"
 			><H2 class="text-lg">{dialog === 'link' ? 'Edit link' : 'Image settings'}</H2><Button
 				variants={['ghost', 'icon']}
 				aria-label="Close settings"
+				disabled={uploading}
 				onclick={() => (dialog = null)}><X size={18} /></Button
 			></Div
 		>
-		<Input label={dialog === 'link' ? 'Link URL' : 'Image URL'} aria-label="URL" bind:value={url} />
+		{#if dialog === 'image'}
+			<Tabs
+				bind:value={imageSource}
+				tabs={[
+					{ title: 'Upload', value: 'upload' },
+					{ title: 'Uploaded images', value: 'library' },
+					{ title: 'URL', value: 'url' }
+				]}
+			/>
+			{#if imageSource === 'upload'}
+				{#if onUploadImage}
+					<Input
+						label="Image file"
+						aria-label="Image file"
+						type="file"
+						accept="image/png,image/jpeg,image/webp"
+						disabled={uploading}
+						onchange={(event) => (file = event.currentTarget.files?.[0] ?? null)}
+					/>
+					<P class="text-sm opacity-70"
+						>PNG, JPEG, or WebP, up to 3 MB. Uploaded images belong to this post.</P
+					>
+					<Button disabled={!file || uploading} onclick={upload}
+						>{uploading ? 'Uploading...' : 'Upload image'}</Button
+					>
+				{:else}<P>Save the post before uploading images.</P>{/if}
+			{:else if imageSource === 'library'}
+				{#if availableImages.length}<Div class="grid max-h-60 grid-cols-2 gap-3 overflow-auto p-1">
+						{#each availableImages as image (image.id)}<Button
+								variants={['ghost']}
+								aria-pressed={url === image.url}
+								onclick={() => (url = image.url)}
+								class={twMerge(
+									'flex flex-col gap-2',
+									url === image.url ? $theme.RichTextEditor.selectedImage : ''
+								)}
+								><img src={image.previewUrl} alt="" class="h-20 w-full object-contain" /><span
+									class="break-all">{image.name}</span
+								></Button
+							>{/each}
+					</Div>{:else}<P>No uploaded images for this post.</P>{/if}
+			{:else}<Input label="Image URL" aria-label="URL" bind:value={url} />{/if}
+		{:else}<Input label="Link URL" aria-label="URL" bind:value={url} />{/if}
+		{#if dialog === 'link'}
+			<Input label="Link text" aria-label="Link text" bind:value={linkText} />
+			<Select
+				label="Appearance"
+				aria-label="Link appearance"
+				bind:value={linkAppearance}
+				options={[
+					{ value: 'text', label: 'Text link' },
+					{ value: 'button', label: 'Button link' }
+				]}
+			/>
+		{/if}
 		{#if dialog === 'image'}<Input label="Alternative text" bind:value={alt} /><Input
 				label="Caption"
 				bind:value={caption}
@@ -347,13 +463,15 @@
 			/>{/if}
 		{#if error}<P role="alert">{error}</P>{/if}
 		<Div class="flex flex-wrap gap-2"
-			><Button onclick={apply}>Apply</Button>{#if dialog === 'link'}<Button
+			><Button disabled={uploading} onclick={apply}>Apply</Button>{#if dialog === 'link'}<Button
 					variants={['ghost']}
 					onclick={() => {
-						editor?.chain().focus().unsetLink().run();
+						editor?.chain().focus().setTextSelection(linkRange).unsetLink().run();
 						dialog = null;
 					}}>Remove link</Button
-				>{/if}<Button variants={['ghost']} onclick={() => (dialog = null)}>Cancel</Button></Div
+				>{/if}<Button disabled={uploading} variants={['ghost']} onclick={() => (dialog = null)}
+				>Cancel</Button
+			></Div
 		>
 	</Modal>
 {/if}

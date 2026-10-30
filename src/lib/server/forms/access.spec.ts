@@ -51,6 +51,18 @@ beforeEach(() => {
 	);
 });
 describe('post submission access', () => {
+	it('protects post image bytes with the same post audience', async () => {
+		const input = event();
+		input.params = { postId, imageId: id };
+		vi.mocked(Post.findById).mockReturnValue(
+			query({ _id: postId, audience: 'employees' }) as never
+		);
+		expect((await authorizeContent(input))?.status).toBe(401);
+		const allowed = event(true, id);
+		allowed.params = { postId, imageId: id };
+		expect(await authorizeContent(allowed)).toBeUndefined();
+		expect(PublishedForm.findOne).not.toHaveBeenCalled();
+	});
 	it('preserves legacy public posts and distinguishes employee and role access', () => {
 		expect(canRead({})).toBe(true);
 		expect(canRead({ audience: 'employees' })).toBe(false);

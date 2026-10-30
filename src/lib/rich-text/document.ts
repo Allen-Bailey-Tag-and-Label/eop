@@ -28,10 +28,10 @@ const attributes: Record<string, string[]> = {
 	heading: ['level', 'textAlign'],
 	orderedList: ['start', 'type'],
 	codeBlock: ['language'],
-	image: ['src', 'alt', 'title', 'width', 'align', 'caption'],
+	image: ['src', 'alt', 'title', 'width', 'height', 'align', 'caption'],
 	component: ['name', 'slug'],
-	tableCell: ['colspan', 'rowspan', 'colwidth'],
-	tableHeader: ['colspan', 'rowspan', 'colwidth']
+	tableCell: ['colspan', 'rowspan', 'colwidth', 'align'],
+	tableHeader: ['colspan', 'rowspan', 'colwidth', 'align']
 };
 export function validateDocument(input: unknown): RichTextDocument {
 	let serialized = '';
@@ -75,8 +75,20 @@ export function validateDocument(input: unknown): RichTextDocument {
 			!['left', 'center', 'right', 'justify'].includes(attrs.textAlign)
 		)
 			throw new RichTextError('Invalid text alignment.');
+		if (
+			['tableCell', 'tableHeader'].includes(node.type) &&
+			attrs.align != null &&
+			!['left', 'center', 'right', 'justify'].includes(attrs.align)
+		)
+			throw new RichTextError('Invalid cell alignment.');
 		if (node.type === 'heading' && ![1, 2, 3].includes(attrs.level))
 			throw new RichTextError('Use heading levels 1 to 3.');
+		if (
+			node.type === 'image' &&
+			attrs.height != null &&
+			(!Number.isInteger(attrs.height) || attrs.height < 1 || attrs.height > 10000)
+		)
+			throw new RichTextError('Invalid image height.');
 		if (
 			node.type === 'orderedList' &&
 			attrs.start != null &&
@@ -136,12 +148,29 @@ export function validateDocument(input: unknown): RichTextDocument {
 				mark.attrs &&
 				(typeof mark.attrs !== 'object' ||
 					Object.keys(mark.attrs).some(
-						(key) => !(mark.type === 'link' ? ['href', 'target', 'rel', 'class'] : []).includes(key)
+						(key) =>
+							!(
+								mark.type === 'link'
+									? ['href', 'target', 'rel', 'class', 'title', 'appearance']
+									: []
+							).includes(key)
 					))
 			)
 				throw new RichTextError('Unsupported formatting settings.');
 			if (mark.type === 'link' && !safeUrl(mark.attrs?.href))
 				throw new RichTextError('Use an HTTP(S), email, telephone, or site link.');
+			if (
+				mark.type === 'link' &&
+				mark.attrs?.title != null &&
+				(typeof mark.attrs.title !== 'string' || mark.attrs.title.length > 1000)
+			)
+				throw new RichTextError('Invalid link title.');
+			if (
+				mark.type === 'link' &&
+				mark.attrs?.appearance != null &&
+				!['text', 'button'].includes(mark.attrs.appearance)
+			)
+				throw new RichTextError('Choose text or button link appearance.');
 		}
 		if (node.content != null && !Array.isArray(node.content))
 			throw new RichTextError('Invalid document children.');

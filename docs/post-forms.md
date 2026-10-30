@@ -7,7 +7,8 @@ There are no standalone form pages or separate form management routes. Share the
 post URL, including when creating a slide QR code.
 
 1. Create a post with a title, category, audience, and content. Save it.
-2. In that post's editor, open **Forms**. This lists question sets for that post.
+2. In that post's content editor, select **Questions**. This opens the Forms
+   dialog and lists question sets for that post.
 3. Select **Create form**. Set a unique question set key, add questions, and choose
    whether responses should be anonymous. Do not add a second title or introduction;
    write those in the post's content editor.
@@ -16,7 +17,7 @@ post URL, including when creating a slide QR code.
    it adds `<PublishedForm slug="your-key"></PublishedForm>`, which you can move
    within the source to change its position.
 5. Save the post. Its preview displays the questions with submission disabled.
-6. Open **View post** to test a real submission. Use **Forms → Responses** in the
+6. Open **View post** to test a real submission. Use **Questions → Responses** in the
    post editor to review the latest 500 responses for a question set.
 
 ## Audience and identity
@@ -38,9 +39,9 @@ until saved into their post, so existing restrictions are not silently widened.
 
 Existing Markdown embeds, question definitions, and response snapshots are
 preserved. Previously linked question sets appear in the corresponding post's
-Forms dialog. Unattached legacy question sets remain stored; if needed, insert
-their existing tag into a post and save it to associate them. Question sets owned
-by a different post cannot be inserted or managed here.
+Forms dialog. Unattached legacy question sets remain stored but cannot be reused
+by inserting their tag into another post. Create questions in the target post
+instead. Question sets owned by a different post cannot be inserted or managed here.
 If an old question set is shared by multiple posts, it remains readable. Create
 a new question set in the relevant post before changing it, so other posts are
 not affected.

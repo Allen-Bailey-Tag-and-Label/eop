@@ -15,6 +15,7 @@
 		lastName: string;
 		md: string;
 		content?: RichTextDocument;
+		imageSources?: Record<string, string>;
 		title: string;
 	};
 	let {
@@ -22,6 +23,7 @@
 		preview = false,
 		formPreview,
 		content,
+		imageSources,
 		date,
 		firstName = $bindable(''),
 		lastName = $bindable(''),
@@ -61,5 +63,7 @@
 		<Div>By - {firstName} {lastName}</Div>
 		<Div>{dateTime(date)}</Div>
 	</Div>
-	{#if content}<RichTextRenderer value={content} />{:else}<MarkdownToken {tokens} />{/if}
+	{#if content}<RichTextRenderer value={content} {imageSources} />{:else}<MarkdownToken
+			{tokens}
+		/>{/if}
 </Div>

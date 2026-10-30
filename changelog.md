@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T17:37:00.470Z
+## 2026-10-30T18:11:12.633Z
+
+feat: Add post images and fix rich text editing and persistence
+
+## 2026-10-30T13:42:17-04:00
 
 feat: Add shared Tiptap rich text editing for posts
 

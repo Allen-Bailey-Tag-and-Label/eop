@@ -2,6 +2,8 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, fireEvent, within, waitFor } from '@testing-library/svelte';
 import PostEditor from './PostEditor.svelte';
 import { blankForm } from '$lib/forms/definition';
+import marketingMarkdown from '$lib/rich-text/fixtures/marketing.md?raw';
+import { enhance } from '$app/forms';
 vi.mock('$app/forms', () => ({
 	enhance: vi.fn(() => ({ destroy: vi.fn() })),
 	deserialize: (value: string) => JSON.parse(value)
@@ -42,6 +44,44 @@ const data = {
 	roles: [{ value: 'b'.repeat(24), label: 'Employees' }]
 };
 describe('post forms authoring', () => {
+	it('submits the marketing post with its current document despite stale native fields and keeps the editor after saving', async () => {
+		const view = render(PostEditor, {
+			data: { ...data, post: { ...data.post, md: marketingMarkdown } } as never
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Convert to rich text' }));
+		const form = view.getByRole('button', { name: 'Save post' }).closest('form')!;
+		expect(new FormData(form).get('contentMode')).toBe('richtext');
+		expect(String(new FormData(form).get('content'))).toContain('horizontalRule');
+		const fields = new FormData(form);
+		fields.set('contentMode', 'markdown');
+		fields.delete('content');
+		const submit = vi.mocked(enhance).mock.calls.find(([element]) => element === form)?.[1];
+		if (!submit) throw new Error('Post enhancement was not registered.');
+		const action = new URL('https://example.test/post/manage/' + data.post._id + '?/save');
+		const completed = await submit({
+			formData: fields,
+			formElement: form,
+			action,
+			cancel: vi.fn(),
+			controller: new AbortController(),
+			submitter: null
+		});
+		expect(fields.get('contentMode')).toBe('richtext');
+		expect(String(fields.get('content'))).toContain('horizontalRule');
+		if (typeof completed !== 'function') throw new Error('Missing post completion handler.');
+		const update = vi.fn(async () => {});
+		await completed({
+			action,
+			formData: fields,
+			formElement: form,
+			result: { type: 'success', status: 200, data: { success: 'Post saved.' } },
+			update
+		});
+		expect(update).toHaveBeenCalledWith({ reset: false });
+		expect(view.getByRole('textbox', { name: 'Post content' })).toHaveTextContent(
+			'Quarterly Marketing Meetings'
+		);
+	});
 	it('converts existing Markdown and embedded questions explicitly while retaining the original source', async () => {
 		const original =
 			'# Existing heading\n\nBody\n\n<PublishedForm slug="feedback"></PublishedForm>';
@@ -88,7 +128,7 @@ describe('post forms authoring', () => {
 	});
 	it('dismisses only the form editor on an outside click and explains public identified forms', async () => {
 		const view = render(PostEditor, { data: data as never });
-		await fireEvent.click(view.getByRole('button', { name: 'Forms' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Questions' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Create form' }));
 		const editor = view.getByRole('dialog', { name: 'Create form' });
 		const dialog = within(editor);
@@ -110,7 +150,7 @@ describe('post forms authoring', () => {
 	});
 	it('uses category audience defaults without overriding an explicit choice', async () => {
 		const view = render(PostEditor, { data: { ...data, post: undefined } as never });
-		expect(view.getByRole('button', { name: 'Forms' })).toBeDisabled();
+		expect(view.queryByRole('button', { name: 'Forms' })).not.toBeInTheDocument();
 		await fireEvent.change(view.getByRole('combobox', { name: 'Post category' }), {
 			target: { value: 'hr' }
 		});
@@ -136,7 +176,7 @@ describe('post forms authoring', () => {
 		);
 		vi.stubGlobal('fetch', fetcher);
 		const view = render(PostEditor, { data: data as never });
-		await fireEvent.click(view.getByRole('button', { name: 'Forms' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Questions' }));
 		const dialog = within(view.getByRole('dialog', { name: 'Forms' }));
 		await fireEvent.click(dialog.getByRole('button', { name: 'Insert' }));
 		expect(
@@ -231,7 +271,7 @@ describe('post forms authoring', () => {
 		);
 		vi.stubGlobal('fetch', fetcher);
 		const view = render(PostEditor, { data: data as never });
-		await fireEvent.click(view.getByRole('button', { name: 'Forms' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Questions' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Create form' }));
 		const dialog = within(view.getByRole('dialog', { name: 'Create form' }));
 		await fireEvent.input(dialog.getByRole('textbox', { name: 'Form slug' }), {

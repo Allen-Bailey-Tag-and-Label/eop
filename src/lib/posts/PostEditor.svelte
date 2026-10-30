@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import type { Editor } from '@tiptap/core';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { emptyDocument, type RichTextDocument } from '$lib/rich-text/document';
 	import { markdownToDocument } from '$lib/rich-text/markdown';
 	import { deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import type { UploadedPostImage } from '$lib/rich-text/images';
 	import type { FormPreview } from '$lib/forms/context';
 	import {
 		AudiencePicker,
@@ -38,6 +41,7 @@
 		locals: Locals;
 		post?: PostData;
 		forms: { id: string; slug: string; title: string; version: number; published: boolean }[];
+		images?: UploadedPostImage[];
 		roles: { value: string; label: string }[];
 	};
 	let { data, form }: { data: Data; form?: { error?: string; success?: string } | null } = $props();
@@ -71,6 +75,20 @@
 		slugTouched = false,
 		formsOpen = $state(false),
 		isLoading = $state(false);
+	const submitPost: SubmitFunction = ({ formData }) => {
+		formData.set('contentMode', mode);
+		formData.set('md', md);
+		if (mode === 'richtext') formData.set('content', JSON.stringify(content));
+		else formData.delete('content');
+		isLoading = true;
+		return async ({ update }) => {
+			try {
+				await update({ reset: false });
+			} finally {
+				isLoading = false;
+			}
+		};
+	};
 	const categories = $derived(
 		[...new Set([...Object.keys(categoryDefaults), category])].map((value) => ({
 			value,
@@ -108,12 +126,30 @@
 			);
 		return result.data?.preview as Awaited<ReturnType<FormPreview['load']>>;
 	};
+	async function uploadImage(file: File): Promise<UploadedPostImage> {
+		const body = new FormData();
+		body.set('file', file);
+		const response = await fetch('?/imageUpload', {
+			method: 'POST',
+			body,
+			headers: { 'x-sveltekit-action': 'true' }
+		});
+		const result = deserialize(await response.text());
+		if (result.type !== 'success')
+			throw new Error(
+				result.type === 'failure'
+					? String(result.data?.error ?? 'Could not upload image.')
+					: 'Could not upload image.'
+			);
+		const image = result.data?.image as UploadedPostImage;
+		await invalidateAll();
+		return image;
+	}
 </script>
 
 <Div class="grid min-h-0 flex-grow grid-cols-1 gap-6 overflow-auto lg:grid-cols-2">
 	<Div class="space-y-4">
 		<Div class="flex flex-wrap items-center justify-between gap-3"
-			><Button disabled={!data.post} onclick={() => (formsOpen = true)}>Forms</Button
 			>{#if data.post}<A href={publicUrl} target="_blank" rel="noopener">View post</A>{/if}</Div
 		>
 		{#if !data.post}<P class="text-sm opacity-70"
@@ -122,7 +158,7 @@
 		{#if form?.error}<P role="alert">{form.error}</P>{/if}{#if form?.success}<P role="status"
 				>{form.success}</P
 			>{/if}
-		<Form action="?/save" bind:isLoading class="max-w-none space-y-5">
+		<Form action="?/save" submitFunction={submitPost} bind:isLoading class="max-w-none space-y-5">
 			<Div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Select
 					label="Category"
@@ -192,6 +228,9 @@
 					it.</P
 				>
 				<Button variants={['ghost']} onclick={convertMarkdown}>Convert to rich text</Button>
+				<Button variants={['ghost']} disabled={!data.post} onclick={() => (formsOpen = true)}
+					>Questions</Button
+				>
 				{#if conversionError}<P role="alert">{conversionError}</P>{/if}
 				<Textarea label="Markdown" aria-label="Post markdown" name="md" bind:value={md} rows={18} />
 			{:else}
@@ -204,6 +243,8 @@
 					bind:value={content}
 					bind:editor={richEditor}
 					label="Post content"
+					images={data.images ?? []}
+					onUploadImage={data.post ? uploadImage : undefined}
 					onInsertComponent={data.post ? () => (formsOpen = true) : undefined}
 				/>
 			{/if}
@@ -221,6 +262,9 @@
 		lastName={data.locals.user.profile.lastName}
 		{md}
 		content={mode === 'richtext' ? content : undefined}
+		imageSources={Object.fromEntries(
+			(data.images ?? []).map((image) => [image.url, image.previewUrl])
+		)}
 		{title}
 	/>
 </Div>

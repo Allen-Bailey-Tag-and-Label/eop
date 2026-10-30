@@ -1,17 +1,17 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve -- Validated post links may be external, mailto, fragments, or site paths. */
 	import type { JSONContent } from '@tiptap/core';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
-	import { Div, PublishedForm } from '$lib/components';
+	import { A, Div, PublishedForm } from '$lib/components';
 	import { safeUrl, type RichTextDocument } from '$lib/rich-text/document';
 	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class'> & {
 		value: RichTextDocument;
+		imageSources?: Record<string, string>;
 		class?: string;
 		variants?: string[];
 	};
-	let { value, class: className, variants = [], ...restProps }: Props = $props();
+	let { value, imageSources = {}, class: className, variants = [], ...restProps }: Props = $props();
 	const tags: Record<string, string> = {
 		paragraph: 'p',
 		heading: 'h2',
@@ -28,6 +28,29 @@
 		({ left: 'text-left', center: 'text-center', right: 'text-right', justify: 'text-justify' })[
 			String(value) as 'left'
 		] ?? '';
+	function linkRuns(content: JSONContent[]) {
+		const result: JSONContent[] = [];
+		for (const node of content) {
+			const link =
+				node.type === 'text' ? node.marks?.find((mark) => mark.type === 'link') : undefined;
+			if (!link || !safeUrl(link.attrs?.href)) {
+				result.push(node);
+				continue;
+			}
+			const key = JSON.stringify([
+				link.attrs?.href,
+				link.attrs?.appearance ?? 'text',
+				link.attrs?.title ?? null
+			]);
+			let run = result.at(-1);
+			if (run?.type !== 'linkRun' || run.attrs?.key !== key) {
+				run = { type: 'linkRun', attrs: { ...link.attrs, key }, content: [] };
+				result.push(run);
+			}
+			run.content!.push({ ...node, marks: node.marks?.filter((mark) => mark.type !== 'link') });
+		}
+		return result;
+	}
 </script>
 
 <Div
@@ -41,15 +64,23 @@
 	{@render nodes(value.doc.content ?? [])}
 </Div>
 {#snippet nodes(content: JSONContent[])}
-	{#each content as node, index (index)}
-		{#if node.type === 'text'}{@render text(node, 0)}
+	{#each linkRuns(content) as node, index (index)}
+		{#if node.type === 'linkRun'}<A
+				href={node.attrs?.href}
+				title={node.attrs?.title ?? undefined}
+				class={node.attrs?.appearance === 'button'
+					? twMerge($theme.Button.default, $theme.RichTextEditor.buttonLink)
+					: undefined}
+				rel="noopener noreferrer">{@render nodes(node.content ?? [])}</A
+			>
+		{:else if node.type === 'text'}{@render text(node, 0)}
 		{:else if node.type === 'component' && node.attrs?.name === 'PublishedForm'}<PublishedForm
 				slug={node.attrs.slug}
 			/>
 		{:else if node.type === 'image' && safeUrl(node.attrs?.src, true)}
 			<figure class={align(node.attrs?.align)}>
 				<img
-					src={node.attrs?.src}
+					src={imageSources[node.attrs?.src] ?? node.attrs?.src}
 					alt={node.attrs?.alt ?? ''}
 					title={node.attrs?.title ?? undefined}
 					loading="lazy"
@@ -70,7 +101,7 @@
 		{:else if node.type && tags[node.type]}
 			<svelte:element
 				this={node.type === 'heading' ? `h${node.attrs?.level ?? 2}` : tags[node.type]}
-				class={align(node.attrs?.textAlign)}
+				class={align(node.attrs?.textAlign ?? node.attrs?.align)}
 				{...{
 					start: node.type === 'orderedList' ? node.attrs?.start : undefined,
 					colspan:
@@ -92,9 +123,12 @@
 {#snippet text(node: JSONContent, index: number)}
 	{@const mark = node.marks?.[index]}
 	{#if !mark}{node.text}
-	{:else if mark.type === 'link' && safeUrl(mark.attrs?.href)}<a
+	{:else if mark.type === 'link' && safeUrl(mark.attrs?.href)}<A
 			href={mark.attrs.href}
-			rel="noopener noreferrer">{@render text(node, index + 1)}</a
+			class={mark.attrs.appearance === 'button'
+				? twMerge($theme.Button.default, $theme.RichTextEditor.buttonLink)
+				: undefined}
+			rel="noopener noreferrer">{@render text(node, index + 1)}</A
 		>
 	{:else if ['bold', 'italic', 'underline', 'strike', 'code'].includes(mark.type)}<svelte:element
 			this={(

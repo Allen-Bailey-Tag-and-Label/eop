@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { savePost } from './posts';
 import { Post } from '../mongoose/models/Post';
 import { PublishedForm } from './models';
+import { markdownToDocument } from '$lib/rich-text/markdown';
+import marketingMarkdown from '$lib/rich-text/fixtures/marketing.md?raw';
 vi.mock('../mongoose/models/Post', () => ({
 	Post: { exists: vi.fn(), updateOne: vi.fn(), create: vi.fn() }
 }));
@@ -28,13 +30,58 @@ function request(overrides: Record<string, string> = {}) {
 }
 beforeEach(() => {
 	vi.clearAllMocks();
-	vi.mocked(Post.exists).mockResolvedValue(null);
+	vi.mocked(Post.exists).mockImplementation(((filter: { formIds?: unknown }) =>
+		Promise.resolve(filter.formIds ? { _id: id } : null)) as never);
 	vi.mocked(Post.updateOne).mockResolvedValue({ matchedCount: 1 } as never);
 	vi.mocked(PublishedForm.find).mockReturnValue({
 		select: () => ({ lean: async () => [{ _id: formId, slug: 'feedback' }] })
 	} as never);
 });
 describe('post form publishing', () => {
+	it('persists the marketing document despite a stale Markdown flag, including separators and its link', async () => {
+		vi.mocked(PublishedForm.find).mockReturnValue({
+			select: () => ({ lean: async () => [] })
+		} as never);
+		const document = markdownToDocument(marketingMarkdown);
+		expect(
+			await savePost(
+				request({
+					contentMode: 'markdown',
+					content: JSON.stringify(document),
+					md: marketingMarkdown
+				}),
+				id,
+				id
+			)
+		).toEqual({ success: 'Post saved.' });
+		const update = (vi.mocked(Post.updateOne).mock.calls as unknown as unknown[][])[0][1] as {
+			$set: { content: unknown };
+			$unset?: unknown;
+		};
+		expect(update.$set.content).toEqual(document);
+		expect(update.$unset).toBeUndefined();
+		expect(JSON.stringify(document)).toContain('horizontalRule');
+	});
+	it('does not erase converted content when a stale Markdown-only browser saves', async () => {
+		vi.mocked(Post.exists).mockResolvedValue({ _id: id } as never);
+		expect(await savePost(request(), id, id)).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('preserved') }
+		});
+		expect(Post.updateOne).not.toHaveBeenCalled();
+	});
+	it('rejects question sets owned by another post and unlinked legacy question sets', async () => {
+		vi.mocked(PublishedForm.find).mockReturnValue({
+			select: () => ({ lean: async () => [{ _id: formId, postId: 'c'.repeat(24) }] })
+		} as never);
+		expect(await savePost(request(), id, id)).toMatchObject({ status: 400 });
+		vi.mocked(PublishedForm.find).mockReturnValue({
+			select: () => ({ lean: async () => [{ _id: formId }] })
+		} as never);
+		vi.mocked(Post.exists).mockResolvedValue(null);
+		expect(await savePost(request(), id, id)).toMatchObject({ status: 400 });
+		expect(Post.updateOne).not.toHaveBeenCalled();
+	});
 	it('stores a versioned rich text document and tracks its question references', async () => {
 		const content = {
 			schemaVersion: 1,
@@ -83,8 +130,7 @@ describe('post form publishing', () => {
 					month: 10,
 					day: 30,
 					formIds: [formId]
-				}),
-				$unset: { content: 1 }
+				})
 			},
 			expect.objectContaining({ runValidators: true })
 		);
