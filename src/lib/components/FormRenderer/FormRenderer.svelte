@@ -59,7 +59,7 @@
 	<P class="text-sm opacity-70"
 		>{definition.anonymous
 			? 'Responses are anonymous. Only include contact information if you want to be identified.'
-			: 'Your signed-in employee account will be recorded with this response.'}</P
+			: 'Employee sign-in is required. Your signed-in employee account will be recorded with this response.'}</P
 	>
 	{#if preview}<P class="text-sm opacity-70">Preview: submissions are disabled.</P>{/if}
 	{#if success}<P role="status">{success}</P>

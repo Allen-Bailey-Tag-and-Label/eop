@@ -60,8 +60,13 @@
 </script>
 
 <Modal
-	isOpen={true}
-	isCloseable={false}
+	bind:isOpen={
+		() => true,
+		(open) => {
+			if (!open) onClose();
+		}
+	}
+	isCloseable={!busy}
 	role="dialog"
 	aria-label={record.id ? 'Edit form' : 'Create form'}
 	class="flex max-h-[90svh] w-full max-w-3xl flex-col gap-4 overflow-hidden p-5"
@@ -91,6 +96,9 @@
 		/>
 		<AudiencePicker
 			{roles}
+			publicLabel={draft.anonymous
+				? 'Public (no login required)'
+				: 'Public (employee sign-in required for identified responses)'}
 			bind:value={
 				() => ({ audience: draft.audience, roleIds: draft.roleIds }),
 				(value) => {
@@ -101,9 +109,20 @@
 		/>
 		<Checkbox label="Accept responses" bind:checked={draft.open} />
 		<Checkbox label="Anonymous responses" bind:checked={draft.anonymous} />
+		<P class="text-sm" role="status">
+			{#if !draft.anonymous}
+				Employee sign-in is required. Each response records the signed-in employee's account.
+				{#if draft.audience === 'public'}Enable Anonymous responses to let visitors respond without
+					signing in.{/if}
+			{:else if draft.audience === 'public'}
+				Anyone can respond without signing in. Responses do not record an employee account.
+			{:else}
+				Sign-in is required to access this form, but responses do not record the employee's account.
+			{/if}
+		</P>
 		<P class="text-sm opacity-70"
-			>Identified forms require sign-in, even with a public audience. Saving a draft does not change
-			the published form. Publish to apply changes, including closing responses.</P
+			>Saving a draft does not change the published form. Publish to apply changes, including
+			closing responses. Clicking outside or Cancel discards unsaved edits.</P
 		>
 		{#each draft.questions as question, index (question.id)}
 			<Card class="space-y-3">

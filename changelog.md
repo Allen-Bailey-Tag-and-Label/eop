@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T16:21:15.449Z
+## 2026-10-30T16:44:20.675Z
+
+fix: Enable form dialog dismissal and clarify response identity requirements
+
+## 2026-10-30T12:39:19-04:00
 
 feat: Add reusable post forms and audience-controlled publishing
 

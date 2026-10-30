@@ -23,6 +23,12 @@ production post URL in a slide QR code, or link directly to `/forms/your-slug`.
 Public content permits visitors without accounts. Employees requires an active
 employee account; Selected roles also requires membership in at least one selected
 role. Identified forms require sign-in even when their audience is Public.
+For a form anyone can complete without an account, choose Public and enable
+Anonymous responses. Turning that setting off requires an employee account; it
+does not collect a visitor's name or email automatically.
+
+Clicking outside the create/edit dialog or selecting Cancel dismisses it and
+discards unsaved edits. Outside dismissal is disabled while saving.
 
 Post and form audiences are independent. An embedded form enforces both. A direct
 form link enforces the form's audience, so choose Employees on the form itself if

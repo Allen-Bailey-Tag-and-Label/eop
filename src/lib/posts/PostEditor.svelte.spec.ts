@@ -32,6 +32,26 @@ const data = {
 	roles: [{ value: 'b'.repeat(24), label: 'Employees' }]
 };
 describe('post forms authoring', () => {
+	it('dismisses only the form editor on an outside click and explains public identified forms', async () => {
+		const view = render(PostEditor, { data: data as never });
+		await fireEvent.click(view.getByRole('button', { name: 'Forms' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Create form' }));
+		const editor = view.getByRole('dialog', { name: 'Create form' });
+		const dialog = within(editor);
+		expect(dialog.getByRole('status')).toHaveTextContent('Anyone can respond without signing in');
+		await fireEvent.click(dialog.getByRole('checkbox', { name: 'Anonymous responses' }));
+		expect(dialog.getByRole('status')).toHaveTextContent('Employee sign-in is required');
+		expect(
+			dialog.getByRole('combobox', { name: 'Audience' }).querySelector('option:checked')
+		).toHaveTextContent('employee sign-in required');
+		await fireEvent.click(dialog.getByRole('button', { name: 'Preview form' }));
+		expect(dialog.getByText(/Employee sign-in is required\. Your signed-in/)).toBeInTheDocument();
+		await fireEvent.click(editor.parentElement!);
+		await waitFor(() =>
+			expect(view.queryByRole('dialog', { name: 'Create form' })).not.toBeInTheDocument()
+		);
+		expect(view.getByRole('dialog', { name: 'Forms' })).toBeInTheDocument();
+	});
 	it('uses category audience defaults without overriding an explicit choice', async () => {
 		const view = render(PostEditor, { data: data as never });
 		await fireEvent.change(view.getByRole('combobox', { name: 'Post category' }), {

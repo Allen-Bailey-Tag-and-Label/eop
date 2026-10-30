@@ -7,6 +7,7 @@
 	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'onchange'> & {
 		value?: AudienceSettings;
 		roles?: { value: string; label: string }[];
+		publicLabel?: string;
 		onChange?: () => void;
 		class?: string;
 		variants?: string[];
@@ -14,6 +15,7 @@
 	let {
 		value = $bindable({ audience: 'public', roleIds: [] }),
 		roles = [],
+		publicLabel = 'Public (no login required)',
 		onChange = () => {},
 		class: className,
 		variants = [],
@@ -34,7 +36,7 @@
 		aria-label="Audience"
 		value={value.audience}
 		options={[
-			{ value: 'public', label: 'Public (no login required)' },
+			{ value: 'public', label: publicLabel },
 			{ value: 'employees', label: 'Employees (sign-in required)' },
 			{ value: 'roles', label: 'Selected roles' }
 		]}
