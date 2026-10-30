@@ -3,7 +3,8 @@
 	import { postFormContext, type FormPreview } from '$lib/forms/context';
 	import { dateTime } from '$lib/formats';
 	import { mdToTokens } from '$lib/marked';
-	import { Div, H1, MarkdownToken } from '..';
+	import { Div, H1, MarkdownToken, RichTextRenderer } from '..';
+	import type { RichTextDocument } from '$lib/rich-text/document';
 
 	type Props = {
 		postId?: string;
@@ -13,12 +14,14 @@
 		firstName: string;
 		lastName: string;
 		md: string;
+		content?: RichTextDocument;
 		title: string;
 	};
 	let {
 		postId,
 		preview = false,
 		formPreview,
+		content,
 		date,
 		firstName = $bindable(''),
 		lastName = $bindable(''),
@@ -58,5 +61,5 @@
 		<Div>By - {firstName} {lastName}</Div>
 		<Div>{dateTime(date)}</Div>
 	</Div>
-	<MarkdownToken {tokens} />
+	{#if content}<RichTextRenderer value={content} />{:else}<MarkdownToken {tokens} />{/if}
 </Div>

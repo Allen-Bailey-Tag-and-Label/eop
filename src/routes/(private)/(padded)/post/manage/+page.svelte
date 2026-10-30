@@ -8,6 +8,7 @@
 	let { data } = $props();
 	const columnOverrides: ColumnOverrides = $state({
 		md: { isHidden: true },
+		content: { isHidden: true },
 		formIds: { isHidden: true },
 		roleIds: { isHidden: true }
 	});

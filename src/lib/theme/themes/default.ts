@@ -19,6 +19,16 @@ const chartDefault =
 	'min-h-0 min-w-0 text-inherit [--color-primary:var(--color-primary-500)] [--color-surface-content:currentColor]';
 
 export const defaultTheme = {
+	RichTextEditor: {
+		default:
+			'space-y-3 [&_button[aria-pressed=true]]:outline-2 [&_button[aria-pressed=true]]:outline-primary-500',
+		content:
+			'prose max-w-none dark:prose-invert [&_.tiptap]:min-h-72 [&_.tiptap]:outline-none [&_figure[data-image-align=center]]:text-center [&_figure[data-image-align=right]]:text-right [&_img]:h-auto [&_img]:max-w-full [&_table]:w-full [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2 [&_[data-post-component]]:my-4 [&_[data-post-component]]:rounded-lg [&_[data-post-component]]:p-4 [&_[data-post-component]]:not-prose [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-primary-500'
+	},
+	RichTextRenderer: {
+		default:
+			'prose max-w-none dark:prose-invert [&_img]:h-auto [&_img]:max-w-full [&_table]:w-full [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2'
+	},
 	AudiencePicker: { default: 'space-y-3' },
 	FormRenderer: { default: 'space-y-4' },
 	PublishedForm: { default: 'my-6 w-full' },

@@ -126,7 +126,7 @@
 		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			<P
 				>Manage questions and responses for this post. Publish a question set, insert it into
-				Markdown, then save the post. Share the post URL with readers.</P
+				content, then save the post. Share the post URL with readers.</P
 			>
 			<Button
 				onclick={() =>

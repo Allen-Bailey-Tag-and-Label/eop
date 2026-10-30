@@ -42,6 +42,50 @@ const data = {
 	roles: [{ value: 'b'.repeat(24), label: 'Employees' }]
 };
 describe('post forms authoring', () => {
+	it('converts existing Markdown and embedded questions explicitly while retaining the original source', async () => {
+		const original =
+			'# Existing heading\n\nBody\n\n<PublishedForm slug="feedback"></PublishedForm>';
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(
+						JSON.stringify({
+							type: 'success',
+							data: { preview: { definition: blankForm(), version: 1 } }
+						})
+					)
+			)
+		);
+		const view = render(PostEditor, {
+			data: { ...data, post: { ...data.post, md: original } } as never
+		});
+		expect(view.getByRole('textbox', { name: 'Post markdown' })).toHaveValue(original);
+		await fireEvent.click(view.getByRole('button', { name: 'Convert to rich text' }));
+		await waitFor(() =>
+			expect(view.getByRole('textbox', { name: 'Post content' })).toHaveTextContent(
+				'Existing heading'
+			)
+		);
+		expect(view.queryByRole('textbox', { name: 'Post markdown' })).not.toBeInTheDocument();
+		const form = view.getByRole('button', { name: 'Save post' }).closest('form')!;
+		const fields = new FormData(form);
+		expect(fields.get('md')).toBe(original);
+		expect(JSON.parse(String(fields.get('content')))).toMatchObject({ schemaVersion: 1 });
+		expect(String(fields.get('content'))).toContain('PublishedForm');
+		await waitFor(() =>
+			expect(view.getByRole('textbox', { name: 'Your feedback' })).toBeDisabled()
+		);
+	});
+	it('preserves unsupported legacy components without automatically rewriting the post', async () => {
+		const original = '<Card>Existing custom content</Card>';
+		const view = render(PostEditor, {
+			data: { ...data, post: { ...data.post, md: original } } as never
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Convert to rich text' }));
+		expect(view.getByRole('alert')).toHaveTextContent('cannot be converted');
+		expect(view.getByRole('textbox', { name: 'Post markdown' })).toHaveValue(original);
+	});
 	it('dismisses only the form editor on an outside click and explains public identified forms', async () => {
 		const view = render(PostEditor, { data: data as never });
 		await fireEvent.click(view.getByRole('button', { name: 'Forms' }));

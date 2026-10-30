@@ -11,7 +11,7 @@ vi.mock('./models', () => ({ PublishedForm: { find: vi.fn() } }));
 vi.mock('./service', () => ({ listForms: vi.fn(), handleFormAction: vi.fn() }));
 const id = 'a'.repeat(24),
 	formId = 'b'.repeat(24);
-function request() {
+function request(overrides: Record<string, string> = {}) {
 	const fields = new FormData();
 	for (const [key, value] of Object.entries({
 		category: 'feedback',
@@ -20,7 +20,8 @@ function request() {
 		date: '2026-10-30T09:30',
 		audience: 'employees',
 		roleIds: '[]',
-		md: '<PublishedForm slug="feedback"></PublishedForm>'
+		md: '<PublishedForm slug="feedback"></PublishedForm>',
+		...overrides
 	}))
 		fields.set(key, value);
 	return new Request('https://example.test/post/manage/' + id, { method: 'POST', body: fields });
@@ -34,6 +35,42 @@ beforeEach(() => {
 	} as never);
 });
 describe('post form publishing', () => {
+	it('stores a versioned rich text document and tracks its question references', async () => {
+		const content = {
+			schemaVersion: 1,
+			doc: {
+				type: 'doc',
+				content: [
+					{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] },
+					{ type: 'component', attrs: { name: 'PublishedForm', slug: 'feedback' } }
+				]
+			}
+		};
+		expect(
+			await savePost(
+				request({ contentMode: 'richtext', content: JSON.stringify(content), md: '' }),
+				id,
+				id
+			)
+		).toEqual({ success: 'Post saved.' });
+		expect(Post.updateOne).toHaveBeenCalledWith(
+			{ _id: id },
+			{
+				$set: expect.objectContaining({
+					content: expect.objectContaining({ schemaVersion: 1 }),
+					formIds: [formId],
+					md: ''
+				})
+			},
+			expect.anything()
+		);
+	});
+	it('rejects malformed rich text without updating a post', async () => {
+		expect(
+			await savePost(request({ contentMode: 'richtext', content: '{"schemaVersion":99}' }), id, id)
+		).toMatchObject({ status: 400 });
+		expect(Post.updateOne).not.toHaveBeenCalled();
+	});
 	it('saves the audience, actual URL date fields and linked published forms together', async () => {
 		expect(await savePost(request(), id, id)).toEqual({ success: 'Post saved.' });
 		expect(Post.updateOne).toHaveBeenCalledWith(
@@ -46,7 +83,8 @@ describe('post form publishing', () => {
 					month: 10,
 					day: 30,
 					formIds: [formId]
-				})
+				}),
+				$unset: { content: 1 }
 			},
 			expect.objectContaining({ runValidators: true })
 		);

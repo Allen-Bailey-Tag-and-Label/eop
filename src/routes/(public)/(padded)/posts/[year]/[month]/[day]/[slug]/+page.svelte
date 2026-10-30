@@ -9,5 +9,6 @@
 	firstName={data.post.firstName}
 	lastName={data.post.lastName}
 	md={data.post.md}
+	content={data.post.content}
 	title={data.post.title}
 />

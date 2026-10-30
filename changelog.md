@@ -1,8 +1,12 @@
 # Changelog
 
-## 2026-10-30T17:10:38.175Z
+## 2026-10-30T17:37:00.470Z
 
-refactor: Make forms and submissions part of posts
+feat: Add shared Tiptap rich text editing for posts
+
+## 2026-10-30T13:15:08-04:00
+
+refactor: Make forms and submissions part of post
 
 ## 2026-10-30T12:53:33-04:00
 

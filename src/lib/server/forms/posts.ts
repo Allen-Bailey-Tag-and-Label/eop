@@ -4,6 +4,7 @@ import { Role } from '../mongoose/models/Role';
 import { User } from '../mongoose/models/User';
 import { PublishedForm } from './models';
 import { listForms, handleFormAction } from './service';
+import { validateDocument, documentFormSlugs, RichTextError } from '$lib/rich-text/document';
 import {
 	audienceSettings,
 	embeddedFormSlugs,
@@ -30,6 +31,7 @@ export async function loadPostEditor(id?: string) {
 			title: row.title,
 			slug: row.slug,
 			md: row.md,
+			...(row.content ? { content: row.content } : {}),
 			date: new Date(Date.UTC(row.year, row.month - 1, row.day, 12)).toISOString(),
 			audience: row.audience ?? 'public',
 			roleIds: (row.roleIds ?? []).map(String)
@@ -56,16 +58,23 @@ export async function savePost(request: Request, userId: string, currentId?: str
 			(await Role.countDocuments({ _id: { $in: audience.roleIds } })) !== audience.roleIds.length
 		)
 			throw new FormValidationError('One or more selected roles are unavailable.');
+		const mode = fields.get('contentMode') ?? 'markdown';
+		if (!['markdown', 'richtext'].includes(String(mode)))
+			throw new FormValidationError('Choose a supported content format.');
+		const content =
+			mode === 'richtext'
+				? validateDocument(JSON.parse(String(fields.get('content') ?? '')))
+				: undefined;
 		const title = text(fields.get('title'), 'Title'),
 			slug = text(fields.get('slug'), 'Post slug', 160),
-			md = text(fields.get('md'), 'Post content', 100000);
+			md = text(fields.get('md') ?? '', 'Post content', 100000, !content);
 		if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
 			throw new FormValidationError('Use a lowercase post slug with hyphens.');
 		const date = new Date(String(fields.get('date') ?? ''));
 		if (!Number.isFinite(date.getTime())) throw new FormValidationError('Enter a valid post date.');
 		const dateText = String(fields.get('date')).slice(0, 10);
 		const [year, month, day] = dateText.split('-').map(Number);
-		const slugs = embeddedFormSlugs(md);
+		const slugs = content ? documentFormSlugs(content) : embeddedFormSlugs(md);
 		const forms = await PublishedForm.find({ slug: { $in: slugs }, published: { $exists: true } })
 			.select('_id slug postId')
 			.lean();
@@ -82,6 +91,7 @@ export async function savePost(request: Request, userId: string, currentId?: str
 			title,
 			slug,
 			md,
+			...(content ? { content } : {}),
 			year,
 			month,
 			day,
@@ -91,14 +101,18 @@ export async function savePost(request: Request, userId: string, currentId?: str
 		if (id) {
 			const result = await Post.updateOne(
 				{ _id: id },
-				{ $set: update },
+				{ $set: update, ...(!content ? { $unset: { content: 1 } } : {}) },
 				Object.assign({ runValidators: true }, { _createdById: userId })
 			);
 			if (!result.matchedCount) throw new FormValidationError('This post no longer exists.');
 			savedId = id;
 		} else savedId = String((await Post.create({ ...update, _createdById: userId }))._id);
 	} catch (cause) {
-		if (cause instanceof FormValidationError || cause instanceof SyntaxError)
+		if (
+			cause instanceof FormValidationError ||
+			cause instanceof SyntaxError ||
+			cause instanceof RichTextError
+		)
 			return fail(400, { error: cause.message });
 		throw cause;
 	}
@@ -136,6 +150,7 @@ export async function loadPublishedPost(locals: App.Locals) {
 			id: post._id,
 			title: post.title,
 			md: post.md,
+			...(post.content ? { content: post.content } : {}),
 			date: post.createdAt ?? new Date(Date.UTC(post.year, post.month - 1, post.day)).toISOString(),
 			firstName,
 			lastName,

@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import type { Editor } from '@tiptap/core';
+	import { emptyDocument, type RichTextDocument } from '$lib/rich-text/document';
+	import { markdownToDocument } from '$lib/rich-text/markdown';
 	import { deserialize } from '$app/forms';
 	import type { FormPreview } from '$lib/forms/context';
 	import {
@@ -13,6 +16,7 @@
 		Select,
 		SubmitButton,
 		Textarea,
+		RichTextEditor,
 		A
 	} from '$lib/components';
 	import { inputDateTimeLocal } from '$lib/formats';
@@ -24,6 +28,7 @@
 		category: string;
 		date: string;
 		md: string;
+		content?: RichTextDocument;
 		slug: string;
 		title: string;
 		audience: 'public' | 'employees' | 'roles';
@@ -41,6 +46,21 @@
 		slug = $state(untrack(() => data.post?.slug ?? '')),
 		md = $state(untrack(() => data.post?.md ?? ''));
 	let date = $state(untrack(() => inputDateTimeLocal(new Date(data.post?.date ?? Date.now()))));
+	let mode = $state<'markdown' | 'richtext'>(
+		untrack(() => (data.post && !data.post.content ? 'markdown' : 'richtext'))
+	);
+	let content = $state<RichTextDocument>(untrack(() => data.post?.content ?? emptyDocument()));
+	let richEditor = $state.raw<Editor | null>(null),
+		conversionError = $state('');
+	function convertMarkdown() {
+		try {
+			content = markdownToDocument(md);
+			mode = 'richtext';
+			conversionError = '';
+		} catch (cause) {
+			conversionError = cause instanceof Error ? cause.message : 'Could not convert Markdown.';
+		}
+	}
 	let audience = $state<AudienceSettings>(
 		untrack(() => ({
 			audience: data.post?.audience ?? 'public',
@@ -62,7 +82,13 @@
 		return postUrl({ year, month, day, slug });
 	});
 	function insert(slug: string) {
-		md += `\n\n<PublishedForm slug="${slug}"></PublishedForm>\n`;
+		if (mode === 'richtext')
+			richEditor
+				?.chain()
+				.focus()
+				.insertContent({ type: 'component', attrs: { name: 'PublishedForm', slug } })
+				.run();
+		else md += `\n\n<PublishedForm slug="${slug}"></PublishedForm>\n`;
 	}
 	const loadFormPreview: FormPreview['load'] = async (slug, signal) => {
 		const body = new FormData();
@@ -159,7 +185,28 @@
 				>Category organizes content. Audience controls access. Existing news links keep working; all
 				categories use the /posts/date/slug URL. Changing date or slug changes that URL.</P
 			>
-			<Textarea label="Markdown" aria-label="Post markdown" name="md" bind:value={md} rows={18} />
+			<Input type="hidden" name="contentMode" value={mode} />
+			{#if mode === 'markdown'}
+				<P class="text-sm opacity-70"
+					>This existing post uses Markdown. It will remain unchanged unless you choose to convert
+					it.</P
+				>
+				<Button variants={['ghost']} onclick={convertMarkdown}>Convert to rich text</Button>
+				{#if conversionError}<P role="alert">{conversionError}</P>{/if}
+				<Textarea label="Markdown" aria-label="Post markdown" name="md" bind:value={md} rows={18} />
+			{:else}
+				<Input type="hidden" name="md" value={md} /><Input
+					type="hidden"
+					name="content"
+					value={JSON.stringify(content)}
+				/>
+				<RichTextEditor
+					bind:value={content}
+					bind:editor={richEditor}
+					label="Post content"
+					onInsertComponent={data.post ? () => (formsOpen = true) : undefined}
+				/>
+			{/if}
 			<SubmitButton bind:isLoading class="ml-auto">Save post</SubmitButton>
 		</Form>
 	</Div>
@@ -173,6 +220,7 @@
 		firstName={data.locals.user.profile.firstName}
 		lastName={data.locals.user.profile.lastName}
 		{md}
+		content={mode === 'richtext' ? content : undefined}
 		{title}
 	/>
 </Div>

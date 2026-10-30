@@ -87,7 +87,7 @@
 			readonly={!!record.id}
 		/>
 		<P class="text-sm opacity-70"
-			>Use the post's Markdown for headings and introductory text. Access follows the post's
+			>Use the post's content editor for headings and introductory text. Access follows the post's
 			audience.</P
 		>
 		<Checkbox label="Accept responses" bind:checked={draft.open} />

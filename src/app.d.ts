@@ -12,6 +12,7 @@ declare global {
 				_createdById?: string;
 				title: string;
 				md: string;
+				content?: import('$lib/rich-text/document').RichTextDocument;
 				year: number;
 				month: number;
 				day: number;

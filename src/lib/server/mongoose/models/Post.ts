@@ -9,6 +9,7 @@ export type PostRecord = {
 	month: number;
 	year: number;
 	md: string;
+	content?: import('$lib/rich-text/document').RichTextDocument;
 	slug: string;
 	tags?: string[];
 	title: string;
@@ -23,7 +24,8 @@ export const Post = defineModel<PostRecord>('Post', {
 	formIds: [{ type: Schema.Types.ObjectId, ref: 'PublishedForm' }],
 	category: { type: String, required: true },
 	day: { type: Number, required: true },
-	md: { type: String, required: true },
+	md: { type: String, default: '' },
+	content: Schema.Types.Mixed,
 	month: { type: Number, required: true },
 	slug: { type: String, required: true },
 	tags: [{ type: String }],

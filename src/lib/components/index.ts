@@ -1,4 +1,6 @@
 export * from 'sveltewind/components';
+export { default as RichTextEditor } from './RichTextEditor/RichTextEditor.svelte';
+export { default as RichTextRenderer } from './RichTextRenderer/RichTextRenderer.svelte';
 
 // Retain local components whose behavior differs from the package counterpart.
 export { default as Button } from './Button/Button.svelte';

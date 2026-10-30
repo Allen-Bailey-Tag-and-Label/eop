@@ -1,17 +1,20 @@
 ﻿# Questions and responses in posts
 
 Posts contain the headings, introduction, questions, and response collection.
+New posts use a visual rich text editor; existing Markdown posts remain supported.
+See [Rich text posts](rich-text-posts.md) for editing and conversion details.
 There are no standalone form pages or separate form management routes. Share the
 post URL, including when creating a slide QR code.
 
-1. Create a post with a title, category, audience, and Markdown content. Save it.
+1. Create a post with a title, category, audience, and content. Save it.
 2. In that post's editor, open **Forms**. This lists question sets for that post.
 3. Select **Create form**. Set a unique question set key, add questions, and choose
    whether responses should be anonymous. Do not add a second title or introduction;
-   write those in the post's Markdown.
+   write those in the post's content editor.
 4. Select **Publish form**, close the editor, and select **Insert**. This adds
-   `<PublishedForm slug="your-key"></PublishedForm>` at the desired position in
-   the post content. Move the tag within Markdown to change its position.
+   a Questions block at the visual editor's selection. In legacy Markdown posts,
+   it adds `<PublishedForm slug="your-key"></PublishedForm>`, which you can move
+   within the source to change its position.
 5. Save the post. Its preview displays the questions with submission disabled.
 6. Open **View post** to test a real submission. Use **Forms → Responses** in the
    post editor to review the latest 500 responses for a question set.
