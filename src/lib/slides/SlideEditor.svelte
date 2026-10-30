@@ -17,6 +17,7 @@
 		Type,
 		Image,
 		Square,
+		SquareStack,
 		Circle,
 		Minus,
 		Layers,
@@ -44,6 +45,7 @@
 		BringToFront,
 		Frame,
 		Database,
+		ChartNoAxesCombined,
 		QrCode
 	} from '@lucide/svelte';
 	import {
@@ -469,12 +471,12 @@
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
 		{ type: 'qr', label: 'QR code', icon: QrCode },
-		{ type: 'chart', label: 'Chart', icon: Database },
+		{ type: 'chart', label: 'Chart', icon: ChartNoAxesCombined },
 		{ type: 'image', label: 'Image / Graphic', icon: Image },
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
 		{ type: 'line', label: 'Line', icon: Minus },
-		{ type: 'list', label: 'Repeater', icon: Database },
+		{ type: 'list', label: 'Repeater', icon: SquareStack },
 		{ type: 'frame', label: 'Frame', icon: Frame }
 	] as const;
 	const availableTools = $derived(

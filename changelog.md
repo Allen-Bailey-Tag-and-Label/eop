@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T15:34:51.781Z
+## 2026-10-30T15:47:51.290Z
+
+fix: Update chart and repeater tool icons
+
+## 2026-10-30T11:39:44-04:00
 
 feat: Add SSR-compatible LayerChart components and data-linked slide charts
 
