@@ -139,40 +139,12 @@
 	</Div>
 {:else}
 	<Div class="space-y-4">
-		<Tabs bind:value={tab} role="tablist" aria-label="Data library sections">
-			{#each tabs as [value, label], index (value)}
-				<Button
-					role="tab"
-					aria-selected={tab === value}
-					tabindex={tab === value ? 0 : -1}
-					variants={tab === value ? [] : ['ghost']}
-					onclick={() => {
-						tab = value;
-						result = {};
-					}}
-					onkeydown={(event) => {
-						const next =
-							event.key === 'ArrowRight'
-								? (index + 1) % tabs.length
-								: event.key === 'ArrowLeft'
-									? (index + tabs.length - 1) % tabs.length
-									: event.key === 'Home'
-										? 0
-										: event.key === 'End'
-											? tabs.length - 1
-											: -1;
-						if (next >= 0) {
-							event.preventDefault();
-							tab = tabs[next][0];
-							event.currentTarget
-								.closest('[role="tablist"]')
-								?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
-								[next]?.focus();
-						}
-					}}>{label}</Button
-				>
-			{/each}
-		</Tabs>
+		<Tabs
+			bind:value={tab}
+			aria-label="Data library sections"
+			tabs={tabs.map(([value, title]) => ({ value, title }))}
+			onValueChange={() => (result = {})}
+		/>
 		{#if tab === 'connections'}
 			<ConnectionEditor data={{ connections }} {form} {scopeId} />
 		{:else}

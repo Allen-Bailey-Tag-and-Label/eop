@@ -34,6 +34,11 @@ permission checks. Follow the existing centralized enforcement pattern.
 - Preserve the existing appearance through the application theme bridge in
   `src/lib/theme/sveltewind.ts` rather than duplicating simple library components.
 - Follow existing component usage and styling patterns.
+- Use the shared `Tabs` component with its `tabs` options for switching between
+  sibling views or sections. Keep tab styling uniform site-wide: selected tabs
+  use the site's primary Button with white text; inactive tabs use its ghost
+  variant. Keep sizing, spacing, and colors in the shared theme/adapter, not in
+  individual screens. Do not build tab selectors from standalone buttons.
 - Put reusable application components in `src/lib/components/<Name>/<Name>.svelte`
   and export them through `src/lib/components/index.ts`. Keep feature-specific
   editors and configuration outside the shared component directory.

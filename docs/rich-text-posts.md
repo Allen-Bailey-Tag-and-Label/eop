@@ -7,6 +7,14 @@ and surfaces use application Sveltewind components and the shared theme.
 The editor uses one Card with a toolbar at the top and the content below it.
 The toolbar supports headings, bold, italic, underline, strike, bullet and numbered
 lists, alignment, links, images, tables, undo, and redo.
+The Table settings button opens a dialog to create a table with a chosen row and
+column count. With the cursor in a table, the same dialog provides row, column,
+header, and removal controls. Selecting a table does not add toolbar buttons.
+
+The post editor uses two columns on desktop. On smaller screens, Edit and View
+tabs at the top switch between full-height panes without discarding unsaved edits.
+The edit and preview panes scroll independently, with padding around their content
+to keep focus outlines visible. The outer grid does not clip the panes.
 
 Link settings include a URL, label/text, and Text link or Button link appearance.
 Button links use the site's Button theme and remain anchors for navigation. Use

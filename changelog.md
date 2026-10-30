@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T18:11:12.633Z
+## 2026-10-30T18:56:29.759Z
+
+fix: Standardize tabs and improve post editor layout and controls
+
+## 2026-10-30T14:15:52-04:00
 
 feat: Add post images and fix rich text editing and persistence
 

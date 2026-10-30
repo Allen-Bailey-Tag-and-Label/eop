@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, fireEvent, waitFor } from '@testing-library/svelte';
+import { cleanup, render, fireEvent, waitFor, within } from '@testing-library/svelte';
 import RichTextEditor from './RichTextEditor.svelte';
 import RichTextRenderer from '../RichTextRenderer/RichTextRenderer.svelte';
 import { emptyDocument, type RichTextDocument } from '$lib/rich-text/document';
@@ -21,6 +21,38 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('shared rich text editor', () => {
+	it('creates and edits tables through a dialog without adding toolbar controls', async () => {
+		const onChange = vi.fn();
+		const view = render(RichTextEditor, { value: emptyDocument(), onChange });
+		const toolbar = within(view.getByRole('toolbar', { name: 'Text formatting' }));
+		const count = toolbar.getAllByRole('button').length;
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Table settings' }));
+		let dialog = within(view.getByRole('dialog', { name: 'Table settings' }));
+		await fireEvent.input(dialog.getByRole('spinbutton', { name: 'Table rows' }), {
+			target: { value: '2' }
+		});
+		await fireEvent.input(dialog.getByRole('spinbutton', { name: 'Table columns' }), {
+			target: { value: '2' }
+		});
+		await fireEvent.click(dialog.getByRole('button', { name: 'Insert table' }));
+		await waitFor(() => expect(onChange).toHaveBeenCalled());
+		const table = () =>
+			(onChange.mock.calls.at(-1)![0] as RichTextDocument).doc.content?.find(
+				(node) => node.type === 'table'
+			);
+		expect(table()?.content).toHaveLength(2);
+		expect(table()?.content?.[0].content).toHaveLength(2);
+		expect(toolbar.getAllByRole('button')).toHaveLength(count);
+		expect(toolbar.queryByRole('button', { name: 'Add row' })).not.toBeInTheDocument();
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Table settings' }));
+		dialog = within(view.getByRole('dialog', { name: 'Table settings' }));
+		await fireEvent.click(dialog.getByRole('button', { name: 'Add row' }));
+		expect(table()?.content).toHaveLength(3);
+		await fireEvent.click(dialog.getByRole('button', { name: 'Add column' }));
+		expect(table()?.content?.[0].content).toHaveLength(3);
+		await fireEvent.click(dialog.getByRole('button', { name: 'Done' }));
+		expect(toolbar.getAllByRole('button')).toHaveLength(count);
+	});
 	it('keeps a formatted button label as one link', () => {
 		const link = { type: 'link', attrs: { href: '/feedback', appearance: 'button' } };
 		const view = render(RichTextRenderer, {
@@ -118,7 +150,7 @@ describe('shared rich text editor', () => {
 			onChange
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Insert or edit image' }));
-		await fireEvent.click(view.getByRole('button', { name: 'Upload' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Upload' }));
 		const file = new File(['image'], 'Photo.png', { type: 'image/png' });
 		await fireEvent.change(view.getByLabelText('Image file'), { target: { files: [file] } });
 		await fireEvent.click(view.getByRole('button', { name: 'Upload image' }));

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { twMerge } from 'tailwind-merge';
+	import { theme } from '$lib/theme';
 	import type { Editor } from '@tiptap/core';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { emptyDocument, type RichTextDocument } from '$lib/rich-text/document';
@@ -19,6 +21,7 @@
 		Select,
 		SubmitButton,
 		Textarea,
+		Tabs,
 		RichTextEditor,
 		A
 	} from '$lib/components';
@@ -75,6 +78,7 @@
 		slugTouched = false,
 		formsOpen = $state(false),
 		isLoading = $state(false);
+	let mobilePane = $state('edit');
 	const submitPost: SubmitFunction = ({ formData }) => {
 		formData.set('contentMode', mode);
 		formData.set('md', md);
@@ -147,125 +151,159 @@
 	}
 </script>
 
-<Div class="grid min-h-0 flex-grow grid-cols-1 gap-6 overflow-auto lg:grid-cols-2">
-	<Div class="space-y-4">
-		<Div class="flex flex-wrap items-center justify-between gap-3"
-			>{#if data.post}<A href={publicUrl} target="_blank" rel="noopener">View post</A>{/if}</Div
-		>
-		{#if !data.post}<P class="text-sm opacity-70"
-				>Save the post before adding questions and collecting responses.</P
-			>{/if}
-		{#if form?.error}<P role="alert">{form.error}</P>{/if}{#if form?.success}<P role="status"
-				>{form.success}</P
-			>{/if}
-		<Form action="?/save" submitFunction={submitPost} bind:isLoading class="max-w-none space-y-5">
-			<Div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<Select
-					label="Category"
-					aria-label="Post category"
-					name="category"
-					value={category}
-					options={categories}
-					onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-						category = event.currentTarget.value;
-						if (!data.post && !audienceTouched)
-							audience = { audience: categoryDefaults[category] ?? 'public', roleIds: [] };
-					}}
-				/>
-				<Input
-					label="Date"
-					aria-label="Post date"
-					name="date"
-					type="datetime-local"
-					bind:value={date}
-					required
-				/>
-				<Input
-					label="Title"
-					aria-label="Post title"
-					name="title"
-					value={title}
-					required
-					oninput={(event) => {
-						title = event.currentTarget.value;
-						if (!data.post && !slugTouched)
-							slug = title
-								.toLowerCase()
-								.replace(/[^a-z0-9]+/g, '-')
-								.replace(/^-|-$/g, '');
-					}}
-				/>
-				<Input
-					label="Slug"
-					aria-label="Post slug"
-					name="slug"
-					value={slug}
-					required
-					oninput={(event) => {
-						slug = event.currentTarget.value;
-						slugTouched = true;
-					}}
-				/>
-			</Div>
-			<AudiencePicker
-				bind:value={audience}
-				roles={data.roles}
-				onChange={() => (audienceTouched = true)}
-			/>
-			<Input type="hidden" name="audience" value={audience.audience} /><Input
-				type="hidden"
-				name="roleIds"
-				value={JSON.stringify(audience.roleIds)}
-			/>
-			<P class="text-sm opacity-70"
-				>Category organizes content. Audience controls access. Existing news links keep working; all
-				categories use the /posts/date/slug URL. Changing date or slug changes that URL.</P
-			>
-			<Input type="hidden" name="contentMode" value={mode} />
-			{#if mode === 'markdown'}
-				<P class="text-sm opacity-70"
-					>This existing post uses Markdown. It will remain unchanged unless you choose to convert
-					it.</P
-				>
-				<Button variants={['ghost']} onclick={convertMarkdown}>Convert to rich text</Button>
-				<Button variants={['ghost']} disabled={!data.post} onclick={() => (formsOpen = true)}
-					>Questions</Button
-				>
-				{#if conversionError}<P role="alert">{conversionError}</P>{/if}
-				<Textarea label="Markdown" aria-label="Post markdown" name="md" bind:value={md} rows={18} />
-			{:else}
-				<Input type="hidden" name="md" value={md} /><Input
-					type="hidden"
-					name="content"
-					value={JSON.stringify(content)}
-				/>
-				<RichTextEditor
-					bind:value={content}
-					bind:editor={richEditor}
-					label="Post content"
-					images={data.images ?? []}
-					onUploadImage={data.post ? uploadImage : undefined}
-					onInsertComponent={data.post ? () => (formsOpen = true) : undefined}
-				/>
-			{/if}
-			<SubmitButton bind:isLoading class="ml-auto">Save post</SubmitButton>
-		</Form>
-	</Div>
-	<Post
-		preview
-		formPreview={{
-			load: loadFormPreview,
-			revision: data.forms.map((form) => `${form.id}:${form.version}`).join(',')
-		}}
-		date={new Date(date)}
-		firstName={data.locals.user.profile.firstName}
-		lastName={data.locals.user.profile.lastName}
-		{md}
-		content={mode === 'richtext' ? content : undefined}
-		imageSources={Object.fromEntries(
-			(data.images ?? []).map((image) => [image.url, image.previewUrl])
-		)}
-		{title}
+<Div class="flex min-h-0 min-w-0 flex-1 flex-col gap-6">
+	<Tabs
+		class="self-start lg:hidden"
+		aria-label="Post editor view"
+		bind:value={mobilePane}
+		tabs={[
+			{ title: 'Edit', value: 'edit' },
+			{ title: 'View', value: 'view' }
+		]}
 	/>
+	<Div class="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-1 gap-6 lg:grid-cols-2">
+		<Div
+			role="region"
+			aria-label="Post editing"
+			tabindex={0}
+			class={`-m-1 min-h-0 min-w-0 space-y-4 overflow-auto p-1 ${mobilePane === 'edit' ? '' : 'hidden'} lg:block`}
+		>
+			<Div class="flex flex-wrap items-center justify-between gap-3"
+				>{#if data.post}<A
+						href={publicUrl}
+						target="_blank"
+						rel="noopener"
+						class={twMerge($theme.Button.default, 'inline-flex hover:no-underline')}>View post</A
+					>{/if}</Div
+			>
+			{#if !data.post}<P class="text-sm opacity-70"
+					>Save the post before adding questions and collecting responses.</P
+				>{/if}
+			{#if form?.error}<P role="alert">{form.error}</P>{/if}{#if form?.success}<P role="status"
+					>{form.success}</P
+				>{/if}
+			<Form action="?/save" submitFunction={submitPost} bind:isLoading class="max-w-none space-y-5">
+				<Div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<Select
+						label="Category"
+						aria-label="Post category"
+						name="category"
+						value={category}
+						options={categories}
+						onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+							category = event.currentTarget.value;
+							if (!data.post && !audienceTouched)
+								audience = { audience: categoryDefaults[category] ?? 'public', roleIds: [] };
+						}}
+					/>
+					<Input
+						label="Date"
+						aria-label="Post date"
+						name="date"
+						type="datetime-local"
+						bind:value={date}
+						required
+					/>
+					<Input
+						label="Title"
+						aria-label="Post title"
+						name="title"
+						value={title}
+						required
+						oninput={(event) => {
+							title = event.currentTarget.value;
+							if (!data.post && !slugTouched)
+								slug = title
+									.toLowerCase()
+									.replace(/[^a-z0-9]+/g, '-')
+									.replace(/^-|-$/g, '');
+						}}
+					/>
+					<Input
+						label="Slug"
+						aria-label="Post slug"
+						name="slug"
+						value={slug}
+						required
+						oninput={(event) => {
+							slug = event.currentTarget.value;
+							slugTouched = true;
+						}}
+					/>
+				</Div>
+				<AudiencePicker
+					bind:value={audience}
+					roles={data.roles}
+					onChange={() => (audienceTouched = true)}
+				/>
+				<Input type="hidden" name="audience" value={audience.audience} /><Input
+					type="hidden"
+					name="roleIds"
+					value={JSON.stringify(audience.roleIds)}
+				/>
+				<P class="text-sm opacity-70"
+					>Category organizes content. Audience controls access. Existing news links keep working;
+					all categories use the /posts/date/slug URL. Changing date or slug changes that URL.</P
+				>
+				<Input type="hidden" name="contentMode" value={mode} />
+				{#if mode === 'markdown'}
+					<P class="text-sm opacity-70"
+						>This existing post uses Markdown. It will remain unchanged unless you choose to convert
+						it.</P
+					>
+					<Button variants={['ghost']} onclick={convertMarkdown}>Convert to rich text</Button>
+					<Button variants={['ghost']} disabled={!data.post} onclick={() => (formsOpen = true)}
+						>Questions</Button
+					>
+					{#if conversionError}<P role="alert">{conversionError}</P>{/if}
+					<Textarea
+						label="Markdown"
+						aria-label="Post markdown"
+						name="md"
+						bind:value={md}
+						rows={18}
+					/>
+				{:else}
+					<Input type="hidden" name="md" value={md} /><Input
+						type="hidden"
+						name="content"
+						value={JSON.stringify(content)}
+					/>
+					<RichTextEditor
+						bind:value={content}
+						bind:editor={richEditor}
+						label="Post content"
+						images={data.images ?? []}
+						onUploadImage={data.post ? uploadImage : undefined}
+						onInsertComponent={data.post ? () => (formsOpen = true) : undefined}
+					/>
+				{/if}
+				<SubmitButton bind:isLoading class="ml-auto">Save post</SubmitButton>
+			</Form>
+		</Div>
+		<Div
+			role="region"
+			aria-label="Post preview"
+			tabindex={0}
+			class={`-m-1 min-h-0 min-w-0 overflow-auto p-1 ${mobilePane === 'view' ? '' : 'hidden'} lg:block`}
+		>
+			<Post
+				preview
+				formPreview={{
+					load: loadFormPreview,
+					revision: data.forms.map((form) => `${form.id}:${form.version}`).join(',')
+				}}
+				date={new Date(date)}
+				firstName={data.locals.user.profile.firstName}
+				lastName={data.locals.user.profile.lastName}
+				{md}
+				content={mode === 'richtext' ? content : undefined}
+				imageSources={Object.fromEntries(
+					(data.images ?? []).map((image) => [image.url, image.previewUrl])
+				)}
+				{title}
+			/>
+		</Div>
+	</Div>
 </Div>
 <FormLibrary bind:open={formsOpen} forms={data.forms} onInsert={insert} />

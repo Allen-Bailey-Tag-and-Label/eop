@@ -4,6 +4,7 @@ export { default as RichTextRenderer } from './RichTextRenderer/RichTextRenderer
 
 // Retain local components whose behavior differs from the package counterpart.
 export { default as Button } from './Button/Button.svelte';
+export { default as Tabs } from './Tabs/Tabs.svelte';
 export { default as Checkbox } from './Checkbox/Checkbox.svelte';
 export { default as Datatable } from './Datatable/Datatable.svelte';
 export { default as Dialog } from './Dialog/Dialog.svelte';

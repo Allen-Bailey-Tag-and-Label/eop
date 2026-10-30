@@ -243,10 +243,61 @@ function textSnippet(text: string) {
 }
 
 describe('migrated application primitives', () => {
+	it('preserves Tabs container classes and native attributes', () => {
+		const view = render(Tabs, {
+			id: 'tabs',
+			title: 'Editor sections',
+			class: 'px-2 text-red-500'
+		});
+		const element = view.getByRole('tablist');
+		expect(element.localName).toBe('div');
+		expect(element).toHaveAttribute('id', 'tabs');
+		expect(element).toHaveAttribute('title', 'Editor sections');
+		expect(element).toHaveAttribute(
+			'class',
+			twMerge(defaultTheme.Tabs.default, 'px-2 text-red-500')
+		);
+	});
+
+	it('uses application button styles and keyboard selection without submitting a form', async () => {
+		const onValueChange = vi.fn();
+		const view = render(Tabs, {
+			'aria-label': 'Editor sections',
+			value: 'edit',
+			tabs: [
+				{ title: 'Edit', value: 'edit' },
+				{ title: 'Unavailable', value: 'disabled', disabled: true },
+				{ title: 'View', value: 'view' }
+			],
+			onValueChange
+		});
+		const edit = view.getByRole('tab', { name: 'Edit' });
+		const preview = view.getByRole('tab', { name: 'View' });
+		expect(view.getByRole('tablist', { name: 'Editor sections' })).toBeInTheDocument();
+		expect(edit).toHaveAttribute('type', 'button');
+		expect(edit).toHaveAttribute('aria-selected', 'true');
+		expect(edit).toHaveClass('text-white', 'bg-primary-500/90', 'dark:bg-primary-500/70');
+		expect(preview).toHaveClass('text-current', 'bg-transparent', 'dark:bg-transparent');
+		expect(preview).toHaveAttribute('tabindex', '-1');
+		expect(view.getByRole('tab', { name: 'Unavailable' })).toBeDisabled();
+		await fireEvent.keyDown(edit, { key: 'ArrowRight' });
+		expect(preview).toHaveFocus();
+		expect(preview).toHaveAttribute('aria-selected', 'true');
+		expect(preview).toHaveClass('text-white');
+		expect(onValueChange).toHaveBeenLastCalledWith('view');
+		await fireEvent.keyDown(preview, { key: 'Home' });
+		expect(edit).toHaveFocus();
+		await fireEvent.keyDown(edit, { key: 'End' });
+		expect(preview).toHaveFocus();
+		await fireEvent.keyDown(preview, { key: 'ArrowRight' });
+		expect(edit).toHaveFocus();
+		await fireEvent.click(preview);
+		expect(preview).toHaveAttribute('aria-selected', 'true');
+	});
+
 	const cases = [
 		['A', A, 'a'],
 		['Card', Card, 'div'],
-		['Tabs', Tabs, 'div'],
 		['H1', H1, 'h1'],
 		['H2', H2, 'h2'],
 		['H3', H3, 'h3'],

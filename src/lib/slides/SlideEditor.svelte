@@ -1098,14 +1098,15 @@
 				<Div
 					class="flex shrink-0 items-center gap-1 border-b border-slate-300 p-2 dark:border-gray-700"
 				>
-					<Tabs class="min-w-0 flex-1" bind:value={inspectorTab}
-						>{#each ['properties', 'animation'] as tab (tab)}<Button
-								aria-pressed={inspectorTab === tab}
-								variants={inspectorTab === tab ? [] : ['ghost']}
-								class="min-w-0 flex-1 px-2 py-1 text-xs capitalize"
-								onclick={() => (inspectorTab = tab as typeof inspectorTab)}>{tab}</Button
-							>{/each}</Tabs
-					>
+					<Tabs
+						class="min-w-0 flex-1"
+						bind:value={inspectorTab}
+						aria-label="Element inspector sections"
+						tabs={[
+							{ title: 'Properties', value: 'properties' },
+							{ title: 'Animation', value: 'animation' }
+						]}
+					/>
 					<Button
 						aria-label="Close properties panel"
 						variants={['ghost']}
@@ -1371,18 +1372,14 @@
 									bind:value={selected.text}
 									rows={2}
 								/>
-								<Div class="flex gap-2" role="group" aria-label="Graphic asset source">
-									<Button
-										aria-pressed={assetTab === 'slide'}
-										variants={assetTab === 'slide' ? [] : ['ghost']}
-										onclick={() => (assetTab = 'slide')}>This slide</Button
-									>
-									<Button
-										aria-pressed={assetTab === 'shared'}
-										variants={assetTab === 'shared' ? [] : ['ghost']}
-										onclick={() => (assetTab = 'shared')}>Shared library</Button
-									>
-								</Div>
+								<Tabs
+									bind:value={assetTab}
+									aria-label="Graphic asset source"
+									tabs={[
+										{ title: 'This slide', value: 'slide' },
+										{ title: 'Shared library', value: 'shared' }
+									]}
+								/>
 								<Select
 									label="Asset"
 									aria-label="Graphic asset"
@@ -2171,10 +2168,10 @@
 		font-size: 0.6875rem;
 		line-height: 1rem;
 	}
-	:global(.slide-inspector-controls button) {
+	:global(.slide-inspector-controls button:not([role='tab'])) {
 		font-size: 0.75rem;
 	}
-	:global(.slide-inspector-controls button:not([title])) {
+	:global(.slide-inspector-controls button:not([title]):not([role='tab'])) {
 		min-height: 1.75rem;
 		padding: 0.25rem 0.5rem;
 		line-height: 1rem;

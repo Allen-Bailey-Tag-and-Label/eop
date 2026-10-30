@@ -153,36 +153,11 @@
 	inert={pending ? true : undefined}
 	class={pending ? 'hidden' : 'space-y-4'}
 >
-	<Tabs bind:value={tab} role="tablist" aria-label="Asset library sections" class="flex-wrap gap-1">
-		{#each sections as [value, label], index (value)}
-			<Button
-				role="tab"
-				aria-selected={tab === value}
-				tabindex={tab === value ? 0 : -1}
-				variants={tab === value ? [] : ['ghost']}
-				onclick={() => (tab = value as typeof tab)}
-				onkeydown={(event) => {
-					const next =
-						event.key === 'ArrowRight'
-							? (index + 1) % sections.length
-							: event.key === 'ArrowLeft'
-								? (index + sections.length - 1) % sections.length
-								: event.key === 'Home'
-									? 0
-									: event.key === 'End'
-										? sections.length - 1
-										: -1;
-					if (next < 0) return;
-					event.preventDefault();
-					tab = sections[next][0];
-					event.currentTarget
-						.closest('[role="tablist"]')
-						?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
-						[next]?.focus();
-				}}>{label}</Button
-			>
-		{/each}
-	</Tabs>
+	<Tabs
+		bind:value={tab}
+		aria-label="Asset library sections"
+		tabs={sections.map(([value, title]) => ({ value, title }))}
+	/>
 	<Input label="Search assets" aria-label="Search assets" bind:value={search} />
 	{#if tab === 'unused'}<P class="text-sm opacity-70"
 			>Slide-specific and unassigned files not referenced by saved drafts or published slides. They

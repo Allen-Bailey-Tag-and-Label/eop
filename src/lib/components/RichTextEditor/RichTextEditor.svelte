@@ -20,7 +20,19 @@
 		AlignCenter,
 		AlignRight
 	} from '@lucide/svelte';
-	import { Button, Card, Div, H2, Hr, Input, Modal, P, Select, Tabs } from '$lib/components';
+	import {
+		Button,
+		Card,
+		Checkbox,
+		Div,
+		H2,
+		Hr,
+		Input,
+		Modal,
+		P,
+		Select,
+		Tabs
+	} from '$lib/components';
 	import { theme } from '$lib/theme';
 	import { editorExtensions } from '$lib/rich-text/extensions';
 	import { emptyDocument, safeUrl, type RichTextDocument } from '$lib/rich-text/document';
@@ -63,6 +75,28 @@
 		error = $state('');
 	let linkRange = { from: 0, to: 0 },
 		originalLinkText = '';
+	let tableDialog = $state(false),
+		tableRows = $state('3'),
+		tableColumns = $state('3'),
+		tableHeader = $state(true),
+		tableError = $state('');
+	function insertTable() {
+		const rows = Number(tableRows),
+			cols = Number(tableColumns);
+		if (
+			!Number.isInteger(rows) ||
+			!Number.isInteger(cols) ||
+			rows < 1 ||
+			rows > 20 ||
+			cols < 1 ||
+			cols > 20
+		) {
+			tableError = 'Use 1 to 20 rows and columns.';
+			return;
+		}
+		editor?.chain().focus().insertTable({ rows, cols, withHeaderRow: tableHeader }).run();
+		tableDialog = false;
+	}
 	let imageSource = $state('url'),
 		file = $state<File | null>(null),
 		uploading = $state(false),
@@ -334,26 +368,15 @@
 		>
 		<Button
 			variants={['ghost', 'icon']}
-			aria-label="Insert table"
-			title="Insert table"
+			aria-label="Table settings"
+			title="Table settings"
+			aria-pressed={selection.table}
 			disabled={disabled || !editor}
-			onclick={() =>
-				editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-			><Table size={18} /></Button
+			onclick={() => {
+				tableError = '';
+				tableDialog = true;
+			}}><Table size={18} /></Button
 		>
-		{#if selection.table}<Button
-				variants={['ghost']}
-				{disabled}
-				onclick={() => editor?.chain().focus().addRowAfter().run()}>Add row</Button
-			><Button
-				variants={['ghost']}
-				{disabled}
-				onclick={() => editor?.chain().focus().addColumnAfter().run()}>Add column</Button
-			><Button
-				variants={['ghost']}
-				{disabled}
-				onclick={() => editor?.chain().focus().deleteTable().run()}>Remove table</Button
-			>{/if}
 		{#if onInsertComponent}<Button
 				variants={['ghost']}
 				disabled={disabled || !editor}
@@ -377,6 +400,66 @@
 	<Hr class="m-0" />
 	<Div class="p-4"><Div bind:element class={$theme.RichTextEditor.content} /></Div>
 </Card>
+{#if tableDialog}
+	<Modal
+		bind:isOpen={tableDialog}
+		role="dialog"
+		aria-label="Table settings"
+		class="max-h-[90svh] w-full max-w-lg space-y-4 overflow-y-auto p-5"
+	>
+		<Div class="flex items-center justify-between gap-3"
+			><H2 class="text-lg">Table settings</H2><Button
+				variants={['ghost', 'icon']}
+				aria-label="Close table settings"
+				onclick={() => (tableDialog = false)}><X size={18} /></Button
+			></Div
+		>
+		{#if selection.table}
+			<Div class="grid grid-cols-2 gap-3">
+				<Button onclick={() => editor?.chain().addRowAfter().run()}>Add row</Button>
+				<Button onclick={() => editor?.chain().addColumnAfter().run()}>Add column</Button>
+				<Button variants={['ghost']} onclick={() => editor?.chain().deleteRow().run()}
+					>Remove row</Button
+				>
+				<Button variants={['ghost']} onclick={() => editor?.chain().deleteColumn().run()}
+					>Remove column</Button
+				>
+				<Button variants={['ghost']} onclick={() => editor?.chain().toggleHeaderRow().run()}
+					>Toggle header row</Button
+				>
+				<Button
+					variants={['ghost']}
+					onclick={() => {
+						editor?.chain().focus().deleteTable().run();
+						tableDialog = false;
+					}}>Remove table</Button
+				>
+			</Div>
+		{:else}
+			<Div class="grid grid-cols-2 gap-3"
+				><Input
+					label="Rows"
+					aria-label="Table rows"
+					type="number"
+					min={1}
+					max={20}
+					bind:value={tableRows}
+				/><Input
+					label="Columns"
+					aria-label="Table columns"
+					type="number"
+					min={1}
+					max={20}
+					bind:value={tableColumns}
+				/></Div
+			>
+			<Checkbox label="Header row" bind:checked={tableHeader} />
+			{#if tableError}<P role="alert">{tableError}</P>{/if}
+			<Button onclick={insertTable}>Insert table</Button>
+		{/if}
+		<Button variants={['ghost']} onclick={() => (tableDialog = false)}>Done</Button>
+	</Modal>
+{/if}
 {#if dialog}
 	<Modal
 		bind:isOpen={
@@ -400,6 +483,7 @@
 		>
 		{#if dialog === 'image'}
 			<Tabs
+				aria-label="Image source"
 				bind:value={imageSource}
 				tabs={[
 					{ title: 'Upload', value: 'upload' },

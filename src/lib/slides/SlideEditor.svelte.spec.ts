@@ -539,7 +539,7 @@ describe('slide authoring', () => {
 		const frameId = definition().elements[1].id;
 		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Layer 2: text: Your text here' }));
-		await fireEvent.click(view.getByRole('button', { name: 'properties' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Properties' }));
 		await fireEvent.change(view.getByRole('combobox', { name: 'Move into frame' }), {
 			target: { value: JSON.stringify([frameId]) }
 		});
@@ -917,12 +917,12 @@ describe('slide authoring', () => {
 		expect(view.getByRole('combobox', { name: 'Graphic asset' })).not.toHaveTextContent(
 			'Shared logo'
 		);
-		await fireEvent.click(view.getByRole('button', { name: 'Shared library' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Shared library' }));
 		expect(view.getByRole('combobox', { name: 'Graphic asset' })).toHaveTextContent('Shared logo');
 		await fireEvent.change(view.getByRole('combobox', { name: 'Graphic asset' }), {
 			target: { value: shared }
 		});
-		await fireEvent.click(view.getByRole('button', { name: 'This slide' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'This slide' }));
 		expect(view.getByRole('combobox', { name: 'Graphic asset' })).toHaveTextContent('Shared logo');
 		expect(
 			(view.container.querySelector('input[name="assetScopeId"]') as HTMLInputElement).value
@@ -1332,7 +1332,7 @@ describe('slide authoring', () => {
 			}
 		});
 		await fireEvent.click(getByRole('button', { name: 'Add text' }));
-		await fireEvent.click(getByRole('button', { name: 'animation' }));
+		await fireEvent.click(getByRole('tab', { name: 'Animation' }));
 		await fireEvent.click(getByRole('button', { name: 'Fade in' }));
 		await fireEvent.click(getByRole('button', { name: 'Export' }));
 		const exported = JSON.parse(

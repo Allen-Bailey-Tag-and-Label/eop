@@ -44,6 +44,20 @@ const data = {
 	roles: [{ value: 'b'.repeat(24), label: 'Employees' }]
 };
 describe('post forms authoring', () => {
+	it('retains unsaved edits and the mounted editor when switching Edit and View', async () => {
+		const view = render(PostEditor, { data: data as never });
+		expect(view.getByRole('link', { name: 'View post' })).toHaveClass(
+			'text-white',
+			'bg-primary-500/90',
+			'inline-flex'
+		);
+		const input = view.getByRole('textbox', { name: 'Post markdown' });
+		await fireEvent.input(input, { target: { value: 'Unsaved content' } });
+		await fireEvent.click(view.getByRole('tab', { name: 'View' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Edit' }));
+		expect(view.getByRole('textbox', { name: 'Post markdown' })).toBe(input);
+		expect(input).toHaveValue('Unsaved content');
+	});
 	it('submits the marketing post with its current document despite stale native fields and keeps the editor after saving', async () => {
 		const view = render(PostEditor, {
 			data: { ...data, post: { ...data.post, md: marketingMarkdown } } as never
