@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T12:12:07.818Z
+## 2026-10-30T12:46:13.279Z
+
+feat: Add importable seven-day weather workflows and NWS API support
+
+## 2026-10-30T08:13:07-04:00
 
 refactor: Decouple repeaters with legacy compatibility and standardize data editor styling
 

@@ -109,6 +109,13 @@
 				bind:value={config.auth}
 				options={['none', 'bearer', 'header'].map((value) => ({ value, label: value }))}
 			/>
+			<Input
+				label="User-Agent (application identification)"
+				value={config.userAgent ?? ''}
+				maxlength={240}
+				placeholder="EmployeeOnlinePortal/1.0 (company website or contact email)"
+				oninput={(event) => (config.userAgent = event.currentTarget.value)}
+			/>
 			{#if config.auth === 'header'}<Input
 					label="API-key header name"
 					bind:value={config.headerName}

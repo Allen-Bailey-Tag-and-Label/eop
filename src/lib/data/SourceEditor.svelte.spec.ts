@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
-import { render, cleanup, fireEvent } from '@testing-library/svelte';
+import { render, cleanup, fireEvent, waitFor } from '@testing-library/svelte';
 import SourceEditor from './SourceEditor.svelte';
 import { blankWorkflow } from './types';
 vi.mock('$app/forms', () => ({ enhance: vi.fn(() => ({ destroy: vi.fn() })) }));
@@ -19,6 +19,33 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('workflow authoring', () => {
+	it('imports a validated workflow draft and preserves it when another import fails', async () => {
+		const view = render(SourceEditor, {
+			data: {
+				source: { id: '', title: 'Forecast', version: 0, draft: blankWorkflow() },
+				connections: [],
+				usage: []
+			}
+		});
+		const imported = { ...blankWorkflow(), refreshSeconds: 900 };
+		const file = new File([''], 'forecast.json', { type: 'application/json' });
+		Object.defineProperty(file, 'text', { value: async () => JSON.stringify(imported) });
+		await fireEvent.change(view.getByLabelText('Import workflow file'), {
+			target: { files: [file] }
+		});
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		await waitFor(() => expect(definition().refreshSeconds).toBe(900));
+		const invalid = new File([''], 'invalid.json');
+		Object.defineProperty(invalid, 'text', { value: async () => '{"schemaVersion":99}' });
+		await fireEvent.change(view.getByLabelText('Import workflow file'), {
+			target: { files: [invalid] }
+		});
+		await waitFor(() => expect(view.getByRole('alert')).toHaveTextContent('schemaVersion'));
+		expect(definition().refreshSeconds).toBe(900);
+	});
 	it('shows a graph, persists node configuration and connections, and blocks invalid JSON', async () => {
 		const view = render(SourceEditor, {
 			data: {

@@ -165,3 +165,9 @@ Private credentials and full intermediate previews are not sent to monitors.
 The graph and typed configuration are the foundation for richer node controls.
 Arbitrary JavaScript and external database connections are deferred; JavaScript
 will require an isolated runner with its own resource and network limits.
+
+## Weather forecast example
+
+See [the seven-day forecast guide](weather-forecast-slide.md) for a ready-to-import
+NWS workflow for ZIP 14423, including API connection settings and slide bindings.
+Workflow JSON can be loaded using **Import workflow** in the Data dialog.

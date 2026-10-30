@@ -69,6 +69,30 @@
 	let previewNode = $state('');
 	let deleting = $state(false);
 	let busy = $state(false);
+	let workflowFile = $state<HTMLInputElement | null>(null);
+	let importError = $state('');
+	async function importWorkflow(event: Event & { currentTarget: HTMLInputElement }) {
+		const input = event.currentTarget;
+		const file = input.files?.[0];
+		if (!file) return;
+		try {
+			if (file.size > 200000) throw new Error('Workflow files must be under 200 KB.');
+			const next = validateWorkflow(JSON.parse(await file.text()));
+			draft = next;
+			parameters = JSON.stringify(next.parameters, null, 2);
+			previewParameters = '{}';
+			configText = Object.fromEntries(
+				next.nodes.map((node) => [node.id, JSON.stringify(node.config, null, 2)])
+			);
+			configErrors = {};
+			previewNode = '';
+			importError = '';
+		} catch (cause) {
+			importError = cause instanceof Error ? cause.message : 'Could not import workflow.';
+		} finally {
+			input.value = '';
+		}
+	}
 	const types: WorkflowNode['type'][] = [
 		'database',
 		'api',
@@ -180,10 +204,26 @@
 
 <Div class="space-y-6">
 	<Div class="flex flex-wrap items-center justify-between gap-3"
-		><H1>{data.source.id ? 'Edit data link' : 'New data link'}</H1><Button onclick={onBack}
-			>All data links</Button
+		><H1>{data.source.id ? 'Edit data link' : 'New data link'}</H1><Div
+			class="flex items-center gap-2"
+			><Button disabled={busy} onclick={() => workflowFile?.click()}>Import workflow</Button><Button
+				onclick={onBack}>All data links</Button
+			></Div
 		></Div
 	>
+	<Input
+		type="file"
+		class="sr-only"
+		accept="application/json,.json"
+		aria-label="Import workflow file"
+		bind:element={workflowFile}
+		onchange={importWorkflow}
+	/>
+	<P class="text-xs opacity-60"
+		>Import replaces this workflow draft. Review its API connections and preview before saving or
+		publishing.</P
+	>
+	{#if importError}<P role="alert" class="text-red-600 dark:text-red-400">{importError}</P>{/if}
 	{#if form?.error}<P role="alert" class="text-red-600 dark:text-red-400">{form.error}</P>{/if}
 	{#if form?.success}<P role="status">{form.success}</P>{/if}
 	<Form {action} class="max-w-none space-y-5" submitFunction={submit}>

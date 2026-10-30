@@ -54,6 +54,51 @@ const config = () => ({
 	fields: { id: 'id', name: 'profile.name' }
 });
 describe('server API data nodes', () => {
+	it('supports NWS grid paths and application identification without allowing traversal or header injection', async () => {
+		response(
+			200,
+			'application/geo+json',
+			JSON.stringify({
+				properties: { periods: [{ number: 1, name: 'Today', temperature: 57, isDaytime: true }] }
+			})
+		);
+		const settings = {
+			...connection(),
+			auth: 'none' as const,
+			paths: ['/gridpoints/BUF/71,54/forecast'],
+			userAgent: 'EmployeeOnlinePortal/1.0'
+		};
+		const rows = await apiRows(
+			settings,
+			{
+				path: settings.paths[0],
+				query: { units: 'us' },
+				itemsPath: 'properties.periods',
+				fields: { id: 'number', name: 'name', high: 'temperature', daytime: 'isDaytime' }
+			},
+			{},
+			new AbortController().signal
+		);
+		expect(rows).toEqual([{ id: 1, name: 'Today', high: 57, daytime: true }]);
+		const call = vi.mocked(request).mock.calls[0] as unknown as [
+			URL,
+			{ headers: Record<string, string> }
+		];
+		expect(call[0].pathname).toBe('/gridpoints/BUF/71,54/forecast');
+		expect(call[1].headers['user-agent']).toBe('EmployeeOnlinePortal/1.0');
+		for (const path of [
+			'/../secret',
+			'/v1/./secret',
+			'//other.example/path',
+			'/%2e%2e/secret',
+			'/ok?secret=x',
+			'/ok#fragment'
+		])
+			expect(() => validateConnection({ ...settings, paths: [path] })).toThrow();
+		expect(() =>
+			validateConnection({ ...settings, userAgent: 'EOP\r\nAuthorization: injected' })
+		).toThrow('single printable line');
+	});
 	it('uses explicit endpoints, server credentials, pinned DNS, selected JSON fields, and no redirects', async () => {
 		response();
 		const rows = await apiRows(

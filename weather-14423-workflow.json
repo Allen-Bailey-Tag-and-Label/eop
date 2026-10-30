@@ -1,0 +1,263 @@
+{
+	"schemaVersion": 1,
+	"parameters": {},
+	"nodes": [
+		{
+			"id": "forecast",
+			"type": "api",
+			"inputs": [],
+			"config": {
+				"connectionId": "000000000000000000000000",
+				"path": "/gridpoints/BUF/71,54/forecast",
+				"query": {
+					"units": "us"
+				},
+				"itemsPath": "properties.periods",
+				"fields": {
+					"number": "number",
+					"day": "name",
+					"startTime": "startTime",
+					"isDaytime": "isDaytime",
+					"temperature": "temperature",
+					"unit": "temperatureUnit",
+					"condition": "shortForecast",
+					"windSpeed": "windSpeed",
+					"windDirection": "windDirection",
+					"precipitationChance": "probabilityOfPrecipitation.value"
+				}
+			}
+		},
+		{
+			"id": "daytime",
+			"type": "filter",
+			"inputs": ["forecast"],
+			"config": {
+				"match": "all",
+				"rules": [
+					{
+						"field": "isDaytime",
+						"operator": "eq",
+						"value": true
+					}
+				]
+			}
+		},
+		{
+			"id": "days",
+			"type": "map",
+			"inputs": ["daytime"],
+			"config": {
+				"fields": {
+					"id": {
+						"op": "date",
+						"args": [
+							{
+								"field": "startTime"
+							},
+							"America/New_York"
+						]
+					},
+					"date": {
+						"field": "startTime"
+					},
+					"day": {
+						"field": "day"
+					},
+					"high": {
+						"field": "temperature"
+					},
+					"unit": {
+						"field": "unit"
+					},
+					"condition": {
+						"field": "condition"
+					},
+					"windSpeed": {
+						"field": "windSpeed"
+					},
+					"windDirection": {
+						"field": "windDirection"
+					},
+					"precipitationChance": {
+						"field": "precipitationChance"
+					}
+				}
+			}
+		},
+		{
+			"id": "nighttime",
+			"type": "filter",
+			"inputs": ["forecast"],
+			"config": {
+				"match": "all",
+				"rules": [
+					{
+						"field": "isDaytime",
+						"operator": "eq",
+						"value": false
+					}
+				]
+			}
+		},
+		{
+			"id": "nights",
+			"type": "map",
+			"inputs": ["nighttime"],
+			"config": {
+				"fields": {
+					"number": {
+						"field": "number"
+					},
+					"dateKey": {
+						"op": "date",
+						"args": [
+							{
+								"field": "startTime"
+							},
+							"America/New_York"
+						]
+					},
+					"low": {
+						"field": "temperature"
+					}
+				}
+			}
+		},
+		{
+			"id": "latest_night",
+			"type": "group",
+			"inputs": ["nights"],
+			"config": {
+				"key": "dateKey",
+				"fields": {
+					"number": {
+						"op": "max",
+						"field": "number"
+					}
+				}
+			}
+		},
+		{
+			"id": "night_details",
+			"type": "join",
+			"inputs": ["latest_night", "nights"],
+			"config": {
+				"leftKey": "number",
+				"rightKey": "number",
+				"prefix": "night",
+				"mode": "inner"
+			}
+		},
+		{
+			"id": "paired",
+			"type": "join",
+			"inputs": ["days", "night_details"],
+			"config": {
+				"leftKey": "id",
+				"rightKey": "key",
+				"prefix": "evening",
+				"mode": "left"
+			}
+		},
+		{
+			"id": "daily",
+			"type": "map",
+			"inputs": ["paired"],
+			"config": {
+				"fields": {
+					"id": {
+						"field": "id"
+					},
+					"date": {
+						"field": "date"
+					},
+					"day": {
+						"field": "day"
+					},
+					"high": {
+						"field": "high"
+					},
+					"low": {
+						"field": "evening_night_low"
+					},
+					"unit": {
+						"field": "unit"
+					},
+					"condition": {
+						"field": "condition"
+					},
+					"windSpeed": {
+						"field": "windSpeed"
+					},
+					"windDirection": {
+						"field": "windDirection"
+					},
+					"precipitationChance": {
+						"field": "precipitationChance"
+					},
+					"temperatureText": {
+						"op": "concat",
+						"args": [
+							{
+								"field": "high"
+							},
+							"\u00b0",
+							{
+								"field": "unit"
+							},
+							" / ",
+							{
+								"op": "if",
+								"args": [
+									{
+										"op": "eq",
+										"args": [
+											{
+												"field": "evening_night_low"
+											},
+											null
+										]
+									},
+									"\u2014",
+									{
+										"op": "concat",
+										"args": [
+											{
+												"field": "evening_night_low"
+											},
+											"\u00b0",
+											{
+												"field": "unit"
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				}
+			}
+		}
+	],
+	"outputs": {
+		"forecast": {
+			"nodeId": "daily",
+			"fields": [
+				"id",
+				"date",
+				"day",
+				"high",
+				"low",
+				"unit",
+				"temperatureText",
+				"condition",
+				"windSpeed",
+				"windDirection",
+				"precipitationChance"
+			],
+			"idField": "id"
+		}
+	},
+	"refreshSeconds": 900,
+	"staleSeconds": 3600
+}

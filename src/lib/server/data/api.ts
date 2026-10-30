@@ -4,6 +4,7 @@ import { request } from 'node:https';
 import { env } from '$env/dynamic/private';
 import { DataWorkflowError, type ApiConnection, type DataRecord } from '$lib/data/types';
 import { dataRecord, readField, record, substituteParameters } from '$lib/data/workflows';
+import { apiEndpointPath } from '$lib/data/api-path';
 
 export function publicAddress(address: string): boolean {
 	if (isIP(address) === 4) {
@@ -53,7 +54,7 @@ export function validateConnection(input: unknown): ApiConnection {
 		!Array.isArray(value.paths) ||
 		!value.paths.length ||
 		value.paths.length > 30 ||
-		value.paths.some((path) => typeof path !== 'string' || !/^\/[a-zA-Z0-9/_-]*$/.test(path))
+		value.paths.some((path) => !apiEndpointPath(path))
 	)
 		throw new DataWorkflowError(
 			'List explicit allowed endpoint paths (no wildcards or query strings).'
@@ -77,9 +78,16 @@ export function validateConnection(input: unknown): ApiConnection {
 	)
 		throw new DataWorkflowError('Choose a valid API-key header name.');
 	const timeoutMs = Number(value.timeoutMs);
+	if (
+		value.userAgent !== undefined &&
+		value.userAgent !== '' &&
+		(typeof value.userAgent !== 'string' || !/^[\x20-\x7e]{1,240}$/.test(value.userAgent))
+	)
+		throw new DataWorkflowError('User-Agent must be a single printable line up to 240 characters.');
 	if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 10000)
 		throw new DataWorkflowError('API timeout must be 1000–10000ms.');
 	return {
+		...(value.userAgent ? { userAgent: String(value.userAgent) } : {}),
 		baseUrl: url.origin,
 		paths: value.paths as string[],
 		auth: value.auth as ApiConnection['auth'],
@@ -113,7 +121,10 @@ export async function apiRows(
 			);
 		url.searchParams.set(key, String(value));
 	}
-	const headers: Record<string, string> = { accept: 'application/json' };
+	const headers: Record<string, string> = {
+		accept: 'application/json',
+		'user-agent': settings.userAgent || 'EmployeeOnlinePortal/1.0'
+	};
 	if (settings.auth !== 'none') {
 		const secret = env[settings.secretEnv];
 		if (!secret || /[\r\n]/.test(secret))

@@ -1,4 +1,5 @@
 import { safeField, parseSort, validateLink, normalizeDataSource } from '$lib/slides/data-link';
+import { apiEndpointPath } from './api-path';
 import {
 	DataWorkflowError,
 	type DataRecord,
@@ -286,7 +287,7 @@ export function validateWorkflow(input: unknown): WorkflowDefinition {
 		if (node.type === 'api') {
 			if (typeof config.connectionId !== 'string' || !/^[a-f0-9]{24}$/i.test(config.connectionId))
 				reject('Choose an API connection.');
-			if (typeof config.path !== 'string' || !/^\/[a-zA-Z0-9/_-]*$/.test(config.path))
+			if (!apiEndpointPath(config.path))
 				reject('API paths must be absolute endpoint paths without query strings.');
 			if (
 				config.itemsPath !== '' &&

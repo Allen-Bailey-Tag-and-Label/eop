@@ -29,6 +29,7 @@ export type SourceOption = {
 	parameters: DataRecord;
 };
 export type ApiConnection = {
+	userAgent?: string;
 	baseUrl: string;
 	paths: string[];
 	auth: 'none' | 'bearer' | 'header';
