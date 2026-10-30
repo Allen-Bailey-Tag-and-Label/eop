@@ -9,7 +9,7 @@ export type AuthorizedForm = {
 	slug: string;
 	version: number;
 	definition: FormDefinition;
-	postId?: string;
+	postId: string;
 };
 export function canRead(settings: Partial<AudienceSettings>, actor?: ContentActor) {
 	if (!settings.audience || settings.audience === 'public') return true;
@@ -32,7 +32,7 @@ export async function authorizeContent(event: RequestEvent): Promise<Response | 
 			actor = { id: String(user._id), roleIds: (user._roleIds ?? []).map(String) };
 	}
 	event.locals.contentActor = actor;
-	const api = event.route.id?.endsWith('/data');
+	const api = !!event.params.formSlug;
 	const deny = () => {
 		if (api)
 			return Response.json(
@@ -47,28 +47,30 @@ export async function authorizeContent(event: RequestEvent): Promise<Response | 
 		api
 			? Response.json({ error: 'This form or post is unavailable.' }, { status: 404 })
 			: new Response('Content not found.', { status: 404 });
-	if (event.params.slug && event.url.pathname.startsWith('/forms/')) {
-		const record = await PublishedForm.findOne({ slug: event.params.slug }).lean();
+	if (api) {
+		const postId = event.params.postId;
+		if (!postId || !idPattern.test(postId)) return missing();
+		const post = await Post.findById(postId).lean();
+		if (!post) return missing();
+		if (!canRead({ audience: post.audience, roleIds: (post.roleIds ?? []).map(String) }, actor))
+			return deny();
+		const record = await PublishedForm.findOne({ slug: event.params.formSlug }).lean();
 		if (!record?.published || !record.publishedVersion) return missing();
+		if (
+			!(post.formIds ?? []).some((id: unknown) => String(id) === String(record._id)) ||
+			(record.postId && String(record.postId) !== postId)
+		)
+			return missing();
 		const definition = record.published;
-		if (!canRead(definition, actor) || (!definition.anonymous && !actor)) return deny();
-		let postId: string | undefined;
-		const context = event.url.searchParams.get('post');
-		if (context) {
-			if (!idPattern.test(context)) return missing();
-			const post = await Post.findById(context).lean();
-			if (!post || !(post.formIds ?? []).some((id: unknown) => String(id) === String(record._id)))
-				return missing();
-			if (!canRead({ audience: post.audience, roleIds: (post.roleIds ?? []).map(String) }, actor))
-				return deny();
-			postId = String(post._id);
-		}
+		// Preserve legacy form restrictions until that question set is saved into its post.
+		if ((!record.postId && !canRead(definition, actor)) || (!definition.anonymous && !actor))
+			return deny();
 		event.locals.authorizedForm = {
 			id: String(record._id),
 			slug: record.slug,
 			version: record.publishedVersion,
 			definition,
-			...(postId ? { postId } : {})
+			postId
 		};
 	} else {
 		const { year, month, day, slug } = event.params;

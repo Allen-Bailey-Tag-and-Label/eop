@@ -17,11 +17,17 @@ describe('reusable form renderer', () => {
 		const onSubmit = vi.fn<(fields: FormData) => Promise<{ success: string }>>(async () => ({
 			success: 'Received'
 		}));
-		const view = render(FormRenderer, { definition, version: 4, onSubmit });
+		const view = render(FormRenderer, {
+			definition: { ...definition, title: 'Legacy heading', description: 'Legacy introduction' },
+			version: 4,
+			onSubmit
+		});
+		expect(view.queryByText('Legacy heading')).not.toBeInTheDocument();
+		expect(view.queryByText('Legacy introduction')).not.toBeInTheDocument();
 		await fireEvent.input(view.getByRole('textbox', { name: 'Your feedback' }), {
 			target: { value: 'Useful feedback' }
 		});
-		await fireEvent.submit(view.getByRole('form', { name: 'New form' }));
+		await fireEvent.submit(view.getByRole('form', { name: 'Post response' }));
 		await waitFor(() => expect(view.getByRole('status')).toHaveTextContent('Received'));
 		const fields = onSubmit.mock.calls[0][0] as FormData;
 		expect(fields.get('answer:feedback')).toBe('Useful feedback');

@@ -2,7 +2,7 @@
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
-	import { Form, Input, Textarea, Select, Checkbox, Button, Div, H2, P } from '$lib/components';
+	import { Form, Input, Textarea, Select, Checkbox, Button, Div, P } from '$lib/components';
 	import type { PublicFormDefinition } from '$lib/forms/context';
 	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'onsubmit'> & {
 		definition: PublicFormDefinition;
@@ -54,8 +54,6 @@
 		className
 	)}
 >
-	<H2 class="text-lg">{definition.title}</H2>
-	{#if definition.description}<P class="whitespace-pre-wrap">{definition.description}</P>{/if}
 	<P class="text-sm opacity-70"
 		>{definition.anonymous
 			? 'Responses are anonymous. Only include contact information if you want to be identified.'
@@ -69,7 +67,7 @@
 			isEnhanced={false}
 			class="max-w-none space-y-5"
 			onsubmit={submit}
-			aria-label={definition.title}
+			aria-label="Post response"
 		>
 			<Input
 				name="website"

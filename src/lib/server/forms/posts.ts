@@ -13,15 +13,17 @@ import {
 	postUrl
 } from '$lib/forms/definition';
 export async function loadPostEditor(id?: string) {
-	const [forms, roles] = await Promise.all([
-		listForms(),
-		Role.find().select('label').sort({ label: 1 }).lean<{ _id: unknown; label: string }[]>()
-	]);
+	const roles = await Role.find()
+		.select('label')
+		.sort({ label: 1 })
+		.lean<{ _id: unknown; label: string }[]>();
 	let post;
+	let linkedIds: unknown[] = [];
 	if (id) {
 		if (!idPattern.test(id)) redirect(303, '/post/manage');
 		const row = await Post.findById(id).lean();
 		if (!row) redirect(303, '/post/manage');
+		linkedIds = row.formIds ?? [];
 		post = {
 			_id: String(row._id),
 			category: row.category,
@@ -34,7 +36,7 @@ export async function loadPostEditor(id?: string) {
 		};
 	}
 	return {
-		forms,
+		forms: await listForms(id, linkedIds),
 		roles: roles.map((row) => ({ value: String(row._id), label: row.label })),
 		...(post ? { post } : {})
 	};
@@ -65,10 +67,12 @@ export async function savePost(request: Request, userId: string, currentId?: str
 		const [year, month, day] = dateText.split('-').map(Number);
 		const slugs = embeddedFormSlugs(md);
 		const forms = await PublishedForm.find({ slug: { $in: slugs }, published: { $exists: true } })
-			.select('_id slug')
+			.select('_id slug postId')
 			.lean();
 		if (forms.length !== slugs.length)
 			throw new FormValidationError('Publish each embedded form before saving the post.');
+		if (forms.some((form) => form.postId && String(form.postId) !== currentId))
+			throw new FormValidationError('Use question sets belonging to this post.');
 		const id = currentId ?? '';
 		if (id && !idPattern.test(id)) throw new FormValidationError('Invalid post ID.');
 		if (await Post.exists({ year, month, day, slug, ...(id ? { _id: { $ne: id } } : {}) }))
@@ -102,15 +106,16 @@ export async function savePost(request: Request, userId: string, currentId?: str
 	return { success: 'Post saved.' };
 }
 export const formActions = {
-	formPreview: ({ request, locals }: { request: Request; locals: App.Locals }) =>
-		handleFormAction(request, locals.user._id, 'preview'),
-	formSave: ({ request, locals }: { request: Request; locals: App.Locals }) =>
-		handleFormAction(request, locals.user._id, 'save'),
-	formManage: ({ request, locals }: { request: Request; locals: App.Locals }) =>
-		handleFormAction(request, locals.user._id, 'manage'),
-	formResponses: ({ request, locals }: { request: Request; locals: App.Locals }) =>
-		handleFormAction(request, locals.user._id, 'responses')
+	formPreview: ({ request, locals, params }: FormActionEvent) =>
+		handleFormAction(request, locals.user._id, 'preview', params._id),
+	formSave: ({ request, locals, params }: FormActionEvent) =>
+		handleFormAction(request, locals.user._id, 'save', params._id),
+	formManage: ({ request, locals, params }: FormActionEvent) =>
+		handleFormAction(request, locals.user._id, 'manage', params._id),
+	formResponses: ({ request, locals, params }: FormActionEvent) =>
+		handleFormAction(request, locals.user._id, 'responses', params._id)
 };
+type FormActionEvent = { request: Request; locals: App.Locals; params: { _id?: string } };
 export async function loadPublishedPost(locals: App.Locals) {
 	const post = locals.authorizedPost!;
 	let firstName = '',

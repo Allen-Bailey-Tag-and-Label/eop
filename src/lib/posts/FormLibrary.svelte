@@ -17,12 +17,10 @@
 	let {
 		open = $bindable(false),
 		forms,
-		roles,
 		onInsert
 	}: {
 		open?: boolean;
 		forms: Summary[];
-		roles: { value: string; label: string }[];
 		onInsert: (slug: string) => void;
 	} = $props();
 	let selected = $state<EditorForm | null>(null),
@@ -31,8 +29,7 @@
 		error = $state(''),
 		busy = $state(false);
 	const columns: Column[] = [
-		{ key: 'title', label: 'Title', type: 'string' },
-		{ key: 'slug', label: 'Slug', type: 'string' },
+		{ key: 'slug', label: 'Question set', type: 'string' },
 		{ key: 'status', label: 'Status', snippet: status, isSortable: false },
 		{ key: 'actions', label: 'Actions', snippet: actions, isSortable: false }
 	];
@@ -128,8 +125,8 @@
 		>
 		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			<P
-				>Forms are reusable across posts and at their own /forms/slug URL. Publish a form before
-				inserting it. Audience restrictions apply wherever it is displayed.</P
+				>Manage questions and responses for this post. Publish a question set, insert it into
+				Markdown, then save the post. Share the post URL with readers.</P
 			>
 			<Button
 				onclick={() =>
@@ -155,7 +152,6 @@
 		</Div>
 		{#if selected}{#key `${selected.id}:${selected.version}`}<FormEditor
 					record={selected}
-					{roles}
 					onClose={() => (selected = null)}
 					onSave={save}
 				/>{/key}{/if}

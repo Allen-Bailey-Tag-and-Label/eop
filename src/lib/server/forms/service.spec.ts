@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blankForm } from '$lib/forms/definition';
-import { submitForm, saveForm, deleteForm, previewForm } from './service';
+import {
+	submitForm,
+	saveForm,
+	deleteForm,
+	previewForm,
+	handleFormAction,
+	listForms
+} from './service';
 import { PublishedForm, FormSubmission } from './models';
 import { Post } from '../mongoose/models/Post';
 vi.mock('./models', () => ({
@@ -9,18 +16,19 @@ vi.mock('./models', () => ({
 		create: vi.fn(),
 		findById: vi.fn(),
 		findOne: vi.fn(),
+		find: vi.fn(),
 		deleteOne: vi.fn()
 	},
 	FormSubmission: { create: vi.fn(), exists: vi.fn() }
 }));
-vi.mock('../mongoose/models/Post', () => ({ Post: { exists: vi.fn() } }));
+vi.mock('../mongoose/models/Post', () => ({ Post: { exists: vi.fn(), findById: vi.fn() } }));
 vi.mock('../mongoose/models/Role', () => ({ Role: { countDocuments: vi.fn() } }));
 const id = 'a'.repeat(24),
 	actor = { id: 'b'.repeat(24), roleIds: [] };
 function form() {
 	const definition = blankForm();
 	definition.questions[0].id = 'feedback';
-	return { id, slug: 'feedback', version: 3, definition };
+	return { id, slug: 'feedback', version: 3, definition, postId: 'c'.repeat(24) };
 }
 function fields() {
 	const fields = new FormData();
@@ -34,6 +42,118 @@ beforeEach(() => {
 	vi.mocked(FormSubmission.create).mockResolvedValue({} as never);
 });
 describe('form storage', () => {
+	it('creates questions owned by the post and derives presentation and audience from that post', async () => {
+		vi.mocked(Post.findById).mockReturnValue({
+			lean: async () => ({ _id: id, audience: 'employees', roleIds: [], formIds: [] })
+		} as never);
+		vi.mocked(PublishedForm.create).mockResolvedValue({ _id: id } as never);
+		vi.mocked(PublishedForm.findById).mockReturnValue({
+			lean: async () => ({
+				_id: id,
+				slug: 'feedback',
+				title: 'feedback',
+				draft: blankForm(),
+				version: 1
+			})
+		} as never);
+		const data = new FormData();
+		data.set('slug', 'feedback');
+		data.set('version', '0');
+		data.set('intent', 'publish');
+		data.set(
+			'definition',
+			JSON.stringify({
+				...blankForm(),
+				title: 'Separate heading',
+				description: 'Separate intro',
+				audience: 'public'
+			})
+		);
+		await handleFormAction(
+			new Request('https://example.test/post/manage/' + id, { method: 'POST', body: data }),
+			actor.id,
+			'save',
+			id
+		);
+		expect(PublishedForm.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				postId: id,
+				published: expect.objectContaining({
+					title: 'feedback',
+					description: '',
+					audience: 'employees',
+					roleIds: []
+				})
+			})
+		);
+	});
+	it('requires a saved post before managing questions', async () => {
+		const result = await handleFormAction(
+			new Request('https://example.test/post/new', {
+				method: 'POST',
+				body: new FormData()
+			}),
+			actor.id,
+			'save'
+		);
+		expect(result).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('Save the post') }
+		});
+		expect(PublishedForm.create).not.toHaveBeenCalled();
+		expect(await listForms()).toEqual([]);
+	});
+	it('does not claim a legacy question set used by another post', async () => {
+		vi.mocked(Post.findById).mockReturnValue({
+			lean: async () => ({ _id: id, formIds: ['d'.repeat(24)] })
+		} as never);
+		vi.mocked(PublishedForm.findOne).mockReturnValue({
+			select: () => ({ lean: async () => ({ _id: 'd'.repeat(24) }) })
+		} as never);
+		vi.mocked(Post.exists).mockResolvedValue({ _id: 'e'.repeat(24) } as never);
+		const data = new FormData();
+		data.set('id', 'd'.repeat(24));
+		const result = await handleFormAction(
+			new Request('https://example.test/post/manage/' + id, { method: 'POST', body: data }),
+			actor.id,
+			'save',
+			id
+		);
+		expect(result).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('shared by multiple posts') }
+		});
+		expect(PublishedForm.updateOne).not.toHaveBeenCalled();
+	});
+	it('rejects managing questions that are not owned by or historically linked to this post', async () => {
+		vi.mocked(Post.findById).mockReturnValue({
+			lean: async () => ({ _id: id, formIds: [] })
+		} as never);
+		vi.mocked(PublishedForm.findOne).mockReturnValue({
+			select: () => ({ lean: async () => null })
+		} as never);
+		const data = new FormData();
+		data.set('id', 'd'.repeat(24));
+		const result = await handleFormAction(
+			new Request('https://example.test/post/manage/' + id, {
+				method: 'POST',
+				body: data
+			}),
+			actor.id,
+			'responses',
+			id
+		);
+		expect(result).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('not part of this post') }
+		});
+	});
+	it('refuses submissions without a post context', async () => {
+		await expect(
+			submitForm({ ...form(), postId: undefined } as never, actor, fields())
+		).rejects.toThrow('Open the post');
+		expect(FormSubmission.create).not.toHaveBeenCalled();
+	});
 	it('previews the published version rather than the draft without leaking audience details', async () => {
 		vi.mocked(PublishedForm.findOne).mockReturnValue({
 			select: () => ({
@@ -60,6 +180,7 @@ describe('form storage', () => {
 		await submitForm(published, actor, fields());
 		const saved = vi.mocked(FormSubmission.create).mock.calls[0][0] as Record<string, unknown>;
 		expect(saved).toMatchObject({
+			postId: expect.anything(),
 			formVersion: 3,
 			answers: { feedback: 'A useful response' },
 			definition: published.definition

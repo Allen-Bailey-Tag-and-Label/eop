@@ -151,8 +151,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Published posts and forms use record-level audiences, enforced centrally for pages and submissions.
 	if (
-		['/(public)/(padded)/news/', '/(public)/(padded)/posts/', '/(public)/(padded)/forms/'].some(
-			(prefix) => event.route.id?.startsWith(prefix)
+		['/(public)/(padded)/news/', '/(public)/(padded)/posts/'].some((prefix) =>
+			event.route.id?.startsWith(prefix)
 		)
 	) {
 		const { authorizeContent } = await import('$lib/server/forms/access');

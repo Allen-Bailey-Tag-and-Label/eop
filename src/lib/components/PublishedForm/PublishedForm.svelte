@@ -23,8 +23,12 @@
 		revision = $state(0),
 		needsLogin = $state(false);
 	const endpoint = $derived(
-		resolve('/(public)/(padded)/forms/[slug]/data', { slug }) +
-			(context?.postId ? `?post=${encodeURIComponent(context.postId)}` : '')
+		context?.postId
+			? resolve('/(public)/(padded)/posts/submissions/[postId]/[formSlug]', {
+					postId: context.postId,
+					formSlug: slug
+				})
+			: ''
 	);
 	$effect(() => {
 		void revision;
@@ -40,7 +44,10 @@
 			? loader
 				? loader.load(slug, controller.signal)
 				: Promise.reject(new Error('Form preview is unavailable in this editor.'))
-			: fetch(url, { signal: controller.signal }).then(async (response) => {
+			: (url
+					? fetch(url, { signal: controller.signal })
+					: Promise.reject(new Error('Open the post to view these questions.'))
+				).then(async (response) => {
 					const result = await response.json().catch(() => ({}));
 					if (!response.ok) {
 						needsLogin = response.status === 401;

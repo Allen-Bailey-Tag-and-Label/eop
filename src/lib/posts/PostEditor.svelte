@@ -87,12 +87,12 @@
 <Div class="grid min-h-0 flex-grow grid-cols-1 gap-6 overflow-auto lg:grid-cols-2">
 	<Div class="space-y-4">
 		<Div class="flex flex-wrap items-center justify-between gap-3"
-			><Button onclick={() => (formsOpen = true)}>Forms</Button>{#if data.post}<A
-					href={publicUrl}
-					target="_blank"
-					rel="noopener">View post</A
-				>{/if}</Div
+			><Button disabled={!data.post} onclick={() => (formsOpen = true)}>Forms</Button
+			>{#if data.post}<A href={publicUrl} target="_blank" rel="noopener">View post</A>{/if}</Div
 		>
+		{#if !data.post}<P class="text-sm opacity-70"
+				>Save the post before adding questions and collecting responses.</P
+			>{/if}
 		{#if form?.error}<P role="alert">{form.error}</P>{/if}{#if form?.success}<P role="status"
 				>{form.success}</P
 			>{/if}
@@ -176,4 +176,4 @@
 		{title}
 	/>
 </Div>
-<FormLibrary bind:open={formsOpen} forms={data.forms} roles={data.roles} onInsert={insert} />
+<FormLibrary bind:open={formsOpen} forms={data.forms} onInsert={insert} />

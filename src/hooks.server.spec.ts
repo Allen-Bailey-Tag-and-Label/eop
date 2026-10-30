@@ -147,7 +147,10 @@ describe('central post and form enforcement', () => {
 		for (const [route, path] of [
 			['/(public)/(padded)/posts/[year]/[month]/[day]/[slug]', '/posts/2026/10/30/feedback'],
 			['/(public)/(padded)/news/[year]/[month]/[day]/[slug]', '/news/2026/10/30/feedback'],
-			['/(public)/(padded)/forms/[slug]/data', '/forms/feedback/data']
+			[
+				'/(public)/(padded)/posts/submissions/[postId]/[formSlug]',
+				'/posts/submissions/' + 'a'.repeat(24) + '/feedback'
+			]
 		]) {
 			const input = context(route, path);
 			vi.mocked(authorizeContent).mockResolvedValue(new Response('Denied', { status: 403 }));

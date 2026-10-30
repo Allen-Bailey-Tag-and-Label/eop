@@ -23,8 +23,11 @@ export async function previewForm(slug: string) {
 		definition: { title, description, questions, open, anonymous, thanks }
 	};
 }
-export async function listForms() {
-	const rows = await PublishedForm.find()
+export async function listForms(postId?: string, linkedIds: unknown[] = []) {
+	if (!postId) return [];
+	const rows = await PublishedForm.find({
+		$or: [{ postId }, { postId: { $exists: false }, _id: { $in: linkedIds } }]
+	})
 		.select('slug title version draft published publishedVersion')
 		.sort({ title: 1 })
 		.limit(500)
@@ -50,7 +53,7 @@ export async function formEditor(id: string) {
 		published: !!row.published
 	};
 }
-export async function saveForm(fields: FormData, userId: string) {
+export async function saveForm(fields: FormData, userId: string, postId?: string) {
 	const raw = String(fields.get('definition') ?? '');
 	if (raw.length > 100000) throw new FormValidationError('Form definition is too large.');
 	const definition = validateForm(JSON.parse(raw));
@@ -72,6 +75,7 @@ export async function saveForm(fields: FormData, userId: string) {
 			{ _id: id, version, slug },
 			{
 				$set: {
+					...(postId ? { postId } : {}),
 					title: definition.title,
 					draft: definition,
 					...(publish ? { published: definition, publishedVersion: version + 1 } : {})
@@ -87,6 +91,7 @@ export async function saveForm(fields: FormData, userId: string) {
 		return formEditor(id);
 	}
 	const created = await PublishedForm.create({
+		...(postId ? { postId } : {}),
 		slug,
 		title: definition.title,
 		version: 1,
@@ -107,9 +112,12 @@ export async function deleteForm(fields: FormData) {
 	const result = await PublishedForm.deleteOne({ _id: id, version: Number(fields.get('version')) });
 	if (!result.deletedCount) throw new FormValidationError('The form changed. Reload the library.');
 }
-export async function formResponses(id: string) {
+export async function formResponses(id: string, postId?: string) {
 	if (!idPattern.test(id)) throw new FormValidationError('Invalid form ID.');
-	const rows = await FormSubmission.find({ formId: id })
+	const rows = await FormSubmission.find({
+		formId: id,
+		...(postId ? { $or: [{ postId }, { postId: { $exists: false } }] } : {})
+	})
 		.sort({ createdAt: -1 })
 		.limit(500)
 		.populate({ path: 'respondentId', select: 'username' })
@@ -134,6 +142,7 @@ export async function submitForm(
 	fields: FormData
 ) {
 	const definition = validateForm(form.definition);
+	if (!form.postId) throw new FormValidationError('Open the post to submit a response.');
 	if (!definition.open) throw new FormValidationError('This form is closed.');
 	if (Number(fields.get('version')) !== form.version)
 		throw new FormValidationError('This form changed. Reload before submitting.');
@@ -162,14 +171,58 @@ export async function submitForm(
 	}
 	return { success: definition.thanks };
 }
-export async function handleFormAction(request: Request, userId: string, operation: string) {
+export async function handleFormAction(
+	request: Request,
+	userId: string,
+	operation: string,
+	postId?: string
+) {
 	try {
+		if (!postId || !idPattern.test(postId))
+			throw new FormValidationError('Save the post before adding questions.');
+		const post = await Post.findById(postId).lean();
+		if (!post) throw new FormValidationError('This post no longer exists.');
 		const fields = await request.formData();
-		if (operation === 'save') return { formRecord: await saveForm(fields, userId) };
+		const id = String(fields.get('id') ?? '');
+		if (id || operation === 'preview') {
+			const record = await PublishedForm.findOne({
+				...(operation === 'preview'
+					? { slug: String(fields.get('slug') ?? '') }
+					: { _id: idPattern.test(id) ? id : null }),
+				$or: [{ postId }, { postId: { $exists: false }, _id: { $in: post.formIds ?? [] } }]
+			})
+				.select('_id postId')
+				.lean();
+			if (!record) throw new FormValidationError('These questions are not part of this post.');
+			if (
+				operation === 'save' &&
+				!record.postId &&
+				(await Post.exists({
+					_id: { $ne: postId },
+					formIds: record._id
+				}))
+			)
+				throw new FormValidationError(
+					'These legacy questions are shared by multiple posts. Create a new question set for this post before editing them.'
+				);
+		}
+		if (operation === 'save') {
+			const definition = JSON.parse(String(fields.get('definition') ?? ''));
+			fields.set(
+				'definition',
+				JSON.stringify({
+					...definition,
+					title: String(fields.get('slug') ?? ''),
+					description: '',
+					audience: post.audience ?? 'public',
+					roleIds: (post.roleIds ?? []).map(String)
+				})
+			);
+			return { formRecord: await saveForm(fields, userId, postId) };
+		}
 		if (operation === 'preview')
 			return { preview: await previewForm(String(fields.get('slug') ?? '')) };
-		const id = String(fields.get('id') ?? '');
-		if (operation === 'responses') return { responses: await formResponses(id) };
+		if (operation === 'responses') return { responses: await formResponses(id, postId) };
 		if (fields.get('operation') === 'delete') {
 			await deleteForm(fields);
 			return { deleted: true };

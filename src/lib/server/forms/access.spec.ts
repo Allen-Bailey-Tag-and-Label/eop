@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { authorizeContent, canRead } from './access';
 import { Post } from '../mongoose/models/Post';
 import { User } from '../mongoose/models/User';
@@ -14,13 +14,17 @@ const query = (value: unknown) => ({
 	select: vi.fn().mockReturnThis(),
 	lean: vi.fn().mockResolvedValue(value)
 });
-function event(path = '/forms/feedback/data', cookie?: string) {
+function event(api = true, cookie?: string) {
 	return {
-		url: new URL(`https://example.com${path}`),
-		params: { slug: 'feedback', year: '2026', month: '10', day: '30' },
+		url: new URL(
+			`https://example.com/posts/${api ? `submissions/${postId}/feedback` : '2026/10/30/feedback'}`
+		),
+		params: api
+			? { postId, formSlug: 'feedback' }
+			: { slug: 'feedback', year: '2026', month: '10', day: '30' },
 		route: {
-			id: path.startsWith('/forms')
-				? '/(public)/(padded)/forms/[slug]/data'
+			id: api
+				? '/(public)/(padded)/posts/submissions/[postId]/[formSlug]'
 				: '/(public)/(padded)/posts/[year]/[month]/[day]/[slug]'
 		},
 		cookies: { get: () => cookie },
@@ -31,13 +35,22 @@ function event(path = '/forms/feedback/data', cookie?: string) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	vi.mocked(PublishedForm.findOne).mockReturnValue(
-		query({ _id: id, slug: 'feedback', published: blankForm(), publishedVersion: 1 }) as never
+		query({
+			_id: id,
+			postId,
+			slug: 'feedback',
+			published: blankForm(),
+			publishedVersion: 1
+		}) as never
+	);
+	vi.mocked(Post.findById).mockReturnValue(
+		query({ _id: postId, audience: 'public', formIds: [id] }) as never
 	);
 	vi.mocked(User.findById).mockReturnValue(
 		query({ _id: id, isActive: true, _roleIds: [role] }) as never
 	);
 });
-describe('central content audiences', () => {
+describe('post submission access', () => {
 	it('preserves legacy public posts and distinguishes employee and role access', () => {
 		expect(canRead({})).toBe(true);
 		expect(canRead({ audience: 'employees' })).toBe(false);
@@ -45,57 +58,65 @@ describe('central content audiences', () => {
 		expect(canRead({ audience: 'roles', roleIds: [role] }, { id, roleIds: [] })).toBe(false);
 		expect(canRead({ audience: 'roles', roleIds: [role] }, { id, roleIds: [role] })).toBe(true);
 	});
-	it('denies form data and submission requests before route execution when authentication is missing or inactive', async () => {
-		vi.mocked(PublishedForm.findOne).mockReturnValue(
-			query({
-				_id: id,
-				slug: 'feedback',
-				published: { ...blankForm(), audience: 'employees' },
-				publishedVersion: 1
-			}) as never
+	it('requires post access for data and submissions and rejects inactive employees', async () => {
+		vi.mocked(Post.findById).mockReturnValue(
+			query({ _id: postId, audience: 'employees', formIds: [id] }) as never
 		);
 		expect((await authorizeContent(event()))?.status).toBe(401);
-		vi.mocked(User.findById).mockReturnValue(
-			query({ _id: id, isActive: false, _roleIds: [role] }) as never
-		);
-		expect((await authorizeContent(event('/forms/feedback/data', id)))?.status).toBe(401);
+		vi.mocked(User.findById).mockReturnValue(query({ _id: id, isActive: false }) as never);
+		expect((await authorizeContent(event(true, id)))?.status).toBe(401);
 	});
-	it('applies both form and embedding post restrictions, verifying the form belongs to the post', async () => {
+	it('binds a response to the authorized post and enforces selected roles', async () => {
 		vi.mocked(Post.findById).mockReturnValue(
 			query({ _id: postId, audience: 'roles', roleIds: [role], formIds: [id] }) as never
 		);
-		expect((await authorizeContent(event(`/forms/feedback/data?post=${postId}`)))?.status).toBe(
-			401
-		);
-		const allowed = event(`/forms/feedback/data?post=${postId}`, id);
+		const allowed = event(true, id);
 		expect(await authorizeContent(allowed)).toBeUndefined();
 		expect(allowed.locals.authorizedForm?.postId).toBe(postId);
-		vi.mocked(Post.findById).mockReturnValue(
-			query({ _id: postId, audience: 'public', formIds: [] }) as never
+		vi.mocked(User.findById).mockReturnValue(
+			query({ _id: id, isActive: true, _roleIds: [] }) as never
 		);
-		expect((await authorizeContent(event(`/forms/feedback/data?post=${postId}`)))?.status).toBe(
-			404
-		);
+		expect((await authorizeContent(event(true, id)))?.status).toBe(403);
 	});
-	it('redirects employee post pages to sign-in and does not serialize private content', async () => {
-		vi.mocked(Post.findOne).mockReturnValue(
-			query({ _id: postId, audience: 'employees', md: 'private' }) as never
-		);
-		const input = event('/posts/2026/10/30/feedback');
-		expect((await authorizeContent(input))?.headers.get('location')).toBe('/sign-in');
-		expect(input.locals.authorizedPost).toBeUndefined();
-	});
-	it('blocks unpublished forms and requires sign-in for identified public forms', async () => {
-		vi.mocked(PublishedForm.findOne).mockReturnValue(query({ _id: id }) as never);
+	it('rejects missing posts, unlinked forms and question sets owned by another post', async () => {
+		vi.mocked(Post.findById).mockReturnValue(query(null) as never);
 		expect((await authorizeContent(event()))?.status).toBe(404);
+		vi.mocked(Post.findById).mockReturnValue(query({ _id: postId, formIds: [] }) as never);
+		expect((await authorizeContent(event()))?.status).toBe(404);
+		vi.mocked(Post.findById).mockReturnValue(query({ _id: postId, formIds: [id] }) as never);
+		vi.mocked(PublishedForm.findOne).mockReturnValue(
+			query({ _id: id, postId: id, published: blankForm(), publishedVersion: 1 }) as never
+		);
+		expect((await authorizeContent(event()))?.status).toBe(404);
+	});
+	it('requires sign-in for identified responses even on a public post', async () => {
 		vi.mocked(PublishedForm.findOne).mockReturnValue(
 			query({
 				_id: id,
-				slug: 'feedback',
+				postId,
 				published: { ...blankForm(), anonymous: false },
 				publishedVersion: 1
 			}) as never
 		);
 		expect((await authorizeContent(event()))?.status).toBe(401);
+	});
+	it('redirects private post pages before serializing their content', async () => {
+		vi.mocked(Post.findOne).mockReturnValue(
+			query({ _id: postId, audience: 'employees', md: 'private' }) as never
+		);
+		const input = event(false);
+		expect((await authorizeContent(input))?.headers.get('location')).toBe('/sign-in');
+		expect(input.locals.authorizedPost).toBeUndefined();
+	});
+	it('preserves existing linked question sets without an owner, including their previous restrictions', async () => {
+		vi.mocked(PublishedForm.findOne).mockReturnValue(
+			query({
+				_id: id,
+				published: { ...blankForm(), audience: 'employees' },
+				publishedVersion: 1
+			}) as never
+		);
+		expect((await authorizeContent(event()))?.status).toBe(401);
+		expect(await authorizeContent(event(true, id))).toBeUndefined();
 	});
 });

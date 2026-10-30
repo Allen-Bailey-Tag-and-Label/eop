@@ -27,6 +27,16 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 const data = {
+	post: {
+		_id: 'c'.repeat(24),
+		category: 'news',
+		date: '2026-10-30T12:00:00Z',
+		md: '',
+		slug: 'test',
+		title: 'Test post',
+		audience: 'public',
+		roleIds: []
+	},
 	locals: { user: { profile: { firstName: 'Test', lastName: 'Author' } } },
 	forms: [{ id: 'a'.repeat(24), slug: 'feedback', title: 'Feedback', version: 1, published: true }],
 	roles: [{ value: 'b'.repeat(24), label: 'Employees' }]
@@ -38,12 +48,14 @@ describe('post forms authoring', () => {
 		await fireEvent.click(view.getByRole('button', { name: 'Create form' }));
 		const editor = view.getByRole('dialog', { name: 'Create form' });
 		const dialog = within(editor);
-		expect(dialog.getByRole('status')).toHaveTextContent('Anyone can respond without signing in');
+		expect(dialog.getByRole('status')).toHaveTextContent(
+			'Responses do not record an employee account'
+		);
 		await fireEvent.click(dialog.getByRole('checkbox', { name: 'Anonymous responses' }));
 		expect(dialog.getByRole('status')).toHaveTextContent('Employee sign-in is required');
-		expect(
-			dialog.getByRole('combobox', { name: 'Audience' }).querySelector('option:checked')
-		).toHaveTextContent('employee sign-in required');
+		expect(dialog.queryByRole('combobox', { name: 'Audience' })).not.toBeInTheDocument();
+		expect(dialog.queryByRole('textbox', { name: 'Form title' })).not.toBeInTheDocument();
+		expect(dialog.queryByRole('textbox', { name: 'Form introduction' })).not.toBeInTheDocument();
 		await fireEvent.click(dialog.getByRole('button', { name: 'Preview form' }));
 		expect(dialog.getByText(/Employee sign-in is required\. Your signed-in/)).toBeInTheDocument();
 		await fireEvent.click(editor.parentElement!);
@@ -53,7 +65,8 @@ describe('post forms authoring', () => {
 		expect(view.getByRole('dialog', { name: 'Forms' })).toBeInTheDocument();
 	});
 	it('uses category audience defaults without overriding an explicit choice', async () => {
-		const view = render(PostEditor, { data: data as never });
+		const view = render(PostEditor, { data: { ...data, post: undefined } as never });
+		expect(view.getByRole('button', { name: 'Forms' })).toBeDisabled();
 		await fireEvent.change(view.getByRole('combobox', { name: 'Post category' }), {
 			target: { value: 'hr' }
 		});
@@ -86,7 +99,7 @@ describe('post forms authoring', () => {
 			(view.getByRole('textbox', { name: 'Post markdown' }) as HTMLTextAreaElement).value
 		).toContain('<PublishedForm slug="feedback">');
 		await waitFor(() =>
-			expect(view.getByRole('heading', { name: 'Published feedback' })).toBeInTheDocument()
+			expect(view.getByRole('textbox', { name: 'Your feedback' })).toBeInTheDocument()
 		);
 		expect(view.getByRole('textbox', { name: 'Your feedback' })).toBeDisabled();
 		expect(view.getByRole('button', { name: 'Submit response' })).toBeDisabled();
@@ -99,7 +112,13 @@ describe('post forms authoring', () => {
 					type: 'success',
 					data: {
 						preview: {
-							definition: { ...definition, title: 'Updated published feedback' },
+							definition: {
+								...definition,
+								questions: definition.questions.map((question) => ({
+									...question,
+									label: 'Updated question'
+								}))
+							},
 							version: 3
 						}
 					}
@@ -110,7 +129,7 @@ describe('post forms authoring', () => {
 			data: { ...data, forms: data.forms.map((form) => ({ ...form, version: 3 })) } as never
 		});
 		await waitFor(() =>
-			expect(view.getByRole('heading', { name: 'Updated published feedback' })).toBeInTheDocument()
+			expect(view.getByRole('textbox', { name: 'Updated question' })).toBeInTheDocument()
 		);
 		expect(view.getByRole('button', { name: 'Submit response' })).toBeDisabled();
 	});
@@ -144,7 +163,7 @@ describe('post forms authoring', () => {
 		await waitFor(() => expect(view.getByRole('alert')).toHaveTextContent('Publish this form'));
 		await fireEvent.click(view.getByRole('button', { name: 'Reload form' }));
 		await waitFor(() =>
-			expect(view.getByRole('heading', { name: 'Recovered form' })).toBeInTheDocument()
+			expect(view.getByRole('textbox', { name: 'Your feedback' })).toBeInTheDocument()
 		);
 	});
 	it('opens form CRUD in a nested dialog and can publish a versioned form', async () => {

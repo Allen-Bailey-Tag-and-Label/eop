@@ -3,6 +3,7 @@ import { defineModel } from '../mongoose/defineModel';
 import type { FormDefinition, Answers } from '$lib/forms/definition';
 export type FormRecord = {
 	_id: Types.ObjectId;
+	postId?: Types.ObjectId;
 	slug: string;
 	title: string;
 	version: number;
@@ -11,6 +12,7 @@ export type FormRecord = {
 	publishedVersion?: number;
 };
 export const PublishedForm = defineModel<FormRecord>('PublishedForm', {
+	postId: { type: Schema.Types.ObjectId, ref: 'Post', index: true },
 	slug: { type: String, required: true, unique: true },
 	title: { type: String, required: true },
 	version: { type: Number, required: true },

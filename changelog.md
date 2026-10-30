@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T16:51:28.271Z
+## 2026-10-30T17:10:38.175Z
+
+refactor: Make forms and submissions part of posts
+
+## 2026-10-30T12:53:33-04:00
 
 fix: Render published forms in post editor previews
 

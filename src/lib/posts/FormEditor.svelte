@@ -2,7 +2,6 @@
 	import { untrack } from 'svelte';
 	import { X } from '@lucide/svelte';
 	import {
-		AudiencePicker,
 		Button,
 		Card,
 		Checkbox,
@@ -26,12 +25,10 @@
 	};
 	let {
 		record,
-		roles,
 		onClose,
 		onSave
 	}: {
 		record: EditorForm;
-		roles: { value: string; label: string }[];
 		onClose: () => void;
 		onSave: (record: EditorForm, intent: string) => Promise<string>;
 	} = $props();
@@ -44,6 +41,8 @@
 		try {
 			const definition = validateForm({
 				...$state.snapshot(draft),
+				title: slug,
+				description: '',
 				questions: draft.questions.map((question) => ({
 					...question,
 					options: question.options.map((option) => option.trim()).filter(Boolean)
@@ -81,43 +80,24 @@
 	>
 	<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 		{#if error}<P role="alert">{error}</P>{/if}
-		<Input label="Form title" aria-label="Form title" bind:value={draft.title} />
 		<Input
-			label="Stable form slug"
+			label="Question set key"
 			aria-label="Form slug"
 			bind:value={slug}
 			readonly={!!record.id}
 		/>
-		<Textarea
-			label="Introduction"
-			aria-label="Form introduction"
-			bind:value={draft.description}
-			rows={3}
-		/>
-		<AudiencePicker
-			{roles}
-			publicLabel={draft.anonymous
-				? 'Public (no login required)'
-				: 'Public (employee sign-in required for identified responses)'}
-			bind:value={
-				() => ({ audience: draft.audience, roleIds: draft.roleIds }),
-				(value) => {
-					draft.audience = value.audience;
-					draft.roleIds = value.roleIds;
-				}
-			}
-		/>
+		<P class="text-sm opacity-70"
+			>Use the post's Markdown for headings and introductory text. Access follows the post's
+			audience.</P
+		>
 		<Checkbox label="Accept responses" bind:checked={draft.open} />
 		<Checkbox label="Anonymous responses" bind:checked={draft.anonymous} />
 		<P class="text-sm" role="status">
 			{#if !draft.anonymous}
 				Employee sign-in is required. Each response records the signed-in employee's account.
-				{#if draft.audience === 'public'}Enable Anonymous responses to let visitors respond without
-					signing in.{/if}
-			{:else if draft.audience === 'public'}
-				Anyone can respond without signing in. Responses do not record an employee account.
 			{:else}
-				Sign-in is required to access this form, but responses do not record the employee's account.
+				Responses do not record an employee account. Visitors can respond without signing in when
+				the post is public.
 			{/if}
 		</P>
 		<P class="text-sm opacity-70"

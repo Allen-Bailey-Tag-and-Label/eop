@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GET, POST } from '../../../routes/(public)/(padded)/forms/[slug]/data/+server';
+import {
+	GET,
+	POST
+} from '../../../routes/(public)/(padded)/posts/submissions/[postId]/[formSlug]/+server';
 import { blankForm, FormValidationError } from '$lib/forms/definition';
 import { submitForm } from './service';
 vi.mock('./service', () => ({ submitForm: vi.fn() }));
