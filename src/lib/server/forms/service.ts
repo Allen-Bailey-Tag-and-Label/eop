@@ -11,6 +11,18 @@ import {
 	text
 } from '$lib/forms/definition';
 import type { AuthorizedForm, ContentActor } from './access';
+export async function previewForm(slug: string) {
+	if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100)
+		throw new FormValidationError('Invalid form slug.');
+	const row = await PublishedForm.findOne({ slug }).select('published publishedVersion').lean();
+	if (!row?.published || !row.publishedVersion)
+		throw new FormValidationError('Publish this form before previewing it in the post.');
+	const { title, description, questions, open, anonymous, thanks } = row.published;
+	return {
+		version: row.publishedVersion,
+		definition: { title, description, questions, open, anonymous, thanks }
+	};
+}
 export async function listForms() {
 	const rows = await PublishedForm.find()
 		.select('slug title version draft published publishedVersion')
@@ -154,6 +166,8 @@ export async function handleFormAction(request: Request, userId: string, operati
 	try {
 		const fields = await request.formData();
 		if (operation === 'save') return { formRecord: await saveForm(fields, userId) };
+		if (operation === 'preview')
+			return { preview: await previewForm(String(fields.get('slug') ?? '')) };
 		const id = String(fields.get('id') ?? '');
 		if (operation === 'responses') return { responses: await formResponses(id) };
 		if (fields.get('operation') === 'delete') {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { setContext } from 'svelte';
-	import { postFormContext } from '$lib/forms/context';
+	import { postFormContext, type FormPreview } from '$lib/forms/context';
 	import { dateTime } from '$lib/formats';
 	import { mdToTokens } from '$lib/marked';
 	import { Div, H1, MarkdownToken } from '..';
@@ -8,6 +8,7 @@
 	type Props = {
 		postId?: string;
 		preview?: boolean;
+		formPreview?: FormPreview;
 		date: Date;
 		firstName: string;
 		lastName: string;
@@ -17,6 +18,7 @@
 	let {
 		postId,
 		preview = false,
+		formPreview,
 		date,
 		firstName = $bindable(''),
 		lastName = $bindable(''),
@@ -30,6 +32,9 @@
 		},
 		get preview() {
 			return preview;
+		},
+		get formPreview() {
+			return formPreview;
 		}
 	});
 

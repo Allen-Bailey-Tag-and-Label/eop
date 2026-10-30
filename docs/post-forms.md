@@ -12,6 +12,8 @@
 5. Close the editor and select **Insert** beside the published form. Save the post.
    The Markdown contains `<PublishedForm slug="your-slug"></PublishedForm>`.
 6. Open **View post** and test submission. Editor previews cannot submit responses.
+   The post preview displays the embedded form's published questions. Publish
+   changes in Forms to update what appears in the post preview.
 7. In Forms, select **Responses** to see the latest 500 submissions.
 
 Posts use `/posts/year/month/day/slug`, regardless of category. Existing `/news/`

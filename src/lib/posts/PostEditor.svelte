@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { deserialize } from '$app/forms';
+	import type { FormPreview } from '$lib/forms/context';
 	import {
 		AudiencePicker,
 		Button,
@@ -62,6 +64,24 @@
 	function insert(slug: string) {
 		md += `\n\n<PublishedForm slug="${slug}"></PublishedForm>\n`;
 	}
+	const loadFormPreview: FormPreview['load'] = async (slug, signal) => {
+		const body = new FormData();
+		body.set('slug', slug);
+		const response = await fetch('?/formPreview', {
+			method: 'POST',
+			body,
+			signal,
+			headers: { 'x-sveltekit-action': 'true' }
+		});
+		const result = deserialize(await response.text());
+		if (result.type !== 'success')
+			throw new Error(
+				result.type === 'failure'
+					? String(result.data?.error ?? 'Could not load form preview.')
+					: 'Could not load form preview.'
+			);
+		return result.data?.preview as Awaited<ReturnType<FormPreview['load']>>;
+	};
 </script>
 
 <Div class="grid min-h-0 flex-grow grid-cols-1 gap-6 overflow-auto lg:grid-cols-2">
@@ -145,6 +165,10 @@
 	</Div>
 	<Post
 		preview
+		formPreview={{
+			load: loadFormPreview,
+			revision: data.forms.map((form) => `${form.id}:${form.version}`).join(',')
+		}}
 		date={new Date(date)}
 		firstName={data.locals.user.profile.firstName}
 		lastName={data.locals.user.profile.lastName}

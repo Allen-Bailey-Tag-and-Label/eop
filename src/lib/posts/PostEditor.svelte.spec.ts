@@ -67,6 +67,17 @@ describe('post forms authoring', () => {
 		expect(view.getByRole('combobox', { name: 'Audience' })).toHaveValue('public');
 	});
 	it('inserts a published form into markdown without a submission-capable editor preview', async () => {
+		const definition = { ...blankForm(), title: 'Published feedback' };
+		const fetcher = vi.fn<typeof fetch>(
+			async () =>
+				new Response(
+					JSON.stringify({
+						type: 'success',
+						data: { preview: { definition, version: 2 } }
+					})
+				)
+		);
+		vi.stubGlobal('fetch', fetcher);
 		const view = render(PostEditor, { data: data as never });
 		await fireEvent.click(view.getByRole('button', { name: 'Forms' }));
 		const dialog = within(view.getByRole('dialog', { name: 'Forms' }));
@@ -74,10 +85,67 @@ describe('post forms authoring', () => {
 		expect(
 			(view.getByRole('textbox', { name: 'Post markdown' }) as HTMLTextAreaElement).value
 		).toContain('<PublishedForm slug="feedback">');
-		expect(
-			view.getByText('Embedded form: feedback. Use Forms to preview its questions.')
-		).toBeInTheDocument();
-		expect(view.queryByRole('button', { name: 'Submit response' })).not.toBeInTheDocument();
+		await waitFor(() =>
+			expect(view.getByRole('heading', { name: 'Published feedback' })).toBeInTheDocument()
+		);
+		expect(view.getByRole('textbox', { name: 'Your feedback' })).toBeDisabled();
+		expect(view.getByRole('button', { name: 'Submit response' })).toBeDisabled();
+		expect(fetcher).toHaveBeenCalledTimes(1);
+		expect(fetcher.mock.calls[0][0]).toBe('?/formPreview');
+		expect((fetcher.mock.calls[0][1]?.body as FormData).get('slug')).toBe('feedback');
+		fetcher.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					type: 'success',
+					data: {
+						preview: {
+							definition: { ...definition, title: 'Updated published feedback' },
+							version: 3
+						}
+					}
+				})
+			)
+		);
+		await view.rerender({
+			data: { ...data, forms: data.forms.map((form) => ({ ...form, version: 3 })) } as never
+		});
+		await waitFor(() =>
+			expect(view.getByRole('heading', { name: 'Updated published feedback' })).toBeInTheDocument()
+		);
+		expect(view.getByRole('button', { name: 'Submit response' })).toBeDisabled();
+	});
+	it('shows a preview error and can reload a missing published form', async () => {
+		const fetcher = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						type: 'failure',
+						status: 400,
+						data: { error: 'Publish this form before previewing it in the post.' }
+					})
+				)
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						type: 'success',
+						data: {
+							preview: { definition: { ...blankForm(), title: 'Recovered form' }, version: 1 }
+						}
+					})
+				)
+			);
+		vi.stubGlobal('fetch', fetcher);
+		const view = render(PostEditor, { data: data as never });
+		await fireEvent.input(view.getByRole('textbox', { name: 'Post markdown' }), {
+			target: { value: '<PublishedForm slug="test"></PublishedForm>' }
+		});
+		await waitFor(() => expect(view.getByRole('alert')).toHaveTextContent('Publish this form'));
+		await fireEvent.click(view.getByRole('button', { name: 'Reload form' }));
+		await waitFor(() =>
+			expect(view.getByRole('heading', { name: 'Recovered form' })).toBeInTheDocument()
+		);
 	});
 	it('opens form CRUD in a nested dialog and can publish a versioned form', async () => {
 		const fetcher = vi.fn<typeof fetch>(

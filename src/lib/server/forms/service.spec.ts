@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blankForm } from '$lib/forms/definition';
-import { submitForm, saveForm, deleteForm } from './service';
+import { submitForm, saveForm, deleteForm, previewForm } from './service';
 import { PublishedForm, FormSubmission } from './models';
 import { Post } from '../mongoose/models/Post';
 vi.mock('./models', () => ({
-	PublishedForm: { updateOne: vi.fn(), create: vi.fn(), findById: vi.fn(), deleteOne: vi.fn() },
+	PublishedForm: {
+		updateOne: vi.fn(),
+		create: vi.fn(),
+		findById: vi.fn(),
+		findOne: vi.fn(),
+		deleteOne: vi.fn()
+	},
 	FormSubmission: { create: vi.fn(), exists: vi.fn() }
 }));
 vi.mock('../mongoose/models/Post', () => ({ Post: { exists: vi.fn() } }));
@@ -28,6 +34,27 @@ beforeEach(() => {
 	vi.mocked(FormSubmission.create).mockResolvedValue({} as never);
 });
 describe('form storage', () => {
+	it('previews the published version rather than the draft without leaking audience details', async () => {
+		vi.mocked(PublishedForm.findOne).mockReturnValue({
+			select: () => ({
+				lean: async () => ({
+					published: { ...blankForm(), title: 'Published title', audience: 'roles', roleIds: [id] },
+					draft: { ...blankForm(), title: 'Unpublished edit' },
+					publishedVersion: 3
+				})
+			})
+		} as never);
+		const result = await previewForm('feedback');
+		expect(result).toMatchObject({ version: 3, definition: { title: 'Published title' } });
+		expect(result.definition).not.toHaveProperty('roleIds');
+		expect(result.definition).not.toHaveProperty('audience');
+	});
+	it('returns a useful preview error for a missing or unpublished form', async () => {
+		vi.mocked(PublishedForm.findOne).mockReturnValue({
+			select: () => ({ lean: async () => null })
+		} as never);
+		await expect(previewForm('missing')).rejects.toThrow('Publish this form');
+	});
 	it('stores anonymous answers with immutable questions and no user identity or creator', async () => {
 		const published = form();
 		await submitForm(published, actor, fields());

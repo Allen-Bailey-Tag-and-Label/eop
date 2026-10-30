@@ -102,6 +102,8 @@ export async function savePost(request: Request, userId: string, currentId?: str
 	return { success: 'Post saved.' };
 }
 export const formActions = {
+	formPreview: ({ request, locals }: { request: Request; locals: App.Locals }) =>
+		handleFormAction(request, locals.user._id, 'preview'),
 	formSave: ({ request, locals }: { request: Request; locals: App.Locals }) =>
 		handleFormAction(request, locals.user._id, 'save'),
 	formManage: ({ request, locals }: { request: Request; locals: App.Locals }) =>

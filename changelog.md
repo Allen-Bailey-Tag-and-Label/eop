@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T16:44:20.675Z
+## 2026-10-30T16:51:28.271Z
+
+fix: Render published forms in post editor previews
+
+## 2026-10-30T12:46:13-04:00
 
 fix: Enable form dialog dismissal and clarify response identity requirements
 

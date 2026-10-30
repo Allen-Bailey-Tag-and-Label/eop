@@ -28,20 +28,29 @@
 	);
 	$effect(() => {
 		void revision;
-		if (context?.preview) return;
 		const url = endpoint,
 			controller = new AbortController();
+		const preview = context?.preview;
+		const loader = context?.formPreview;
+		if (preview) void loader?.revision;
 		definition = null;
 		error = '';
 		needsLogin = false;
-		void fetch(url, { signal: controller.signal })
-			.then(async (response) => {
-				const result = await response.json().catch(() => ({}));
+		const result = preview
+			? loader
+				? loader.load(slug, controller.signal)
+				: Promise.reject(new Error('Form preview is unavailable in this editor.'))
+			: fetch(url, { signal: controller.signal }).then(async (response) => {
+					const result = await response.json().catch(() => ({}));
+					if (!response.ok) {
+						needsLogin = response.status === 401;
+						throw new Error(result.error ?? 'This form is unavailable.');
+					}
+					return result;
+				});
+		void result
+			.then((result) => {
 				if (controller.signal.aborted) return;
-				if (!response.ok) {
-					needsLogin = response.status === 401;
-					throw new Error(result.error ?? 'This form is unavailable.');
-				}
 				definition = result.definition;
 				version = result.version;
 			})
@@ -52,6 +61,7 @@
 		return () => controller.abort();
 	});
 	async function submit(fields: FormData) {
+		if (context?.preview) return { error: 'Submissions are disabled in preview.' };
 		const response = await fetch(endpoint, { method: 'POST', body: fields });
 		const result = await response.json().catch(() => ({ error: 'Could not submit response.' }));
 		return response.ok ? result : { error: result.error ?? 'Could not submit response.' };
@@ -66,10 +76,14 @@
 		className
 	)}
 >
-	{#if context?.preview}<P>Embedded form: {slug}. Use Forms to preview its questions.</P>
-	{:else if error}<P role="alert">{error}</P>{#if needsLogin}<A href={resolve('/(public)/sign-in')}
+	{#if error}<P role="alert">{error}</P>{#if needsLogin}<A href={resolve('/(public)/sign-in')}
 				>Sign in</A
 			>{/if}<Button variants={['ghost']} onclick={() => revision++}>Reload form</Button>
-	{:else if definition}<FormRenderer {definition} {version} onSubmit={submit} />
+	{:else if definition}<FormRenderer
+			{definition}
+			{version}
+			preview={context?.preview ?? false}
+			onSubmit={submit}
+		/>
 	{:else}<P role="status">Loading form...</P>{/if}
 </Div>
