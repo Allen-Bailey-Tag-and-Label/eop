@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-29T20:49:22.423Z
+## 2026-10-30T11:42:18.494Z
+
+feat: Add scoped slide data workflows, API sources and reusable bindings
+
+## 2026-10-29T16:53:30-04:00
 
 feat: Default slide images to cover and add image opacity controls
 

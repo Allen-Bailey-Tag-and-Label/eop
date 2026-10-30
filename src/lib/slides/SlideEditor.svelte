@@ -74,6 +74,10 @@
 	import RepeaterSettings from './RepeaterSettings.svelte';
 	import VisibilitySettings from './VisibilitySettings.svelte';
 	import AssetLibrary from './AssetLibrary.svelte';
+	import SourcePicker from '$lib/data/SourcePicker.svelte';
+	import DataLibrary from '$lib/data/DataLibrary.svelte';
+	import ElementBindings from '$lib/data/ElementBindings.svelte';
+	import type { SourceOption, SourceReference } from '$lib/data/types';
 	import { allElements, defaultRepeater, templateSlide } from './repeater';
 	import type { SlideElement } from './types';
 	import {
@@ -104,6 +108,20 @@
 			assetSlides?: { id: string; title: string; slug: string }[];
 			references?: SlideReference[];
 			dataFields?: Record<string, string[]>;
+			dataSources?: {
+				id: string;
+				title: string;
+				version: number;
+				scope: string;
+				publishedAt: string | null;
+			}[];
+			dataConnections?: {
+				id: string;
+				title: string;
+				version: number;
+				config: import('$lib/data/types').ApiConnection;
+			}[];
+			sources?: SourceOption[];
 		};
 		form?: {
 			error?: string;
@@ -152,6 +170,51 @@
 	const editingFrame = $derived(frameAt(rootElements, framePath));
 	const activeElements = $derived(editingFrame?.frame?.elements ?? rootElements);
 	const selected = $derived(activeElements.find((element) => element.id === selectedId));
+	const referenceFields = (reference?: SourceReference) =>
+		reference
+			? (data.sources?.find((source) => source.id === reference.sourceId)?.outputs[
+					reference.output
+				] ?? [])
+			: [];
+	const rowFields = $derived(
+		editingRepeater?.dataReference
+			? referenceFields(editingRepeater.dataReference)
+			: editingRepeater?.dataSource
+				? editingRepeater.dataSource.select.trim().split(/\s+/).filter(Boolean)
+				: referenceFields(editingFrame?.dataReference)
+	);
+	function repeatSelection() {
+		if (!selected || selected.repeater || editingRepeater) return;
+		const item = structuredClone($state.snapshot(selected));
+		const reference = item.dataReference;
+		delete item.dataReference;
+		item.x = 0;
+		item.y = 0;
+		item.keyframes = item.keyframes.map((frame) => ({
+			...frame,
+			x: frame.x - selected.x,
+			y: frame.y - selected.y
+		}));
+		const wrapper = newElement('repeater', crypto.randomUUID());
+		Object.assign(wrapper, {
+			x: selected.x,
+			y: selected.y,
+			width: selected.width,
+			height: selected.height,
+			horizontalAnchor: selected.horizontalAnchor,
+			verticalAnchor: selected.verticalAnchor,
+			text: `Repeat ${selected.text}`
+		});
+		wrapper.repeater = {
+			...defaultRepeater(),
+			columns: 1,
+			itemHeight: selected.height,
+			template: { width: selected.width, height: selected.height, elements: [item] }
+		};
+		if (reference) wrapper.dataReference = reference;
+		setElements(activeElements.map((element) => (element.id === selected.id ? wrapper : element)));
+		selectedId = wrapper.id;
+	}
 	const contentLabel = $derived(
 		selected?.type === 'qr'
 			? 'QR content (URL or text)'
@@ -324,6 +387,7 @@
 	const references = $derived(form?.references ?? data.references ?? []);
 	let json = $state('');
 	let localError = $state('');
+	let sourceParameterError = $state('');
 
 	let previewRevision = $state(0);
 	let tool = $state<'select' | 'pan' | 'resize'>('select');
@@ -363,6 +427,7 @@
 		delete: 'Delete slide?'
 	};
 	let isDialogOpen = $state(false);
+	let dataOpen = $state(false);
 	let returnFocus: HTMLElement | null = null;
 	let colorInput = $state<HTMLInputElement | null>(null);
 	const uid = $props.id();
@@ -421,6 +486,10 @@
 		if (type === 'list') {
 			element.repeater = defaultRepeater();
 			element.text = 'Repeater';
+			if (data.sources?.length) {
+				element.type = 'repeater';
+				delete element.dataSource;
+			}
 		}
 		if (editingFrame || editingRepeater?.repeater) {
 			element.x = 20;
@@ -576,8 +645,16 @@
 	const dataSourceSignature = $derived(
 		JSON.stringify(
 			allElements(draft)
-				.filter((element) => element.type === 'list')
-				.map(({ id, dataSource, repeater }) => ({ id, dataSource, templateMode: !!repeater }))
+				.filter(
+					(element) =>
+						element.type === 'list' || element.type === 'repeater' || element.dataReference
+				)
+				.map(({ id, dataSource, dataReference, repeater }) => ({
+					id,
+					dataSource,
+					dataReference,
+					templateMode: !!repeater
+				}))
 		)
 	);
 	$effect(() => {
@@ -588,7 +665,7 @@
 		const controller = new AbortController();
 		let disposed = false;
 		const timer = setTimeout(async () => {
-			const timeout = setTimeout(() => controller.abort(), 10000);
+			const timeout = setTimeout(() => controller.abort(), 20000);
 			try {
 				const fields = new FormData();
 				fields.set('definition', JSON.stringify($state.snapshot(draft)));
@@ -665,6 +742,13 @@
 		>
 		<AddElementMenu tools={availableTools} onAdd={addElement} />
 		<Button
+			aria-label="Manage data"
+			variants={['ghost']}
+			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
+			onclick={() => (dataOpen = true)}
+			><Database size={18} /><span class="hidden md:inline">Data</span></Button
+		>
+		<Button
 			aria-label="Settings"
 			title="Slide settings"
 			variants={['ghost']}
@@ -708,6 +792,11 @@
 			action={assetAction('save')}
 			class="ml-auto flex w-auto max-w-none shrink-0 items-center gap-2 space-y-0"
 			submitFunction={({ cancel }) => {
+				if (sourceParameterError) {
+					cancel();
+					localError = sourceParameterError;
+					return;
+				}
 				if (!title.trim() || !slug.trim()) {
 					cancel();
 					openDialog('settings');
@@ -1425,7 +1514,7 @@
 							></InspectorSection
 						>
 
-						{#if editingRepeater && (selected.type === 'text' || selected.type === 'qr')}<InspectorSection
+						{#if editingRepeater && !editingRepeater.dataReference && (selected.type === 'text' || selected.type === 'qr')}<InspectorSection
 								title="Data binding"
 								open
 							>
@@ -1438,9 +1527,7 @@
 										{ value: 'label', label: 'Label (legacy mapping)' },
 										{ value: 'detail', label: 'Detail (legacy mapping)' },
 										{ value: '$index', label: 'Row number' },
-										...(
-											editingRepeater.dataSource?.select.trim().split(/\s+/).filter(Boolean) ?? []
-										).map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
+										...rowFields.map((field) => ({ value: `row.${field}`, label: `row.${field}` }))
 									]}
 									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
 										if (selected)
@@ -1463,15 +1550,46 @@
 									/>
 								{/if}
 							</InspectorSection>{/if}
-						{#if selected.type === 'list' && selected.dataSource}<InspectorSection
-								title="Data link"
+						<InspectorSection
+							title="Data source"
+							open={!!selected.dataReference || !!selected.repeater}
+						>
+							{#key selected.id}<SourcePicker
+									onManage={() => (dataOpen = true)}
+									bind:value={selected.dataReference}
+									sources={data.sources ?? []}
+									onError={(message) => (sourceParameterError = message)}
+								/>{/key}
+							{#if selected.dataReference || editingRepeater || rowFields.length}<ElementBindings
+									element={selected}
+									fields={selected.dataReference
+										? referenceFields(selected.dataReference)
+										: rowFields}
+								/>{/if}
+							<Button onclick={() => previewRevision++}>Refresh source preview</Button>
+							{#if !selected.repeater && !editingRepeater}<Button onclick={repeatSelection}
+									>Repeat with data</Button
+								>{/if}
+						</InspectorSection>
+						{#if selected.type === 'repeater' && selected.repeater}<InspectorSection
+								title="Repeater layout"
 								open
 							>
-								<DataLinkEditor
-									bind:link={selected.dataSource}
-									templateMode={!!selected.repeater}
-									fields={data.dataFields?.[selected.dataSource.model] ?? []}
+								<RepeaterSettings
+									bind:settings={selected.repeater}
+									width={selected.width}
+									height={selected.height}
+									count={slideData[selected.id]?.items.length ?? 0}
 								/>
+								<Button onclick={editTemplate}>Edit item template</Button>
+							</InspectorSection>{/if}
+						{#if selected.type === 'list'}<InspectorSection title="Data link" open>
+								{#if !selected.dataReference && selected.dataSource}<DataLinkEditor
+										bind:link={selected.dataSource}
+										templateMode={!!selected.repeater}
+										fields={data.dataFields?.[selected.dataSource.model] ?? []}
+									/>
+								{/if}
 								<Button onclick={() => previewRevision++}>Refresh data preview</Button>
 							</InspectorSection>{#if selected.repeater}<InspectorSection
 									title="Repeater layout"
@@ -1663,6 +1781,34 @@
 		</Div>
 	</Div>
 </Div>
+
+{#if dataOpen}
+	<Modal
+		bind:isOpen={dataOpen}
+		role="dialog"
+		aria-label="Data links"
+		class="flex max-h-[90svh] w-full max-w-6xl flex-col gap-4 overflow-hidden p-5"
+	>
+		<Div class="flex shrink-0 items-center justify-between gap-4"
+			><H2>Data links</H2><Button
+				aria-label="Close data links"
+				variants={['ghost']}
+				onclick={() => (dataOpen = false)}><X size={18} /></Button
+			></Div
+		>
+		<Div class="-m-1 min-h-0 overflow-y-auto overscroll-contain p-1"
+			><DataLibrary
+				usedSourceIds={allElements(draft).flatMap((element) =>
+					element.dataReference ? [element.dataReference.sourceId] : []
+				)}
+				sources={data.dataSources ?? []}
+				connections={data.dataConnections ?? []}
+				{scopeId}
+				{form}
+			/></Div
+		>
+	</Modal>
+{/if}
 
 {#if isDialogOpen}
 	<Modal

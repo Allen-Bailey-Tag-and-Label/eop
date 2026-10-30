@@ -1,7 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SlideMediaCache } from './media';
+import { SlideMediaCache, mediaIds } from './media';
+import { blankSlide, newElement } from './types';
+import { defaultRepeater } from './repeater';
 afterEach(() => vi.unstubAllGlobals());
 describe('monitor media cache', () => {
+	it('preloads asset IDs bound from every repeated data row', () => {
+		const image = {
+			...newElement('image', 'photo'),
+			bindings: { assetId: { field: 'row.asset', format: 'text' as const, fallback: '' } }
+		};
+		const repeat = {
+			...newElement('repeater', 'repeat'),
+			repeater: { ...defaultRepeater(), template: { width: 100, height: 100, elements: [image] } }
+		};
+		expect(
+			mediaIds(
+				{ ...blankSlide(), elements: [repeat] },
+				{
+					repeat: {
+						state: 'ready',
+						message: '',
+						items: ['a', 'b'].map((key) => ({
+							id: key,
+							label: key,
+							detail: '',
+							fields: { asset: key.repeat(24) }
+						}))
+					}
+				}
+			)
+		).toEqual(['a'.repeat(24), 'b'.repeat(24)]);
+	});
 	it('reuses loaded media without networking and bounds memory while protecting the current slide', async () => {
 		const revoke = vi.fn();
 		vi.stubGlobal('URL', {

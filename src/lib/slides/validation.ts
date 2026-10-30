@@ -1,4 +1,5 @@
 import { safeField } from './data-link';
+import { validateReference, validateBindings } from '$lib/data/bindings';
 import { validateVisibility } from './visibility';
 import { allElements } from './repeater';
 import { normalizeDataSource, validateLink } from './data-link';
@@ -15,6 +16,16 @@ export class SlideValidationError extends Error {}
 const invalid = (message: string): never => {
 	throw new SlideValidationError(message);
 };
+function dataSettings(element: Record<string, unknown>) {
+	try {
+		return {
+			...(element.dataReference ? { dataReference: validateReference(element.dataReference) } : {}),
+			...(element.bindings ? { bindings: validateBindings(element.bindings) } : {})
+		};
+	} catch (cause) {
+		return invalid(cause instanceof Error ? cause.message : 'Invalid data binding.');
+	}
+}
 const object = (value: unknown): Record<string, unknown> =>
 	value && typeof value === 'object' && !Array.isArray(value)
 		? (value as Record<string, unknown>)
@@ -225,11 +236,23 @@ export function validateSlide(
 			e.type,
 			itemTemplate
 				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame', 'qr']
-				: ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'list', 'frame', 'qr'],
+				: [
+						'text',
+						'image',
+						'svg',
+						'rectangle',
+						'ellipse',
+						'line',
+						'list',
+						'repeater',
+						'frame',
+						'qr'
+					],
 			'element type'
 		);
 		const assetId = text(e.assetId, 24, 'Asset ID').toLowerCase();
-		if ((type === 'image' || type === 'svg') && !isId(assetId))
+		const data = dataSettings(e);
+		if ((type === 'image' || type === 'svg') && !isId(assetId) && !data.bindings?.assetId)
 			invalid('Choose an uploaded asset for each image or SVG.');
 		if (!Array.isArray(e.keyframes) || e.keyframes.length > 100)
 			invalid('Use at most 100 keyframes per element.');
@@ -251,12 +274,16 @@ export function validateSlide(
 			type,
 			assetId,
 			keyframes,
+			...data,
+			...(type === 'repeater' ? { repeater: repeater(e.repeater, durationMs, depth, budget) } : {}),
 			...((type === 'image' || type === 'svg') && e.imageOpacity !== undefined
 				? { imageOpacity: number(e.imageOpacity, 0, 1, 'Image opacity') }
 				: {}),
 			...(type === 'list'
 				? {
-						dataSource: validateDataSource(e.dataSource, !e.repeater),
+						...(e.dataReference
+							? {}
+							: { dataSource: validateDataSource(e.dataSource, !e.repeater) }),
 						...(e.repeater ? { repeater: repeater(e.repeater, durationMs, depth, budget) } : {})
 					}
 				: {}),
@@ -372,7 +399,9 @@ export function validateSlide(
 		};
 	});
 	const dataIds = allElements({ elements })
-		.filter((element) => element.type === 'list')
+		.filter(
+			(element) => element.type === 'list' || element.type === 'repeater' || element.dataReference
+		)
 		.map((element) => element.id);
 	if (new Set(dataIds).size !== dataIds.length)
 		invalid('Data elements need unique IDs across frames.');

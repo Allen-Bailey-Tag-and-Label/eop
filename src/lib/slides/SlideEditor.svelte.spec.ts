@@ -36,6 +36,90 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('manages data links in an editor dialog with slide and shared libraries', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: [],
+				dataSources: [
+					{
+						id: 'a'.repeat(24),
+						title: 'Local birthdays',
+						version: 1,
+						scope: 'slide',
+						publishedAt: null
+					},
+					{
+						id: 'b'.repeat(24),
+						title: 'Shared sales',
+						version: 1,
+						scope: 'shared',
+						publishedAt: null
+					}
+				]
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Manage data' }));
+		const dialog = within(view.getByRole('dialog', { name: 'Data links' }));
+		expect(dialog.getByText('Local birthdays')).toBeInTheDocument();
+		expect(dialog.queryByText('Shared sales')).not.toBeInTheDocument();
+		await fireEvent.click(dialog.getByRole('tab', { name: 'Shared library' }));
+		expect(dialog.getByText('Shared sales')).toBeInTheDocument();
+		expect(dialog.getByRole('button', { name: 'Move to this slide' })).toBeInTheDocument();
+		await fireEvent.click(dialog.getByRole('button', { name: 'Create data link' }));
+		expect(dialog.getByRole('heading', { name: 'New data link' })).toBeInTheDocument();
+		expect(dialog.getByRole('button', { name: 'Save draft' })).toBeInTheDocument();
+	});
+	it('wraps a selected object in a reusable data repeater while preserving its bindings', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(JSON.stringify({ type: 'success', data: { slideData: {} } })))
+		);
+		const reference = { sourceId: 'a'.repeat(24), output: 'employees', parameters: {} };
+		const text = {
+			...newElement('text', 'birthday'),
+			text: 'Birthday',
+			dataReference: reference,
+			bindings: { text: { field: 'row.name', format: 'text' as const, fallback: '' } }
+		};
+		const view = render(SlideEditor, {
+			data: {
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: { ...blankSlide(), elements: [text] }
+				},
+				assets: [],
+				sources: [
+					{
+						id: reference.sourceId,
+						title: 'Employees',
+						outputs: { employees: ['name'] },
+						parameters: {}
+					}
+				]
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Select element 1: text' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Toggle properties panel' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Repeat with data' }));
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		const wrapper = validateSlide(definition).elements[0];
+		expect(wrapper.type).toBe('repeater');
+		expect(wrapper.dataReference).toEqual(reference);
+		expect(wrapper.repeater!.template.elements[0]).toMatchObject({
+			id: 'birthday',
+			x: 0,
+			y: 0,
+			bindings: text.bindings
+		});
+		expect(wrapper.repeater!.template.elements[0].dataReference).toBeUndefined();
+	});
 	it('defaults new graphics to cover and saves independent image opacity', async () => {
 		const view = render(SlideEditor, {
 			data: {
@@ -98,7 +182,11 @@ describe('slide authoring', () => {
 			select: 'displayText'
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Edit item template' }));
-		expect(view.getByRole('option', { name: 'row.displayText' })).toBeInTheDocument();
+		expect(
+			within(view.getByRole('combobox', { name: 'Text data binding' })).getByRole('option', {
+				name: 'row.displayText'
+			})
+		).toBeInTheDocument();
 		await fireEvent.change(view.getByRole('combobox', { name: 'Text data binding' }), {
 			target: { value: 'row.displayText' }
 		});

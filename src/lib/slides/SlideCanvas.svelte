@@ -12,6 +12,7 @@
 	import { frameLayoutStyle, elementPositionStyle } from './frames';
 	import type { FrameDefinition } from './types';
 	import { boundText } from './repeater';
+	import { boundElement } from '$lib/data/bindings';
 	import type { DataRow } from './types';
 
 	import type { SlideData } from './types';
@@ -97,7 +98,8 @@
 		data-canvas-root
 		style={`position:absolute;left:50%;top:50%;width:${renderWidth}px;height:${renderHeight}px;transform:translate(-50%,-50%) scale(${scale});transform-origin:center;overflow:${clip ? 'hidden' : 'visible'};${frameLayoutStyle(flow, Math.min(renderWidth / definition.width, renderHeight / definition.height))}`}
 	>
-		{#each definition.elements as element, index (element.id)}
+		{#each definition.elements as original, index (original.id)}
+			{@const element = boundElement(original, row, rowIndex, timeZone, data)}
 			{@const pose = poseAt(element, elementTimeMs)}
 			{@const box = elementLayout(definition, element, pose, renderWidth, renderHeight)}
 			{@const base = elementLayout(definition, element, element, renderWidth, renderHeight)}
@@ -129,7 +131,7 @@
 						{data}
 						{assetBase}
 						{assetUrls}
-						{row}
+						row={element.dataReference ? data[element.id]?.items[0] : row}
 						{rowIndex}
 						{timeZone}
 					/>
@@ -149,9 +151,10 @@
 							? boundText(element.binding, row, rowIndex, timeZone)
 							: element.text}</Div
 					>
-				{:else if element.type === 'list' && element.repeater}
+				{:else if element.repeater}
 					<Repeater
 						settings={element.repeater}
+						{data}
 						result={Object.hasOwn(data, element.id) ? data[element.id] : undefined}
 						width={contentWidth}
 						height={contentHeight}
@@ -189,7 +192,7 @@
 			<Div
 				{@attach (node) => observe(node, element.id)}
 				data-slide-element={element.id}
-				style={`${elementPositionStyle(element, box, base, flow)}order:${-index};z-index:${index};opacity:${pose.opacity};overflow:${clipElement ? 'hidden' : 'visible'};color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};${element.borderRadius !== undefined || element.type === 'ellipse' ? `border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};` : ''}${element.backgroundColor !== undefined || element.frame ? `background:${resolveSlideColor(element.backgroundColor ?? element.color, scheme)};` : ''}`}
+				style={`${elementPositionStyle(element, box, base, flow)}order:${-index};z-index:${index};visibility:${element.visible ? 'visible' : 'hidden'};opacity:${pose.opacity};overflow:${clipElement ? 'hidden' : 'visible'};color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};${element.borderRadius !== undefined || element.type === 'ellipse' ? `border-radius:${element.type === 'ellipse' ? '50%' : `${((element.borderRadius ?? 0) * box.width) / element.width}px`};` : ''}${element.backgroundColor !== undefined || element.frame ? `background:${resolveSlideColor(element.backgroundColor ?? element.color, scheme)};` : ''}`}
 			>
 				{#if element.type === 'text'}{@render content()}{:else}<Div
 						style={`position:absolute;inset:${paddingCss(element.padding, unit)};`}

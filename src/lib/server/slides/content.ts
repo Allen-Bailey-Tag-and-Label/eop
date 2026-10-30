@@ -209,7 +209,7 @@ export async function validateAssets(definition: SlideDefinition) {
 	const ids = [
 		...new Set(
 			allElements(definition)
-				.filter((e) => e.type === 'image' || e.type === 'svg')
+				.filter((e) => (e.type === 'image' || e.type === 'svg') && !!e.assetId)
 				.map((e) => e.assetId)
 		)
 	];
@@ -219,6 +219,7 @@ export async function validateAssets(definition: SlideDefinition) {
 		.lean();
 	for (const element of allElements(definition)) {
 		if (element.type !== 'image' && element.type !== 'svg') continue;
+		if (!element.assetId && element.bindings?.assetId) continue;
 		const asset = assets.find((item) => item._id.toString() === element.assetId);
 		if (!asset || (element.type === 'svg') !== (asset.contentType === 'image/svg+xml'))
 			throw new SlideValidationError(

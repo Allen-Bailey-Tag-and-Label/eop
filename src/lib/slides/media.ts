@@ -1,13 +1,28 @@
-import { allElements } from './repeater';
 import type { SlideDefinition } from './types';
+import type { SlideData, DataRow, SlideElement } from './types';
+import { boundElement } from '$lib/data/bindings';
 
-export const mediaIds = (definition: SlideDefinition) => [
-	...new Set(
-		allElements(definition)
-			.filter((element) => element.type === 'image' || element.type === 'svg')
-			.map((element) => element.assetId)
-	)
-];
+export const mediaIds = (definition: SlideDefinition, data: SlideData = {}) => {
+	const ids = new Set<string>();
+	const visit = (elements: SlideElement[], row?: DataRow) => {
+		for (const original of elements) {
+			const element = boundElement(original, row, 0, 'UTC', data);
+			if (
+				(element.type === 'image' || element.type === 'svg') &&
+				/^[a-f0-9]{24}$/i.test(element.assetId)
+			)
+				ids.add(element.assetId);
+			if (element.frame)
+				visit(element.frame.elements, element.dataReference ? data[element.id]?.items[0] : row);
+			if (element.repeater) visit(element.repeater.template.elements, row);
+			if (element.repeater)
+				for (const item of data[element.id]?.items ?? [])
+					visit(element.repeater.template.elements, item);
+		}
+	};
+	visit(definition.elements);
+	return [...ids];
+};
 
 // In-memory blobs let already loaded media survive network interruptions.
 // Bound memory use on Raspberry Pis; prefer keeping the current slide's assets.

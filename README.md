@@ -630,3 +630,8 @@ custom timing as a playlist default or entry override, then publish the playlist
 Published transition changes participate in the playback version so monitors
 receive them at a slide boundary. Each new visit still revalidates published
 content; missing media keeps the outgoing slide visible and retries loading.
+
+## Reusable data workflows
+
+See [the data workflow guide](docs/data-workflows.md) for the slide editor Data dialog,
+API connections, published outputs, and element/repeater bindings.

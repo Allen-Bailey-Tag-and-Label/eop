@@ -117,7 +117,7 @@
 			mediaMissing = false;
 			return;
 		}
-		const ids = mediaIds(slide.definition);
+		const ids = mediaIds(slide.definition, slide.data);
 		preparing = slide;
 		const previous = untrack(() => shown);
 		const previousLayer = untrack(() =>
@@ -132,7 +132,10 @@
 					}
 				: null
 		);
-		cache.protectedIds = new Set([...ids, ...(previous ? mediaIds(previous.definition) : [])]);
+		cache.protectedIds = new Set([
+			...ids,
+			...(previous ? mediaIds(previous.definition, previous.data) : [])
+		]);
 		let controller = new AbortController();
 		let frame: number;
 		let timer: ReturnType<typeof setTimeout>;
@@ -233,7 +236,7 @@
 		nextPreviews = {};
 		previewLoading = !!slides.length;
 		if (!slides.length || preparing) return;
-		const ids = [...new Set(slides.flatMap((slide) => mediaIds(slide.definition)))];
+		const ids = [...new Set(slides.flatMap((slide) => mediaIds(slide.definition, slide.data)))];
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 10000);
 		let disposed = false;
@@ -243,7 +246,7 @@
 			previewLoading = false;
 			const previews: typeof nextPreviews = {};
 			for (const slide of slides) {
-				const media = mediaIds(slide.definition),
+				const media = mediaIds(slide.definition, slide.data),
 					urls = cache.urls(media);
 				if (Object.keys(urls).length === media.length) previews[slide.id] = { urls };
 			}

@@ -4,7 +4,9 @@
 	let { value = $bindable(), elements }: { value?: SlideVisibility; elements: SlideElement[] } =
 		$props();
 	const sources = $derived(
-		elements.filter((element) => element.type === 'list' && element.dataSource)
+		elements.filter(
+			(element) => element.dataReference || (element.type === 'list' && element.dataSource)
+		)
 	);
 	const kinds = [
 		{ value: 'date', label: 'Calendar date' },

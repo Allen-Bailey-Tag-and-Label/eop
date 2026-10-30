@@ -189,6 +189,7 @@ export async function validateAssetScope(definition: SlideDefinition, slideId: s
 			allElements(definition)
 				.filter((element) => element.type === 'image' || element.type === 'svg')
 				.map((element) => element.assetId)
+				.filter(Boolean)
 		)
 	];
 	if (!ids.length) return;

@@ -47,7 +47,7 @@ export function watchPlayback(
 		active?.abort();
 		const request = new AbortController();
 		active = request;
-		const timeout = setTimeout(() => request.abort(), 10000);
+		const timeout = setTimeout(() => request.abort(), 20000);
 		try {
 			const response = await fetch('/monitors/playback', {
 				cache: 'no-store',

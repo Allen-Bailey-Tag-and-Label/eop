@@ -9,6 +9,7 @@ import type {
 } from '$lib/slides/types';
 import { validateDataSource, SlideValidationError } from '$lib/slides/validation';
 import { dataModels, parseFilter, parseSort, parsePipeline } from '$lib/slides/data-link';
+import { validateReference } from '$lib/data/bindings';
 
 function availableField(schema: Schema, field: string) {
 	const segments = field.split('.');
@@ -170,7 +171,7 @@ function display(value: unknown, format: string, timeZone: string): string {
 		? String(value).trim().slice(0, 500)
 		: '';
 }
-async function queryLink(config: SlideDataSource, now: Date): Promise<DataListResult> {
+export async function queryLink(config: SlideDataSource, now: Date): Promise<DataListResult> {
 	const models = await import('../mongoose/models');
 	const model = models[config.model as keyof typeof models] as Model<Record<string, unknown>>;
 	if (!model) throw new Error('Unsupported model.');
@@ -247,10 +248,42 @@ export function createSlideDataResolver(now = new Date(), preview = false) {
 		Object.fromEntries(
 			await Promise.all(
 				allElements(definition)
-					.filter((element) => element.type === 'list')
+					.filter(
+						(element) =>
+							element.type === 'list' || element.type === 'repeater' || element.dataReference
+					)
 					.map(async (element) => {
 						let result: DataListResult;
 						try {
+							if (element.dataReference) {
+								const reference = validateReference(element.dataReference);
+								const key = JSON.stringify(reference);
+								if (!pending.has(key))
+									pending.set(
+										key,
+										(async () => {
+											const { resolveSource } = await import('../data/sources');
+											const result = await resolveSource(reference, now);
+											const rows = result.outputs[reference.output];
+											if (!rows) throw new Error('The source output is unavailable.');
+											return {
+												state: rows.length ? ('ready' as const) : ('empty' as const),
+												items: rows.map((fields, index) => ({
+													id: String(fields._rowId ?? fields.id ?? fields._id ?? index),
+													label: String(Object.values(fields)[0] ?? ''),
+													detail: '',
+													fields
+												})),
+												message: rows.length
+													? result.stale
+														? 'Showing previously fetched data.'
+														: ''
+													: 'No matching records.'
+											};
+										})()
+									);
+								return [element.id, await pending.get(key)!];
+							}
 							const config = validateDataSource(element.dataSource, !element.repeater);
 							const key = JSON.stringify(config);
 							if (!pending.has(key)) pending.set(key, queryLink(config, now));
@@ -290,7 +323,13 @@ export async function previewSlideData(input: unknown, now = new Date()): Promis
 			if (++count > 500) throw new SlideValidationError('Use at most 500 elements.');
 			if (!raw || typeof raw !== 'object') return [raw];
 			const frame = (raw as { frame?: { elements?: unknown } }).frame;
-			return [raw, ...(Array.isArray(frame?.elements) ? collect(frame.elements, depth + 1) : [])];
+			const template = (raw as { repeater?: { template?: { elements?: unknown } } }).repeater
+				?.template;
+			return [
+				raw,
+				...(Array.isArray(frame?.elements) ? collect(frame.elements, depth + 1) : []),
+				...(Array.isArray(template?.elements) ? collect(template.elements, depth + 1) : [])
+			];
 		});
 	};
 	const rawElements = collect((input as { elements: unknown[] }).elements);
@@ -299,7 +338,11 @@ export async function previewSlideData(input: unknown, now = new Date()): Promis
 	const elements = rawElements
 		.filter(
 			(raw): raw is Record<string, unknown> =>
-				!!raw && typeof raw === 'object' && (raw as { type?: unknown }).type === 'list'
+				!!raw &&
+				typeof raw === 'object' &&
+				((raw as { type?: unknown }).type === 'list' ||
+					(raw as { type?: unknown }).type === 'repeater' ||
+					!!(raw as { dataReference?: unknown }).dataReference)
 		)
 		.map((raw) => {
 			const id = raw.id;
@@ -309,6 +352,9 @@ export async function previewSlideData(input: unknown, now = new Date()): Promis
 			return {
 				...newElement('list', id),
 				dataSource: raw.dataSource as SlideDataSource,
+				...(raw.dataReference
+					? { dataReference: raw.dataReference as import('$lib/data/types').SourceReference }
+					: {}),
 				...(raw.repeater ? { repeater: defaultRepeater() } : {})
 			};
 		});

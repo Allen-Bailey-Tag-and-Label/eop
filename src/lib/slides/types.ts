@@ -1,3 +1,6 @@
+import type { SourceReference } from '$lib/data/types';
+import type { BoundProperty } from '$lib/data/bindings';
+
 export type ElementType =
 	| 'text'
 	| 'image'
@@ -6,6 +9,7 @@ export type ElementType =
 	| 'ellipse'
 	| 'line'
 	| 'list'
+	| 'repeater'
 	| 'frame'
 	| 'qr';
 export type ElementPadding =
@@ -132,6 +136,8 @@ export type SlideElement = Pose & {
 	imageOpacity?: number;
 	keyframes: Keyframe[];
 	dataSource?: SlideDataSource;
+	dataReference?: SourceReference;
+	bindings?: Partial<Record<BoundProperty, DataBinding>>;
 	repeater?: RepeaterDefinition;
 	binding?: DataBinding;
 	fontWeight?: 400 | 600 | 700;

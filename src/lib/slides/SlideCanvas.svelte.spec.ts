@@ -22,6 +22,36 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('binds a standalone element and renders any object from reusable output rows', () => {
+		const reference = { sourceId: 'a'.repeat(24), output: 'employees', parameters: {} };
+		const text = {
+			...newElement('text', 'heading'),
+			dataReference: reference,
+			bindings: { text: { field: 'row.name', format: 'text' as const, fallback: 'Missing' } }
+		};
+		const image = {
+			...newElement('image', 'photo'),
+			bindings: { assetId: { field: 'row.asset', format: 'text' as const, fallback: '' } }
+		};
+		const repeat = {
+			...newElement('repeater', 'repeat'),
+			dataReference: reference,
+			repeater: { ...defaultRepeater(), template: { width: 100, height: 100, elements: [image] } }
+		};
+		const items = [
+			{ id: 'alice', label: 'Alice', detail: '', fields: { name: 'Alice', asset: 'b'.repeat(24) } }
+		];
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [text, repeat] },
+			assetBase: '/assets',
+			data: {
+				heading: { state: 'ready', message: '', items },
+				repeat: { state: 'ready', message: '', items }
+			}
+		});
+		expect(view.getByText('Alice')).toBeInTheDocument();
+		expect(view.container.querySelector('img')).toHaveAttribute('src', '/assets/' + 'b'.repeat(24));
+	});
 	it('applies image opacity independently of animated object opacity and preserves legacy fit', async () => {
 		const image = { ...newElement('image', 'photo'), assetId: 'a'.repeat(24), imageOpacity: 0.25 };
 		image.keyframes = [

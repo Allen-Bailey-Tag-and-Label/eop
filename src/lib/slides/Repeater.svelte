@@ -6,6 +6,7 @@
 	let {
 		settings,
 		result,
+		data = {},
 		width,
 		height,
 		timeMs,
@@ -18,6 +19,7 @@
 	}: {
 		settings: RepeaterDefinition;
 		result?: DataListResult;
+		data?: import('./types').SlideData;
 		width: number;
 		height: number;
 		timeMs: number;
@@ -51,6 +53,7 @@
 					{assetBase}
 					{assetUrls}
 					{row}
+					{data}
 					rowIndex={grid.start + index}
 					{timeZone}
 					viewportWidth={grid.itemWidth}
