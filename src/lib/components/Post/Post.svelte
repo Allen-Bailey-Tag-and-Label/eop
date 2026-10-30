@@ -1,10 +1,22 @@
 <script lang="ts">
+	import { setContext } from 'svelte';
+	import { postFormContext } from '$lib/forms/context';
 	import { dateTime } from '$lib/formats';
 	import { mdToTokens } from '$lib/marked';
 	import { Div, H1, MarkdownToken } from '..';
 
-	type Props = { date: Date; firstName: string; lastName: string; md: string; title: string };
+	type Props = {
+		postId?: string;
+		preview?: boolean;
+		date: Date;
+		firstName: string;
+		lastName: string;
+		md: string;
+		title: string;
+	};
 	let {
+		postId,
+		preview = false,
 		date,
 		firstName = $bindable(''),
 		lastName = $bindable(''),
@@ -12,8 +24,27 @@
 		title = $bindable('')
 	}: Props = $props();
 
+	setContext(postFormContext, {
+		get postId() {
+			return postId;
+		},
+		get preview() {
+			return preview;
+		}
+	});
+
 	// $derives
-	const tokens = $derived.by(() => mdToTokens(md));
+	const tokens = $derived.by(() =>
+		mdToTokens(md).map((token) => {
+			// Marked treats custom tags as inline HTML. Render standalone forms as blocks.
+			if (
+				token.type === 'paragraph' &&
+				/^<PublishedForm\b[^>]*(?:\/>|>\s*<\/PublishedForm>)\s*$/.test(token.text)
+			)
+				return { ...token, type: 'html', block: true };
+			return token;
+		})
+	);
 </script>
 
 <Div class="flex max-h-full flex-col space-y-6">

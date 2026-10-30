@@ -19,6 +19,9 @@ const chartDefault =
 	'min-h-0 min-w-0 text-inherit [--color-primary:var(--color-primary-500)] [--color-surface-content:currentColor]';
 
 export const defaultTheme = {
+	AudiencePicker: { default: 'space-y-3' },
+	FormRenderer: { default: 'space-y-4' },
+	PublishedForm: { default: 'my-6 w-full' },
 	Chart: { default: chartDefault },
 	ChartPlot: { default: 'flex h-full min-h-0 w-full flex-col' },
 	LineChart: { default: chartDefault },

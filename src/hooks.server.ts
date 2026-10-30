@@ -149,6 +149,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const userIdCookie = event.cookies.get('userId');
 
+	// Published posts and forms use record-level audiences, enforced centrally for pages and submissions.
+	if (
+		['/(public)/(padded)/news/', '/(public)/(padded)/posts/', '/(public)/(padded)/forms/'].some(
+			(prefix) => event.route.id?.startsWith(prefix)
+		)
+	) {
+		const { authorizeContent } = await import('$lib/server/forms/access');
+		const denied = await authorizeContent(event);
+		if (denied) return denied;
+	}
+
 	// handle root path
 	if (event.url.pathname === '/') {
 		if (userIdCookie === undefined) return redirect('/sign-in');

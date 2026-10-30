@@ -5,6 +5,21 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
+			contentActor?: import('$lib/server/forms/access').ContentActor;
+			authorizedForm?: import('$lib/server/forms/access').AuthorizedForm;
+			authorizedPost?: {
+				_id: string;
+				_createdById?: string;
+				title: string;
+				md: string;
+				year: number;
+				month: number;
+				day: number;
+				slug: string;
+				createdAt?: string;
+				audience?: string;
+				formIds?: string[];
+			};
 			monitor: { id: string; location: string; colorMode: 'light' | 'dark' | 'system' };
 			navigation: Navigation[];
 			user: User;

@@ -3,10 +3,13 @@
 	import { A, Div, MongooseTable, Td } from '$lib/components';
 	import type { ColumnOverrides, TdSnippet } from '$lib/components/MongooseTable/types.js';
 	import { theme } from '$lib/theme';
+	import { postUrl } from '$lib/forms/definition';
 
 	let { data } = $props();
 	const columnOverrides: ColumnOverrides = $state({
-		md: { isHidden: true }
+		md: { isHidden: true },
+		formIds: { isHidden: true },
+		roleIds: { isHidden: true }
 	});
 	const virtualColumns = $state([
 		{
@@ -22,7 +25,7 @@
 	{data}
 	isCreatable={false}
 	isEditable={false}
-	modelName={'Post'}
+	modelName="Post"
 	{virtualColumns}
 />
 
@@ -37,7 +40,7 @@
 			</A>
 			<A
 				class={twMerge($theme.Button.default, $theme.Button.small, 'hover:no-underline')}
-				href="/{object.category}/{object.year}/{object.month}/{object.day}/{object.slug}"
+				href={postUrl(object as { year: number; month: number; day: number; slug: string })}
 				target="_blank"
 			>
 				View

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T15:47:51.290Z
+## 2026-10-30T16:21:15.449Z
+
+feat: Add reusable post forms and audience-controlled publishing
+
+## 2026-10-30T11:49:48-04:00
 
 fix: Update chart and repeater tool icons
 

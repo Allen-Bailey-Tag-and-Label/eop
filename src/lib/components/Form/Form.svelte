@@ -19,6 +19,7 @@
 		form?: any;
 		inputs?: Snippet;
 		isLoading?: boolean;
+		isEnhanced?: boolean;
 		method?: 'GET' | 'POST';
 		submitFunction?: SubmitFunction;
 		style?: string;
@@ -33,6 +34,7 @@
 		form,
 		inputs,
 		isLoading = $bindable(false),
+		isEnhanced = true,
 		method = 'POST',
 		submitFunction = () => {
 			isLoading = true;
@@ -61,7 +63,9 @@
 	)}
 	method={method === 'GET' ? 'get' : 'post'}
 	{style}
-	{@attach method === 'POST' ? fromAction(enhanceForm, () => submitFunction) : undefined}
+	{@attach method === 'POST' && isEnhanced
+		? fromAction(enhanceForm, () => submitFunction)
+		: undefined}
 >
 	{#if children}
 		{@render children()}

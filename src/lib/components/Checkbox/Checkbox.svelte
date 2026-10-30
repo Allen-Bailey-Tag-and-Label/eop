@@ -3,7 +3,7 @@
 	import { unstyledTheme } from '$lib/theme/sveltewind';
 	import { type Snippet } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { Check } from '$lib/icons';
 	import { attachmentFactory } from '$lib/attachments';
@@ -11,7 +11,7 @@
 	import { Div, Label } from '../';
 	import { scale } from 'svelte/transition';
 
-	type Props = Omit<HTMLAttributes<HTMLInputElement>, 'checked' | 'class' | 'style'> & {
+	type Props = Omit<HTMLInputAttributes, 'checked' | 'class' | 'style'> & {
 		attachments?: Attachment[];
 		checked?: boolean;
 		children?: Snippet;

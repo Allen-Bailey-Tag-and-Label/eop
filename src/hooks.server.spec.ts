@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handle } from './hooks.server';
+import { authorizeContent } from '$lib/server/forms/access';
+vi.mock('$lib/server/forms/access', () => ({ authorizeContent: vi.fn() }));
 import { getMonitorSession } from '$lib/server/monitors/sessions';
 import { preserveMonitorApprovals } from '$lib/server/monitors/migrate';
 import { User } from '$lib/server/mongoose/models';
@@ -67,6 +69,7 @@ const invoke = (input: ReturnType<typeof context>) =>
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	vi.mocked(authorizeContent).mockResolvedValue(undefined);
 	vi.mocked(getMonitorSession).mockResolvedValue(null);
 	userModel.find.mockReturnValue({ lean: async () => [{}] });
 	userModel.findById.mockReturnValue(userQuery(userWithRoutes(['/dashboard'])));
@@ -137,4 +140,19 @@ describe('central monitor authentication', () => {
 			expect(allowed.resolve).toHaveBeenCalled();
 		}
 	);
+});
+
+describe('central post and form enforcement', () => {
+	it('guards canonical posts, legacy news and form data/submissions before resolving routes', async () => {
+		for (const [route, path] of [
+			['/(public)/(padded)/posts/[year]/[month]/[day]/[slug]', '/posts/2026/10/30/feedback'],
+			['/(public)/(padded)/news/[year]/[month]/[day]/[slug]', '/news/2026/10/30/feedback'],
+			['/(public)/(padded)/forms/[slug]/data', '/forms/feedback/data']
+		]) {
+			const input = context(route, path);
+			vi.mocked(authorizeContent).mockResolvedValue(new Response('Denied', { status: 403 }));
+			expect((await invoke(input)).status).toBe(403);
+			expect(input.resolve).not.toHaveBeenCalled();
+		}
+	});
 });

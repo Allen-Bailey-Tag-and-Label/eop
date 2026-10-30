@@ -35,3 +35,7 @@ export { default as ScatterChart } from './ScatterChart/ScatterChart.svelte';
 export { default as PieChart } from './PieChart/PieChart.svelte';
 export { default as ArcChart } from './ArcChart/ArcChart.svelte';
 export { default as ChartPlot } from './ChartPlot/ChartPlot.svelte';
+
+export { default as AudiencePicker } from './AudiencePicker/AudiencePicker.svelte';
+export { default as FormRenderer } from './FormRenderer/FormRenderer.svelte';
+export { default as PublishedForm } from './PublishedForm/PublishedForm.svelte';
