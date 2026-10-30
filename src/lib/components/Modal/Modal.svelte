@@ -1,5 +1,9 @@
+<script module lang="ts">
+	const modalDepth = Symbol('modalDepth');
+</script>
+
 <script lang="ts">
-	import { type Snippet } from 'svelte';
+	import { getContext, setContext, type Snippet } from 'svelte';
 	import { type Attachment } from 'svelte/attachments';
 	import { type HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
@@ -7,6 +11,9 @@
 	import { attachmentFactory, focusFirst, focusTrap, portal } from '$lib/attachments';
 	import { theme } from '$lib/theme';
 	import { Card, Div } from '..';
+
+	const depth = getContext<number>(modalDepth) ?? 0;
+	setContext(modalDepth, depth + 1);
 
 	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'style'> & {
 		attachments?: Attachment[];
@@ -31,6 +38,7 @@
 
 <Div
 	{@attach portal()}
+	style={`z-index: ${9999 + depth};`}
 	class={twMerge(
 		isOpen ? undefined : 'pointer-events-none',
 		'flex h-full w-full items-center justify-center px-4 pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(1rem_+_env(safe-area-inset-bottom))] transition duration-200',

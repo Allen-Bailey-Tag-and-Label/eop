@@ -8,7 +8,6 @@
 		Datatable,
 		Div,
 		Form,
-		H1,
 		H2,
 		Input,
 		Modal,
@@ -204,7 +203,7 @@
 
 <Div class="space-y-6">
 	<Div class="flex flex-wrap items-center justify-between gap-3"
-		><H1>{data.source.id ? 'Edit data link' : 'New data link'}</H1><Div
+		><H2 class="text-lg">{data.source.id ? 'Edit data link' : 'New data link'}</H2><Div
 			class="flex items-center gap-2"
 			><Button disabled={busy} onclick={() => workflowFile?.click()}>Import workflow</Button><Button
 				onclick={onBack}>All data links</Button
@@ -243,7 +242,7 @@
 		/>
 		<Input label="Title" name="title" bind:value={title} required maxlength={160} />
 		<Card class="space-y-3"
-			><H2>Parameters and freshness</H2>
+			><H2 class="text-base">Parameters and freshness</H2>
 			<Textarea label="Parameter defaults (JSON object)" bind:value={parameters} rows={3} />
 			<P class="text-sm"
 				>Database JSON uses {JSON.stringify({ $param: 'name' })}; transform expressions use {JSON.stringify(
@@ -269,7 +268,7 @@
 			>
 		</Card>
 		<Card class="space-y-4"
-			><H2>Workflow</H2><P
+			><H2 class="text-base">Workflow</H2><P
 				>Connect inputs by node ID. Execution follows dependencies, so independent database/API
 				nodes can run together. Each node preview shows its first 20 rows.</P
 			>
@@ -338,7 +337,7 @@
 			>
 		</Card>
 		<Card class="space-y-4"
-			><H2>Named outputs</H2><P
+			><H2 class="text-base">Named outputs</H2><P
 				>Only selected output fields reach slides. Set a stable ID field to preserve repeated item
 				identity between refreshes.</P
 			>
@@ -409,7 +408,7 @@
 		<Textarea label="Preview parameter overrides (JSON)" bind:value={previewParameters} rows={3} />
 	</Form>
 	{#if form?.preview}<Card class="space-y-3"
-			><H2>Preview results</H2><P>Updated {form.preview.updatedAt}</P>
+			><H2 class="text-base">Preview results</H2><P>Updated {form.preview.updatedAt}</P>
 			<Select
 				label="Preview node"
 				aria-label="Preview node"
@@ -442,7 +441,7 @@
 			>
 		</Card>{/if}
 	<Card class="space-y-3"
-		><H2>Used by slides</H2>{#each data.usage as usage (usage.slug)}<A
+		><H2 class="text-base">Used by slides</H2>{#each data.usage as usage (usage.slug)}<A
 				href={`/admin/monitors/slides/${usage.slug}`}
 				class="block underline">{usage.title} ({usage.published ? 'published' : 'draft'})</A
 			>{:else}<P>No slide references yet.</P>{/each}
@@ -458,7 +457,7 @@
 </Div>
 <Modal bind:isOpen={deleting} role="dialog" aria-label="Delete data source?"
 	><Div class="space-y-4"
-		><H2>Delete data source?</H2><P
+		><H2 class="text-lg">Delete data source?</H2><P
 			>Remove references from draft and published slides first. This deletes the source and its
 			cached results.</P
 		><Form action={deleteAction} submitFunction={submit}

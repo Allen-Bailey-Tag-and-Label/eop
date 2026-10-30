@@ -45,7 +45,7 @@
 			{width}
 			{height}
 		>
-			{#each layout as item (item.node.id)}{#each item.node.inputs as id (id)}{@const input =
+			{#each layout as item (item.node.id)}{#each item.node.inputs as id, inputIndex (inputIndex)}{@const input =
 						layout.find((source) => source.node.id === id)}{#if input}<path
 							d={`M ${input.x + 190} ${input.y + 28} C ${input.x + 215} ${input.y + 28}, ${item.x - 25} ${item.y + 28}, ${item.x} ${item.y + 28}`}
 							fill="none"

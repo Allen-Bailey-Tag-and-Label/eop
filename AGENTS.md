@@ -48,6 +48,12 @@ permission checks. Follow the existing centralized enforcement pattern.
   dialog style calls for it; `ghost` alone does not size an icon button. Do not
   replace or override the variant's sizing with manual width, height, or padding
   utilities. Apply this rule to all new and modified dialogs.
+- Dialog titles must use `H2` with `class="text-lg"`, matching existing dialogs.
+  Do not use page-sized headings inside dialogs; use `text-base` or smaller
+  headings for nested sections.
+- Keep CRUD operations separate from collection lists. Show the list and an Add
+  button in the collection view; open create/edit forms and delete confirmations
+  in separate dialogs. Never place a create/edit form above or beside its list.
 - Keep `export * from 'sveltewind/components';` in `src/lib/components/index.ts`
   so new library exports are available automatically. Explicit local exports
   override matching names. Consumers that enumerate components must exclude

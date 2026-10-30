@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T12:46:13.279Z
+## 2026-10-30T13:16:05.523Z
+
+fix: Standardize data dialogs and fix nested API CRUD and workflow editing
+
+## 2026-10-30T08:48:17-04:00
 
 feat: Add importable seven-day weather workflows and NWS API support
 

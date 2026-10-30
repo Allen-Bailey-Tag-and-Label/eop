@@ -115,7 +115,9 @@
 		aria-label={pendingOperation === 'delete' ? 'Delete data link?' : 'Move data link?'}
 		class="space-y-4"
 	>
-		<H2>{pendingOperation === 'delete' ? 'Delete data link?' : 'Move data link?'}</H2>
+		<H2 class="text-lg"
+			>{pendingOperation === 'delete' ? 'Delete data link?' : 'Move data link?'}</H2
+		>
 		<P
 			>{pendingOperation === 'delete'
 				? 'Permanently delete this data link? Saved draft and published slide references must be removed first.'

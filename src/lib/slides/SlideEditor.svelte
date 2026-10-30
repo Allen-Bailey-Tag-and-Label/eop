@@ -1815,7 +1815,7 @@
 		class="flex max-h-[90svh] w-full max-w-6xl flex-col gap-4 overflow-hidden p-5"
 	>
 		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2>Data links</H2><Button
+			><H2 class="text-lg">Data links</H2><Button
 				aria-label="Close data links"
 				variants={['ghost', 'icon']}
 				onclick={() => (dataOpen = false)}><X size={18} /></Button
