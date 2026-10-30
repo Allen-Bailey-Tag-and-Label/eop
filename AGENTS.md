@@ -34,6 +34,14 @@ permission checks. Follow the existing centralized enforcement pattern.
 - Preserve the existing appearance through the application theme bridge in
   `src/lib/theme/sveltewind.ts` rather than duplicating simple library components.
 - Follow existing component usage and styling patterns.
+- Put reusable application components in `src/lib/components/<Name>/<Name>.svelte`
+  and export them through `src/lib/components/index.ts`. Keep feature-specific
+  editors and configuration outside the shared component directory.
+- Follow the Sveltewind component architecture: typed `Props`, Svelte 5 `$props()`
+  and `$bindable()` where needed, forwarded native/library props and snippets,
+  `class`/`variants` composed with `twMerge`, and defaults in the shared theme.
+  Review a comparable component before adding one; prefer thin library adapters
+  that preserve the underlying library's capabilities.
 - Before adding or changing UI, inspect a comparable existing screen and the
   application theme. Reuse its components and variants instead of inventing a
   separate visual treatment.

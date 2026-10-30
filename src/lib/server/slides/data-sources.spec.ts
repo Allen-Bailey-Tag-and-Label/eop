@@ -35,6 +35,23 @@ const query = (rows: unknown[]) => ({
 });
 beforeEach(() => vi.resetAllMocks());
 describe('generic slide data links', () => {
+	it('returns every output row for chart rendering in both preview and monitor resolution', async () => {
+		const chart = {
+			...newElement('chart', 'sales'),
+			dataReference: { sourceId: 'a'.repeat(24), output: 'rows', parameters: {} }
+		};
+		const rows = [
+			{ label: 'Mon', value: 25 },
+			{ label: 'Tue', value: 40 }
+		];
+		vi.mocked(resolveSource).mockResolvedValue({ outputs: { rows }, updatedAt: now.toISOString() });
+		const definition = { ...blankSlide(), elements: [chart] };
+		for (const result of [
+			await previewSlideData(definition, now),
+			await createSlideDataResolver(now)(definition)
+		])
+			expect(result.sales.items.map((item) => item.fields)).toEqual(rows);
+	});
 	it('resolves collection references separately from fixed copies while preserving migrated labels and details', async () => {
 		const reference = { sourceId: 'a'.repeat(24), output: 'rows', parameters: {} };
 		const linked = {

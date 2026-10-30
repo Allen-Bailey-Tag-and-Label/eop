@@ -7,6 +7,7 @@
 	import DataList from './DataList.svelte';
 	import Repeater from './Repeater.svelte';
 	import QrCode from './QrCode.svelte';
+	import SlideChart from './SlideChart.svelte';
 	import FrameCanvas from './FrameCanvas.svelte';
 	import { paddingSides, paddingCss } from './padding';
 	import { frameLayoutStyle, elementPositionStyle } from './frames';
@@ -140,6 +141,15 @@
 						row={element.dataReference ? data[element.id]?.items[0] : row}
 						{rowIndex}
 						{timeZone}
+					/>
+				{:else if element.type === 'chart'}
+					<SlideChart
+						{element}
+						{data}
+						{scheme}
+						{unit}
+						width={contentWidth}
+						height={contentHeight}
 					/>
 				{:else if element.type === 'qr'}
 					<QrCode

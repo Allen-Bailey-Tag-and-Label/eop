@@ -65,6 +65,7 @@
 	import SlidePackageDialog from './SlidePackageDialog.svelte';
 	import AddElementMenu from './AddElementMenu.svelte';
 	import PaddingEditor from './PaddingEditor.svelte';
+	import ChartSettings from './ChartSettings.svelte';
 	import FrameSettings from './FrameSettings.svelte';
 	import LayerTree from './LayerTree.svelte';
 	import { frameAt, frameSlide, listFrames, moveLayer } from './frames';
@@ -419,6 +420,7 @@
 	let json = $state('');
 	let localError = $state('');
 	let sourceParameterError = $state('');
+	let chartError = $state('');
 
 	let previewRevision = $state(0);
 	let tool = $state<'select' | 'pan' | 'resize'>('select');
@@ -467,6 +469,7 @@
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
 		{ type: 'qr', label: 'QR code', icon: QrCode },
+		{ type: 'chart', label: 'Chart', icon: Database },
 		{ type: 'image', label: 'Image / Graphic', icon: Image },
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
@@ -850,9 +853,9 @@
 			action={assetAction('save')}
 			class="ml-auto flex w-auto max-w-none shrink-0 items-center gap-2 space-y-0"
 			submitFunction={({ cancel }) => {
-				if (sourceParameterError) {
+				if (sourceParameterError || chartError) {
 					cancel();
-					localError = sourceParameterError;
+					localError = sourceParameterError || chartError;
 					return;
 				}
 				if (!title.trim() || !slug.trim()) {
@@ -1574,6 +1577,16 @@
 							></InspectorSection
 						>
 
+						{#if selected.type === 'chart' && selected.chart}
+							<InspectorSection title="Chart" open
+								>{#key selected.id}<ChartSettings
+										bind:settings={selected.chart}
+										scheme={previewScheme}
+										linked={!!selected.dataReference}
+										onError={(message) => (chartError = message)}
+									/>{/key}</InspectorSection
+							>
+						{/if}
 						{#if selected.repeater}
 							<InspectorSection title="Repeat items" open>
 								<RepeatItemsEditor
@@ -1593,7 +1606,7 @@
 								<Button onclick={editTemplate}>Edit item template</Button>
 							</InspectorSection>
 						{:else}
-							{#if !editingRepeater}
+							{#if !editingRepeater || selected.type === 'chart'}
 								<InspectorSection title="Data binding source" open={!!selected.dataReference}>
 									{#key selected.id}<SourcePicker
 											bind:value={selected.dataReference}

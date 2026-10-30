@@ -100,6 +100,25 @@ beforeEach(() => {
 	vi.mocked(Slide.create).mockResolvedValue({} as never);
 });
 describe('portable slide packages', () => {
+	it('includes chart configuration and remaps a chart data link', async () => {
+		const chart = {
+			...newElement('chart', 'weather-chart'),
+			dataReference: { sourceId, output: 'rows', parameters: {} }
+		};
+		const bytes = await exportSlidePackage('Chart slide', 'chart-slide', {
+			...blankSlide(),
+			elements: [chart]
+		});
+		expect((await readSlidePackage(bytes)).bundle.slide.definition.elements[0].chart).toEqual(
+			chart.chart
+		);
+		await importSlidePackage(bytes, 'Chart copy', 'chart-copy', choices(), 'd'.repeat(24));
+		const imported = vi.mocked(Slide.create).mock.calls[0][0] as unknown as {
+			draft: { elements: (typeof chart)[] };
+		};
+		expect(imported.draft.elements[0].chart).toEqual(chart.chart);
+		expect(imported.draft.elements[0].dataReference.sourceId).not.toBe(sourceId);
+	});
 	it('exports MongoDB lean binary asset values without exposing unused buffer capacity', async () => {
 		vi.mocked(Asset.find).mockReturnValue(
 			query([{ ...asset, data: new Binary(asset.data) }]) as never

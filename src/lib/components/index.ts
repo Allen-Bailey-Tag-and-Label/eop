@@ -26,3 +26,12 @@ export { default as Strong } from './Strong/Strong.svelte';
 export { default as SubmitButton } from './SubmitButton/SubmitButton.svelte';
 export { default as Textarea } from './Textarea/Textarea.svelte';
 export { default as Ul } from './Ul/Ul.svelte';
+
+export { default as Chart } from './Chart/Chart.svelte';
+export { default as LineChart } from './LineChart/LineChart.svelte';
+export { default as BarChart } from './BarChart/BarChart.svelte';
+export { default as AreaChart } from './AreaChart/AreaChart.svelte';
+export { default as ScatterChart } from './ScatterChart/ScatterChart.svelte';
+export { default as PieChart } from './PieChart/PieChart.svelte';
+export { default as ArcChart } from './ArcChart/ArcChart.svelte';
+export { default as ChartPlot } from './ChartPlot/ChartPlot.svelte';

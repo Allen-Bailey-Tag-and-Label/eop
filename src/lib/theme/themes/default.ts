@@ -15,7 +15,19 @@ const InputDefault = twMerge(
 	'appearance-none cursor-pointer transition duration-200 px-6 py-3 rounded-lg outline-2 outline-transparent hover:outline-gray-950 focus::outline-gray-950 dark:hover:outline-white dark:focus:outline-white'
 );
 
+const chartDefault =
+	'min-h-0 min-w-0 text-inherit [--color-primary:var(--color-primary-500)] [--color-surface-content:currentColor]';
+
 export const defaultTheme = {
+	Chart: { default: chartDefault },
+	ChartPlot: { default: 'flex h-full min-h-0 w-full flex-col' },
+	LineChart: { default: chartDefault },
+	BarChart: { default: chartDefault },
+	AreaChart: { default: chartDefault },
+	ScatterChart: { default: chartDefault },
+	PieChart: { default: chartDefault },
+	ArcChart: { default: chartDefault },
+
 	A: {
 		default:
 			'text-primary-500 font-semibold decoration-2 hover:underline outline-hidden focus:underline'

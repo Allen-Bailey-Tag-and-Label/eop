@@ -35,9 +35,61 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.useRealTimers();
 	vi.unstubAllGlobals();
+	Reflect.deleteProperty(HTMLElement.prototype, 'showPopover');
+	Reflect.deleteProperty(HTMLElement.prototype, 'hidePopover');
 });
 
 describe('slide authoring', () => {
+	it('adds a chart and exports edited fields and series in the slide definition', async () => {
+		const opened = new WeakSet<HTMLElement>();
+		const matches = HTMLElement.prototype.matches;
+		vi.spyOn(HTMLElement.prototype, 'matches').mockImplementation(function (
+			this: HTMLElement,
+			selector
+		) {
+			return selector === ':popover-open' ? opened.has(this) : matches.call(this, selector);
+		});
+		vi.stubGlobal('CSS', { supports: () => false });
+		Object.defineProperties(HTMLElement.prototype, {
+			showPopover: {
+				configurable: true,
+				value: function (this: HTMLElement) {
+					opened.add(this);
+				}
+			},
+			hidePopover: {
+				configurable: true,
+				value: function (this: HTMLElement) {
+					opened.delete(this);
+				}
+			}
+		});
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add element' }));
+		await fireEvent.click(view.getByRole('menuitem', { name: 'Chart' }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Chart type' }), {
+			target: { value: 'bar' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Chart X field' }), {
+			target: { value: 'day' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Chart series 1 field' }), {
+			target: { value: 'high' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Export' }));
+		const definition = JSON.parse(
+			(view.getByRole('textbox', { name: 'Slide JSON' }) as HTMLTextAreaElement).value
+		);
+		expect(definition.elements[0]).toMatchObject({
+			type: 'chart',
+			chart: { kind: 'bar', xField: 'day', series: [{ field: 'high' }] }
+		});
+	});
 	it('manages data links in an editor dialog with slide and shared libraries', async () => {
 		const view = render(SlideEditor, {
 			data: {

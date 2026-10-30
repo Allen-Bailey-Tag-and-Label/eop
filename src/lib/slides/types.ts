@@ -1,3 +1,4 @@
+import { defaultChart, type ChartDefinition } from '$lib/components/Chart/definition';
 import type { SourceReference } from '$lib/data/types';
 import type { BoundProperty } from '$lib/data/bindings';
 
@@ -11,7 +12,8 @@ export type ElementType =
 	| 'list'
 	| 'repeater'
 	| 'frame'
-	| 'qr';
+	| 'qr'
+	| 'chart';
 export type ElementPadding =
 	| number
 	| { mode: 'axis'; x: number; y: number }
@@ -138,6 +140,7 @@ export type SlideElement = Pose & {
 	fit: 'contain' | 'cover';
 	imageOpacity?: number;
 	keyframes: Keyframe[];
+	chart?: ChartDefinition;
 	dataSource?: SlideDataSource;
 	dataReference?: SourceReference;
 	repeatItems?: RepeatItems;
@@ -265,6 +268,7 @@ export function newElement(type: ElementType, id: string): SlideElement {
 					qrCorrection: 'M' as const
 				}
 			: {}),
+		...(type === 'chart' ? { chart: defaultChart(), width: 1200, height: 650, text: 'Chart' } : {}),
 		keyframes: [],
 		...(type === 'list'
 			? {

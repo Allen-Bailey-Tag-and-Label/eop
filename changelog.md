@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T14:30:04.097Z
+## 2026-10-30T15:34:51.781Z
+
+feat: Add SSR-compatible LayerChart components and data-linked slide charts
+
+## 2026-10-30T10:34:46-04:00
 
 feat: Add portable slide packages with assets and data dependencies
 

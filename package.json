@@ -34,6 +34,7 @@
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.4",
 		"@types/bcrypt": "^5.0.2",
+		"@types/d3-scale": "^4.0.9",
 		"@types/jsdom": "^27.0.0",
 		"@types/nearest-color": "^0.4.1",
 		"@types/node": "^20",
@@ -79,6 +80,8 @@
 	},
 	"dependencies": {
 		"@neondatabase/serverless": "^0.10.4",
-		"drizzle-orm": "^0.40.0"
+		"d3-scale": "^4.0.2",
+		"drizzle-orm": "^0.40.0",
+		"layerchart": "^2.9.1"
 	}
 }

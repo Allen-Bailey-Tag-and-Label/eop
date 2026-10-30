@@ -5,6 +5,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	// LayerChart ships Svelte source, which Node cannot import without Vite's SSR transform.
+	ssr: { noExternal: ['layerchart'] },
 	test: {
 		projects: [
 			{

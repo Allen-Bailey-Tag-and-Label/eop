@@ -1,3 +1,4 @@
+import { validateChart } from '$lib/components/Chart/definition';
 import { safeField } from './data-link';
 import { validateReference, validateBindings } from '$lib/data/bindings';
 import { validateVisibility } from './visibility';
@@ -261,7 +262,7 @@ export function validateSlide(
 		const type = choice(
 			e.type,
 			itemTemplate
-				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame', 'qr']
+				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame', 'qr', 'chart']
 				: [
 						'text',
 						'image',
@@ -272,7 +273,8 @@ export function validateSlide(
 						'list',
 						'repeater',
 						'frame',
-						'qr'
+						'qr',
+						'chart'
 					],
 			'element type'
 		);
@@ -301,6 +303,17 @@ export function validateSlide(
 			assetId,
 			keyframes,
 			...data,
+			...(type === 'chart'
+				? {
+						chart: (() => {
+							try {
+								return validateChart(e.chart);
+							} catch (cause) {
+								return invalid(cause instanceof Error ? cause.message : 'Invalid chart.');
+							}
+						})()
+					}
+				: {}),
 			...(type === 'repeater' ? { repeater: repeater(e.repeater, durationMs, depth, budget) } : {}),
 			...((type === 'image' || type === 'svg') && e.imageOpacity !== undefined
 				? { imageOpacity: number(e.imageOpacity, 0, 1, 'Image opacity') }
