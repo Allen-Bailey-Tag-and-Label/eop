@@ -1,14 +1,20 @@
 <script lang="ts">
-	import { Post } from '$lib/components';
+	import { Div, Post } from '$lib/components';
 	let { data } = $props();
 </script>
 
-<Post
-	postId={data.post.id}
-	date={new Date(data.post.date)}
-	firstName={data.post.firstName}
-	lastName={data.post.lastName}
-	md={data.post.md}
-	content={data.post.content}
-	title={data.post.title}
-/>
+<svelte:head>
+	<title>{data.post.title} - EOP</title>
+</svelte:head>
+
+<Div class="mx-auto w-full max-w-4xl">
+	<Post
+		postId={data.post.id}
+		date={new Date(data.post.date)}
+		firstName={data.post.firstName}
+		lastName={data.post.lastName}
+		md={data.post.md}
+		content={data.post.content}
+		title={data.post.title}
+	/>
+</Div>

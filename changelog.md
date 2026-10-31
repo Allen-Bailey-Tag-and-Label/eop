@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-31T11:40:03.782Z
+## 2026-10-31T11:58:10.713Z
+
+fix: Improve published post titles and reading layout
+
+## 2026-10-31T07:53:21-04:00
 
 fix: Standardize dialogs and add post management navigation
 
