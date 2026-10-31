@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Button, Checkbox, Datatable, DialogActions, Div, Modal } from '$lib/components';
 	import { generate } from 'random-words';
-	import { Button, Checkbox, Datatable, Div, Modal } from '$lib/components';
+
 	import { Settings } from '@lucide/svelte';
 
 	let columns = $state(
@@ -93,7 +94,7 @@
 	/>
 </Div>
 
-<Modal bind:isOpen={settingsModal.isOpen}>
+<Modal title="Table settings" bind:isOpen={settingsModal.isOpen}>
 	<Checkbox bind:checked={isColumnsReorderable} label="isColumnsReorderable" />
 	<Checkbox bind:checked={isCreatable} label="isCreatable" />
 	<Checkbox bind:checked={isDeletable} label="isDeletable" />
@@ -104,4 +105,6 @@
 	<Checkbox bind:checked={isPaginateable} label="isPaginateable" />
 	<Checkbox bind:checked={isSelectable} label="isSelectable" />
 	<Checkbox bind:checked={isSortable} label="isSortable" />
+
+	<DialogActions onClose={() => (settingsModal.isOpen = false)} />
 </Modal>

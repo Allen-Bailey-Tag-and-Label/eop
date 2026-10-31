@@ -4,15 +4,16 @@
 		Button,
 		Card,
 		Datatable,
+		DialogActions,
 		Div,
 		Form,
 		H1,
-		H2,
 		Input,
 		Modal,
 		P,
 		Td
 	} from '$lib/components';
+
 	import type { Column, TdSnippet } from '$lib/components/Datatable/types';
 	import { theme } from '$lib/theme';
 	import { twMerge } from 'tailwind-merge';
@@ -136,15 +137,15 @@
 {/snippet}
 
 <Modal
+	title="Delete playlist?"
+	titleId="delete-playlist-title"
 	bind:isOpen={isDeleteOpen}
-	isCloseable={!managing}
 	role="dialog"
 	aria-modal="true"
 	aria-labelledby="delete-playlist-title"
 	class="w-full max-w-lg space-y-4"
 >
 	{#if selectedPlaylist}
-		<H2 id="delete-playlist-title">Delete playlist?</H2>
 		<P
 			>Permanently delete “{selectedPlaylist.title}” and its draft and published playlist? Its
 			slides and uploaded assets will remain. Playlists assigned to approved monitors cannot be
@@ -160,7 +161,7 @@
 		{/if}
 		<Form
 			action="?/delete"
-			class="max-w-none space-y-4"
+			class="w-full max-w-none space-y-4"
 			submitFunction={() => {
 				managing = true;
 				return async ({ update, result }) => {
@@ -177,12 +178,10 @@
 			<Input type="hidden" name="slug" value={selectedPlaylist.slug} />
 			<Input type="hidden" name="version" value={String(selectedPlaylist.version)} />
 			<Input type="hidden" name="confirm" value="delete" />
-			{#snippet buttons()}
-				<Button variants={['contrast']} disabled={managing} onclick={() => (isDeleteOpen = false)}
-					>Cancel</Button
-				>
-				<Button type="submit" variants={['error']} disabled={managing}>Delete playlist</Button>
-			{/snippet}
+			{#snippet buttons()}<DialogActions>
+					<Button variants={['contrast']} onclick={() => (isDeleteOpen = false)}>Cancel</Button>
+					<Button type="submit" variants={['error']} disabled={managing}>Delete playlist</Button>
+				</DialogActions>{/snippet}
 		</Form>
 	{/if}
 </Modal>

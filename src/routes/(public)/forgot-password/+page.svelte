@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { A, Button, Card, Dialog, Div, Form, Input, P, SubmitButton } from '$lib/components';
+	import { A, Card, Dialog, Div, Form, Input, P, SubmitButton } from '$lib/components';
 	import { ABTL, PTI } from '$lib/logos';
 	import { Plus, ThumbsUp } from '@lucide/svelte';
 	import { type PageProps } from './$types';
@@ -80,20 +80,7 @@
 	</Card>
 </Div>
 
-<Dialog bind:open={isSuccessDialogOpen}>
-	<Card class="items-center space-y-6">
-		<Div class="text-green-500 dark:text-green-500">
-			<ThumbsUp size={80} />
-		</Div>
-		<P>Code successful. Please enter your new password.</P>
-		<Div class="flex w-full justify-end space-x-2">
-			<Button
-				onclick={() => {
-					isSuccessDialogOpen = false;
-				}}
-			>
-				Close
-			</Button>
-		</Div>
-	</Card>
+<Dialog bind:open={isSuccessDialogOpen} title="Password reset">
+	<Div class="text-green-500 dark:text-green-500"><ThumbsUp size={80} /></Div>
+	<P>Code successful. Please enter your new password.</P>
 </Dialog>

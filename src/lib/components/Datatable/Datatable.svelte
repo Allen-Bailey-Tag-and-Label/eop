@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DialogActions } from '$lib/components';
 	import { untrack, type Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import {
@@ -521,7 +522,7 @@
 				<Button onclick={() => (isExportModalOpen = true)} variants={['icon']}>
 					<Download />
 				</Button>
-				<Modal bind:isOpen={isExportModalOpen} class="space-y-6">
+				<Modal title="Export data" bind:isOpen={isExportModalOpen} class="space-y-6">
 					<Div class="flex flex-col">
 						<Label>Export Type</Label>
 						<Div class="grid grid-cols-3 gap-2">
@@ -532,7 +533,7 @@
 							{/each}
 						</Div>
 					</Div>
-					<Div class="flex justify-end space-x-2">
+					<DialogActions>
 						<Button
 							onclick={async () => {
 								const headers: string[] = columnsSanitized
@@ -548,7 +549,7 @@
 							Export
 						</Button>
 						<Button onclick={() => (isExportModalOpen = false)} variants={['glass']}>Cancel</Button>
-					</Div>
+					</DialogActions>
 				</Modal>
 			{/if}
 			{#if isImportable}
@@ -561,8 +562,27 @@
 				>
 					<Upload />
 				</Button>
-				<Modal bind:isOpen={isImportModalOpen} class="space-y-6">
-					<Div class="flex justify-end space-x-2">
+				<Modal title="Import data" bind:isOpen={isImportModalOpen} class="space-y-6">
+					{#if importText === ''}
+						<Div class="flex flex-col">
+							<Label>Paste CSV</Label>
+							<Textarea bind:value={importText}></Textarea>
+						</Div>
+					{:else}
+						<Self
+							columns={importColumns}
+							isColumnsReorderable={false}
+							isCreatable={false}
+							isDeletable={false}
+							isEditable={false}
+							isExportable={false}
+							isFilterable={false}
+							isPaginateable={false}
+							rows={importData}
+						/>
+					{/if}
+
+					<DialogActions onClose={() => (isImportModalOpen = false)}>
 						<Button
 							disabled={importText === ''}
 							onclick={() => {
@@ -596,25 +616,7 @@
 						>
 							<Upload />
 						</Button>
-					</Div>
-					{#if importText === ''}
-						<Div class="flex flex-col">
-							<Label>Paste CSV</Label>
-							<Textarea bind:value={importText}></Textarea>
-						</Div>
-					{:else}
-						<Self
-							columns={importColumns}
-							isColumnsReorderable={false}
-							isCreatable={false}
-							isDeletable={false}
-							isEditable={false}
-							isExportable={false}
-							isFilterable={false}
-							isPaginateable={false}
-							rows={importData}
-						/>
-					{/if}
+					</DialogActions>
 				</Modal>
 			{/if}
 			<Button
@@ -627,8 +629,9 @@
 			>
 				<Settings />
 			</Button>
-			<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
+			<Modal title="Table settings" bind:isOpen={isSettingsModalOpen} class="space-y-6">
 				<Form
+					class="w-full max-w-none"
 					method="GET"
 					onsubmit={(e: Event) => {
 						e.preventDefault();
@@ -663,12 +666,12 @@
 							</Div>
 						</Div>
 					{/snippet}
-					{#snippet buttons()}
-						<Button type="submit">Update</Button>
-						<Button onclick={() => (isSettingsModalOpen = false)} variants={['glass']}>
-							Cancel
-						</Button>
-					{/snippet}
+					{#snippet buttons()}<DialogActions>
+							<Button type="submit">Update</Button>
+							<Button onclick={() => (isSettingsModalOpen = false)} variants={['glass']}>
+								Cancel
+							</Button>
+						</DialogActions>{/snippet}
 				</Form>
 			</Modal>
 			{#if isFilterable}
@@ -948,7 +951,7 @@
 {#if createModal}
 	{@render createModal()}
 {:else}
-	<Modal bind:isOpen={isCreateModalOpen} class="space-y-6">
+	<Modal title="Create record" bind:isOpen={isCreateModalOpen} class="space-y-6">
 		<Table>
 			<Tbody>
 				{#each columnsSanitized as { isCreatable, key, label, options, snippet }}
@@ -961,7 +964,7 @@
 				{/each}
 			</Tbody>
 		</Table>
-		<Div class="flex justify-end space-x-2">
+		<DialogActions>
 			<Button
 				onclick={() => {
 					rows.push({ ...create });
@@ -971,14 +974,14 @@
 				Add
 			</Button>
 			<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}>Cancel</Button>
-		</Div>
+		</DialogActions>
 	</Modal>
 {/if}
 
 {#if deleteModal}
 	{@render deleteModal()}
 {:else}
-	<Modal bind:isOpen={isDeleteModalOpen} class="items-center space-y-6">
+	<Modal title="Delete records?" bind:isOpen={isDeleteModalOpen} class="items-center space-y-6">
 		<Div class="text-red-500">
 			<TriangleAlert size={80} />
 		</Div>
@@ -988,7 +991,7 @@
 				: 's'}?<br />
 			This cannot be undone.
 		</P>
-		<Div class="grid w-full grid-cols-2 gap-4">
+		<DialogActions>
 			<Button onclick={() => (isDeleteModalOpen = false)} variants={['contrast']}>Cancel</Button>
 			<Button
 				autofocus={true}
@@ -1001,14 +1004,14 @@
 			>
 				Delete
 			</Button>
-		</Div>
+		</DialogActions>
 	</Modal>
 {/if}
 
 {#if filterModal}
 	{@render filterModal()}
 {:else}
-	<Modal bind:isOpen={isFilterModalOpen} class="space-y-6">
+	<Modal title="Filter data" bind:isOpen={isFilterModalOpen} class="space-y-6">
 		<Div class="flex items-center justify-end space-x-2">
 			<Button
 				onclick={() => {
@@ -1085,7 +1088,7 @@
 				</Tbody>
 			</Table>
 		</Div>
-		<Div class="flex justify-end space-x-2">
+		<DialogActions>
 			<Button
 				onclick={() => {
 					settings.filter = $state
@@ -1097,7 +1100,7 @@
 				Apply
 			</Button>
 			<Button onclick={() => (isFilterModalOpen = false)} variants={['glass']}>Cancel</Button>
-		</Div>
+		</DialogActions>
 	</Modal>
 {/if}
 

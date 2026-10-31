@@ -2,10 +2,10 @@
 	import {
 		Button,
 		Checkbox,
+		DialogActions,
 		Div,
 		Form,
 		H1,
-		H2,
 		Input,
 		Modal,
 		MongooseTable,
@@ -16,14 +16,13 @@
 		SubmitButton,
 		Td
 	} from '$lib/components';
+
 	import type {
 		ColumnOverrides,
 		ColumnSanitized,
 		TdSnippet
 	} from '$lib/components/MongooseTable/types.js';
 	import { percent } from '$lib/formats/percent.js';
-	import { slide } from 'svelte/transition';
-
 	let { data } = $props();
 	let columnOverrides: ColumnOverrides = {
 		_branchIds: { label: 'Branches', isSortable: false },
@@ -93,7 +92,7 @@
 	{virtualColumns}
 />
 
-<Modal bind:isOpen={resetModal.isOpen} class="space-y-6">
+<Modal title="Reset password" bind:isOpen={resetModal.isOpen} class="space-y-6">
 	<Div class="flex flex-col items-center space-y-4">
 		{#if resetModal.code === ''}
 			<H1>******</H1>
@@ -103,36 +102,19 @@
 			<P>Please provide the code to the user.</P>
 		{/if}
 	</Div>
-	<Div class="flex justify-end space-x-2">
+	<DialogActions>
 		<Button
 			onclick={() => {
 				resetModal.isOpen = false;
 			}}
 			variants={['glass']}>Cancel</Button
 		>
-	</Div>
+	</DialogActions>
 </Modal>
 
 {#snippet createModal()}
-	<Modal bind:isOpen={isCreateModalOpen} class="p-0">
+	<Modal title={createModalData.steps[createModalData.stepIndex]} bind:isOpen={isCreateModalOpen}>
 		<Div class="max-w-[25rem] overflow-hidden">
-			<Div class="flex items-center justify-between px-6 pt-6">
-				<Button
-					class={createModalData.stepIndex === 0 ? 'pointer-events-none opacity-0' : undefined}
-					onclick={() => createModalData.stepIndex--}
-				>
-					Back
-				</Button>
-				<H2>{createModalData.steps[createModalData.stepIndex]}</H2>
-				<Button
-					class={createModalData.stepIndex === createModalData.steps.length - 1
-						? 'pointer-events-none opacity-0'
-						: undefined}
-					onclick={() => createModalData.stepIndex++}
-				>
-					Skip
-				</Button>
-			</Div>
 			<Div class="grid w-[300%] grid-cols-3">
 				<Div
 					class="flex flex-col p-6"
@@ -140,7 +122,7 @@
 				>
 					<Form
 						action="?/create-profile"
-						class="flex flex-grow flex-col"
+						class="flex w-full max-w-none flex-grow flex-col"
 						submitFunction={() => {
 							isLoading = true;
 							return async ({ result }) => {
@@ -205,16 +187,28 @@
 								type="number"
 							/>
 						</Div>
-						<Div class="flex justify-end space-x-2">
-							{#if isLoading}
-								<div transition:slide={{ axis: 'y' }}>
-									<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
-										>Cancel</Button
-									>
-								</div>
-							{/if}
+						<DialogActions
+							><Button
+								class={createModalData.stepIndex === 0
+									? 'pointer-events-none opacity-0'
+									: undefined}
+								onclick={() => createModalData.stepIndex--}
+							>
+								Back
+							</Button>
+							<Button
+								class={createModalData.stepIndex === createModalData.steps.length - 1
+									? 'pointer-events-none opacity-0'
+									: undefined}
+								onclick={() => createModalData.stepIndex++}
+							>
+								Skip
+							</Button>
+							<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
+								>Cancel</Button
+							>
 							<SubmitButton bind:isLoading>Create</SubmitButton>
-						</Div>
+						</DialogActions>
 					</Form>
 				</Div>
 				<Div
@@ -223,7 +217,7 @@
 				>
 					<Form
 						action="?/create-settings"
-						class="flex flex-grow flex-col"
+						class="flex w-full max-w-none flex-grow flex-col"
 						submitFunction={() => {
 							isLoading = true;
 							return async ({ result }) => {
@@ -266,16 +260,28 @@
 								name="magnification"
 							/>
 						</Div>
-						<Div class="flex justify-end space-x-2">
-							{#if isLoading}
-								<div transition:slide={{ axis: 'y' }}>
-									<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
-										>Cancel</Button
-									>
-								</div>
-							{/if}
+						<DialogActions
+							><Button
+								class={createModalData.stepIndex === 0
+									? 'pointer-events-none opacity-0'
+									: undefined}
+								onclick={() => createModalData.stepIndex--}
+							>
+								Back
+							</Button>
+							<Button
+								class={createModalData.stepIndex === createModalData.steps.length - 1
+									? 'pointer-events-none opacity-0'
+									: undefined}
+								onclick={() => createModalData.stepIndex++}
+							>
+								Skip
+							</Button>
+							<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
+								>Cancel</Button
+							>
 							<SubmitButton bind:isLoading>Create</SubmitButton>
-						</Div>
+						</DialogActions>
 					</Form>
 				</Div>
 				<Div
@@ -284,7 +290,7 @@
 				>
 					<Form
 						action="?/create-user"
-						class="flex flex-grow flex-col"
+						class="flex w-full max-w-none flex-grow flex-col"
 						submitFunction={() => {
 							isLoading = true;
 							return async ({ update }) => {
@@ -351,16 +357,28 @@
 								required={true}
 							/>
 						</Div>
-						<Div class="flex justify-end space-x-2">
-							{#if isLoading}
-								<div transition:slide={{ axis: 'y' }}>
-									<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
-										>Cancel</Button
-									>
-								</div>
-							{/if}
+						<DialogActions
+							><Button
+								class={createModalData.stepIndex === 0
+									? 'pointer-events-none opacity-0'
+									: undefined}
+								onclick={() => createModalData.stepIndex--}
+							>
+								Back
+							</Button>
+							<Button
+								class={createModalData.stepIndex === createModalData.steps.length - 1
+									? 'pointer-events-none opacity-0'
+									: undefined}
+								onclick={() => createModalData.stepIndex++}
+							>
+								Skip
+							</Button>
+							<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}
+								>Cancel</Button
+							>
 							<SubmitButton bind:isLoading>Create</SubmitButton>
-						</Div>
+						</DialogActions>
 					</Form>
 				</Div>
 			</Div>

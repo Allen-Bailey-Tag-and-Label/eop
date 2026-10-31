@@ -64,6 +64,16 @@ permission checks. Follow the existing centralized enforcement pattern.
 - Dialog titles must use `H2` with `class="text-lg"`, matching existing dialogs.
   Do not use page-sized headings inside dialogs; use `text-base` or smaller
   headings for nested sections.
+- Every dialog must provide a top-right X icon, outside-click dismissal, and a
+  bottom Cancel, Close, or Done button. Use `DialogHeader` (provided by Modal) instead of
+  adding a second close icon. Bind dismissal to the owning state so closing a
+  nested dialog closes only that dialog. A fixed open state must have a dismissal
+  callback that clears the owning state. Do not disable outside dismissal.
+- Put dialog-level actions in one `DialogActions` footer at the bottom right.
+  Keep dismissal and confirm/save/insert buttons in the same horizontal row,
+  allowing wrapping only when needed on narrow screens. Keep submit actions
+  associated with their form. Do not put completion buttons on separate rows or
+  above the content.
 - Keep CRUD operations separate from collection lists. Show the list and an Add
   button in the collection view; open create/edit forms and delete confirmations
   in separate dialogs. Never place a create/edit form above or beside its list.

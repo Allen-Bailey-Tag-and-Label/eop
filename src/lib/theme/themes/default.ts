@@ -106,7 +106,11 @@ export const defaultTheme = {
 	Label: { default: 'text-sm' },
 	Li: { default: '' },
 	MarkdownToken: { default: '' },
-	Modal: { default: 'max-w-full max-h-full overflow-auto' },
+	Modal: {
+		default: 'max-w-full max-h-full overflow-auto',
+		header: 'flex w-full shrink-0 items-center justify-between gap-4',
+		actions: 'flex w-full shrink-0 flex-wrap items-center justify-end gap-2'
+	},
 	MongooseTable: { default: '' },
 	MultiSelect: {
 		default: twMerge(

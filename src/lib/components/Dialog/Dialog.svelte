@@ -7,13 +7,15 @@
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
-	import { Div } from '../';
+	import { Card, Div, DialogHeader, DialogActions } from '../';
 
 	type Props = Omit<HTMLAttributes<HTMLDialogElement>, 'class'> & {
 		children?: Snippet;
 		class?: string;
 		element?: HTMLDialogElement | null;
 		open?: boolean;
+		title?: string;
+		footer?: Snippet;
 		variants?: string[];
 	};
 	let {
@@ -21,6 +23,8 @@
 		class: className,
 		element = $bindable(null),
 		open = $bindable(false),
+		title,
+		footer,
 		oncancel,
 		onclose,
 		variants = [],
@@ -46,6 +50,7 @@
 	theme={unstyledTheme}
 	transition={[subtleReveal, {}]}
 	bind:isVisible={open}
+	aria-label={title}
 	{...restProps}
 	{@attach forwardEvents}
 	bind:element
@@ -62,9 +67,11 @@
 		<Div
 			class="pointer-events-none flex h-full max-h-screen w-full max-w-screen items-center justify-center overflow-auto"
 		>
-			<Div class="pointer-events-auto flex max-h-full max-w-full flex-col overflow-auto p-4">
+			<Card class="pointer-events-auto flex max-h-full max-w-full flex-col gap-4 overflow-auto">
+				<DialogHeader {title} onClose={() => (open = false)} />
 				{@render children()}
-			</Div>
+				{#if footer}{@render footer()}{:else}<DialogActions onClose={() => (open = false)} />{/if}
+			</Card>
 		</Div>
 	{/if}
 </SveltewindDialog>

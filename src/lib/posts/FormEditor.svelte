@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { X } from '@lucide/svelte';
 	import {
 		Button,
 		Card,
 		Checkbox,
+		DialogActions,
 		Div,
 		FormRenderer,
 		H2,
@@ -14,6 +13,8 @@
 		Select,
 		Textarea
 	} from '$lib/components';
+	import { untrack } from 'svelte';
+
 	import { fieldTypes, validateForm, type FormDefinition } from '$lib/forms/definition';
 	export type EditorForm = {
 		id: string;
@@ -59,25 +60,18 @@
 </script>
 
 <Modal
+	closeAriaLabel="Close form editor"
+	title={record.id ? 'Edit form' : 'Create form'}
 	bind:isOpen={
 		() => true,
 		(open) => {
 			if (!open) onClose();
 		}
 	}
-	isCloseable={!busy}
 	role="dialog"
 	aria-label={record.id ? 'Edit form' : 'Create form'}
 	class="flex max-h-[90svh] w-full max-w-3xl flex-col gap-4 overflow-hidden p-5"
 >
-	<Div class="flex shrink-0 items-center justify-between gap-4"
-		><H2 class="text-lg">{record.id ? 'Edit form' : 'Create form'}</H2><Button
-			variants={['ghost', 'icon']}
-			aria-label="Close form editor"
-			disabled={busy}
-			onclick={onClose}><X size={18} /></Button
-		></Div
-	>
 	<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 		{#if error}<P role="alert">{error}</P>{/if}
 		<Input
@@ -180,11 +174,11 @@
 			>{preview ? 'Hide preview' : 'Preview form'}</Button
 		>
 		{#if preview}<Card class="p-4"><FormRenderer definition={draft} preview /></Card>{/if}
-		<Div class="flex flex-wrap gap-2"
-			><Button disabled={busy} onclick={() => save('draft')}>Save draft</Button><Button
-				disabled={busy}
-				onclick={() => save('publish')}>Publish form</Button
-			><Button disabled={busy} variants={['ghost']} onclick={onClose}>Cancel</Button></Div
-		>
 	</Div>
-</Modal>
+	<DialogActions
+		><Button disabled={busy} onclick={() => save('draft')}>Save draft</Button><Button
+			disabled={busy}
+			onclick={() => save('publish')}>Publish form</Button
+		><Button variants={['ghost']} onclick={onClose}>Cancel</Button></DialogActions
+	></Modal
+>

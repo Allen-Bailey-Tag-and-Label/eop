@@ -131,6 +131,9 @@ describe('shared rich text editor', () => {
 		const count = toolbar.getAllByRole('button').length;
 		await fireEvent.click(toolbar.getByRole('button', { name: 'Table settings' }));
 		let dialog = within(view.getByRole('dialog', { name: 'Table settings' }));
+		expect(dialog.getByRole('button', { name: 'Insert table' }).parentElement).toBe(
+			dialog.getByRole('button', { name: 'Done' }).parentElement
+		);
 		await fireEvent.input(dialog.getByRole('spinbutton', { name: 'Table rows' }), {
 			target: { value: '2' }
 		});

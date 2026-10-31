@@ -21,7 +21,7 @@
 		Highlighter,
 		CircleHelp
 	} from '@lucide/svelte';
-	import { Button, Div, Input, Popover } from '$lib/components';
+	import { Button, DialogActions, DialogHeader, Div, Input, Popover } from '$lib/components';
 	import { theme } from '$lib/theme';
 	import { twMerge } from 'tailwind-merge';
 	import { subtleReveal } from 'sveltewind/transitions';
@@ -256,7 +256,7 @@
 		transition={[subtleReveal, {}]}
 		role="dialog"
 		aria-label={label}
-		class={twMerge($theme.Card.default, 'w-56 space-y-3 p-3')}
+		class={twMerge($theme.Card.default, 'w-80 max-w-[calc(100vw-2rem)] space-y-3 p-3')}
 	>
 		{#snippet trigger(props)}
 			<Button
@@ -274,6 +274,11 @@
 				</span>
 			</Button>
 		{/snippet}
+		<DialogHeader
+			title={label}
+			closeAriaLabel={`Close ${label.toLowerCase()}`}
+			onClose={() => (colorOpen = null)}
+		/>
 		<Input
 			type="color"
 			{label}
@@ -282,8 +287,10 @@
 			variants={['color']}
 			onchange={(event) => setColor(kind, event.currentTarget.value)}
 		/>
-		<Button variants={['ghost', 'small']} class="w-full" onclick={() => setColor(kind)}>
-			{kind === 'color' ? 'Default font color' : 'Remove highlight'}
-		</Button>
+		<DialogActions onClose={() => (colorOpen = null)} closeLabel="Done">
+			<Button variants={['ghost', 'small']} onclick={() => setColor(kind)}>
+				{kind === 'color' ? 'Default font color' : 'Remove highlight'}
+			</Button>
+		</DialogActions>
 	</Popover>
 {/snippet}

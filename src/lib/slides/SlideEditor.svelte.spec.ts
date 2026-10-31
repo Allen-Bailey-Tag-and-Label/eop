@@ -1206,7 +1206,7 @@ describe('slide authoring', () => {
 		const form = view.baseElement.querySelector('form[action="?/unpublish"]')!;
 		expect(form.querySelector('input[name="version"]')).toHaveValue('2');
 		await fireEvent.click(confirmation.getByRole('button', { name: 'Cancel' }));
-		expect(view.getByRole('dialog', { name: 'Slide settings' })).toBeInTheDocument();
+		expect(view.queryByRole('dialog', { name: 'Slide settings' })).not.toBeInTheDocument();
 		expect(view.baseElement.querySelector('form[action="?/unpublish"]')).toBeNull();
 	});
 	it('blocks deleting a referenced slide and allows confirmation for an unused draft', async () => {

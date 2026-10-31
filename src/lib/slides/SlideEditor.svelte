@@ -1,4 +1,20 @@
 <script lang="ts">
+	import {
+		A,
+		Button,
+		Card,
+		DialogActions,
+		Div,
+		Form,
+		H1,
+		H2,
+		Input,
+		Modal,
+		P,
+		Select,
+		Tabs,
+		Textarea
+	} from '$lib/components';
 	import { onMount, tick, untrack } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -48,21 +64,7 @@
 		ChartNoAxesCombined,
 		QrCode
 	} from '@lucide/svelte';
-	import {
-		A,
-		Button,
-		Card,
-		Div,
-		Form,
-		H1,
-		H2,
-		Input,
-		Modal,
-		P,
-		Select,
-		Tabs,
-		Textarea
-	} from '$lib/components';
+
 	import SlideWorkspace from './SlideWorkspace.svelte';
 	import SlidePackageDialog from './SlidePackageDialog.svelte';
 	import AddElementMenu from './AddElementMenu.svelte';
@@ -560,7 +562,7 @@
 			void tick().then(() => document.getElementById(`${uid}-dialog-cancel`)?.focus());
 	}
 	function closeDialog() {
-		if (!uploading && !managing) isDialogOpen = false;
+		isDialogOpen = false;
 	}
 	$effect(() => {
 		if (!isDialogOpen)
@@ -1823,18 +1825,13 @@
 
 {#if dataOpen}
 	<Modal
+		closeAriaLabel="Close data links"
+		title="Data links"
 		bind:isOpen={dataOpen}
 		role="dialog"
 		aria-label="Data links"
 		class="flex max-h-[90svh] w-full max-w-6xl flex-col gap-4 overflow-hidden p-5"
 	>
-		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2 class="text-lg">Data links</H2><Button
-				aria-label="Close data links"
-				variants={['ghost', 'icon']}
-				onclick={() => (dataOpen = false)}><X size={18} /></Button
-			></Div
-		>
 		<Div class="-m-1 min-h-0 overflow-y-auto overscroll-contain p-1"
 			><DataLibrary
 				usedSourceIds={allElements(draft).flatMap((element) =>
@@ -1848,26 +1845,22 @@
 				{form}
 			/></Div
 		>
+
+		<DialogActions onClose={() => (dataOpen = false)} />
 	</Modal>
 {/if}
 
 {#if isDialogOpen}
 	<Modal
+		closeAriaLabel="Close dialog"
+		title={dialogTitles[dialog]}
+		titleId={`${uid}-dialog-title`}
 		bind:isOpen={isDialogOpen}
-		isCloseable={!uploading && !managing}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby={`${uid}-dialog-title`}
 		class="flex max-h-[85svh] w-full max-w-2xl flex-col gap-4 overflow-hidden p-5"
 	>
-		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2 id={`${uid}-dialog-title`} class="text-lg">{dialogTitles[dialog]}</H2><Button
-				aria-label="Close dialog"
-				variants={['ghost', 'icon']}
-				disabled={uploading || managing}
-				onclick={closeDialog}><X size={18} /></Button
-			></Div
-		>
 		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			{#if localError}<P role="alert" class="text-sm text-red-600 dark:text-red-400">{localError}</P
 				>{/if}
@@ -1955,23 +1948,6 @@
 						? `Last published ${new Date(data.slide.publishedAt).toLocaleString()}.`
 						: 'This slide has not been published.'} Use Save for a draft or Publish to update monitors.</P
 				>
-				<Button onclick={closeDialog}>Done</Button>
-				{#if data.slide.id}
-					<Div class="flex flex-wrap gap-3 border-t pt-4">
-						{#if data.slide.publishedAt}
-							<Button
-								variants={['contrast']}
-								disabled={saving}
-								onclick={() => openDialog('unpublish')}
-							>
-								Unpublish slide
-							</Button>
-						{/if}
-						<Button variants={['error']} disabled={saving} onclick={() => openDialog('delete')}>
-							<Trash2 size={18} /> Delete slide
-						</Button>
-					</Div>
-				{/if}
 			{:else if dialog === 'unpublish' || dialog === 'delete'}
 				<P>
 					{#if dialog === 'unpublish'}
@@ -2007,6 +1983,8 @@
 						>{form.error}</P
 					>{/if}
 				<Form
+					class="w-full max-w-none"
+					id={`${uid}-slide-dialog-0`}
 					action={dialog === 'delete' ? '?/delete' : '?/unpublish'}
 					submitFunction={() => {
 						managing = true;
@@ -2022,21 +2000,6 @@
 				>
 					<Input type="hidden" name="id" value={data.slide.id} />
 					<Input type="hidden" name="version" value={String(data.slide.version)} />
-					{#snippet buttons()}
-						<Button
-							id={`${uid}-dialog-cancel`}
-							variants={['contrast']}
-							disabled={managing}
-							onclick={() => (dialog = 'settings')}>Cancel</Button
-						>
-						<Button
-							type="submit"
-							variants={['error']}
-							disabled={managing || (dialog === 'delete' && references.length > 0)}
-						>
-							{managing ? 'Working…' : dialog === 'delete' ? 'Delete permanently' : 'Unpublish'}
-						</Button>
-					{/snippet}
 				</Form>
 			{:else if dialog === 'assets'}
 				{#if form?.error}<P role="alert" class="text-sm text-red-600 dark:text-red-400"
@@ -2066,6 +2029,8 @@
 						>{form.error}</P
 					>{/if}
 				<Form
+					class="w-full max-w-none"
+					id={`${uid}-slide-dialog-1`}
 					action={assetAction('upload')}
 					enctype="multipart/form-data"
 					submitFunction={() => {
@@ -2087,22 +2052,10 @@
 							accept="image/png,image/jpeg,image/webp,image/svg+xml"
 							required
 						/>{/snippet}
-					{#snippet buttons()}<Button type="submit" disabled={uploading}
-							><Upload size={18} class="mr-2" />{uploading ? 'Uploading…' : 'Upload asset'}</Button
-						>{/snippet}
 				</Form><P class="text-sm opacity-60"
 					>PNG, JPEG, WebP under 3 MB; SVG under 300 KB. Uploading keeps your current slide edits.</P
 				>
 			{:else}
-				<Button
-					onclick={() => {
-						closeDialog();
-						packageMode = dialog === 'import' ? 'import' : 'export';
-					}}
-					>{dialog === 'import'
-						? 'Import slide package (ZIP)'
-						: 'Export slide package (ZIP)'}</Button
-				>
 				{#if dialog === 'import'}<Input
 						type="file"
 						aria-label="Import JSON file"
@@ -2121,14 +2074,57 @@
 					readonly={dialog === 'export'}
 					rows={12}
 				/>
-				{#if dialog === 'import'}<Button onclick={importJson}
+				{#if dialog === 'import'}{:else}{/if}
+			{/if}
+		</Div>
+		<DialogActions
+			onClose={closeDialog}
+			closeLabel={dialog === 'unpublish' || dialog === 'delete' ? 'Cancel' : 'Done'}
+		>
+			{#if dialog === 'settings'}{#if data.slide.id}
+					{#if data.slide.publishedAt}
+						<Button
+							variants={['contrast']}
+							disabled={saving}
+							onclick={() => openDialog('unpublish')}
+						>
+							Unpublish slide
+						</Button>
+					{/if}
+					<Button variants={['error']} disabled={saving} onclick={() => openDialog('delete')}>
+						<Trash2 size={18} /> Delete slide
+					</Button>
+				{/if}
+			{:else if dialog === 'unpublish' || dialog === 'delete'}<Button
+					form={`${uid}-slide-dialog-0`}
+					type="submit"
+					variants={['error']}
+					disabled={managing || (dialog === 'delete' && references.length > 0)}
+				>
+					{managing ? 'Working…' : dialog === 'delete' ? 'Delete permanently' : 'Unpublish'}
+				</Button>
+			{:else if dialog === 'upload'}<Button
+					form={`${uid}-slide-dialog-1`}
+					type="submit"
+					disabled={uploading}
+					><Upload size={18} class="mr-2" />{uploading ? 'Uploading…' : 'Upload asset'}</Button
+				>
+			{:else if dialog === 'import' || dialog === 'export'}<Button
+					onclick={() => {
+						closeDialog();
+						packageMode = dialog === 'import' ? 'import' : 'export';
+					}}
+					>{dialog === 'import'
+						? 'Import slide package (ZIP)'
+						: 'Export slide package (ZIP)'}</Button
+				>{#if dialog === 'import'}<Button onclick={importJson}
 						><ImportIcon size={18} class="mr-2" />Import from JSON</Button
 					>{:else}<Button onclick={downloadJson}
 						><Download size={18} class="mr-2" />Download JSON</Button
 					>{/if}
-			{/if}
-		</Div>
-	</Modal>
+			{/if}</DialogActions
+		></Modal
+	>
 {/if}
 
 <SlidePackageDialog

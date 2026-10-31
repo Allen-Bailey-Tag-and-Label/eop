@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { Button, Card, DialogActions, Div, H2, Input, Modal, P, Select } from '$lib/components';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { X } from '@lucide/svelte';
-	import { Button, Card, Div, H2, Input, Modal, P, Select } from '$lib/components';
+
 	import { MAX_PACKAGE_BYTES, type PackageChoices, type PackageReview } from './package';
 	import type { SlideDefinition } from './types';
 	let {
@@ -118,26 +118,18 @@
 
 {#if mode}
 	<Modal
+		closeAriaLabel="Close slide package"
+		title={mode === 'export' ? 'Export slide package' : 'Import slide package'}
 		bind:isOpen={
 			() => mode !== null,
 			(value) => {
-				if (!value && !busy) mode = null;
+				if (!value) mode = null;
 			}
 		}
-		isCloseable={!busy}
 		role="dialog"
 		aria-label={mode === 'export' ? 'Export slide package' : 'Import slide package'}
 		class="flex max-h-[85svh] w-full max-w-2xl flex-col gap-4 overflow-hidden p-5"
 	>
-		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2 class="text-lg">{mode === 'export' ? 'Export slide package' : 'Import slide package'}</H2
-			><Button
-				disabled={busy}
-				variants={['ghost', 'icon']}
-				aria-label="Close slide package"
-				onclick={() => (mode = null)}><X size={18} /></Button
-			></Div
-		>
 		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			{#if error}<P role="alert" class="text-red-600 dark:text-red-400">{error}</P>{/if}
 			{#if mode === 'export'}
@@ -154,9 +146,6 @@
 					>Save data-link edits before exporting. Asset IDs stored in workflow definitions are
 					included; images returned dynamically by databases or APIs require their own migration.
 					Packages must be under 4 MB.</P
-				>
-				<Button disabled={busy || !title.trim()} onclick={download}
-					>{busy ? 'Exporting...' : 'Download slide package'}</Button
 				>
 			{:else}
 				<P
@@ -207,12 +196,17 @@
 						The slide itself stays unpublished. Configure API credentials and verify production data
 						before publishing.</P
 					>
-					<Button
-						disabled={busy || !importedTitle.trim() || !importedSlug.trim()}
-						onclick={importPackage}>{busy ? 'Importing...' : 'Import as new draft'}</Button
-					>
 				{/if}
 			{/if}
 		</Div>
+
+		<DialogActions onClose={() => (mode = null)}
+			>{#if mode === 'export'}<Button disabled={busy || !title.trim()} onclick={download}
+					>{busy ? 'Exporting...' : 'Download slide package'}</Button
+				>{:else if review}<Button
+					disabled={busy || !importedTitle.trim() || !importedSlug.trim()}
+					onclick={importPackage}>{busy ? 'Importing...' : 'Import as new draft'}</Button
+				>{/if}</DialogActions
+		>
 	</Modal>
 {/if}

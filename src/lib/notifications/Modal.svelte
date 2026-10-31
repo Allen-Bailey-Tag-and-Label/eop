@@ -1,15 +1,13 @@
 <script lang="ts">
+	import { Button, DialogActions, Div, Modal, P, Spinner } from '$lib/components';
 	import { invalidateAll } from '$app/navigation';
 	import { PUBLIC_VAPID_PUBLIC_KEY } from '$env/static/public';
-	import { Button, Div, H1, Modal, P, Spinner } from '$lib/components';
+
 	import { base64Url } from '$lib/formats';
 	import { Bell } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
-	import { twMerge } from 'tailwind-merge';
-
 	let { isPermissionSet = $bindable(true) } = $props();
 
-	let isCloseable = $state(false);
 	let isOpen = $state(false);
 	let isLoading = $state(false);
 	let message = $state('');
@@ -109,39 +107,22 @@
 	});
 </script>
 
-<Modal bind:isOpen class="flex max-w-sm flex-col items-center space-y-6 p-0" {isCloseable}>
-	<Div class="flex flex-col items-center space-y-6 p-6">
+<Modal title="Notifications" bind:isOpen class="w-full max-w-sm space-y-6">
+	<Div class="flex flex-col items-center gap-6">
 		<Bell class="text-primary-500" size={80} />
-		<H1>Notifications</H1>
-		<P class="text-center opacity-50">
-			Would you like to have notifications turned on for this device?
-		</P>
+		<P class="text-center opacity-50"
+			>Would you like to have notifications turned on for this device?</P
+		>
 	</Div>
-	<Div class="flex w-full flex-col items-center">
-		<Div class="relative w-full overflow-hidden">
-			<Div
-				class={twMerge(
-					'grid w-full grid-cols-2 gap-2 p-6 transition duration-200 lg:flex lg:justify-end',
-					isLoading ? '-translate-y-full' : 'translate-y-0'
-				)}
-			>
-				{#each options as { class: className, label, onclick, variants }}
-					<Button class="w-full {className}" {onclick} {variants}>
-						{label}
-					</Button>
-				{/each}
-			</Div>
-			<Div
-				class={twMerge(
-					'absolute top-0 left-0 flex h-full w-full items-center justify-center space-x-2 p-4 transition duration-200',
-					isLoading ? 'translate-y-0' : '-translate-y-full'
-				)}
-			>
-				<Spinner />
-			</Div>
-		</Div>
-		{#if message !== ''}
-			<div class="min-h-6 px-6 pb-6" transition:slide={{ axis: 'y', duration: 200 }}>{message}</div>
-		{/if}
-	</Div>
+	{#if isLoading}<Div class="flex justify-center"><Spinner /></Div>{/if}
+	{#if message !== ''}<div class="min-h-6" transition:slide={{ axis: 'y', duration: 200 }}>
+			{message}
+		</div>{/if}
+	<DialogActions onClose={() => (isOpen = false)}>
+		{#each options as { label, onclick, variants } (label)}<Button
+				{onclick}
+				{variants}
+				disabled={isLoading}>{label}</Button
+			>{/each}
+	</DialogActions>
 </Modal>

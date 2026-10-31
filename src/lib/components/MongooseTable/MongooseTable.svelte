@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DialogActions } from '$lib/components';
 	import {
 		ArrowLeft,
 		ArrowRight,
@@ -1003,7 +1004,7 @@
 				<Button onclick={() => (isExportModalOpen = true)} variants={['icon']}>
 					<Download />
 				</Button>
-				<Modal bind:isOpen={isExportModalOpen} class="space-y-6">
+				<Modal title="Export data" bind:isOpen={isExportModalOpen} class="space-y-6">
 					<Div class="flex flex-col">
 						<Label>Export Type</Label>
 						<Div class="grid grid-cols-3 gap-2">
@@ -1014,7 +1015,7 @@
 							{/each}
 						</Div>
 					</Div>
-					<Div class="flex justify-end space-x-2">
+					<DialogActions>
 						<Button
 							onclick={async () => {
 								const headers: string[] = columnsSanitized
@@ -1030,7 +1031,7 @@
 							Export
 						</Button>
 						<Button onclick={() => (isExportModalOpen = false)} variants={['glass']}>Cancel</Button>
-					</Div>
+					</DialogActions>
 				</Modal>
 			{/if}
 
@@ -1044,8 +1045,27 @@
 				>
 					<Upload />
 				</Button>
-				<Modal bind:isOpen={isImportModalOpen} class="space-y-6">
-					<Div class="flex justify-end space-x-2">
+				<Modal title="Import data" bind:isOpen={isImportModalOpen} class="space-y-6">
+					{#if importText === ''}
+						<Div class="flex flex-col">
+							<Label>Paste CSV</Label>
+							<Textarea bind:value={importText}></Textarea>
+						</Div>
+					{:else}
+						<Datatable
+							columns={importColumns}
+							isColumnsReorderable={false}
+							isCreatable={false}
+							isDeletable={false}
+							isEditable={false}
+							isExportable={false}
+							isFilterable={false}
+							isPaginateable={false}
+							rows={importData}
+						/>
+					{/if}
+
+					<DialogActions onClose={() => (isImportModalOpen = false)}>
 						<Button
 							disabled={importText === ''}
 							onclick={() => {
@@ -1090,25 +1110,7 @@
 								<Upload />
 							</Button>
 						</Form>
-					</Div>
-					{#if importText === ''}
-						<Div class="flex flex-col">
-							<Label>Paste CSV</Label>
-							<Textarea bind:value={importText}></Textarea>
-						</Div>
-					{:else}
-						<Datatable
-							columns={importColumns}
-							isColumnsReorderable={false}
-							isCreatable={false}
-							isDeletable={false}
-							isEditable={false}
-							isExportable={false}
-							isFilterable={false}
-							isPaginateable={false}
-							rows={importData}
-						/>
-					{/if}
+					</DialogActions>
 				</Modal>
 			{/if}
 			<Button
@@ -1121,8 +1123,9 @@
 			>
 				<Settings />
 			</Button>
-			<Modal bind:isOpen={isSettingsModalOpen} class="space-y-6">
+			<Modal title="Table settings" bind:isOpen={isSettingsModalOpen} class="space-y-6">
 				<Form
+					class="w-full max-w-none"
 					action="/api/mongooseTable?/find"
 					submitFunction={() => {
 						isLoading = true;
@@ -1201,12 +1204,12 @@
 							</Div>
 						</Div>
 					{/snippet}
-					{#snippet buttons()}
-						<Button type="submit">Update</Button>
-						<Button onclick={() => (isSettingsModalOpen = false)} variants={['glass']}>
-							Cancel
-						</Button>
-					{/snippet}
+					{#snippet buttons()}<DialogActions>
+							<Button type="submit">Update</Button>
+							<Button onclick={() => (isSettingsModalOpen = false)} variants={['glass']}>
+								Cancel
+							</Button>
+						</DialogActions>{/snippet}
 				</Form>
 			</Modal>
 			{#if isFilterable}
@@ -1250,10 +1253,10 @@
 
 {#snippet createModal()}
 	{#if columnsSanitized}
-		<Modal bind:isOpen={isCreateModalOpen}>
+		<Modal title="Create record" bind:isOpen={isCreateModalOpen}>
 			<Form
 				action="/api/mongooseTable?/create"
-				class="max-w-full space-y-6"
+				class="w-full max-w-none space-y-6"
 				submitFunction={() => {
 					isLoading = true;
 					isCreateModalOpen = false;
@@ -1282,19 +1285,19 @@
 						{/each}
 					</Tbody>
 				</Table>
-				<Div class="flex justify-end space-x-2">
+				<DialogActions>
 					<Button type="submit">Add</Button>
 					<Button onclick={() => (isCreateModalOpen = false)} variants={['glass']}>Cancel</Button>
-				</Div>
+				</DialogActions>
 			</Form>
 		</Modal>
 	{/if}
 {/snippet}
 {#snippet deleteModal()}
-	<Modal bind:isOpen={isDeleteModalOpen}>
+	<Modal title="Delete records?" bind:isOpen={isDeleteModalOpen}>
 		<Form
 			action="/api/mongooseTable?/delete"
-			class="flex flex-col items-center space-y-6"
+			class="flex w-full max-w-none flex-col items-center space-y-6"
 			submitFunction={() => {
 				isLoading = true;
 				isDeleteModalOpen = false;
@@ -1320,18 +1323,18 @@
 					: 's'}?<br />
 				This cannot be undone.
 			</P>
-			<Div class="grid w-full grid-cols-2 gap-4">
+			<DialogActions>
 				<Button onclick={() => (isDeleteModalOpen = false)} variants={['contrast']}>Cancel</Button>
 				<Button type="submit" variants={['error']}>Delete</Button>
-			</Div>
+			</DialogActions>
 		</Form>
 	</Modal>
 {/snippet}
 {#snippet filterModal()}
-	<Modal bind:isOpen={isFilterModalOpen}>
+	<Modal title="Filter data" bind:isOpen={isFilterModalOpen}>
 		<Form
 			action="/api/mongooseTable?/find"
-			class="max-w-auto space-y-6"
+			class="w-full max-w-none space-y-6"
 			submitFunction={() => {
 				isLoading = true;
 				isFilterModalOpen = false;
@@ -1465,10 +1468,10 @@
 					{/if}
 				</Tbody>
 			</Table>
-			<Div class="flex justify-end space-x-2">
+			<DialogActions>
 				<Button type="submit">Apply</Button>
 				<Button onclick={() => (isFilterModalOpen = false)} variants={['glass']}>Cancel</Button>
-			</Div>
+			</DialogActions>
 		</Form>
 	</Modal>
 {/snippet}

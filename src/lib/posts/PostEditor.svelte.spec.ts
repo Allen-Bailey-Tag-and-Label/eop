@@ -4,6 +4,7 @@ import PostEditor from './PostEditor.svelte';
 import { blankForm } from '$lib/forms/definition';
 import marketingMarkdown from '$lib/rich-text/fixtures/marketing.md?raw';
 import { enhance } from '$app/forms';
+import { invalidateAll } from '$app/navigation';
 vi.mock('$app/forms', () => ({
 	enhance: vi.fn(() => ({ destroy: vi.fn() })),
 	deserialize: (value: string) => JSON.parse(value)
@@ -44,8 +45,49 @@ const data = {
 	roles: [{ value: 'b'.repeat(24), label: 'Employees' }]
 };
 describe('post forms authoring', () => {
+	it('keeps a dismissed form closed when an in-flight save completes', async () => {
+		let complete!: (response: Response) => void;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => new Promise<Response>((resolve) => (complete = resolve)))
+		);
+		const view = render(PostEditor, { data: data as never });
+		await fireEvent.click(view.getByRole('button', { name: 'Questions' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Create form' }));
+		const dialog = within(view.getByRole('dialog', { name: 'Create form' }));
+		await fireEvent.input(dialog.getByRole('textbox', { name: 'Form slug' }), {
+			target: { value: 'new-feedback' }
+		});
+		await fireEvent.click(dialog.getByRole('button', { name: 'Save draft' }));
+		await fireEvent.click(dialog.getByRole('button', { name: 'Close form editor' }));
+		const invalidations = vi.mocked(invalidateAll).mock.calls.length;
+		complete(
+			new Response(
+				JSON.stringify({
+					type: 'success',
+					data: {
+						formRecord: {
+							id: 'c'.repeat(24),
+							slug: 'new-feedback',
+							title: 'New form',
+							version: 1,
+							draft: blankForm(),
+							published: false
+						}
+					}
+				})
+			)
+		);
+		await waitFor(() => expect(invalidateAll).toHaveBeenCalledTimes(invalidations + 1));
+		expect(view.queryByRole('dialog', { name: 'Edit form' })).toBeNull();
+		expect(view.queryByRole('dialog', { name: 'Create form' })).toBeNull();
+		expect(view.getByRole('dialog', { name: 'Forms' })).toBeInTheDocument();
+	});
 	it('retains unsaved edits and the mounted editor when switching Edit and View', async () => {
 		const view = render(PostEditor, { data: data as never });
+		const back = view.getByRole('link', { name: 'Back to management' });
+		expect(back).toHaveAttribute('href', '/post/manage');
+		expect(back.parentElement).toBe(view.getByRole('link', { name: 'View post' }).parentElement);
 		expect(view.getByRole('link', { name: 'View post' })).toHaveClass(
 			'text-white',
 			'bg-primary-500/90',

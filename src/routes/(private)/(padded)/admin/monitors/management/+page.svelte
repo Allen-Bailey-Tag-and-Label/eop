@@ -2,6 +2,7 @@
 	import {
 		Button,
 		Card,
+		DialogActions,
 		Div,
 		Form,
 		H1,
@@ -17,6 +18,7 @@
 		Thead,
 		Tr
 	} from '$lib/components';
+
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -122,14 +124,16 @@
 
 {#if isRevokeModalOpen && monitorToRevoke}
 	<Modal
+		title="Revoke monitor access?"
+		titleId="revoke-monitor-title"
 		bind:isOpen={isRevokeModalOpen}
-		isCloseable={!isRevoking}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="revoke-monitor-title"
 		aria-describedby="revoke-monitor-description"
 	>
 		<Form
+			class="w-full max-w-none"
 			action="?/revoke"
 			submitFunction={() => {
 				isRevoking = true;
@@ -144,22 +148,19 @@
 			}}
 		>
 			<Input type="hidden" name="sessionId" value={monitorToRevoke.id} />
-			<H2 id="revoke-monitor-title">Revoke monitor access?</H2>
+
 			<P id="revoke-monitor-description">
 				Revoke access for {monitorToRevoke.location}? The monitor will return to the pairing screen
 				on its next check and will need approval to reconnect.
 			</P>
-			{#snippet buttons()}
-				<Button
-					type="button"
-					variants={['contrast']}
-					disabled={isRevoking}
-					onclick={() => (isRevokeModalOpen = false)}>Cancel</Button
-				>
-				<Button type="submit" variants={['error']} disabled={isRevoking}>
-					{isRevoking ? 'Revoking…' : 'Revoke access'}
-				</Button>
-			{/snippet}
+			{#snippet buttons()}<DialogActions>
+					<Button type="button" variants={['contrast']} onclick={() => (isRevokeModalOpen = false)}
+						>Cancel</Button
+					>
+					<Button type="submit" variants={['error']} disabled={isRevoking}>
+						{isRevoking ? 'Revoking…' : 'Revoke access'}
+					</Button>
+				</DialogActions>{/snippet}
 		</Form>
 	</Modal>
 {/if}

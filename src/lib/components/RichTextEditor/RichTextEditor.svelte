@@ -1,16 +1,10 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
-	import { Editor, getMarkRange } from '@tiptap/core';
-	import type { HTMLAttributes } from 'svelte/elements';
-	import { twMerge } from 'tailwind-merge';
-	import { X } from '@lucide/svelte';
-	import RichTextToolbar from './RichTextToolbar.svelte';
 	import {
 		Button,
 		Card,
 		Checkbox,
+		DialogActions,
 		Div,
-		H2,
 		Hr,
 		Input,
 		Modal,
@@ -18,6 +12,12 @@
 		Select,
 		Tabs
 	} from '$lib/components';
+	import { onMount, untrack } from 'svelte';
+	import { Editor, getMarkRange } from '@tiptap/core';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { twMerge } from 'tailwind-merge';
+	import RichTextToolbar from './RichTextToolbar.svelte';
+
 	import { theme } from '$lib/theme';
 	import { editorExtensions } from '$lib/rich-text/extensions';
 	import { emptyDocument, safeUrl, type RichTextDocument } from '$lib/rich-text/document';
@@ -247,39 +247,15 @@
 </Card>
 {#if tableDialog}
 	<Modal
+		closeAriaLabel="Close table settings"
+		title="Table settings"
 		bind:isOpen={tableDialog}
 		role="dialog"
 		aria-label="Table settings"
 		class="max-h-[90svh] w-full max-w-lg space-y-4 overflow-y-auto p-5"
 	>
-		<Div class="flex items-center justify-between gap-3"
-			><H2 class="text-lg">Table settings</H2><Button
-				variants={['ghost', 'icon']}
-				aria-label="Close table settings"
-				onclick={() => (tableDialog = false)}><X size={18} /></Button
-			></Div
-		>
 		{#if selection.table}
-			<Div class="grid grid-cols-2 gap-3">
-				<Button onclick={() => editor?.chain().addRowAfter().run()}>Add row</Button>
-				<Button onclick={() => editor?.chain().addColumnAfter().run()}>Add column</Button>
-				<Button variants={['ghost']} onclick={() => editor?.chain().deleteRow().run()}
-					>Remove row</Button
-				>
-				<Button variants={['ghost']} onclick={() => editor?.chain().deleteColumn().run()}
-					>Remove column</Button
-				>
-				<Button variants={['ghost']} onclick={() => editor?.chain().toggleHeaderRow().run()}
-					>Toggle header row</Button
-				>
-				<Button
-					variants={['ghost']}
-					onclick={() => {
-						editor?.chain().focus().deleteTable().run();
-						tableDialog = false;
-					}}>Remove table</Button
-				>
-			</Div>
+			<P>Manage the selected table using the actions below.</P>
 		{:else}
 			<Div class="grid grid-cols-2 gap-3"
 				><Input
@@ -300,13 +276,35 @@
 			>
 			<Checkbox label="Header row" bind:checked={tableHeader} />
 			{#if tableError}<P role="alert">{tableError}</P>{/if}
-			<Button onclick={insertTable}>Insert table</Button>
 		{/if}
-		<Button variants={['ghost']} onclick={() => (tableDialog = false)}>Done</Button>
+		<DialogActions onClose={() => (tableDialog = false)} closeLabel="Done"
+			>{#if selection.table}
+				<Button onclick={() => editor?.chain().addRowAfter().run()}>Add row</Button>
+				<Button onclick={() => editor?.chain().addColumnAfter().run()}>Add column</Button>
+				<Button variants={['ghost']} onclick={() => editor?.chain().deleteRow().run()}
+					>Remove row</Button
+				>
+				<Button variants={['ghost']} onclick={() => editor?.chain().deleteColumn().run()}
+					>Remove column</Button
+				>
+				<Button variants={['ghost']} onclick={() => editor?.chain().toggleHeaderRow().run()}
+					>Toggle header row</Button
+				>
+				<Button
+					variants={['ghost']}
+					onclick={() => {
+						editor?.chain().focus().deleteTable().run();
+						tableDialog = false;
+					}}>Remove table</Button
+				>
+			{:else}<Button onclick={insertTable}>Insert table</Button>{/if}</DialogActions
+		>
 	</Modal>
 {/if}
 {#if dialog}
 	<Modal
+		closeAriaLabel="Close settings"
+		title={dialog === 'link' ? 'Edit link' : 'Image settings'}
 		bind:isOpen={
 			() => !!dialog,
 			(open) => {
@@ -314,18 +312,9 @@
 			}
 		}
 		role="dialog"
-		isCloseable={!uploading}
 		aria-label={dialog === 'link' ? 'Edit link' : 'Image settings'}
 		class="max-h-[90svh] w-full max-w-xl space-y-4 overflow-y-auto p-5"
 	>
-		<Div class="flex items-center justify-between gap-3"
-			><H2 class="text-lg">{dialog === 'link' ? 'Edit link' : 'Image settings'}</H2><Button
-				variants={['ghost', 'icon']}
-				aria-label="Close settings"
-				disabled={uploading}
-				onclick={() => (dialog = null)}><X size={18} /></Button
-			></Div
-		>
 		{#if dialog === 'image'}
 			<Tabs
 				aria-label="Image source"
@@ -348,9 +337,6 @@
 					/>
 					<P class="text-sm opacity-70"
 						>PNG, JPEG, or WebP, up to 3 MB. Uploaded images belong to this post.</P
-					>
-					<Button disabled={!file || uploading} onclick={upload}
-						>{uploading ? 'Uploading...' : 'Upload image'}</Button
 					>
 				{:else}<P>Save the post before uploading images.</P>{/if}
 			{:else if imageSource === 'library'}
@@ -391,16 +377,19 @@
 				options={['left', 'center', 'right'].map((value) => ({ value, label: value }))}
 			/>{/if}
 		{#if error}<P role="alert">{error}</P>{/if}
-		<Div class="flex flex-wrap gap-2"
-			><Button disabled={uploading} onclick={apply}>Apply</Button>{#if dialog === 'link'}<Button
+		<DialogActions
+			>{#if dialog === 'image' && imageSource === 'upload' && onUploadImage}<Button
+					disabled={!file || uploading}
+					onclick={upload}>{uploading ? 'Uploading...' : 'Upload image'}</Button
+				>{/if}<Button disabled={uploading} onclick={apply}>Apply</Button
+			>{#if dialog === 'link'}<Button
 					variants={['ghost']}
 					onclick={() => {
 						editor?.chain().focus().setTextSelection(linkRange).unsetLink().run();
 						dialog = null;
 					}}>Remove link</Button
-				>{/if}<Button disabled={uploading} variants={['ghost']} onclick={() => (dialog = null)}
-				>Cancel</Button
-			></Div
+				>{/if}<Button variants={['ghost']} onclick={() => (dialog = null)}>Cancel</Button
+			></DialogActions
 		>
 	</Modal>
 {/if}

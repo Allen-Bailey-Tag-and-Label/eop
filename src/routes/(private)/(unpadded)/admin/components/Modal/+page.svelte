@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Div, Modal } from '$lib/components';
+	import { Button, DialogActions, Div, Modal } from '$lib/components';
 
 	let isOpen = $state(false);
 </script>
@@ -8,6 +8,8 @@
 	<Button onclick={() => (isOpen = true)}>Show Modal</Button>
 </Div>
 
-<Modal bind:isOpen>
+<Modal title="Dialog" bind:isOpen>
 	{isOpen}
+
+	<DialogActions onClose={() => (isOpen = false)} />
 </Modal>

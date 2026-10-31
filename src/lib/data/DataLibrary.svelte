@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { Button, Card, Div, H2, Input, P, Tabs } from '$lib/components';
+	import { Button, Card, DialogActions, Div, Input, Modal, P, Tabs } from '$lib/components';
 	import SourceEditor from './SourceEditor.svelte';
 	import ConnectionEditor from './ConnectionEditor.svelte';
 	import {
@@ -110,14 +110,14 @@
 		/>
 	{/key}
 {:else if pending}
-	<Div
+	<Modal
+		isOpen={true}
+		onDismiss={() => (pending = null)}
 		role="alertdialog"
+		title={pendingOperation === 'delete' ? 'Delete data link?' : 'Move data link?'}
 		aria-label={pendingOperation === 'delete' ? 'Delete data link?' : 'Move data link?'}
-		class="space-y-4"
+		class="w-full max-w-lg space-y-4"
 	>
-		<H2 class="text-lg"
-			>{pendingOperation === 'delete' ? 'Delete data link?' : 'Move data link?'}</H2
-		>
 		<P
 			>{pendingOperation === 'delete'
 				? 'Permanently delete this data link? Saved draft and published slide references must be removed first.'
@@ -126,7 +126,7 @@
 					: 'Make this link available in the shared library for all slides?'}</P
 		>
 		{#if result.error}<P role="alert">{result.error}</P>{/if}
-		<Div class="flex gap-2"
+		<DialogActions
 			><Button
 				disabled={busy}
 				onclick={() =>
@@ -134,9 +134,9 @@
 						confirm: pendingOperation,
 						scope: pending!.scope === 'shared' ? 'slide' : 'shared'
 					})}>{pendingOperation === 'delete' ? 'Confirm delete' : 'Confirm move'}</Button
-			><Button disabled={busy} onclick={() => (pending = null)}>Cancel</Button></Div
+			><Button onclick={() => (pending = null)}>Cancel</Button></DialogActions
 		>
-	</Div>
+	</Modal>
 {:else}
 	<Div class="space-y-4">
 		<Tabs

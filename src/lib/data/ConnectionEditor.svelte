@@ -2,6 +2,7 @@
 	import {
 		Button,
 		Datatable,
+		DialogActions,
 		Div,
 		Form,
 		H2,
@@ -12,8 +13,8 @@
 		Td,
 		Textarea
 	} from '$lib/components';
+
 	import type { Column, TdSnippet } from '$lib/components/Datatable/types';
-	import { X } from '@lucide/svelte';
 	import type { ApiConnection } from '$lib/data/types';
 	let { data, form, scopeId = '' } = $props();
 	let id = $state(''),
@@ -79,18 +80,13 @@
 </Div>
 {#if editing}
 	<Modal
+		closeAriaLabel="Close API connection"
+		title={id ? 'Edit API connection' : 'New API connection'}
 		bind:isOpen={editing}
 		role="dialog"
 		aria-label={id ? 'Edit API connection' : 'New API connection'}
 		class="flex max-h-[85svh] w-full max-w-2xl flex-col gap-4 overflow-hidden p-5"
 	>
-		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2 class="text-lg">{id ? 'Edit API connection' : 'New API connection'}</H2><Button
-				variants={['ghost', 'icon']}
-				aria-label="Close API connection"
-				onclick={() => (editing = false)}><X size={18} /></Button
-			></Div
-		>
 		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			<P
 				>Configure an HTTPS origin and explicit endpoint paths. Authentication values come from
@@ -101,7 +97,7 @@
 
 			<Form
 				action="?/connectionSave"
-				class="max-w-none"
+				class="w-full max-w-none"
 				submitFunction={() =>
 					async ({ result, update }) => {
 						await update({ reset: false });
@@ -175,10 +171,10 @@
 					value={String(config.timeoutMs)}
 					oninput={(event) => (config.timeoutMs = event.currentTarget.valueAsNumber)}
 				/>
-				<Div class="flex gap-2"
+				<DialogActions
 					><Button type="submit">Save connection</Button><Button onclick={() => (editing = false)}
 						>Cancel</Button
-					></Div
+					></DialogActions
 				>
 			</Form>
 		</Div>
@@ -202,20 +198,17 @@
 		></Td
 	>{/snippet}
 <Modal
+	closeAriaLabel="Close delete API connection"
+	title="Delete API connection?"
 	bind:isOpen={deleting}
 	role="dialog"
 	aria-label="Delete API connection?"
 	class="w-full max-w-lg p-5"
 	><Div class="space-y-4"
-		><Div class="flex items-center justify-between gap-4"
-			><H2 class="text-lg">Delete API connection?</H2><Button
-				variants={['ghost', 'icon']}
-				aria-label="Close delete API connection"
-				onclick={() => (deleting = false)}><X size={18} /></Button
-			></Div
 		>{#if error}<P role="alert">{error}</P>{/if}<P
 			>Connections used by a draft or published workflow cannot be deleted.</P
 		><Form
+			class="w-full max-w-none"
 			action="?/connectionDelete"
 			submitFunction={() =>
 				async ({ result, update }) => {
@@ -239,7 +232,12 @@
 				type="hidden"
 				name="confirm"
 				value="delete"
-			/><Button type="submit" variants={['error']}>Confirm delete</Button></Form
-		><Button onclick={() => (deleting = false)}>Cancel</Button></Div
+			/><DialogActions
+				><Button onclick={() => (deleting = false)}>Cancel</Button><Button
+					type="submit"
+					variants={['error']}>Confirm delete</Button
+				></DialogActions
+			></Form
+		></Div
 	></Modal
 >

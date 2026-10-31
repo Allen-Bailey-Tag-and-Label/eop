@@ -10,7 +10,7 @@
 	import { subtleReveal } from 'sveltewind/transitions';
 	import { attachmentFactory, focusFirst, focusTrap, portal } from '$lib/attachments';
 	import { theme } from '$lib/theme';
-	import { Card, Div } from '..';
+	import { Card, Div, DialogHeader } from '..';
 
 	const depth = getContext<number>(modalDepth) ?? 0;
 	setContext(modalDepth, depth + 1);
@@ -21,6 +21,10 @@
 		class?: string;
 		isCloseable?: boolean;
 		isOpen?: boolean;
+		title?: string;
+		titleId?: string;
+		closeAriaLabel?: string;
+		onDismiss?: () => void;
 		style?: string;
 		variants?: string[];
 	};
@@ -30,10 +34,19 @@
 		class: className,
 		isCloseable = $bindable(true),
 		isOpen = $bindable(false),
+		title,
+		titleId,
+		closeAriaLabel = 'Close dialog',
+		onDismiss,
 		style,
 		variants = [],
 		...restProps
 	}: Props = $props();
+	function dismiss() {
+		if (!isCloseable) return;
+		isOpen = false;
+		onDismiss?.();
+	}
 </script>
 
 <Div
@@ -45,13 +58,14 @@
 		isOpen ? 'bg-black/30 dark:bg-black/70' : 'bg-black/0'
 	)}
 	inert={isOpen ? undefined : true}
-	onclick={() => {
-		if (isCloseable) isOpen = false;
-	}}
+	onclick={dismiss}
 >
 	{#if isOpen}
 		<div class="flex h-full w-full items-center justify-center" transition:subtleReveal|global>
 			<Card
+				role="dialog"
+				aria-modal="true"
+				aria-label={title}
 				{...restProps}
 				{@attach attachmentFactory(attachments)}
 				{@attach focusFirst()}
@@ -63,8 +77,25 @@
 				)}
 				inert={isOpen ? undefined : true}
 				onclick={(e: Event) => e.stopPropagation()}
+				onkeydown={(event) => {
+					restProps.onkeydown?.(event);
+					if (event.key === 'Escape' && !event.defaultPrevented) {
+						const popover = (event.target as Element).closest('[popover]');
+						if (popover?.matches(':popover-open')) return;
+						event.preventDefault();
+						event.stopPropagation();
+						dismiss();
+					}
+				}}
 				{style}
 			>
+				<DialogHeader
+					{title}
+					{titleId}
+					{closeAriaLabel}
+					disabled={!isCloseable}
+					onClose={dismiss}
+				/>
 				{#if children}
 					{@render children()}
 				{/if}

@@ -1,8 +1,18 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { subtleReveal } from 'sveltewind/transitions';
-	import { focusTrap } from '$lib/attachments';
-	import { A, Button, Card, Div, Form, H2, Input, P, Select, Tabs } from '$lib/components';
+	import {
+		A,
+		Button,
+		Card,
+		DialogActions,
+		Div,
+		Form,
+		Input,
+		Modal,
+		P,
+		Select,
+		Tabs
+	} from '$lib/components';
 	import type { AssetSummary } from './types';
 	let {
 		assets,
@@ -63,26 +73,16 @@
 </script>
 
 {#if pending}
-	<div
-		{@attach focusTrap}
+	<Modal
+		isOpen={true}
+		onDismiss={dismissConfirmation}
 		role="alertdialog"
-		tabindex={-1}
-		aria-modal="true"
+		title={pending.operation === 'delete' ? 'Delete asset?' : 'Move asset to this slide?'}
+		titleId={`${uid}-confirmation-title`}
 		aria-labelledby={`${uid}-confirmation-title`}
 		aria-describedby={`${uid}-confirmation-description`}
-		class="space-y-4"
-		in:subtleReveal
-		onkeydown={(event) => {
-			if (event.key === 'Escape' && !busy) {
-				event.preventDefault();
-				event.stopPropagation();
-				void dismissConfirmation();
-			}
-		}}
+		class="w-full max-w-lg space-y-4"
 	>
-		<H2 id={`${uid}-confirmation-title`} class="text-lg"
-			>{pending.operation === 'delete' ? 'Delete asset?' : 'Move asset to this slide?'}</H2
-		>
 		<P class="font-semibold break-words">{pending.asset.name}</P>
 		<P id={`${uid}-confirmation-description`} class="text-sm">
 			{pending.operation === 'delete'
@@ -125,12 +125,9 @@
 			<Input type="hidden" name="assetScopeId" value={scopeId} />
 			<Input type="hidden" name="operation" value={pending.operation} />
 			<Input type="hidden" name="confirm" value={pending.operation} />
-			<Div class="flex justify-end gap-2">
-				<Button
-					bind:element={cancelButton}
-					variants={['ghost']}
-					disabled={busy}
-					onclick={dismissConfirmation}>Cancel</Button
+			<DialogActions>
+				<Button bind:element={cancelButton} variants={['ghost']} onclick={dismissConfirmation}
+					>Cancel</Button
 				>
 				<Button
 					type="submit"
@@ -143,9 +140,9 @@
 							? 'Delete asset'
 							: 'Move to this slide'}</Button
 				>
-			</Div>
+			</DialogActions>
 		</Form>
-	</div>
+	</Modal>
 {/if}
 <Div
 	bind:element={library}

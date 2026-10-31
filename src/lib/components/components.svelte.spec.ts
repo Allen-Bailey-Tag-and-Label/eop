@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import { createRawSnippet, tick } from 'svelte';
 import { twMerge } from 'tailwind-merge';
 import { theme } from '$lib/theme';
@@ -23,6 +23,7 @@ import {
 	Tabs
 } from './index';
 import Bindings from './fixtures/Bindings.svelte';
+import DialogStandards from './fixtures/DialogStandards.svelte';
 import Adapters from './fixtures/Adapters.svelte';
 import { Button, Em, Form, Hr, Input, Li, Modal, Ol, Option, Spinner, Strong, Ul } from './index';
 import { subtleReveal } from 'sveltewind/transitions';
@@ -73,6 +74,30 @@ describe('Sveltewind compatibility adapters', () => {
 		expect(subtleReveal).toHaveBeenCalled();
 		await view.rerender({ isOpen: false });
 		await tick();
+		expect(view.queryByRole('dialog')).toBeNull();
+	});
+	it('dismisses only the nested dialog using outside clicks, X, Escape or its footer', async () => {
+		const view = render(DialogStandards);
+		const open = () => fireEvent.click(view.getByRole('button', { name: 'Open confirmation' }));
+		await open();
+		let confirmation = view.getByRole('dialog', { name: 'Confirmation' });
+		expect(within(confirmation).getByRole('button', { name: 'Cancel' }).parentElement).toBe(
+			within(confirmation).getByRole('button', { name: 'Confirm' }).parentElement
+		);
+		await fireEvent.click(confirmation.parentElement!);
+		expect(view.queryByRole('dialog', { name: 'Confirmation' })).toBeNull();
+		expect(view.getByRole('dialog', { name: 'Parent dialog' })).toBeInTheDocument();
+		await open();
+		confirmation = view.getByRole('dialog', { name: 'Confirmation' });
+		await fireEvent.click(within(confirmation).getByRole('button', { name: 'Close dialog' }));
+		expect(view.queryByRole('dialog', { name: 'Confirmation' })).toBeNull();
+		await open();
+		await fireEvent.keyDown(view.getByRole('dialog', { name: 'Confirmation' }), { key: 'Escape' });
+		expect(view.queryByRole('dialog', { name: 'Confirmation' })).toBeNull();
+		await open();
+		await fireEvent.click(view.getByRole('button', { name: 'Cancel' }));
+		expect(view.queryByRole('dialog', { name: 'Confirmation' })).toBeNull();
+		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
 		expect(view.queryByRole('dialog')).toBeNull();
 	});
 

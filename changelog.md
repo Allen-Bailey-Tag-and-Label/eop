@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T19:11:48.183Z
+## 2026-10-31T11:40:03.782Z
+
+fix: Standardize dialogs and add post management navigation
+
+## 2026-10-31T07:06:47-04:00
 
 feat: Add grouped rich text toolbar with size and color controls
 

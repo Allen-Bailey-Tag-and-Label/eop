@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { Button, Datatable, DialogActions, Div, Modal, P, Td } from '$lib/components';
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { X } from '@lucide/svelte';
-	import { Button, Datatable, Div, H2, Modal, P, Td } from '$lib/components';
+
 	import type { Column, TdSnippet } from '$lib/components/Datatable/types';
 	import { blankForm } from '$lib/forms/definition';
 	import FormEditor, { type EditorForm } from './FormEditor.svelte';
@@ -73,6 +73,7 @@
 		}
 	}
 	async function save(record: EditorForm, intent: string) {
+		const editing = selected;
 		try {
 			const result = await request('formSave', {
 				id: record.id,
@@ -81,7 +82,7 @@
 				definition: JSON.stringify(record.draft),
 				intent
 			});
-			selected = result.formRecord!;
+			if (selected === editing) selected = result.formRecord!;
 			await invalidateAll();
 			return '';
 		} catch (cause) {
@@ -111,18 +112,13 @@
 
 {#if open}
 	<Modal
+		closeAriaLabel="Close forms"
+		title="Forms"
 		bind:isOpen={open}
 		role="dialog"
 		aria-label="Forms"
 		class="flex max-h-[90svh] w-full max-w-6xl flex-col gap-4 overflow-hidden p-5"
 	>
-		<Div class="flex shrink-0 items-center justify-between gap-4"
-			><H2 class="text-lg">Forms</H2><Button
-				variants={['ghost', 'icon']}
-				aria-label="Close forms"
-				onclick={() => (open = false)}><X size={18} /></Button
-			></Div
-		>
 		<Div class="-m-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
 			<P
 				>Manage questions and responses for this post. Publish a question set, insert it into
@@ -156,35 +152,27 @@
 					onSave={save}
 				/>{/key}{/if}
 		{#if pending}<Modal
+				closeAriaLabel="Close delete form"
+				title="Delete form?"
+				onDismiss={() => (pending = null)}
 				isOpen={true}
-				isCloseable={false}
 				role="dialog"
 				aria-label="Delete form?"
 				class="w-full max-w-lg space-y-4 p-5"
-				><Div class="flex items-center justify-between gap-4"
-					><H2 class="text-lg">Delete form?</H2><Button
-						variants={['ghost', 'icon']}
-						aria-label="Close delete form"
-						onclick={() => (pending = null)}><X size={18} /></Button
-					></Div
 				><P>Delete {pending.title}? Forms with posts or responses must be closed instead.</P
-				>{#if error}<P role="alert">{error}</P>{/if}<Div class="flex gap-2"
+				>{#if error}<P role="alert">{error}</P>{/if}<DialogActions
 					><Button variants={['error']} disabled={busy} onclick={remove}>Confirm delete</Button
-					><Button disabled={busy} onclick={() => (pending = null)}>Cancel</Button></Div
+					><Button onclick={() => (pending = null)}>Cancel</Button></DialogActions
 				></Modal
 			>{/if}
 		{#if responses}<Modal
+				closeAriaLabel="Close responses"
+				title="Form responses"
+				onDismiss={() => (responses = null)}
 				isOpen={true}
-				isCloseable={false}
 				role="dialog"
 				aria-label="Form responses"
 				class="flex max-h-[85svh] w-full max-w-6xl flex-col gap-4 overflow-hidden p-5"
-				><Div class="flex items-center justify-between gap-4"
-					><H2 class="text-lg">Form responses</H2><Button
-						variants={['ghost', 'icon']}
-						aria-label="Close responses"
-						onclick={() => (responses = null)}><X size={18} /></Button
-					></Div
 				><P>Latest 500 responses. Question wording is preserved from the submitted form version.</P
 				><Div class="min-h-0 overflow-auto"
 					><Datatable
@@ -197,8 +185,11 @@
 						isImportable={false}
 						isExportable={false}
 					/></Div
-				></Modal
-			>{/if}
+				>
+				<DialogActions onClose={() => (responses = null)} />
+			</Modal>{/if}
+
+		<DialogActions onClose={() => (open = false)} />
 	</Modal>
 {/if}
 {#snippet status({ object }: TdSnippet)}<Td>{object.published ? 'Published' : 'Draft'}</Td

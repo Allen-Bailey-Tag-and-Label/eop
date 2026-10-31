@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import type { ActionResult } from '@sveltejs/kit';
 	import {
 		A,
 		Button,
 		Card,
 		Datatable,
+		DialogActions,
 		Div,
 		Form,
 		H2,
@@ -15,6 +14,9 @@
 		Select,
 		Textarea
 	} from '$lib/components';
+	import { untrack } from 'svelte';
+	import type { ActionResult } from '@sveltejs/kit';
+
 	import type { Column } from '$lib/components/Datatable/types';
 	import { defaultDataSource } from '$lib/slides/types';
 	import { validateWorkflow } from './workflows';
@@ -455,12 +457,16 @@
 			>{/if}
 	</Card>
 </Div>
-<Modal bind:isOpen={deleting} role="dialog" aria-label="Delete data source?"
+<Modal
+	title="Delete data source?"
+	bind:isOpen={deleting}
+	role="dialog"
+	aria-label="Delete data source?"
 	><Div class="space-y-4"
-		><H2 class="text-lg">Delete data source?</H2><P
+		><P
 			>Remove references from draft and published slides first. This deletes the source and its
 			cached results.</P
-		><Form action={deleteAction} submitFunction={submit}
+		><Form class="w-full max-w-none" action={deleteAction} submitFunction={submit}
 			><Input type="hidden" name="assetScopeId" value={scopeId} /><Input
 				type="hidden"
 				name="scope"
@@ -469,10 +475,12 @@
 				type="hidden"
 				name="version"
 				value={String(data.source.version)}
-			/><Input type="hidden" name="confirm" value="delete" /><Button
-				type="submit"
-				variants={['error']}>Confirm delete</Button
+			/><Input type="hidden" name="confirm" value="delete" /><DialogActions
+				><Button onclick={() => (deleting = false)}>Cancel</Button><Button
+					type="submit"
+					variants={['error']}>Confirm delete</Button
+				></DialogActions
 			></Form
-		><Button onclick={() => (deleting = false)}>Cancel</Button></Div
+		></Div
 	></Modal
 >

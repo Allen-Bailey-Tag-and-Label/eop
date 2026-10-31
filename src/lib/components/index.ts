@@ -8,6 +8,8 @@ export { default as Tabs } from './Tabs/Tabs.svelte';
 export { default as Checkbox } from './Checkbox/Checkbox.svelte';
 export { default as Datatable } from './Datatable/Datatable.svelte';
 export { default as Dialog } from './Dialog/Dialog.svelte';
+export { default as DialogActions } from './DialogActions/DialogActions.svelte';
+export { default as DialogHeader } from './DialogHeader/DialogHeader.svelte';
 export { default as Div } from './Div/Div.svelte';
 export { default as Em } from './Em/Em.svelte';
 export { default as Form } from './Form/Form.svelte';

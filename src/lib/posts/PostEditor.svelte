@@ -169,6 +169,10 @@
 			class={`-m-1 min-h-0 min-w-0 space-y-4 overflow-auto p-1 ${mobilePane === 'edit' ? '' : 'hidden'} lg:block`}
 		>
 			<Div class="flex flex-wrap items-center justify-between gap-3"
+				><A
+					href="/post/manage"
+					class={twMerge($theme.Button.default, 'inline-flex hover:no-underline')}
+					>Back to management</A
 				>{#if data.post}<A
 						href={publicUrl}
 						target="_blank"
