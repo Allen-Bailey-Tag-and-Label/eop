@@ -3,23 +3,8 @@
 	import { Editor, getMarkRange } from '@tiptap/core';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
-	import {
-		Bold,
-		Italic,
-		Underline,
-		Strikethrough,
-		List,
-		ListOrdered,
-		Undo2,
-		Redo2,
-		Link,
-		Image,
-		Table,
-		X,
-		AlignLeft,
-		AlignCenter,
-		AlignRight
-	} from '@lucide/svelte';
+	import { X } from '@lucide/svelte';
+	import RichTextToolbar from './RichTextToolbar.svelte';
 	import {
 		Button,
 		Card,
@@ -109,15 +94,6 @@
 	const selection = $derived.by(() => {
 		void revision;
 		return {
-			bold: editor?.isActive('bold'),
-			italic: editor?.isActive('italic'),
-			underline: editor?.isActive('underline'),
-			strike: editor?.isActive('strike'),
-			bulletList: editor?.isActive('bulletList'),
-			orderedList: editor?.isActive('orderedList'),
-			heading: String(editor?.getAttributes('heading').level ?? 0),
-			undo: editor?.can().undo() ?? false,
-			redo: editor?.can().redo() ?? false,
 			table: editor?.isActive('table') ?? false
 		};
 	});
@@ -254,149 +230,18 @@
 		className
 	)}
 >
-	<Div class="flex flex-wrap items-center gap-1 p-2" role="toolbar" aria-label="Text formatting">
-		<Select
-			aria-label="Text style"
-			value={selection.heading}
-			disabled={disabled || !editor}
-			class="w-auto"
-			options={[
-				{ value: '0', label: 'Paragraph' },
-				{ value: '1', label: 'Heading 1' },
-				{ value: '2', label: 'Heading 2' },
-				{ value: '3', label: 'Heading 3' }
-			]}
-			onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
-				const level = Number(event.currentTarget.value);
-				if (level)
-					editor
-						?.chain()
-						.focus()
-						.toggleHeading({ level: level as 1 | 2 | 3 })
-						.run();
-				else editor?.chain().focus().setParagraph().run();
-			}}
-		/>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Bold"
-			title="Bold"
-			aria-pressed={selection.bold}
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().toggleBold().run()}><Bold size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Italic"
-			title="Italic"
-			aria-pressed={selection.italic}
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().toggleItalic().run()}><Italic size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Underline"
-			title="Underline"
-			aria-pressed={selection.underline}
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().toggleUnderline().run()}
-			><Underline size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Strikethrough"
-			title="Strikethrough"
-			aria-pressed={selection.strike}
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().toggleStrike().run()}
-			><Strikethrough size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Bullet list"
-			title="Bullet list"
-			aria-pressed={selection.bulletList}
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().toggleBulletList().run()}><List size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Numbered list"
-			title="Numbered list"
-			aria-pressed={selection.orderedList}
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().toggleOrderedList().run()}
-			><ListOrdered size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Align left"
-			title="Align left"
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().setTextAlign('left').run()}
-			><AlignLeft size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Align center"
-			title="Align center"
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().setTextAlign('center').run()}
-			><AlignCenter size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Align right"
-			title="Align right"
-			disabled={disabled || !editor}
-			onclick={() => editor?.chain().focus().setTextAlign('right').run()}
-			><AlignRight size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Edit link"
-			title="Edit link"
-			disabled={disabled || !editor}
-			onclick={() => open('link')}><Link size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Insert or edit image"
-			title="Insert or edit image"
-			disabled={disabled || !editor}
-			onclick={() => open('image')}><Image size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Table settings"
-			title="Table settings"
-			aria-pressed={selection.table}
-			disabled={disabled || !editor}
-			onclick={() => {
-				tableError = '';
-				tableDialog = true;
-			}}><Table size={18} /></Button
-		>
-		{#if onInsertComponent}<Button
-				variants={['ghost']}
-				disabled={disabled || !editor}
-				onclick={onInsertComponent}>Questions</Button
-			>{/if}
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Undo"
-			title="Undo"
-			disabled={disabled || !selection.undo}
-			onclick={() => editor?.chain().focus().undo().run()}><Undo2 size={18} /></Button
-		>
-		<Button
-			variants={['ghost', 'icon']}
-			aria-label="Redo"
-			title="Redo"
-			disabled={disabled || !selection.redo}
-			onclick={() => editor?.chain().focus().redo().run()}><Redo2 size={18} /></Button
-		>
-	</Div>
+	<RichTextToolbar
+		{editor}
+		{revision}
+		{disabled}
+		onLink={() => open('link')}
+		onImage={() => open('image')}
+		onTable={() => {
+			tableError = '';
+			tableDialog = true;
+		}}
+		onQuestions={onInsertComponent}
+	/>
 	<Hr class="m-0" />
 	<Div class="p-4"><Div bind:element class={$theme.RichTextEditor.content} /></Div>
 </Card>

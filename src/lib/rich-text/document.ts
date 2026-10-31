@@ -1,5 +1,6 @@
 import { getSchema, type JSONContent } from '@tiptap/core';
 import { editorExtensions } from './extensions';
+import { textColor, textSize } from './formatting';
 export type RichTextDocument = { schemaVersion: 1; doc: JSONContent };
 export class RichTextError extends Error {}
 export const emptyDocument = (): RichTextDocument => ({
@@ -140,7 +141,9 @@ export function validateDocument(input: unknown): RichTextDocument {
 			if (
 				!mark ||
 				typeof mark !== 'object' ||
-				!['bold', 'italic', 'underline', 'strike', 'code', 'link'].includes(mark.type) ||
+				!['bold', 'italic', 'underline', 'strike', 'code', 'link', 'textStyle'].includes(
+					mark.type
+				) ||
 				Object.keys(mark).some((key) => !['type', 'attrs'].includes(key))
 			)
 				throw new RichTextError('Unsupported text formatting.');
@@ -152,11 +155,20 @@ export function validateDocument(input: unknown): RichTextDocument {
 							!(
 								mark.type === 'link'
 									? ['href', 'target', 'rel', 'class', 'title', 'appearance']
-									: []
+									: mark.type === 'textStyle'
+										? ['fontSize', 'color', 'backgroundColor']
+										: []
 							).includes(key)
 					))
 			)
 				throw new RichTextError('Unsupported formatting settings.');
+			if (mark.type === 'textStyle') {
+				if (mark.attrs?.fontSize != null && !textSize(mark.attrs.fontSize))
+					throw new RichTextError('Text size must be 8–200 pixels.');
+				for (const key of ['color', 'backgroundColor'])
+					if (mark.attrs?.[key] != null && !textColor(mark.attrs[key]))
+						throw new RichTextError('Choose a valid text or highlight color.');
+			}
 			if (mark.type === 'link' && !safeUrl(mark.attrs?.href))
 				throw new RichTextError('Use an HTTP(S), email, telephone, or site link.');
 			if (

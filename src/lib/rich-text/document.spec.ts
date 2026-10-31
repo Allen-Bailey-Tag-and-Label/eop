@@ -2,6 +2,31 @@ import { describe, expect, it } from 'vitest';
 import { documentFormSlugs, emptyDocument, validateDocument } from './document';
 import { markdownToDocument } from './markdown';
 describe('post rich text documents', () => {
+	it('retains text sizes, colors and highlights while rejecting unsupported CSS', () => {
+		const document = (attrs: Record<string, unknown>) => ({
+			schemaVersion: 1,
+			doc: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [{ type: 'text', text: 'Styled text', marks: [{ type: 'textStyle', attrs }] }]
+					}
+				]
+			}
+		});
+		const attrs = { fontSize: '32px', color: '#123456', backgroundColor: 'rgb(254, 240, 138)' };
+		const saved = validateDocument(document(attrs));
+		expect(saved.doc.content?.[0].content?.[0].marks?.[0].attrs).toEqual(attrs);
+		expect(validateDocument(saved)).toEqual(saved);
+		expect(() => validateDocument(document({ fontSize: '201px' }))).toThrow('size');
+		expect(() => validateDocument(document({ fontSize: '7px' }))).toThrow('size');
+		expect(() => validateDocument(document({ color: 'red;position:fixed' }))).toThrow('color');
+		expect(() =>
+			validateDocument(document({ backgroundColor: 'url(https://example.com)' }))
+		).toThrow('color');
+		expect(() => validateDocument(document({ position: 'fixed' }))).toThrow('settings');
+	});
 	it('preserves component examples inside code instead of turning them into live blocks', () => {
 		const source = '<PublishedForm slug="example"></PublishedForm>';
 		const doc = markdownToDocument('```html\n' + source + '\n```');

@@ -24,6 +24,9 @@ export const defaultTheme = {
 			'flex min-w-0 max-w-full flex-col p-0 [&_button[aria-pressed=true]]:outline-2 [&_button[aria-pressed=true]]:outline-primary-500',
 		buttonLink: 'not-prose inline-flex no-underline hover:no-underline',
 		selectedImage: 'outline-2 outline-primary-500',
+		toolbar: 'flex flex-wrap items-center gap-x-2 gap-y-1 p-2',
+		toolbarGroup:
+			'flex max-w-full shrink-0 flex-wrap items-center gap-1 [&:not(:last-child)]:border-r [&:not(:last-child)]:border-current/15 [&:not(:last-child)]:pr-2',
 		content:
 			'prose max-w-none dark:prose-invert [&_.tiptap]:min-h-72 [&_.tiptap]:outline-none [&_figure[data-image-align=center]]:text-center [&_figure[data-image-align=right]]:text-right [&_img]:h-auto [&_img]:max-w-full [&_table]:w-full [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2 [&_[data-post-component]]:my-4 [&_[data-post-component]]:rounded-lg [&_[data-post-component]]:p-4 [&_[data-post-component]]:not-prose [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-primary-500'
 	},

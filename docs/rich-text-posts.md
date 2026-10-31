@@ -6,7 +6,14 @@ and surfaces use application Sveltewind components and the shared theme.
 
 The editor uses one Card with a toolbar at the top and the content below it.
 The toolbar supports headings, bold, italic, underline, strike, bullet and numbered
-lists, alignment, links, images, tables, undo, and redo.
+lists, alignment, links, images, tables, undo, and redo. Controls are grouped in
+this order: history; heading/paragraph and size; text styling and colors;
+alignment; lists; links/images/tables; questions (the question-mark icon).
+The H dropdown chooses paragraph or heading style. The adjacent size input
+applies an explicit size of 8–200 pixels to selected text; clear it for the
+inherited size. Font color and highlight color open swatch pickers with reset
+actions. These styles are stored in the rich text document and displayed in
+both the preview and published post. Existing documents need no conversion.
 The Table settings button opens a dialog to create a table with a chosen row and
 column count. With the cursor in a table, the same dialog provides row, column,
 header, and removal controls. Selecting a table does not add toolbar buttons.

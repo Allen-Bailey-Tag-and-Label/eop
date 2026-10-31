@@ -5,6 +5,7 @@
 	import { theme } from '$lib/theme';
 	import { A, Div, PublishedForm } from '$lib/components';
 	import { safeUrl, type RichTextDocument } from '$lib/rich-text/document';
+	import { textColor, textSize } from '$lib/rich-text/formatting';
 	type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class'> & {
 		value: RichTextDocument;
 		imageSources?: Record<string, string>;
@@ -123,6 +124,12 @@
 {#snippet text(node: JSONContent, index: number)}
 	{@const mark = node.marks?.[index]}
 	{#if !mark}{node.text}
+	{:else if mark.type === 'textStyle'}<span
+			style:font-size={textSize(mark.attrs?.fontSize)}
+			style:color={textColor(mark.attrs?.color)}
+			style:background-color={textColor(mark.attrs?.backgroundColor)}
+			>{@render text(node, index + 1)}</span
+		>
 	{:else if mark.type === 'link' && safeUrl(mark.attrs?.href)}<A
 			href={mark.attrs.href}
 			class={mark.attrs.appearance === 'button'

@@ -84,6 +84,7 @@
 		"@tiptap/extension-image": "^3.32.2",
 		"@tiptap/extension-table": "^3.32.2",
 		"@tiptap/extension-text-align": "^3.32.2",
+		"@tiptap/extension-text-style": "3.32.2",
 		"@tiptap/starter-kit": "^3.32.2",
 		"d3-scale": "^4.0.2",
 		"drizzle-orm": "^0.40.0",

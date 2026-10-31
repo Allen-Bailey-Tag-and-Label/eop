@@ -3,6 +3,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image, { type ImageOptions } from '@tiptap/extension-image';
 import { TableKit } from '@tiptap/extension-table';
 import TextAlign from '@tiptap/extension-text-align';
+import { TextStyle, Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 
 // Only registered application components can be stored in post documents.
 export const ComponentBlock = Node.create({
@@ -130,6 +131,11 @@ export function editorExtensions(
 	return [
 		StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: { openOnClick: false } }),
 		LinkAppearance.configure({ buttonClassName, textClassName }),
+		// Put explicit text styles inside bold/code marks so prose colors cannot override them.
+		TextStyle.extend({ priority: 50 }),
+		Color,
+		BackgroundColor,
+		FontSize,
 		PostImage.configure({ resolveSrc }),
 		TableKit.configure({ table: { resizable: false } }),
 		TextAlign.configure({ types: ['heading', 'paragraph'] }),

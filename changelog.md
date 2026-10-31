@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-30T18:56:29.759Z
+## 2026-10-30T19:11:48.183Z
+
+feat: Add grouped rich text toolbar with size and color controls
+
+## 2026-10-30T15:02:43-04:00
 
 fix: Standardize tabs and improve post editor layout and controls
 

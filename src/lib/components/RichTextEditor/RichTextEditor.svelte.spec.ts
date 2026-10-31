@@ -2,9 +2,32 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, fireEvent, waitFor, within } from '@testing-library/svelte';
 import RichTextEditor from './RichTextEditor.svelte';
 import RichTextRenderer from '../RichTextRenderer/RichTextRenderer.svelte';
-import { emptyDocument, type RichTextDocument } from '$lib/rich-text/document';
+import { emptyDocument, validateDocument, type RichTextDocument } from '$lib/rich-text/document';
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 beforeEach(() => {
+	const opened = new WeakSet<HTMLElement>();
+	vi.stubGlobal('CSS', { supports: () => false });
+	const matches = HTMLElement.prototype.matches;
+	vi.spyOn(HTMLElement.prototype, 'matches').mockImplementation(function (
+		this: HTMLElement,
+		selector
+	) {
+		return selector === ':popover-open' ? opened.has(this) : matches.call(this, selector);
+	});
+	Object.defineProperties(HTMLElement.prototype, {
+		showPopover: {
+			configurable: true,
+			value: function () {
+				opened.add(this);
+			}
+		},
+		hidePopover: {
+			configurable: true,
+			value: function () {
+				opened.delete(this);
+			}
+		}
+	});
 	vi.stubGlobal(
 		'ResizeObserver',
 		class {
@@ -19,8 +42,88 @@ afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+	Reflect.deleteProperty(HTMLElement.prototype, 'showPopover');
+	Reflect.deleteProperty(HTMLElement.prototype, 'hidePopover');
 });
 describe('shared rich text editor', () => {
+	it('groups the toolbar and edits persistent sizes, colors, headings and alignment', async () => {
+		const onChange = vi.fn();
+		const onInsertComponent = vi.fn();
+		const view = render(RichTextEditor, {
+			value: {
+				schemaVersion: 1,
+				doc: {
+					type: 'doc',
+					content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Styled text' }] }]
+				}
+			},
+			onChange,
+			onInsertComponent
+		});
+		const toolbar = within(view.getByRole('toolbar', { name: 'Text formatting' }));
+		expect(toolbar.getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual([
+			'History',
+			'Text style and size',
+			'Text styling',
+			'Text alignment',
+			'Lists',
+			'Links, images and tables',
+			'Questions'
+		]);
+		expect(
+			toolbar
+				.getAllByRole('button')
+				.slice(0, 2)
+				.map((button) => button.getAttribute('aria-label'))
+		).toEqual(['Undo', 'Redo']);
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Questions' }));
+		expect(onInsertComponent).toHaveBeenCalledOnce();
+		const textbox = view.getByRole('textbox', { name: 'Rich text content' });
+		await fireEvent.keyDown(textbox, { key: 'a', ctrlKey: true });
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Bold' }));
+		await fireEvent.change(toolbar.getByRole('spinbutton', { name: 'Font size (px)' }), {
+			target: { value: '32' }
+		});
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Font color' }));
+		await fireEvent.change(view.getByLabelText('Font color', { selector: 'input' }), {
+			target: { value: '#123456' }
+		});
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Highlight color' }));
+		await fireEvent.change(view.getByLabelText('Highlight color', { selector: 'input' }), {
+			target: { value: '#fef08a' }
+		});
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Text style' }));
+		await fireEvent.click(view.getByRole('menuitemradio', { name: 'Heading 2' }));
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Text alignment' }));
+		await fireEvent.click(view.getByRole('menuitemradio', { name: 'Align center' }));
+		const saved = validateDocument(onChange.mock.calls.at(-1)![0]);
+		expect(saved.doc.content?.[0]).toMatchObject({
+			type: 'heading',
+			attrs: { level: 2, textAlign: 'center' }
+		});
+		expect(saved.doc.content?.[0].content?.[0].marks).toContainEqual({
+			type: 'textStyle',
+			attrs: {
+				fontSize: '32px',
+				color: '#123456',
+				backgroundColor: '#fef08a'
+			}
+		});
+		const published = render(RichTextRenderer, { value: saved });
+		const text = within(published.container)
+			.getByRole('heading', { name: 'Styled text' })
+			.querySelector('span');
+		expect(text).toHaveStyle({ fontSize: '32px', color: '#123456', backgroundColor: '#fef08a' });
+		expect(text?.parentElement?.localName).toBe('strong');
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Font color' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Default font color' }));
+		await fireEvent.click(toolbar.getByRole('button', { name: 'Highlight color' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Remove highlight' }));
+		await fireEvent.change(toolbar.getByRole('spinbutton', { name: 'Font size (px)' }), {
+			target: { value: '' }
+		});
+		expect(JSON.stringify(onChange.mock.calls.at(-1)![0])).not.toContain('textStyle');
+	});
 	it('creates and edits tables through a dialog without adding toolbar controls', async () => {
 		const onChange = vi.fn();
 		const view = render(RichTextEditor, { value: emptyDocument(), onChange });
