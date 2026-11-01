@@ -1,4 +1,5 @@
 import { validateChart } from '$lib/components/Chart/definition';
+import { barcodeSymbologies } from './barcodes';
 import { safeField } from './data-link';
 import { validateReference, validateBindings } from '$lib/data/bindings';
 import { validateVisibility } from './visibility';
@@ -398,6 +399,15 @@ export function validateSlide(
 				: {}),
 			...(type === 'qr'
 				? {
+						...(e.barcodeSymbology !== undefined
+							? {
+									barcodeSymbology: choice(
+										e.barcodeSymbology,
+										barcodeSymbologies.map((item) => item.value),
+										'barcode symbology'
+									)
+								}
+							: {}),
 						qrCorrection: choice(
 							e.qrCorrection ?? 'M',
 							['L', 'M', 'Q', 'H'] as const,

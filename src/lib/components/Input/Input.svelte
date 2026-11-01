@@ -5,7 +5,10 @@
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { twMerge } from 'tailwind-merge';
 	import { theme } from '$lib/theme';
+	import { getContext } from 'svelte';
+	import { numberScrub, numberScrubContext } from '$lib/attachments/numberScrub';
 	import { Div, Label } from '../';
+	const scrubNumbers = getContext<boolean>(numberScrubContext) ?? false;
 
 	type Props = Omit<HTMLInputAttributes, 'checked' | 'class' | 'name'> & {
 		checked?: boolean;
@@ -117,6 +120,7 @@
 		/>
 	{:else}
 		<SveltewindInput
+			{@attach type === 'number' && scrubNumbers ? numberScrub : undefined}
 			theme={unstyledTheme}
 			{...restProps}
 			bind:element

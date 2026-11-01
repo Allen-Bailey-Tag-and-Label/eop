@@ -54,6 +54,72 @@ afterEach(() => {
 	});
 });
 describe('canvas rotation controls', () => {
+	it('holds the aspect ratio when dragging a corner with Shift', async () => {
+		const element = { ...newElement('rectangle', 'shape'), width: 200, height: 100 };
+		const view = render(SlideWorkspace, {
+			definition: { ...blankSlide(), elements: [element] },
+			selectedId: 'shape',
+			timeMs: 0,
+			tool: 'resize',
+			zoom: 1,
+			resetView: 0,
+			viewportWidth: 1920,
+			viewportHeight: 1080,
+			onEdit: vi.fn()
+		});
+		const corner = view.getByRole('button', { name: 'Resize selected element from bottom right' });
+		await fireEvent.pointerDown(corner, { pointerId: 1, button: 0, clientX: 200, clientY: 200 });
+		await fireEvent.pointerMove(corner, {
+			pointerId: 1,
+			clientX: 210,
+			clientY: 200,
+			shiftKey: true
+		});
+		const overlay = view.container.querySelector('[data-element-overlay="shape"]') as HTMLElement;
+		expect(parseFloat(overlay.style.width) / parseFloat(overlay.style.height)).toBeCloseTo(2);
+		await fireEvent.pointerUp(corner, { pointerId: 1 });
+	});
+	it('edits text on the canvas, preserves multiline input, and cancels with Escape', async () => {
+		const text = { ...newElement('text', 'text'), text: 'Original' };
+		const view = render(SlideWorkspace, {
+			definition: { ...blankSlide(), elements: [text] },
+			selectedId: 'text',
+			timeMs: 0,
+			tool: 'select',
+			zoom: 1,
+			resetView: 0,
+			viewportWidth: 1920,
+			viewportHeight: 1080,
+			onEdit: vi.fn()
+		});
+		await fireEvent.doubleClick(view.getByRole('button', { name: 'Select element 1: text' }));
+		const input = view.getByRole('textbox', { name: 'Edit canvas text' });
+		await fireEvent.input(input, { target: { value: 'Typed\ninside the slide' } });
+		expect(input).toHaveValue('Typed\ninside the slide');
+		await fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+		expect(view.queryByRole('textbox', { name: 'Edit canvas text' })).toBeNull();
+		await fireEvent.doubleClick(view.getByRole('button', { name: 'Select element 1: text' }));
+		await fireEvent.input(view.getByRole('textbox', { name: 'Edit canvas text' }), {
+			target: { value: 'Discard' }
+		});
+		await fireEvent.keyDown(view.getByRole('textbox', { name: 'Edit canvas text' }), {
+			key: 'Escape'
+		});
+		await fireEvent.doubleClick(view.getByRole('button', { name: 'Select element 1: text' }));
+		expect(view.getByRole('textbox', { name: 'Edit canvas text' })).toHaveValue(
+			'Typed\ninside the slide'
+		);
+		await fireEvent.keyDown(view.getByRole('textbox', { name: 'Edit canvas text' }), {
+			key: 'Enter',
+			ctrlKey: true
+		});
+		await fireEvent.keyDown(view.getByRole('button', { name: 'Select element 1: text' }), {
+			key: '!'
+		});
+		expect(view.getByRole('textbox', { name: 'Edit canvas text' })).toHaveValue(
+			'Typed\ninside the slide!'
+		);
+	});
 	it('offers all eight resize handles in selection mode and resizes from the corresponding anchored edge', async () => {
 		const view = render(SlideWorkspace, {
 			definition: { ...blankSlide(), elements: [newElement('rectangle', 'shape')] },

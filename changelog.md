@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-10-31T11:58:10.713Z
+## 2026-11-01T14:44:19.397Z
+
+feat: Expand slide editor controls and barcode support
+
+## 2026-10-31T07:59:12-04:00
 
 fix: Improve published post titles and reading layout
 

@@ -15,7 +15,18 @@
 		Tabs,
 		Textarea
 	} from '$lib/components';
-	import { onMount, tick, untrack } from 'svelte';
+	import { onMount, tick, untrack, setContext } from 'svelte';
+	import { numberScrubContext } from '$lib/attachments/numberScrub';
+	import {
+		editorShortcuts,
+		shortcutAction,
+		shortcutText,
+		adjacentKeyframe,
+		parseTimelineTime,
+		type EditorAction
+	} from './shortcuts';
+	import { barcodeSymbologies, type BarcodeSymbology } from './barcodes';
+	setContext(numberScrubContext, true);
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import {
@@ -42,6 +53,10 @@
 		Play,
 		Pause,
 		SkipBack,
+		SkipForward,
+		ChevronLeft,
+		ChevronRight,
+		Keyboard,
 		ZoomIn,
 		ZoomOut,
 		Scan,
@@ -251,7 +266,9 @@
 	}
 	const contentLabel = $derived(
 		selected?.type === 'qr'
-			? 'QR content (URL or text)'
+			? selected.barcodeSymbology && selected.barcodeSymbology !== 'qrcode'
+				? 'Barcode content'
+				: 'QR content (URL or text)'
 			: selected?.type === 'text'
 				? 'Text'
 				: selected?.type === 'list' && !selected.repeater
@@ -260,7 +277,9 @@
 	);
 	const contentAria = $derived(
 		selected?.type === 'qr'
-			? 'QR content'
+			? selected.barcodeSymbology && selected.barcodeSymbology !== 'qrcode'
+				? 'Barcode content'
+				: 'QR content'
 			: selected?.type === 'list'
 				? selected.repeater
 					? 'Repeater description'
@@ -414,6 +433,36 @@
 		fitView();
 	}
 	let timeMs = $state(0);
+	let shortcutHelpOpen = $state(false);
+	let editorRoot = $state<HTMLDivElement | null>(null);
+	let timeInput = $state<HTMLInputElement | null>(null);
+	let seekText = $state('0s');
+	let seekFocused = $state(false);
+	let seekError = $state('');
+	$effect(() => {
+		if (!seekFocused) seekText = `${Number((timeMs / 1000).toFixed(3))}s`;
+	});
+	const previousKeyframe = $derived(
+		adjacentKeyframe(selected?.keyframes.map((frame) => frame.atMs) ?? [], timeMs, -1)
+	);
+	const nextKeyframe = $derived(
+		adjacentKeyframe(selected?.keyframes.map((frame) => frame.atMs) ?? [], timeMs, 1)
+	);
+	function seek(value: number) {
+		playing = false;
+		timeMs = Math.max(0, Math.min(previewTiming.totalMs, Math.round(value)));
+		seekText = `${Number((timeMs / 1000).toFixed(3))}s`;
+		seekError = '';
+	}
+	function commitTime() {
+		const value = parseTimelineTime(seekText);
+		seekError = value === undefined ? 'Use seconds (2.5s) or milliseconds (2500ms).' : '';
+		if (value !== undefined) seek(value);
+	}
+	function playPause() {
+		if (timeMs >= previewTiming.totalMs) timeMs = 0;
+		playing = !playing;
+	}
 	const previewTiming = $derived({ entranceMs: 0, totalMs: draft.durationMs });
 	const contentTimeMs = $derived(timeMs);
 	let playing = $state(false);
@@ -472,7 +521,7 @@
 	const poseFields = ['x', 'y', 'rotation', 'scale', 'opacity'] as const;
 	const elementTools = [
 		{ type: 'text', label: 'Text', icon: Type },
-		{ type: 'qr', label: 'QR code', icon: QrCode },
+		{ type: 'qr', label: 'QR code / Barcode', icon: QrCode },
 		{ type: 'chart', label: 'Chart', icon: ChartNoAxesCombined },
 		{ type: 'image', label: 'Image / Graphic', icon: Image },
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
@@ -574,6 +623,104 @@
 		if (event.key === 'Escape' && !event.defaultPrevented && isDialogOpen) {
 			event.preventDefault();
 			closeDialog();
+		}
+		const action = shortcutAction(event);
+		if (!action || isDialogOpen || dataOpen || packageMode || shortcutHelpOpen) return;
+		if (
+			event.target instanceof Element &&
+			event.target.closest('[popover], [role="dialog"], [role="alertdialog"]')
+		)
+			return;
+		if (
+			event.target instanceof Element &&
+			event.target !== document.body &&
+			!editorRoot?.contains(event.target)
+		)
+			return;
+		event.preventDefault();
+		if (
+			event.repeat &&
+			![
+				'back',
+				'forward',
+				'fineBack',
+				'fineForward',
+				'previous',
+				'next',
+				'zoomIn',
+				'zoomOut'
+			].includes(action)
+		)
+			return;
+		runShortcut(action);
+	}
+	function runShortcut(action: EditorAction) {
+		const element = availableTools.find((item) => item.type === action);
+		if (element) {
+			addElement(element.type);
+			return;
+		}
+		if (action === 'select' || action === 'pan' || action === 'resize') {
+			tool = action;
+			return;
+		}
+		if (action === 'properties' || action === 'animation' || action === 'layers') {
+			showPanel(action);
+			return;
+		}
+		if (
+			action === 'settings' ||
+			action === 'assets' ||
+			action === 'upload' ||
+			action === 'import' ||
+			action === 'export'
+		) {
+			openDialog(action);
+			return;
+		}
+		if (action === 'play') playPause();
+		if (action === 'start') seek(0);
+		if (action === 'end') seek(previewTiming.totalMs);
+		if (action === 'previous' && previousKeyframe !== undefined) seek(previousKeyframe);
+		if (action === 'next' && nextKeyframe !== undefined) seek(nextKeyframe);
+		if (action === 'back') seek(timeMs - 100);
+		if (action === 'forward') seek(timeMs + 100);
+		if (action === 'fineBack') seek(timeMs - 10);
+		if (action === 'fineForward') seek(timeMs + 10);
+		if (action === 'keyframe') {
+			addKeyframe();
+			showPanel('animation');
+		}
+		if (action === 'seek') timeInput?.focus();
+		if (action === 'color' && selected && selected.type !== 'image' && selected.type !== 'svg')
+			void editColor();
+		if (action === 'data') dataOpen = true;
+		if (action === 'help') shortcutHelpOpen = true;
+		if (action === 'fit') fitView();
+		if (action === 'zoomIn') zoom = Math.min(4, zoom + 0.25);
+		if (action === 'zoomOut') zoom = Math.max(0.25, zoom - 0.25);
+		if (action === 'aspect') {
+			const sizes = ['reference', 'wide', 'taller', 'ultrawide', 'portrait'];
+			previewPreset = sizes[(sizes.indexOf(previewPreset) + 1) % sizes.length];
+			fitView();
+		}
+		if (action === 'scheme') previewScheme = previewScheme === 'dark' ? 'light' : 'dark';
+		if (action === 'save')
+			editorRoot?.querySelector<HTMLButtonElement>('[aria-label="Save draft"]')?.click();
+		if (action === 'publish')
+			editorRoot?.querySelector<HTMLButtonElement>('[aria-label="Publish slide"]')?.click();
+		if (action === 'remove')
+			editorRoot
+				?.querySelector<HTMLButtonElement>('[aria-label="Remove selected element"]')
+				?.click();
+		if (action === 'addMenu')
+			editorRoot?.querySelector<HTMLButtonElement>('[aria-label="Add element"]')?.click();
+		if (action === 'removeKeyframe' && selected) {
+			const index = selected.keyframes.findIndex((frame) => frame.atMs === Math.round(timeMs));
+			if (index >= 0) {
+				playing = false;
+				selected.keyframes.splice(index, 1);
+			}
 		}
 	}
 	async function importJson() {
@@ -787,6 +934,7 @@
 
 <svelte:window onkeydown={escape} />
 <Div
+	bind:element={editorRoot}
 	class="absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden bg-white text-slate-900 dark:bg-gray-900 dark:text-gray-100"
 	role="region"
 	aria-label="Slide editor"
@@ -805,9 +953,13 @@
 				>{dirty ? 'Unsaved changes' : data.slide.id ? 'Draft saved' : 'New slide'}</P
 			></Div
 		>
-		<AddElementMenu tools={availableTools} onAdd={addElement} />
+		<AddElementMenu
+			tools={availableTools.map((item) => ({ ...item, shortcut: shortcutText(item.type) }))}
+			onAdd={addElement}
+		/>
 		<Button
 			aria-label="Manage data"
+			title={shortcutText('data')}
 			variants={['ghost']}
 			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
 			onclick={() => (dataOpen = true)}
@@ -815,7 +967,7 @@
 		>
 		<Button
 			aria-label="Settings"
-			title="Slide settings"
+			title={`Slide settings (${shortcutText('settings')})`}
 			variants={['ghost']}
 			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
 			onclick={() => openDialog('settings')}
@@ -823,7 +975,7 @@
 		>
 		<Button
 			aria-label="Asset library"
-			title="Asset library"
+			title={`Asset library (${shortcutText('assets')})`}
 			variants={['ghost']}
 			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
 			onclick={() => openDialog('assets')}
@@ -831,7 +983,7 @@
 		>
 		<Button
 			aria-label="Upload asset"
-			title="Upload asset"
+			title={`Upload asset (${shortcutText('upload')})`}
 			variants={['ghost']}
 			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
 			onclick={() => openDialog('upload')}
@@ -839,7 +991,7 @@
 		>
 		<Button
 			aria-label="Import"
-			title="Import slide JSON"
+			title={`Import slide JSON (${shortcutText('import')})`}
 			variants={['ghost']}
 			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
 			onclick={() => openDialog('import')}
@@ -847,7 +999,7 @@
 		>
 		<Button
 			aria-label="Export"
-			title="Export slide JSON"
+			title={`Export slide JSON (${shortcutText('export')})`}
 			variants={['ghost']}
 			class="h-9 shrink-0 items-center gap-2 px-2 py-1 text-sm"
 			onclick={() => openDialog('export')}
@@ -893,7 +1045,7 @@
 			/>
 			<Button
 				aria-label="Save draft"
-				title="Save draft"
+				title={`Save draft (${shortcutText('save')})`}
 				type="submit"
 				name="intent"
 				value="draft"
@@ -904,7 +1056,7 @@
 			>
 			<Button
 				aria-label="Publish slide"
-				title="Publish slide"
+				title={`Publish slide (${shortcutText('publish')})`}
 				type="submit"
 				name="intent"
 				value="publish"
@@ -915,7 +1067,7 @@
 		</Form>
 		<Button
 			aria-label="Toggle properties panel"
-			title="Properties and animation"
+			title={shortcutText('properties')}
 			aria-pressed={inspectorOpen}
 			variants={['ghost']}
 			class="h-9 w-9 shrink-0 items-center p-0"
@@ -1044,7 +1196,7 @@
 					{#each [{ value: 'select', label: 'Select and move', icon: MousePointer2 }, { value: 'pan', label: 'Hand tool', icon: Hand }, { value: 'resize', label: 'Resize tool', icon: Maximize2 }] as item (item.value)}
 						<Button
 							aria-label={item.label}
-							title={item.label}
+							title={`${item.label} (${shortcutText(item.value)})`}
 							aria-pressed={tool === item.value}
 							variants={tool === item.value ? [] : ['ghost']}
 							class="h-9 w-9 shrink-0 items-center p-0"
@@ -1055,7 +1207,7 @@
 					{/each}
 					<Button
 						aria-label="Edit element color"
-						title="Element color"
+						title={`Element color (${shortcutText('color')})`}
 						disabled={!selected || selected.type === 'image' || selected.type === 'svg'}
 						variants={['ghost']}
 						class="h-9 w-9 shrink-0 items-center p-0"
@@ -1064,7 +1216,7 @@
 					<Div class="mx-1 h-6 shrink-0 border-l border-slate-300 dark:border-gray-700"></Div>
 					{#each availableTools as item (item.type)}<Button
 							aria-label={`Add ${item.label.toLowerCase()}`}
-							title={`Add ${item.label.toLowerCase()}`}
+							title={`Add ${item.label.toLowerCase()} (${shortcutText(item.type)})`}
 							variants={['ghost']}
 							class="h-9 w-9 shrink-0 items-center p-0"
 							onclick={() => addElement(item.type)}><item.icon size={18} /></Button
@@ -1080,7 +1232,7 @@
 					>
 					<Button
 						aria-label="Remove selected element"
-						title="Remove selected element"
+						title={`Remove selected element (${shortcutText('remove')})`}
 						disabled={!selected}
 						variants={['ghost']}
 						class="h-9 w-9 shrink-0 items-center p-0"
@@ -1234,7 +1386,7 @@
 										if (selected) selected.opacity = Number(event.currentTarget.value) / 100;
 									}}
 								/>
-								{#if ['text', 'image', 'svg', 'rectangle', 'frame'].includes(selected.type)}<InspectorInput
+								{#if ['text', 'image', 'svg', 'rectangle', 'frame', 'qr'].includes(selected.type)}<InspectorInput
 										label="Corner radius"
 										prefix="R"
 										type="number"
@@ -1431,20 +1583,32 @@
 								/></InspectorSection
 							>{/if}
 						{#if selected.type === 'qr'}
-							<InspectorSection title="QR settings" open>
+							<InspectorSection title="Barcode settings" open>
 								<Select
-									label="Error correction"
-									aria-label="QR error correction"
-									value={selected.qrCorrection ?? 'M'}
-									options={['L', 'M', 'Q', 'H'].map((value) => ({ value, label: value }))}
+									label="Symbology"
+									aria-label="Barcode symbology"
+									value={selected.barcodeSymbology ?? 'qrcode'}
+									options={[...barcodeSymbologies]}
 									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
 										if (selected)
-											selected.qrCorrection = event.currentTarget.value as 'L' | 'M' | 'Q' | 'H';
+											selected.barcodeSymbology = event.currentTarget.value as BarcodeSymbology;
 									}}
 								/>
+								{#if (selected.barcodeSymbology ?? 'qrcode') === 'qrcode'}<Select
+										label="Error correction"
+										aria-label="QR error correction"
+										value={selected.qrCorrection ?? 'M'}
+										options={['L', 'M', 'Q', 'H'].map((value) => ({ value, label: value }))}
+										onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+											if (selected)
+												selected.qrCorrection = event.currentTarget.value as 'L' | 'M' | 'Q' | 'H';
+										}}
+									/>{/if}
 								<ColorField
 									compact
-									label="QR background"
+									label={selected.barcodeSymbology && selected.barcodeSymbology !== 'qrcode'
+										? 'Barcode background'
+										: 'QR background'}
 									ariaLabel="QR background"
 									scheme={previewScheme}
 									value={selected.backgroundColor ?? '#ffffff'}
@@ -1709,7 +1873,7 @@
 		<Div class="flex flex-wrap items-center gap-2">
 			<Button
 				aria-label="Restart preview"
-				title="Restart preview"
+				title={`Restart preview (${shortcutText('start')})`}
 				variants={['ghost']}
 				class="h-8 w-8 shrink-0 items-center p-0"
 				onclick={() => {
@@ -1719,17 +1883,88 @@
 			>
 			<Button
 				aria-label={playing ? 'Pause preview' : 'Play preview'}
-				title={playing ? 'Pause preview' : 'Play preview'}
+				title={`${playing ? 'Pause preview' : 'Play preview'} (${shortcutText('play')})`}
 				class="h-8 w-8 shrink-0 items-center p-0"
-				onclick={() => (playing = !playing)}
+				onclick={playPause}
 				>{#if playing}<Pause size={17} />{:else}<Play size={17} />{/if}</Button
 			>
+			<Button
+				aria-label="Go to timeline end"
+				title={`Go to timeline end (${shortcutText('end')})`}
+				variants={['ghost']}
+				class="h-8 w-8 items-center p-0"
+				onclick={() => seek(previewTiming.totalMs)}><SkipForward size={17} /></Button
+			>
+			<Button
+				aria-label="Previous element keyframe"
+				title={shortcutText('previous')}
+				disabled={previousKeyframe === undefined}
+				variants={['ghost']}
+				class="h-8 w-8 items-center p-0"
+				onclick={() => previousKeyframe !== undefined && seek(previousKeyframe)}
+				><ChevronLeft size={17} /></Button
+			>
+			<Button
+				aria-label="Next element keyframe"
+				title={shortcutText('next')}
+				disabled={nextKeyframe === undefined}
+				variants={['ghost']}
+				class="h-8 w-8 items-center p-0"
+				onclick={() => nextKeyframe !== undefined && seek(nextKeyframe)}
+				><ChevronRight size={17} /></Button
+			>
+			<Button
+				aria-label="Nudge timeline backward"
+				title={shortcutText('back')}
+				variants={['ghost', 'small']}
+				onclick={() => seek(timeMs - 100)}>-100ms</Button
+			>
+			<Button
+				aria-label="Nudge timeline forward"
+				title={shortcutText('forward')}
+				variants={['ghost', 'small']}
+				onclick={() => seek(timeMs + 100)}>+100ms</Button
+			>
+			<Input
+				aria-label="Jump to time"
+				bind:element={timeInput}
+				bind:value={seekText}
+				title="Enter seconds (2.5s) or milliseconds (2500ms); Enter to seek"
+				class="h-8 w-28 px-2 py-1 text-xs"
+				aria-invalid={!!seekError}
+				onfocus={() => {
+					seekFocused = true;
+					playing = false;
+				}}
+				onblur={() => {
+					commitTime();
+					seekFocused = false;
+				}}
+				onkeydown={(event) => {
+					if (event.key === 'Enter') {
+						event.preventDefault();
+						commitTime();
+					}
+					if (event.key === 'Escape') {
+						seekText = `${timeMs}ms`;
+						seekError = '';
+					}
+				}}
+			/>
+			<Button
+				aria-label="Keyboard shortcuts"
+				title={shortcutText('help')}
+				variants={['ghost']}
+				class="h-8 w-8 items-center p-0"
+				onclick={() => (shortcutHelpOpen = true)}><Keyboard size={17} /></Button
+			>
+
 			<P class="shrink-0 font-mono text-xs tabular-nums"
 				>{(timeMs / 1000).toFixed(1)} / {(previewTiming.totalMs / 1000).toFixed(1)}s</P
 			>
 			<Button
 				aria-label="Add keyframe at preview time"
-				title="Add keyframe at preview time"
+				title={`Add keyframe at preview time (${shortcutText('keyframe')})`}
 				disabled={!selected}
 				variants={['ghost']}
 				class="h-8 items-center gap-1 px-2 py-1 text-xs"
@@ -1738,9 +1973,17 @@
 					showPanel('animation');
 				}}><Diamond size={15} /><span class="hidden sm:inline">Keyframe</span></Button
 			>
+			<Button
+				aria-label="Remove keyframe at preview time"
+				title={shortcutText('removeKeyframe')}
+				disabled={!selected?.keyframes.some((frame) => frame.atMs === Math.round(timeMs))}
+				variants={['ghost']}
+				class="h-8 w-8 items-center p-0"
+				onclick={() => runShortcut('removeKeyframe')}><Trash2 size={15} /></Button
+			>
 			<Select
 				aria-label="Preview aspect ratio"
-				title="Preview aspect ratio"
+				title={`Preview aspect ratio (${shortcutText('aspect')})`}
 				class="h-8 w-40 px-2 py-1 text-xs"
 				bind:value={previewPreset}
 				onchange={fitView}
@@ -1754,7 +1997,7 @@
 			/>
 			<Select
 				aria-label="Preview color mode"
-				title="Preview color mode"
+				title={`Preview color mode (${shortcutText('scheme')})`}
 				class="h-8 w-32 px-2 py-1 text-xs"
 				bind:value={previewScheme}
 				options={[
@@ -1765,27 +2008,28 @@
 			<Div class="ml-auto flex shrink-0 items-center gap-1"
 				><Button
 					aria-label="Zoom out"
-					title="Zoom out"
+					title={`Zoom out (${shortcutText('zoomOut')})`}
 					disabled={zoom <= 0.25}
 					variants={['ghost']}
 					class="h-8 w-8 items-center p-0"
 					onclick={() => (zoom = Math.max(0.25, zoom - 0.25))}><ZoomOut size={16} /></Button
 				><span class="min-w-10 text-center text-xs">{Math.round(zoom * 100)}%</span><Button
 					aria-label="Zoom in"
-					title="Zoom in"
+					title={`Zoom in (${shortcutText('zoomIn')})`}
 					disabled={zoom >= 4}
 					variants={['ghost']}
 					class="h-8 w-8 items-center p-0"
 					onclick={() => (zoom = Math.min(4, zoom + 0.25))}><ZoomIn size={16} /></Button
 				><Button
 					aria-label="Fit canvas"
-					title="Fit canvas"
+					title={`Fit canvas (${shortcutText('fit')})`}
 					variants={['ghost']}
 					class="h-8 w-8 items-center p-0"
 					onclick={fitView}><Scan size={16} /></Button
 				></Div
 			>
 		</Div>
+		{#if seekError}<P role="alert" class="text-xs">{seekError}</P>{/if}
 		<Div class="relative px-2">
 			<Input
 				aria-label="Preview timeline"
@@ -1793,7 +2037,7 @@
 				class="w-full px-0 py-1"
 				min={0}
 				max={previewTiming.totalMs}
-				step={10}
+				step={1}
 				value={String(timeMs)}
 				oninput={(event) => {
 					playing = false;
@@ -2134,6 +2378,29 @@
 	{slug}
 	endpoint={`/admin/monitors/slides/${data.slide.slug || 'new'}/package`}
 />
+
+{#if shortcutHelpOpen}<Modal
+		bind:isOpen={shortcutHelpOpen}
+		title="Slide editor shortcuts"
+		class="w-full max-w-2xl space-y-4"
+	>
+		<P
+			>Most editor shortcuts use one modifier. Two are used where needed to avoid browser shortcuts.
+			They are inactive while typing or using a dialog. Some operating-system utilities can reserve
+			shortcuts outside the browser.</P
+		>
+		<Div class="max-h-[60svh] space-y-2 overflow-auto"
+			>{#each editorShortcuts as [action, , label] (action)}<Div class="flex justify-between gap-4"
+					><span>{label}</span><kbd class="text-xs">{shortcutText(action)}</kbd></Div
+				>{/each}</Div
+		>
+		<P class="text-sm"
+			>Text: double-click or select and type; Ctrl+Enter finishes, Escape cancels. Bound text stays
+			controlled by its data link. Numeric fields: drag left/right (Shift for larger steps), or
+			click and type. Corner resize: hold Shift to keep the aspect ratio.</P
+		>
+		<DialogActions onClose={() => (shortcutHelpOpen = false)} closeLabel="Done" />
+	</Modal>{/if}
 
 <style>
 	:global(

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { untrack, tick } from 'svelte';
 	import { Button, Div } from '$lib/components';
+	import { typingTarget } from './shortcuts';
+	import { paddingCss } from './padding';
 	import { RotateCw } from '@lucide/svelte';
 	import SlideCanvas from './SlideCanvas.svelte';
 	import { poseAt } from './timeline';
@@ -51,6 +53,58 @@
 		flow?: FrameDefinition;
 	} = $props();
 	let workspace: HTMLDivElement;
+	let editingTextId = $state('');
+	let textInput = $state<HTMLTextAreaElement | null>(null);
+	let originalText = '';
+	function autosizeText(node: HTMLTextAreaElement) {
+		const resize = () => {
+			node.style.height = '0px';
+			node.style.height = `${node.scrollHeight}px`;
+		};
+		node.addEventListener('input', resize);
+		resize();
+		return () => node.removeEventListener('input', resize);
+	}
+	$effect(() => {
+		if (selectedId !== editingTextId || tool !== 'select') editingTextId = '';
+	});
+	async function editText(element: SlideElement, initial = '') {
+		if (element.type !== 'text' || element.binding || element.bindings?.text) return;
+		onEdit();
+		originalText = element.text;
+		editingTextId = element.id;
+		if (initial) element.text += initial;
+		await tick();
+		textInput?.focus();
+		textInput?.setSelectionRange(element.text.length, element.text.length);
+	}
+	async function finishText(element: SlideElement, cancel = false) {
+		if (cancel) element.text = originalText;
+		editingTextId = '';
+		await tick();
+		const overlay = [...workspace.querySelectorAll<HTMLElement>('[data-element-overlay]')].find(
+			(node) => node.dataset.elementOverlay === element.id
+		);
+		overlay?.querySelector<HTMLButtonElement>('button[aria-pressed]')?.focus();
+	}
+	function textKey(event: KeyboardEvent, element: SlideElement) {
+		if (
+			event.isComposing ||
+			event.ctrlKey ||
+			event.altKey ||
+			event.metaKey ||
+			typingTarget(event.target)
+		)
+			return false;
+		if (element.type !== 'text' || element.binding || element.bindings?.text) return false;
+		if (event.key.length === 1 || event.key === 'Enter' || event.key === 'F2') {
+			event.preventDefault();
+			event.stopPropagation();
+			void editText(element, event.key.length === 1 ? event.key : '');
+			return true;
+		}
+		return false;
+	}
 	let flowBoxes = $state<Record<string, { x: number; y: number; width: number; height: number }>>(
 		{}
 	);
@@ -242,7 +296,10 @@
 				gesture.rotation,
 				gesture.scale,
 				gesture.layout,
-				gesture.handle
+				gesture.handle,
+				event.shiftKey && gesture.handle.x && gesture.handle.y
+					? { width: gesture.width, height: gesture.height }
+					: undefined
 			);
 		}
 	}
@@ -254,6 +311,7 @@
 		dragging = false;
 	}
 	function nudge(event: KeyboardEvent, element: SlideElement) {
+		if (event.ctrlKey || event.altKey || event.metaKey || typingTarget(event.target)) return;
 		if (flow && flow.layout !== 'free' && tool !== 'pan') return;
 		const vectors: Record<string, [number, number]> = {
 			ArrowLeft: [-1, 0],
@@ -277,6 +335,7 @@
 		);
 	}
 	function keyboardResize(event: KeyboardEvent, element: SlideElement, handle: ResizeHandle) {
+		if (event.ctrlKey || event.altKey || event.metaKey || typingTarget(event.target)) return;
 		const vectors: Record<string, [number, number]> = {
 			ArrowLeft: [-1, 0],
 			ArrowRight: [1, 0],
@@ -299,7 +358,10 @@
 			pose.rotation,
 			pose.scale,
 			elementLayout(definition, element, pose, viewportWidth, viewportHeight),
-			handle
+			handle,
+			event.shiftKey && handle.x && handle.y
+				? { width: element.width, height: element.height }
+				: undefined
 		);
 	}
 </script>
@@ -322,6 +384,7 @@
 		style={`left:50%;top:50%;width:${viewportWidth * scale}px;height:${viewportHeight * scale}px;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));background:${hasColorTransparency(resolveSlideColor(definition.background, scheme)) ? `repeating-conic-gradient(${scheme === 'dark' ? '#1f2937 0% 25%,#374151' : '#e5e7eb 0% 25%,#f3f4f6'} 0% 50%) 0 0 / 20px 20px` : displayBackground(scheme)};`}
 	>
 		<SlideCanvas
+			{editingTextId}
 			{flow}
 			clip={flow?.clip ?? true}
 			{definition}
@@ -347,16 +410,52 @@
 						? `left:0;top:0;width:${flowBox.width * scale}px;height:${flowBox.height * scale}px;transform:translate(${(flowBox.x + box.x - elementLayout(definition, element, element, viewportWidth, viewportHeight).x) * scale}px,${(flowBox.y + box.y - elementLayout(definition, element, element, viewportWidth, viewportHeight).y) * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`
 						: `left:0;top:0;width:${box.width * scale}px;height:${box.height * scale}px;transform:translate(${box.x * scale}px,${box.y * scale}px) rotate(${pose.rotation}deg) scale(${Math.max(pose.scale, 0.01)});transform-origin:center;`}
 				>
-					<Button
-						aria-label={`Select element ${index + 1}: ${element.type}`}
-						aria-pressed={selectedId === element.id}
-						variants={['ghost']}
-						class={`absolute inset-0 h-full w-full rounded-none border-2 p-0 shadow-none backdrop-blur-none hover:border-sky-400 ${tool === 'pan' ? 'pointer-events-none' : 'pointer-events-auto'} ${selectedId === element.id ? 'border-sky-500' : 'border-transparent'}`}
-						onclick={() => (selectedId = element.id)}
-						onpointerdown={(event) => start(event, element)}
-						onkeydown={(event) => nudge(event, element)}
-					/>
-					{#if selectedId === element.id && tool !== 'pan'}
+					{#if editingTextId === element.id}
+						<Div
+							class="pointer-events-none absolute inset-0 grid"
+							style={`align-content:${element.verticalAlign === 'middle' ? 'center' : element.verticalAlign === 'bottom' ? 'end' : 'start'};`}
+						>
+							<textarea
+								{@attach autosizeText}
+								bind:this={textInput}
+								aria-label="Edit canvas text"
+								class="pointer-events-auto max-h-full min-h-[1.2em] w-full resize-none border-0 bg-transparent outline-2 outline-sky-500"
+								style={`box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;font-size:${box.fontSize * scale}px;font-family:${element.fontFamily};font-weight:${element.fontWeight ?? 400};text-align:${element.align};color:${resolveSlideColor(element.color, scheme)};padding:${paddingCss(element.padding, (box.fontSize / element.fontSize) * scale)};`}
+								value={element.text}
+								maxlength={10000}
+								oninput={(event) => (element.text = event.currentTarget.value)}
+								onpointerdown={(event) => event.stopPropagation()}
+								onblur={() => (editingTextId = '')}
+								onkeydown={(event) => {
+									event.stopPropagation();
+									if (event.key === 'Escape') {
+										event.preventDefault();
+										void finishText(element, true);
+									}
+									if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+										event.preventDefault();
+										void finishText(element);
+									}
+								}}
+							></textarea>
+						</Div>
+					{:else}<Button
+							aria-label={`Select element ${index + 1}: ${element.type}`}
+							aria-pressed={selectedId === element.id}
+							variants={['ghost']}
+							class={`absolute inset-0 h-full w-full rounded-none border-2 p-0 shadow-none backdrop-blur-none hover:border-sky-400 ${tool === 'pan' ? 'pointer-events-none' : 'pointer-events-auto'} ${selectedId === element.id ? 'border-sky-500' : 'border-transparent'}`}
+							onclick={(event) => {
+								selectedId = element.id;
+								event.currentTarget.focus();
+							}}
+							ondblclick={() => void editText(element)}
+							onpointerdown={(event) => start(event, element)}
+							onkeydown={(event) => {
+								if (!textKey(event, element)) nudge(event, element);
+							}}
+						/>
+					{/if}
+					{#if selectedId === element.id && tool !== 'pan' && editingTextId !== element.id}
 						<Div
 							class="pointer-events-none absolute -top-6 left-1/2 h-6 w-px bg-white ring-1 ring-slate-950"
 						></Div>
@@ -366,6 +465,7 @@
 							class="pointer-events-auto absolute -top-9 left-1/2 h-6 w-6 -translate-x-1/2 cursor-grab items-center rounded-full border-2 border-white bg-sky-500 p-0 text-white shadow-sm ring-1 shadow-black/50 ring-slate-950 backdrop-blur-none focus-visible:outline-offset-4 dark:border-white dark:bg-sky-500 dark:text-white dark:shadow-sm"
 							onpointerdown={(event) => start(event, element, 'rotate')}
 							onkeydown={(event) => {
+								if (event.ctrlKey || event.altKey || event.metaKey) return;
 								if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
 								event.preventDefault();
 								event.stopPropagation();
@@ -379,7 +479,7 @@
 							}}><RotateCw size={12} aria-hidden="true" /></Button
 						>
 					{/if}
-					{#if selectedId === element.id && tool !== 'pan'}
+					{#if selectedId === element.id && tool !== 'pan' && editingTextId !== element.id}
 						{#each resizeHandles as handle (handle.name)}
 							<Button
 								aria-label={`Resize selected element from ${handle.name}`}

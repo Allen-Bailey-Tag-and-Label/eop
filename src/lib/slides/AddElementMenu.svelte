@@ -8,7 +8,7 @@
 		tools,
 		onAdd
 	}: {
-		tools: readonly { type: ElementType; label: string }[];
+		tools: readonly { type: ElementType; label: string; shortcut?: string }[];
 		onAdd: (type: ElementType) => void;
 	} = $props();
 	let open = $state(false);
@@ -106,13 +106,19 @@
 		{#each tools as tool (tool.type)}
 			<Button
 				role="menuitem"
+				aria-label={tool.label}
+				aria-keyshortcuts={tool.shortcut?.replace('Ctrl', 'Control')}
 				tabindex={-1}
 				variants={['ghost']}
 				class="w-full justify-start px-3 py-2 text-sm"
 				onclick={() => {
 					open = false;
 					onAdd(tool.type);
-				}}>{tool.label}</Button
+				}}
+				>{tool.label}{#if tool.shortcut}<span
+						aria-hidden="true"
+						class="ml-auto pl-3 text-xs opacity-60">{tool.shortcut}</span
+					>{/if}</Button
 			>
 		{/each}
 	</Div>

@@ -5,6 +5,28 @@ import { blankSlide, newElement } from './types';
 import { validateSlide } from './validation';
 afterEach(cleanup);
 describe('QR slide elements', () => {
+	it('renders linear and matrix barcode symbologies and validates saved choices', async () => {
+		const view = render(QrCode, { value: '123456789012', symbology: 'code128' });
+		expect(view.getByRole('img', { name: 'Code 128 barcode' }).getAttribute('src')).toContain(
+			'data:image/svg+xml'
+		);
+		await view.rerender({ value: '1234567890128', symbology: 'ean13' });
+		expect(view.getByRole('img', { name: 'EAN-13 barcode' })).toBeInTheDocument();
+		await view.rerender({ value: 'Employee portal', symbology: 'datamatrix' });
+		expect(view.getByRole('img', { name: 'Data Matrix barcode' })).toBeInTheDocument();
+		const element = {
+			...newElement('qr', 'barcode'),
+			barcodeSymbology: 'code128',
+			borderRadius: 20
+		};
+		expect(validateSlide({ ...blankSlide(), elements: [element] }).elements[0]).toMatchObject({
+			barcodeSymbology: 'code128',
+			borderRadius: 20
+		});
+		expect(() =>
+			validateSlide({ ...blankSlide(), elements: [{ ...element, barcodeSymbology: 'unknown' }] })
+		).toThrow('symbology');
+	});
 	it('generates local SVG codes with a quiet margin and updates the content and colors', async () => {
 		const view = render(QrCode, { value: 'https://example.com/event' });
 		const source = () => view.getByRole('img', { name: 'QR code' }).getAttribute('src')!;

@@ -53,6 +53,22 @@ export function resizeDelta(dx: number, dy: number, rotation: number, scale: num
 	};
 }
 
+export function constrainDimensions(
+	width: number,
+	height: number,
+	next: { width: number; height: number }
+) {
+	const factor =
+		Math.abs(next.width / width - 1) >= Math.abs(next.height / height - 1)
+			? next.width / width
+			: next.height / height;
+	const bounded = Math.max(
+		1 / Math.min(width, height),
+		Math.min(8192 / Math.max(width, height), factor)
+	);
+	return { width: width * bounded, height: height * bounded };
+}
+
 // CSS scales and rotates around the center. Adjust position to keep the opposite corner fixed.
 export function resizeElement(
 	element: SlideElement,
@@ -60,8 +76,10 @@ export function resizeElement(
 	rotation: number,
 	scale: number,
 	layout: LayoutScales = { positionScaleX: 1, positionScaleY: 1, sizeScaleX: 1, sizeScaleY: 1 },
-	handle: ResizeHandle = { x: 1, y: 1 }
+	handle: ResizeHandle = { x: 1, y: 1 },
+	aspect?: { width: number; height: number }
 ) {
+	if (aspect) dimensions = constrainDimensions(aspect.width, aspect.height, dimensions);
 	const radians = (rotation * Math.PI) / 180;
 	const halfWidth = ((dimensions.width - element.width) * layout.sizeScaleX) / 2;
 	const halfHeight = ((dimensions.height - element.height) * layout.sizeScaleY) / 2;

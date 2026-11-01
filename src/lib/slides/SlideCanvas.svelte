@@ -18,6 +18,7 @@
 
 	import type { SlideData } from './types';
 	let {
+		editingTextId = '',
 		definition,
 		timeMs = 0,
 		durationMs = definition.durationMs,
@@ -35,6 +36,7 @@
 		flow,
 		clip = true
 	}: {
+		editingTextId?: string;
 		definition: SlideDefinition;
 		timeMs?: number;
 		durationMs?: number;
@@ -159,10 +161,11 @@
 						foreground={resolveSlideColor(element.color, scheme)}
 						background={resolveSlideColor(element.backgroundColor ?? '#ffffff', scheme)}
 						correction={element.qrCorrection ?? 'M'}
+						symbology={element.barcodeSymbology ?? 'qrcode'}
 					/>
 				{:else if element.type === 'text'}
 					<Div
-						style={`display:grid;grid-template-columns:minmax(0,1fr);align-content:${element.verticalAlign === 'middle' ? 'center' : element.verticalAlign === 'bottom' ? 'end' : 'start'};width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};box-sizing:border-box;padding:${paddingCss(element.padding, unit)};`}
+						style={`${element.id === editingTextId ? 'visibility:hidden;' : ''}display:grid;grid-template-columns:minmax(0,1fr);align-content:${element.verticalAlign === 'middle' ? 'center' : element.verticalAlign === 'bottom' ? 'end' : 'start'};width:100%;height:100%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.2;color:${resolveSlideColor(element.color, scheme)};font-size:${box.fontSize}px;font-family:${element.fontFamily};text-align:${element.align};font-weight:${element.fontWeight ?? 400};box-sizing:border-box;padding:${paddingCss(element.padding, unit)};`}
 						>{element.binding
 							? boundText(element.binding, row, rowIndex, timeZone)
 							: element.text}</Div

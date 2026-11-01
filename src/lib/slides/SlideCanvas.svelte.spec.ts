@@ -22,6 +22,22 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('preserves data-driven visibility when inline editing is inactive', async () => {
+		const text = {
+			...newElement('text', 'hidden-text'),
+			text: 'Hidden content',
+			bindings: { visible: { field: 'row.show', format: 'text' as const, fallback: '' } }
+		};
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements: [text] },
+			assetBase: '/assets'
+		});
+		expect(getComputedStyle(view.getByText('Hidden content')).visibility).toBe('hidden');
+		await view.rerender({ editingTextId: 'hidden-text' });
+		expect(getComputedStyle(view.getByText('Hidden content')).visibility).toBe('hidden');
+		await view.rerender({ editingTextId: '' });
+		expect(getComputedStyle(view.getByText('Hidden content')).visibility).toBe('hidden');
+	});
 	it('renders fixed copies of an image with no data link or network result', () => {
 		const photo = { ...newElement('image', 'photo'), assetId: 'b'.repeat(24), imageOpacity: 0.4 };
 		const repeat = {

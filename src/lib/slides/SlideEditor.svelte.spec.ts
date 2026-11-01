@@ -40,6 +40,114 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('seeks by time and keyframe and routes modified shortcuts without stealing typing', async () => {
+		vi.stubGlobal(
+			'PointerEvent',
+			class extends MouseEvent {
+				pointerId = 1;
+			}
+		);
+		const text = newElement('text', 'timeline-text');
+		text.keyframes = [2000, 4000].map((atMs) => ({
+			x: 0,
+			y: 0,
+			opacity: 1,
+			scale: 1,
+			rotation: 0,
+			atMs,
+			easing: 'linear' as const
+		}));
+		const view = render(SlideEditor, {
+			data: {
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: { ...blankSlide(), elements: [text] }
+				},
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Select element 1: text' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Toggle properties panel' }));
+		const x = view.getByRole('spinbutton', { name: 'x' }) as HTMLInputElement;
+		const before = Number(x.value);
+		await fireEvent.pointerDown(x, { button: 0, clientX: 100 });
+		await fireEvent.pointerMove(window, { clientX: 108 });
+		await fireEvent.pointerUp(window);
+		expect(Number(x.value)).toBeCloseTo(before + 0.2);
+		const timeline = () => view.getByRole('slider', { name: 'Preview timeline' });
+		await fireEvent.click(view.getByRole('button', { name: 'Next element keyframe' }));
+		expect(timeline()).toHaveValue('2000');
+		await fireEvent.click(view.getByRole('button', { name: 'Next element keyframe' }));
+		expect(timeline()).toHaveValue('4000');
+		await fireEvent.click(view.getByRole('button', { name: 'Previous element keyframe' }));
+		expect(timeline()).toHaveValue('2000');
+		const input = view.getByRole('textbox', { name: 'Jump to time' });
+		await fireEvent.input(input, { target: { value: '2.75s' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+		expect(timeline()).toHaveValue('2750');
+		await fireEvent.input(input, { target: { value: '1234ms' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+		expect(timeline()).toHaveValue('1234');
+		await fireEvent.keyDown(window, {
+			key: 'ArrowRight',
+			code: 'ArrowRight',
+			ctrlKey: true
+		});
+		expect(timeline()).toHaveValue('1334');
+		await fireEvent.keyDown(input, {
+			key: 'ArrowRight',
+			code: 'ArrowRight',
+			ctrlKey: true
+		});
+		expect(timeline()).toHaveValue('1334');
+		await fireEvent.click(view.getByRole('button', { name: 'Go to timeline end' }));
+		expect(timeline()).toHaveValue(String(blankSlide().durationMs));
+		await fireEvent.keyDown(window, {
+			key: 'Home',
+			code: 'Home',
+			altKey: true,
+			shiftKey: true
+		});
+		expect(timeline()).toHaveValue('0');
+		await fireEvent.keyDown(window, {
+			key: '1',
+			code: 'Digit1',
+			altKey: true
+		});
+		expect(view.getAllByRole('button', { name: /Select element \d+: text/ })).toHaveLength(2);
+	});
+	it('edits barcode symbology and corner radius without changing legacy element types', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: /Add qr code/i }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Barcode symbology' }), {
+			target: { value: 'code128' }
+		});
+		await fireEvent.input(view.getByRole('textbox', { name: 'Barcode content' }), {
+			target: { value: '123456789' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Corner radius' }), {
+			target: { value: '24' }
+		});
+		const definition = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(validateSlide(definition).elements[0]).toMatchObject({
+			type: 'qr',
+			barcodeSymbology: 'code128',
+			borderRadius: 24,
+			text: '123456789'
+		});
+		expect(view.queryByRole('combobox', { name: 'QR error correction' })).toBeNull();
+	});
 	it('adds a chart and exports edited fields and series in the slide definition', async () => {
 		const opened = new WeakSet<HTMLElement>();
 		const matches = HTMLElement.prototype.matches;

@@ -159,6 +159,7 @@ export type SlideElement = Pose & {
 	frame?: FrameDefinition;
 	layoutSizing?: 'fixed' | 'fill';
 	qrCorrection?: 'L' | 'M' | 'Q' | 'H';
+	barcodeSymbology?: import('./barcodes').BarcodeSymbology;
 };
 export type RuleOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains';
 export type VisibilityRule =
