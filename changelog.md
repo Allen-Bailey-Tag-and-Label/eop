@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-01T14:50:16.477Z
+## 2026-11-01T15:02:49.187Z
+
+feat: Add Figma-style slide shortcuts and shape primitives
+
+## 2026-11-01T09:52:12-05:00
 
 fix: Enable typing into selected slide text elements
 

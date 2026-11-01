@@ -31,6 +31,9 @@
 	import { invalidateAll } from '$app/navigation';
 	import {
 		ArrowLeft,
+		ArrowRight,
+		Triangle,
+		Star,
 		Settings,
 		Upload,
 		Import as ImportIcon,
@@ -530,6 +533,9 @@
 		{ type: 'rectangle', label: 'Rectangle', icon: Square },
 		{ type: 'ellipse', label: 'Ellipse', icon: Circle },
 		{ type: 'line', label: 'Line', icon: Minus },
+		{ type: 'arrow', label: 'Arrow', icon: ArrowRight },
+		{ type: 'polygon', label: 'Polygon', icon: Triangle },
+		{ type: 'star', label: 'Star', icon: Star },
 		{ type: 'list', label: 'Repeater', icon: SquareStack },
 		{ type: 'frame', label: 'Frame', icon: Frame }
 	] as const;
@@ -670,7 +676,18 @@
 			return;
 		runShortcut(action);
 	}
+	let heldPanTool: 'select' | 'resize' | 'pan' | undefined;
+	function releasePan(event?: KeyboardEvent) {
+		if (event && event.code !== 'Space') return;
+		if (heldPanTool !== undefined && tool === 'pan') tool = heldPanTool;
+		heldPanTool = undefined;
+	}
 	function runShortcut(action: EditorAction) {
+		if (action === 'panHold') {
+			heldPanTool ??= tool;
+			tool = 'pan';
+			return;
+		}
 		const element = availableTools.find((item) => item.type === action);
 		if (element) {
 			addElement(element.type);
@@ -948,7 +965,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={escape} />
+<svelte:window onkeydown={escape} onkeyup={releasePan} onblur={() => releasePan()} />
 <Div
 	bind:element={editorRoot}
 	class="absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden bg-white text-slate-900 dark:bg-gray-900 dark:text-gray-100"
@@ -1416,6 +1433,65 @@
 									/>{/if}
 							</Div>
 						</InspectorSection>
+						{#if selected.type === 'polygon' || selected.type === 'star'}
+							<InspectorSection title="Shape" open>
+								<InspectorInput
+									label={selected.type === 'polygon' ? 'Polygon sides' : 'Star points'}
+									prefix="#"
+									type="number"
+									min={3}
+									max={60}
+									step={1}
+									value={String(selected.shapePoints ?? (selected.type === 'star' ? 5 : 3))}
+									oninput={(event) => {
+										if (selected) selected.shapePoints = Number(event.currentTarget.value);
+									}}
+								/>
+								{#if selected.type === 'star'}<InspectorInput
+										label="Star inner radius"
+										prefix="R"
+										unit="%"
+										type="number"
+										min={5}
+										max={95}
+										step={1}
+										value={String((selected.starInnerRatio ?? 0.5) * 100)}
+										oninput={(event) => {
+											if (selected)
+												selected.starInnerRatio = Number(event.currentTarget.value) / 100;
+										}}
+									/>{/if}
+							</InspectorSection>
+						{:else if selected.type === 'arrow'}
+							<InspectorSection title="Arrow" open>
+								<Select
+									label="Arrowheads"
+									aria-label="Arrowheads"
+									value={selected.arrowHeads ?? 'end'}
+									options={['start', 'end', 'both', 'none'].map((value) => ({
+										value,
+										label: value
+									}))}
+									onchange={(event: Event & { currentTarget: HTMLSelectElement }) => {
+										if (selected)
+											selected.arrowHeads = event.currentTarget.value as NonNullable<
+												SlideElement['arrowHeads']
+											>;
+									}}
+								/>
+								<InspectorInput
+									label="Arrow shaft width"
+									prefix="W"
+									type="number"
+									min={1}
+									max={128}
+									value={String(selected.arrowWeight ?? 8)}
+									oninput={(event) => {
+										if (selected) selected.arrowWeight = Number(event.currentTarget.value);
+									}}
+								/>
+							</InspectorSection>
+						{/if}
 						<InspectorSection title="Padding" open
 							><PaddingEditor bind:value={selected.padding} /></InspectorSection
 						>
@@ -2402,9 +2478,9 @@
 		class="w-full max-w-2xl space-y-4"
 	>
 		<P
-			>Most editor shortcuts use one modifier. Two are used where needed to avoid browser shortcuts.
-			They are inactive while typing or using a dialog. Some operating-system utilities can reserve
-			shortcuts outside the browser.</P
+			>Matching tools use Figma shortcuts. Slide-specific commands use modifiers. Selected text
+			takes priority for typing. Tool shortcuts are inactive in inputs and dialogs. Some
+			operating-system utilities can reserve shortcuts outside the browser.</P
 		>
 		<Div class="max-h-[60svh] space-y-2 overflow-auto"
 			>{#each editorShortcuts as [action, , label] (action)}<Div class="flex justify-between gap-4"

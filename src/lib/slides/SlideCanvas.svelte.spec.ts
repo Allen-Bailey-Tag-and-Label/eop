@@ -22,6 +22,36 @@ afterEach(() => {
 });
 
 describe('responsive slide rendering', () => {
+	it('renders responsive shape outlines and theme colors without rectangular borders', async () => {
+		const elements = (['arrow', 'polygon', 'star'] as const).map((type) => ({
+			...newElement(type, type),
+			color: { light: '#123456', dark: '#abcdef' },
+			borderWidth: 4,
+			borderColor: '#ff0000',
+			borderStyle: 'dashed' as const
+		}));
+		const view = render(SlideCanvas, {
+			definition: { ...blankSlide(), elements },
+			assetBase: '/assets',
+			scheme: 'light'
+		});
+		for (const type of ['arrow', 'polygon', 'star']) {
+			const shape = view.getByRole('img', { name: type + ' shape' });
+			expect(shape.querySelector('polygon')).toHaveAttribute('fill', '#123456');
+			expect(shape.querySelector('polygon')).toHaveAttribute('stroke', '#ff0000');
+			expect(shape.querySelector('polygon')).toHaveAttribute('stroke-dasharray');
+			expect(
+				view.container
+					.querySelector('[data-slide-element="' + type + '"]')
+					?.querySelector('[aria-hidden="true"]')
+			).toBeNull();
+		}
+		await view.rerender({ scheme: 'dark' });
+		expect(view.getByRole('img', { name: 'star shape' }).querySelector('polygon')).toHaveAttribute(
+			'fill',
+			'#abcdef'
+		);
+	});
 	it('preserves data-driven visibility when inline editing is inactive', async () => {
 		const text = {
 			...newElement('text', 'hidden-text'),

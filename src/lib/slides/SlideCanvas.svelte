@@ -9,6 +9,8 @@
 	import QrCode from './QrCode.svelte';
 	import SlideChart from './SlideChart.svelte';
 	import FrameCanvas from './FrameCanvas.svelte';
+	import PrimitiveShape from './PrimitiveShape.svelte';
+	import { isVectorShape } from './shapes';
 	import { paddingSides, paddingCss } from './padding';
 	import { frameLayoutStyle, elementPositionStyle } from './frames';
 	import type { FrameDefinition } from './types';
@@ -144,6 +146,8 @@
 						{rowIndex}
 						{timeZone}
 					/>
+				{:else if isVectorShape(element.type)}
+					<PrimitiveShape {element} width={contentWidth} height={contentHeight} {scheme} {unit} />
 				{:else if element.type === 'chart'}
 					<SlideChart
 						{element}
@@ -220,7 +224,7 @@
 						style={`position:absolute;inset:${paddingCss(element.padding, unit)};`}
 						>{@render content()}</Div
 					>{/if}
-				{#if (element.borderWidth ?? 0) > 0}
+				{#if (element.borderWidth ?? 0) > 0 && !isVectorShape(element.type)}
 					<Div
 						aria-hidden="true"
 						style={`position:absolute;inset:0;pointer-events:none;box-sizing:border-box;border:${Math.min(((element.borderWidth ?? 0) * box.fontSize) / element.fontSize, Math.min(box.width, box.height) / 2)}px ${element.borderStyle ?? 'solid'} ${resolveSlideColor(element.borderColor ?? defaultBorderColor, scheme)};border-radius:inherit;`}

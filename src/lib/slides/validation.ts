@@ -263,7 +263,20 @@ export function validateSlide(
 		const type = choice(
 			e.type,
 			itemTemplate
-				? ['text', 'image', 'svg', 'rectangle', 'ellipse', 'line', 'frame', 'qr', 'chart']
+				? [
+						'text',
+						'image',
+						'svg',
+						'rectangle',
+						'ellipse',
+						'line',
+						'arrow',
+						'polygon',
+						'star',
+						'frame',
+						'qr',
+						'chart'
+					]
 				: [
 						'text',
 						'image',
@@ -271,6 +284,9 @@ export function validateSlide(
 						'rectangle',
 						'ellipse',
 						'line',
+						'arrow',
+						'polygon',
+						'star',
 						'list',
 						'repeater',
 						'frame',
@@ -376,6 +392,33 @@ export function validateSlide(
 							['top', 'middle', 'bottom'] as const,
 							'vertical alignment'
 						)
+					}
+				: {}),
+			...(['polygon', 'star'].includes(type)
+				? {
+						shapePoints: (() => {
+							const points = number(
+								e.shapePoints ?? (type === 'star' ? 5 : 3),
+								3,
+								60,
+								'Shape points'
+							);
+							if (!Number.isInteger(points)) invalid('Shape points must be an integer.');
+							return points;
+						})(),
+						...(type === 'star'
+							? { starInnerRatio: number(e.starInnerRatio ?? 0.5, 0.05, 0.95, 'Star inner ratio') }
+							: {})
+					}
+				: {}),
+			...(type === 'arrow'
+				? {
+						arrowHeads: choice(
+							e.arrowHeads ?? 'end',
+							['start', 'end', 'both', 'none'] as const,
+							'arrowheads'
+						),
+						arrowWeight: number(e.arrowWeight ?? 8, 1, 128, 'Arrow shaft width')
 					}
 				: {}),
 			...(e.borderWidth !== undefined

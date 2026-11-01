@@ -1,16 +1,20 @@
 export const editorShortcuts = [
-	['select', 'KeyV', 'Select and move', 'Alt+Shift'],
-	['pan', 'KeyH', 'Hand tool', 'Alt+Shift'],
+	['select', 'KeyV', 'Select and move', ''],
+	['pan', 'KeyH', 'Hand tool', ''],
 	['resize', 'KeyR', 'Resize tool', 'Alt'],
-	['text', 'Digit1', 'Add text', 'Alt'],
+	['text', 'KeyT', 'Add text', ''],
 	['qr', 'Digit2', 'Add barcode / QR', 'Alt'],
 	['chart', 'Digit3', 'Add chart', 'Alt'],
 	['image', 'Digit4', 'Add image', 'Alt'],
-	['rectangle', 'Digit5', 'Add rectangle', 'Alt'],
-	['ellipse', 'Digit6', 'Add ellipse', 'Alt'],
-	['line', 'Digit7', 'Add line', 'Alt'],
+	['rectangle', 'KeyR', 'Add rectangle', ''],
+	['ellipse', 'KeyO', 'Add ellipse', ''],
+	['line', 'KeyL', 'Add line', ''],
 	['list', 'Digit8', 'Add repeater', 'Alt'],
-	['frame', 'Digit9', 'Add frame', 'Alt'],
+	['frame', 'KeyF', 'Add frame', ''],
+	['arrow', 'KeyL', 'Add arrow', 'Shift'],
+	['polygon', 'KeyP', 'Add polygon', 'Alt+Shift'],
+	['star', 'KeyS', 'Add star', 'Alt+Shift'],
+	['panHold', 'Space', 'Hold to pan', ''],
 	['color', 'KeyC', 'Element color', 'Alt'],
 	['layers', 'KeyL', 'Layers', 'Alt'],
 	['properties', 'KeyP', 'Properties', 'Alt'],
@@ -55,7 +59,7 @@ export function typingTarget(target: EventTarget | null) {
 export function shortcutText(action: string) {
 	const item = editorShortcuts.find(([id]) => id === action);
 	return item
-		? `${item[3]}+${item[1]
+		? `${item[3] ? item[3] + '+' : ''}${item[1]
 				.replace(/^Key|^Digit/, '')
 				.replace('Equal', '+')
 				.replace('Minus', '-')

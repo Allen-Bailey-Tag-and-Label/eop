@@ -40,6 +40,65 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('uses Figma shape keys, restores temporary panning, and saves new shape settings', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: { id: '', title: '', slug: '', version: 0, publishedAt: null, draft: blankSlide() },
+				assets: []
+			}
+		});
+		for (const [code, key, shiftKey] of [
+			['KeyR', 'r', false],
+			['KeyO', 'o', false],
+			['KeyL', 'l', false],
+			['KeyL', 'L', true],
+			['KeyF', 'f', false]
+		] as const)
+			await fireEvent.keyDown(window, { code, key, shiftKey });
+		const definition = () =>
+			JSON.parse(
+				(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+			);
+		expect(definition().elements.map((element: { type: string }) => element.type)).toEqual([
+			'rectangle',
+			'ellipse',
+			'line',
+			'arrow',
+			'frame'
+		]);
+		await fireEvent.click(view.getByRole('button', { name: 'Add star' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Star points' }), {
+			target: { value: '7' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Star inner radius' }), {
+			target: { value: '35' }
+		});
+		expect(definition().elements.at(-1)).toMatchObject({
+			type: 'star',
+			shapePoints: 7,
+			starInnerRatio: 0.35
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add arrow' }));
+		await fireEvent.change(view.getByRole('combobox', { name: 'Arrowheads' }), {
+			target: { value: 'both' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Arrow shaft width' }), {
+			target: { value: '16' }
+		});
+		expect(definition().elements.at(-1)).toMatchObject({
+			type: 'arrow',
+			arrowHeads: 'both',
+			arrowWeight: 16
+		});
+		await fireEvent.keyDown(window, { key: 'v', code: 'KeyV' });
+		await fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+		expect(view.getByRole('button', { name: 'Hand tool' })).toHaveAttribute('aria-pressed', 'true');
+		await fireEvent.keyUp(window, { key: ' ', code: 'Space' });
+		expect(view.getByRole('button', { name: 'Select and move' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+	});
 	it('starts canvas text editing after selecting a layer without intercepting property input', async () => {
 		const view = render(SlideEditor, {
 			data: {
@@ -61,10 +120,10 @@ describe('slide authoring', () => {
 		const layer = view.getByRole('button', { name: 'Layer 1: text: Original' });
 		layer.focus();
 		await fireEvent.click(layer);
-		await fireEvent.keyDown(document.activeElement!, { key: '!' });
+		await fireEvent.keyDown(document.activeElement!, { key: 'r', code: 'KeyR' });
 		const input = view.getByRole('textbox', { name: 'Edit canvas text' });
 		expect(input).toHaveFocus();
-		expect(input).toHaveValue('Original!');
+		expect(input).toHaveValue('Originalr');
 		await fireEvent.input(input, { target: { value: 'Edited on canvas' } });
 		await fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
 		const saved = JSON.parse(
@@ -150,9 +209,8 @@ describe('slide authoring', () => {
 		});
 		expect(timeline()).toHaveValue('0');
 		await fireEvent.keyDown(window, {
-			key: '1',
-			code: 'Digit1',
-			altKey: true
+			key: 't',
+			code: 'KeyT'
 		});
 		expect(view.getAllByRole('button', { name: /Select element \d+: text/ })).toHaveLength(2);
 	});

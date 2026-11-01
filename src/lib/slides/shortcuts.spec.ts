@@ -23,7 +23,7 @@ describe('slide editor controls', () => {
 		expect(adjacentKeyframe([0, 2000], 2000, 1)).toBeUndefined();
 	});
 
-	it('uses distinct shortcuts with the minimum declared modifiers', () => {
+	it('uses distinct shortcuts with exact declared modifiers', () => {
 		expect(new Set(editorShortcuts.map(([, code, , modifiers]) => modifiers + code)).size).toBe(
 			editorShortcuts.length
 		);
@@ -38,10 +38,12 @@ describe('slide editor controls', () => {
 			} as unknown as KeyboardEvent;
 			expect(shortcutAction(event)).toBe(action);
 			expect(modifiers.split('+').length).toBeLessThanOrEqual(2);
-			expect(shortcutText(action)).toContain(modifiers + '+');
-			expect(
-				shortcutAction({ ...event, ctrlKey: false, altKey: false, shiftKey: false })
-			).toBeUndefined();
+			if (modifiers) expect(shortcutText(action)).toContain(modifiers + '+');
+			expect(shortcutAction({ ...event, ctrlKey: false, altKey: false, shiftKey: false })).toBe(
+				editorShortcuts.find(
+					([, bareCode, , bareModifiers]) => bareCode === code && bareModifiers === ''
+				)?.[0]
+			);
 			expect(
 				shortcutAction({ ...event, ctrlKey: true, altKey: true, shiftKey: true })
 			).toBeUndefined();
@@ -71,7 +73,9 @@ describe('slide editor controls', () => {
 				} as unknown as KeyboardEvent)
 			).toBeUndefined();
 		}
-		expect(shortcutText('text')).toBe('Alt+1');
+		expect(shortcutText('text')).toBe('T');
+		expect(shortcutText('rectangle')).toBe('R');
+		expect(shortcutText('arrow')).toBe('Shift+L');
 		expect(shortcutText('forward')).toBe('Ctrl+ArrowRight');
 	});
 	it('preserves aspect ratio and both minimum and maximum sizes', () => {

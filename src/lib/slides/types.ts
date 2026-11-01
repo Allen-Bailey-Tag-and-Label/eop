@@ -9,6 +9,9 @@ export type ElementType =
 	| 'rectangle'
 	| 'ellipse'
 	| 'line'
+	| 'arrow'
+	| 'polygon'
+	| 'star'
 	| 'list'
 	| 'repeater'
 	| 'frame'
@@ -159,6 +162,10 @@ export type SlideElement = Pose & {
 	frame?: FrameDefinition;
 	layoutSizing?: 'fixed' | 'fill';
 	qrCorrection?: 'L' | 'M' | 'Q' | 'H';
+	shapePoints?: number;
+	starInnerRatio?: number;
+	arrowHeads?: 'start' | 'end' | 'both' | 'none';
+	arrowWeight?: number;
 	barcodeSymbology?: import('./barcodes').BarcodeSymbology;
 };
 export type RuleOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains';
@@ -258,6 +265,17 @@ export function newElement(type: ElementType, id: string): SlideElement {
 		align: 'left',
 		assetId: '',
 		fit: type === 'image' || type === 'svg' ? 'cover' : 'contain',
+		...(['polygon', 'star'].includes(type)
+			? {
+					width: 320,
+					height: 320,
+					shapePoints: type === 'star' ? 5 : 3,
+					...(type === 'star' ? { starInnerRatio: 0.5 } : {})
+				}
+			: {}),
+		...(type === 'arrow'
+			? { width: 600, height: 120, arrowHeads: 'end' as const, arrowWeight: 8 }
+			: {}),
 		...(type === 'frame' ? { frame: defaultFrame(), text: 'Frame', color: 'transparent' } : {}),
 		...(type === 'qr'
 			? {
