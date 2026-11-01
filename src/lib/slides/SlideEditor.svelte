@@ -435,6 +435,9 @@
 	let timeMs = $state(0);
 	let shortcutHelpOpen = $state(false);
 	let editorRoot = $state<HTMLDivElement | null>(null);
+	let workspaceEditor = $state<{ editSelectedText: (event: KeyboardEvent) => boolean } | null>(
+		null
+	);
 	let timeInput = $state<HTMLInputElement | null>(null);
 	let seekText = $state('0s');
 	let seekFocused = $state(false);
@@ -623,6 +626,19 @@
 		if (event.key === 'Escape' && !event.defaultPrevented && isDialogOpen) {
 			event.preventDefault();
 			closeDialog();
+		}
+		if (
+			!isDialogOpen &&
+			!dataOpen &&
+			!packageMode &&
+			!shortcutHelpOpen &&
+			(event.target === document.body ||
+				(event.target instanceof Element &&
+					editorRoot?.contains(event.target) &&
+					event.target.closest('[data-layer-selection]')?.getAttribute('data-layer-selection') ===
+						selectedId))
+		) {
+			if (workspaceEditor?.editSelectedText(event)) return;
 		}
 		const action = shortcutAction(event);
 		if (!action || isDialogOpen || dataOpen || packageMode || shortcutHelpOpen) return;
@@ -1153,6 +1169,7 @@
 			>{/if}
 		<Div class="relative min-h-0 min-w-0 flex-1 pb-20">
 			<SlideWorkspace
+				bind:this={workspaceEditor}
 				flow={editingFrame?.frame}
 				definition={workingDefinition}
 				bind:selectedId

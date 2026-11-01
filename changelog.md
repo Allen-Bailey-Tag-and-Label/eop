@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-01T14:44:19.397Z
+## 2026-11-01T14:50:16.477Z
+
+fix: Enable typing into selected slide text elements
+
+## 2026-11-01T09:45:30-05:00
 
 feat: Expand slide editor controls and barcode support
 

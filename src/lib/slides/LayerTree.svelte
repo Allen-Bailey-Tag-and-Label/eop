@@ -85,6 +85,7 @@
 				</Button>{/if}
 			<Button
 				draggable="true"
+				data-layer-selection={element.id}
 				aria-label={`Layer ${index + 1}: ${element.type}: ${element.text.slice(0, 32)}`}
 				aria-pressed={selectedId === element.id && same(path, selectedPath)}
 				title={element.frame

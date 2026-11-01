@@ -40,6 +40,42 @@ afterEach(() => {
 });
 
 describe('slide authoring', () => {
+	it('starts canvas text editing after selecting a layer without intercepting property input', async () => {
+		const view = render(SlideEditor, {
+			data: {
+				slide: {
+					id: '',
+					title: '',
+					slug: '',
+					version: 0,
+					publishedAt: null,
+					draft: {
+						...blankSlide(),
+						elements: [{ ...newElement('text', 'text'), text: 'Original' }]
+					}
+				},
+				assets: []
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Show layers' }));
+		const layer = view.getByRole('button', { name: 'Layer 1: text: Original' });
+		layer.focus();
+		await fireEvent.click(layer);
+		await fireEvent.keyDown(document.activeElement!, { key: '!' });
+		const input = view.getByRole('textbox', { name: 'Edit canvas text' });
+		expect(input).toHaveFocus();
+		expect(input).toHaveValue('Original!');
+		await fireEvent.input(input, { target: { value: 'Edited on canvas' } });
+		await fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+		const saved = JSON.parse(
+			(view.container.querySelector('input[name="definition"]') as HTMLInputElement).value
+		);
+		expect(saved.elements[0].text).toBe('Edited on canvas');
+		const property = view.getByRole('textbox', { name: 'Element text' });
+		property.focus();
+		await fireEvent.keyDown(property, { key: 'x' });
+		expect(view.queryByRole('textbox', { name: 'Edit canvas text' })).toBeNull();
+	});
 	it('seeks by time and keyframe and routes modified shortcuts without stealing typing', async () => {
 		vi.stubGlobal(
 			'PointerEvent',

@@ -79,6 +79,39 @@ describe('canvas rotation controls', () => {
 		expect(parseFloat(overlay.style.width) / parseFloat(overlay.style.height)).toBeCloseTo(2);
 		await fireEvent.pointerUp(corner, { pointerId: 1 });
 	});
+
+	it.each(['select', 'resize'] as const)(
+		'types after a pointer-captured selection in %s mode',
+		async (tool) => {
+			const view = render(SlideWorkspace, {
+				definition: {
+					...blankSlide(),
+					elements: [{ ...newElement('text', 'text'), text: 'Original' }]
+				},
+				timeMs: 0,
+				tool,
+				zoom: 1,
+				resetView: 0,
+				viewportWidth: 1920,
+				viewportHeight: 1080,
+				onEdit: vi.fn()
+			});
+			const button = view.getByRole('button', { name: 'Select element 1: text' });
+			const workspace = view.getByRole('application', { name: 'Slide workspace' });
+			await fireEvent.pointerDown(button, { pointerId: 1, button: 0 });
+			await fireEvent.pointerUp(workspace, { pointerId: 1 });
+			// With pointer capture, the browser dispatches click to the workspace, not the button.
+			await fireEvent.click(workspace);
+			expect(document.activeElement).toBe(button);
+			await fireEvent.keyDown(document.activeElement!, { key: '!' });
+			const input = view.getByRole('textbox', { name: 'Edit canvas text' });
+			expect(input).toHaveFocus();
+			expect(input).toHaveValue('Original!');
+			await fireEvent.keyDown(input, { key: 'Escape' });
+			await fireEvent.doubleClick(view.getByRole('button', { name: 'Select element 1: text' }));
+			expect(view.getByRole('textbox', { name: 'Edit canvas text' })).toHaveValue('Original');
+		}
+	);
 	it('edits text on the canvas, preserves multiline input, and cancels with Escape', async () => {
 		const text = { ...newElement('text', 'text'), text: 'Original' };
 		const view = render(SlideWorkspace, {

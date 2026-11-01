@@ -66,10 +66,12 @@
 		return () => node.removeEventListener('input', resize);
 	}
 	$effect(() => {
-		if (selectedId !== editingTextId || tool !== 'select') editingTextId = '';
+		if (selectedId !== editingTextId || tool === 'pan') editingTextId = '';
 	});
 	async function editText(element: SlideElement, initial = '') {
-		if (element.type !== 'text' || element.binding || element.bindings?.text) return;
+		if (tool === 'pan' || element.type !== 'text' || element.binding || element.bindings?.text)
+			return;
+		selectedId = element.id;
 		onEdit();
 		originalText = element.text;
 		editingTextId = element.id;
@@ -89,6 +91,8 @@
 	}
 	function textKey(event: KeyboardEvent, element: SlideElement) {
 		if (
+			tool === 'pan' ||
+			event.defaultPrevented ||
 			event.isComposing ||
 			event.ctrlKey ||
 			event.altKey ||
@@ -104,6 +108,10 @@
 			return true;
 		}
 		return false;
+	}
+	export function editSelectedText(event: KeyboardEvent) {
+		const element = definition.elements.find((item) => item.id === selectedId);
+		return element ? textKey(event, element) : false;
 	}
 	let flowBoxes = $state<Record<string, { x: number; y: number; width: number; height: number }>>(
 		{}
@@ -211,7 +219,11 @@
 		}
 		event.preventDefault();
 		event.stopPropagation();
-		if (element) selectedId = element.id;
+		if (element) {
+			selectedId = element.id;
+			// Pointer capture retargets the eventual click to the workspace. Focus before capturing.
+			(event.currentTarget as HTMLElement).focus({ preventScroll: true });
+		}
 		onEdit();
 		if (flow && flow.layout !== 'free' && mode === 'move' && tool !== 'pan') return;
 		const pose = element ? poseAt(element, elementTimeMs) : null;
