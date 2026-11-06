@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-04T21:11:28.471Z
+## 2026-11-06T12:14:11.827Z
+
+feat: Add same-origin API proxies for monitor data connections
+
+## 2026-11-06T06:47:12-05:00
 
 feat: Improve playlist layout, reordering, and removal confirmation
 

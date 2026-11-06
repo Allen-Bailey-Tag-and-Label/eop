@@ -11,6 +11,10 @@ vi.mock('$app/forms', () => ({
 	deserialize: (value: string) => JSON.parse(value)
 }));
 vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('svelte/transition', async (importOriginal) => ({
+	...(await importOriginal<typeof import('svelte/transition')>()),
+	scale: () => ({ duration: 0 })
+}));
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 beforeEach(() => {
 	vi.stubGlobal(
@@ -71,6 +75,23 @@ describe('data library dialogs', () => {
 		await fireEvent.click(view.getByRole('button', { name: 'Edit' }));
 		const edit = within(view.getByRole('dialog', { name: 'Edit API connection' }));
 		expect(edit.getByLabelText('Connection title')).toHaveValue(connection.title);
+		expect(edit.getByRole('checkbox', { name: 'GET' })).toBeChecked();
+		await fireEvent.click(edit.getByRole('checkbox', { name: 'POST' }));
+		await fireEvent.click(
+			edit.getByRole('checkbox', { name: "Allow approved monitors to use this connection's proxy" })
+		);
+		expect(edit.getByLabelText('Monitor proxy URL (first allowed endpoint)')).toHaveValue(
+			'/monitors/api/' + connection.id + connection.config.paths[0]
+		);
+		const settings = JSON.parse(
+			(
+				view
+					.getByRole('dialog', { name: 'Edit API connection' })
+					.querySelector('input[name="definition"]') as HTMLInputElement
+			).value
+		);
+		expect(settings).toMatchObject({ methods: ['GET', 'HEAD', 'POST'], monitorProxy: true });
+
 		await fireEvent.click(edit.getByRole('button', { name: 'Cancel' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Delete' }));
 		expect(view.getByRole('dialog', { name: 'Delete API connection?' })).toBeInTheDocument();

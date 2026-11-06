@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		Button,
+		Checkbox,
 		Datatable,
 		DialogActions,
 		Div,
@@ -15,7 +16,7 @@
 	} from '$lib/components';
 
 	import type { Column, TdSnippet } from '$lib/components/Datatable/types';
-	import type { ApiConnection } from '$lib/data/types';
+	import { apiMethods, type ApiMethod, type ApiConnection } from '$lib/data/types';
 	let { data, form, scopeId = '' } = $props();
 	let id = $state(''),
 		title = $state(''),
@@ -141,6 +142,39 @@
 							.filter(Boolean))}
 					rows={4}
 				/>
+				<Div class="space-y-2">
+					<P class="text-sm">Allowed HTTP methods</P>
+					<Div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+						{#each apiMethods as method (method)}
+							<Checkbox
+								label={method}
+								checked={(config.methods ?? ['GET', 'HEAD']).includes(method)}
+								onchange={(event) => {
+									const methods: ApiMethod[] = config.methods ?? ['GET', 'HEAD'];
+									config.methods = event.currentTarget.checked
+										? [...methods, method]
+										: methods.filter((item) => item !== method);
+								}}
+							/>
+						{/each}
+					</Div>
+				</Div>
+				<Checkbox
+					label="Allow approved monitors to use this connection's proxy"
+					checked={config.monitorProxy ?? false}
+					onchange={(event) => (config.monitorProxy = event.currentTarget.checked)}
+				/>
+				<P class="text-sm"
+					>Data links already call APIs through the EOP server. Proxy access also lets approved
+					monitors request the original response from this connection's allowed endpoints.</P
+				>
+				{#if id && config.monitorProxy}<Input
+						label="Monitor proxy URL (first allowed endpoint)"
+						aria-label="Monitor proxy URL (first allowed endpoint)"
+						readonly
+						value={'/monitors/api/' + id + (config.paths[0] ?? '/')}
+					/>{/if}
+
 				<Select
 					label="Authentication"
 					bind:value={config.auth}

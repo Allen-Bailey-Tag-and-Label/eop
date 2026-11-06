@@ -2,7 +2,8 @@ import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { lookup } from 'node:dns/promises';
 import { request } from 'node:https';
-import { apiRows, publicAddress, validateConnection } from './api';
+import { gzipSync } from 'node:zlib';
+import { apiRows, apiRequest, publicAddress, validateConnection } from './api';
 
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }));
 vi.mock('node:https', () => ({ request: vi.fn() }));
@@ -22,9 +23,10 @@ beforeEach(() => {
 function response(
 	status = 200,
 	type = 'application/json',
-	body = JSON.stringify({
+	body: string | Buffer = JSON.stringify({
 		data: { rows: [{ id: 'one', profile: { name: 'Alice' }, hidden: 'private' }] }
-	})
+	}),
+	responseHeaders: Record<string, string> = {}
 ) {
 	vi.mocked(request).mockImplementation(((
 		_url: URL,
@@ -33,16 +35,17 @@ function response(
 	) => {
 		const message = Object.assign(new EventEmitter(), {
 			statusCode: status,
-			headers: { 'content-type': type },
+			headers: { 'content-type': type, ...responseHeaders },
 			destroy: vi.fn()
 		});
 		const req = Object.assign(new EventEmitter(), {
-			end: () =>
+			end: vi.fn(() =>
 				queueMicrotask(() => {
 					callback(message);
 					message.emit('data', Buffer.from(body));
 					message.emit('end');
 				})
+			)
 		});
 		return req;
 	}) as never);
@@ -54,6 +57,133 @@ const config = () => ({
 	fields: { id: 'id', name: 'profile.name' }
 });
 describe('server API data nodes', () => {
+	it('preserves the original response bytes and non-success payloads while dropping cookies and redirects', async () => {
+		const body = ' {"metadata":{"page":2},"rows":[{"nested":[1,null,true]}],"error":false} ';
+		response(422, 'application/problem+json', body, {
+			'set-cookie': 'session=upstream',
+			location: 'https://other.example',
+			'retry-after': '30'
+		});
+		const result = await apiRequest(
+			connection(),
+			{ path: '/rows', query: new URLSearchParams('tag=a&tag=b&$select=name') },
+			new AbortController().signal
+		);
+		expect(result.status).toBe(422);
+		expect(result.body.toString()).toBe(body);
+		expect(result.headers).toEqual({
+			'content-type': 'application/problem+json',
+			'retry-after': '30'
+		});
+		expect((vi.mocked(request).mock.calls[0][0] as URL).searchParams.getAll('tag')).toEqual([
+			'a',
+			'b'
+		]);
+		expect((vi.mocked(request).mock.calls[0][0] as URL).searchParams.get('$select')).toBe('name');
+	});
+	it('forwards explicitly allowed POST bodies with server authentication and supports binary responses', async () => {
+		const bytes = Buffer.from([137, 80, 78, 71, 0, 255]);
+		response(200, 'image/png', bytes);
+		const body = Buffer.from('{"query":"weather"}');
+		const result = await apiRequest(
+			{ ...connection(), methods: ['POST'] },
+			{ path: '/rows', method: 'POST', body, contentType: 'application/json' },
+			new AbortController().signal
+		);
+		expect(result.body).toEqual(bytes);
+		const options = vi.mocked(request).mock.calls[0][1] as unknown as {
+			method: string;
+			headers: Record<string, string>;
+		};
+		expect(options.method).toBe('POST');
+		expect(options.headers.authorization).toBe('Bearer test-credential');
+		expect(options.headers['content-type']).toBe('application/json');
+		expect((vi.mocked(request).mock.results[0].value as { end: unknown }).end).toHaveBeenCalledWith(
+			body
+		);
+	});
+	it('keeps existing connections read-only and validates method and monitor exposure settings', async () => {
+		expect(validateConnection(connection())).toEqual(connection());
+		expect(
+			validateConnection({ ...connection(), paths: ["/v1/Orders('123')", '/v1/items:search'] })
+		).toMatchObject({ paths: ["/v1/Orders('123')", '/v1/items:search'] });
+		expect(
+			validateConnection({ ...connection(), methods: ['GET', 'POST'], monitorProxy: true })
+		).toMatchObject({ methods: ['GET', 'POST'], monitorProxy: true });
+		for (const change of [{ methods: [] }, { methods: ['CONNECT'] }, { monitorProxy: 'yes' }])
+			expect(() => validateConnection({ ...connection(), ...change })).toThrow();
+		await expect(
+			apiRequest(connection(), { path: '/rows', method: 'POST' }, new AbortController().signal)
+		).rejects.toMatchObject({ status: 405 });
+		await expect(
+			apiRequest(
+				connection(),
+				{ path: '/rows', body: new Uint8Array(1) },
+				new AbortController().signal
+			)
+		).rejects.toMatchObject({ status: 400 });
+		await expect(
+			apiRequest(
+				{ ...connection(), methods: ['POST'] },
+				{ path: '/rows', method: 'POST', body: new Uint8Array(1024 * 1024 + 1) },
+				new AbortController().signal
+			)
+		).rejects.toMatchObject({ status: 413 });
+		expect(request).not.toHaveBeenCalled();
+	});
+	it('supports parameterized query APIs in data links without changing row mapping', async () => {
+		response();
+		const rows = await apiRows(
+			{ ...connection(), methods: ['POST'] },
+			{
+				...config(),
+				method: 'POST',
+				body: { department: { $param: 'department' } },
+				query: { $select: 'name' }
+			},
+			{ department: 'press' },
+			new AbortController().signal
+		);
+		expect(rows).toEqual([{ id: 'one', name: 'Alice' }]);
+		expect((vi.mocked(request).mock.results[0].value as { end: unknown }).end).toHaveBeenCalledWith(
+			Buffer.from('{"department":"press"}')
+		);
+	});
+	it('cancels a pending DNS request on timeout without opening a connection', async () => {
+		vi.useFakeTimers();
+		try {
+			vi.mocked(lookup).mockImplementation(() => new Promise(() => {}) as never);
+			const pending = apiRequest(connection(), { path: '/rows' }, new AbortController().signal);
+			const assertion = expect(pending).rejects.toMatchObject({ status: 504 });
+			await vi.advanceTimersByTimeAsync(1000);
+			await assertion;
+			expect(request).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('decodes compressed workflow JSON but preserves compressed proxy bytes', async () => {
+		const compressed = gzipSync(
+			Buffer.from('{"data":{"rows":[{"id":"one","profile":{"name":"Alice"}}]}}')
+		);
+		response(200, 'application/json', compressed, { 'content-encoding': 'gzip' });
+		expect(
+			(await apiRequest(connection(), { path: '/rows' }, new AbortController().signal)).body
+		).toEqual(compressed);
+		expect(
+			await apiRows(connection(), { ...config(), query: {} }, {}, new AbortController().signal)
+		).toEqual([{ id: 'one', name: 'Alice' }]);
+	});
+	it('rejects cancelled requests before DNS resolution', async () => {
+		const controller = new AbortController();
+		controller.abort();
+		await expect(
+			apiRequest(connection(), { path: '/rows' }, controller.signal)
+		).rejects.toMatchObject({ status: 504 });
+		expect(lookup).not.toHaveBeenCalled();
+		expect(request).not.toHaveBeenCalled();
+	});
 	it('supports NWS grid paths and application identification without allowing traversal or header injection', async () => {
 		response(
 			200,

@@ -4,7 +4,7 @@ export function apiEndpointPath(value: unknown): value is string {
 	return (
 		typeof value === 'string' &&
 		value.length <= 500 &&
-		/^\/(?!\/)[a-zA-Z0-9/_,.-]*$/.test(value) &&
+		/^\/(?!\/)[a-zA-Z0-9/_,.~!$&'()*+;=:@-]*$/.test(value) &&
 		!value.split('/').some((segment) => segment === '.' || segment === '..')
 	);
 }

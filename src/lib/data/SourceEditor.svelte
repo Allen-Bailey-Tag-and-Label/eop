@@ -111,6 +111,7 @@
 			},
 			api: {
 				connectionId: data.connections[0]?.id ?? '',
+				method: 'GET',
 				path: data.connections[0]?.config.paths[0] ?? '/rows',
 				query: {},
 				itemsPath: 'data.rows',
@@ -316,7 +317,10 @@
 										2
 									)
 								)}
-						/>{/if}
+						/><P class="text-sm"
+							>API requests run on the EOP server. Set method and an optional JSON body in the
+							configuration below; GET is the default.</P
+						>{/if}
 					<Textarea
 						label={`${node.id} configuration (JSON)`}
 						aria-label={`Configuration ${node.id}`}

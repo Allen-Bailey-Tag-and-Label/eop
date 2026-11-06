@@ -2,6 +2,8 @@ import { safeField, parseSort, validateLink, normalizeDataSource } from '$lib/sl
 import { apiEndpointPath } from './api-path';
 import {
 	DataWorkflowError,
+	apiMethods,
+	type ApiMethod,
 	type DataRecord,
 	type Expression,
 	type WorkflowDefinition,
@@ -287,6 +289,10 @@ export function validateWorkflow(input: unknown): WorkflowDefinition {
 		if (node.type === 'api') {
 			if (typeof config.connectionId !== 'string' || !/^[a-f0-9]{24}$/i.test(config.connectionId))
 				reject('Choose an API connection.');
+			if (config.method !== undefined && !apiMethods.includes(config.method as ApiMethod))
+				reject('Choose a supported API HTTP method.');
+			if (config.body !== undefined && ['GET', 'HEAD'].includes(String(config.method ?? 'GET')))
+				reject('API request bodies require POST, PUT, PATCH, or DELETE.');
 			if (!apiEndpointPath(config.path))
 				reject('API paths must be absolute endpoint paths without query strings.');
 			if (

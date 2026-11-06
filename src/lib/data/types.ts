@@ -28,7 +28,11 @@ export type SourceOption = {
 	outputs: Record<string, string[]>;
 	parameters: DataRecord;
 };
+export const apiMethods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+export type ApiMethod = (typeof apiMethods)[number];
 export type ApiConnection = {
+	methods?: ApiMethod[];
+	monitorProxy?: boolean;
 	userAgent?: string;
 	baseUrl: string;
 	paths: string[];

@@ -10,6 +10,40 @@ import {
 import { defaultDataSource } from '$lib/slides/types';
 
 describe('reusable data workflows', () => {
+	it('validates API request methods and requires a body-capable method for JSON bodies', () => {
+		const api = {
+			id: 'api',
+			type: 'api' as const,
+			inputs: [],
+			config: {
+				connectionId: 'a'.repeat(24),
+				path: '/query',
+				query: {},
+				itemsPath: 'rows',
+				fields: { id: 'id' },
+				method: 'POST',
+				body: { department: { $param: 'department' } }
+			}
+		};
+		const workflow = {
+			...blankWorkflow(),
+			nodes: [api],
+			outputs: { rows: { nodeId: 'api', fields: ['id'], idField: 'id' } }
+		};
+		expect(validateWorkflow(workflow).nodes[0].config.method).toBe('POST');
+		expect(() =>
+			validateWorkflow({
+				...workflow,
+				nodes: [{ ...api, config: { ...api.config, method: 'GET' } }]
+			})
+		).toThrow('bodies require');
+		expect(() =>
+			validateWorkflow({
+				...workflow,
+				nodes: [{ ...api, config: { ...api.config, method: 'CONNECT' } }]
+			})
+		).toThrow('HTTP method');
+	});
 	it('executes a graph with shared inputs, joins, maps, filters, grouping and named outputs', async () => {
 		const definition = validateWorkflow({
 			schemaVersion: 1,
