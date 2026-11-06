@@ -15,6 +15,7 @@ import {
 	listMonitors,
 	PairingLimitError,
 	requestPairing,
+	requestMonitorRefresh,
 	revokeMonitor,
 	setMonitorColorMode
 } from './sessions';
@@ -28,6 +29,7 @@ vi.mock('./sessions', () => ({
 	MONITOR_COOKIE: 'monitorSession',
 	PairingLimitError: class extends Error {},
 	requestPairing: vi.fn(),
+	requestMonitorRefresh: vi.fn(),
 	getMonitorSession: vi.fn(),
 	touchMonitor: vi.fn(),
 	approveMonitor: vi.fn(),
@@ -71,6 +73,36 @@ beforeEach(() => {
 });
 
 describe('monitor route wiring', () => {
+	it('queues a refresh for the submitted monitor without changing assignments or access', async () => {
+		vi.mocked(requestMonitorRefresh).mockResolvedValue(false);
+		const refresh = managementActions.refresh!;
+		expect(
+			await refresh(event({ sessionId: 'invalid' }) as unknown as Parameters<typeof refresh>[0])
+		).toMatchObject({ status: 400 });
+		vi.mocked(requestMonitorRefresh).mockResolvedValue(true);
+		expect(
+			await refresh(
+				event({ sessionId: session._id.toString() }) as unknown as Parameters<typeof refresh>[0]
+			)
+		).toHaveProperty('success');
+		expect(requestMonitorRefresh).toHaveBeenLastCalledWith(session._id.toString());
+		expect(revokeMonitor).not.toHaveBeenCalled();
+	});
+	it('delivers the persistent refresh version only to its own approved device', async () => {
+		vi.mocked(getMonitorSession).mockResolvedValue({
+			...session,
+			status: 'approved',
+			refreshVersion: 3,
+			expiresAt: undefined
+		});
+		const response = await status(event() as unknown as Parameters<typeof status>[0]);
+		expect(await response.json()).toEqual({ state: 'approved', refreshVersion: 3 });
+		expect(getMonitorSession).toHaveBeenCalledWith(token);
+		vi.mocked(getMonitorSession).mockResolvedValue(session);
+		expect(await (await status(event() as unknown as Parameters<typeof status>[0])).json()).toEqual(
+			{ state: 'pending' }
+		);
+	});
 	it('validates and saves monitor color mode through the management action', async () => {
 		vi.mocked(setMonitorColorMode).mockResolvedValue(false);
 		const input = event({ sessionId: 'a'.repeat(24), colorMode: 'system' });
@@ -154,7 +186,7 @@ describe('monitor route wiring', () => {
 		const input = event();
 		const response = await status(input as unknown as Parameters<typeof status>[0]);
 		expect(getMonitorSession).toHaveBeenCalledWith(token);
-		expect(await response.json()).toEqual({ state: 'approved' });
+		expect(await response.json()).toEqual({ state: 'approved', refreshVersion: 0 });
 		expect(setMonitorCookie).toHaveBeenCalledWith(input.cookies, token);
 	});
 

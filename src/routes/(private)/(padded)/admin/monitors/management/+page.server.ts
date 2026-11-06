@@ -1,5 +1,10 @@
 import { fail } from '@sveltejs/kit';
-import { listMonitors, revokeMonitor, setMonitorColorMode } from '$lib/server/monitors/sessions';
+import {
+	listMonitors,
+	revokeMonitor,
+	setMonitorColorMode,
+	requestMonitorRefresh
+} from '$lib/server/monitors/sessions';
 import { assignPlaylist, listPlaylists } from '$lib/server/slides/content';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -10,6 +15,15 @@ export const load: PageServerLoad = async () => {
 
 // Employee authentication and role-based route access are enforced by the hook.
 export const actions: Actions = {
+	refresh: async ({ request }) => {
+		const fields = await request.formData();
+		if (!(await requestMonitorRefresh(fields.get('sessionId'))))
+			return fail(400, { error: 'Choose an approved monitor to refresh.' });
+		return {
+			success:
+				'Refresh requested. This monitor will reload on its next status check, normally within 30 seconds. Offline monitors receive it when they reconnect.'
+		};
+	},
 	colorMode: async ({ request }) => {
 		const fields = await request.formData();
 		if (!(await setMonitorColorMode(fields.get('sessionId'), fields.get('colorMode'))))

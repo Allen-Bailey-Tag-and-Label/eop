@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-06T12:14:11.827Z
+## 2026-11-06T12:43:18.803Z
+
+feat: Add per-monitor remote display refresh
+
+## 2026-11-06T07:26:53-05:00
 
 feat: Add same-origin API proxies for monitor data connections
 

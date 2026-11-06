@@ -10,6 +10,7 @@ import {
 	PAIRING_DURATION_MS,
 	PairingLimitError,
 	requestPairing,
+	requestMonitorRefresh,
 	revokeMonitor,
 	setMonitorColorMode
 } from './sessions';
@@ -42,7 +43,11 @@ type Filter = {
 	expiresAt?: { $gt: Date };
 	$or?: Filter[];
 };
-type Update = { $set?: Partial<MonitorRecord>; $unset?: Record<string, unknown> };
+type Update = {
+	$set?: Partial<MonitorRecord>;
+	$unset?: Record<string, unknown>;
+	$inc?: { refreshVersion?: number };
+};
 
 function matches(record: MonitorRecord, filter: Filter): boolean {
 	return (
@@ -71,6 +76,8 @@ function updateRecord(filter: Filter, update: Update) {
 	const record = records.find((entry) => matches(entry, filter));
 	if (!record) return null;
 	Object.assign(record, update.$set);
+	if (update.$inc?.refreshVersion)
+		record.refreshVersion = (record.refreshVersion ?? 0) + update.$inc.refreshVersion;
 	if (update.$unset?.pairingCode) delete record.pairingCode;
 	if (update.$unset?.expiresAt) delete record.expiresAt;
 	return { ...record };
@@ -102,6 +109,23 @@ beforeEach(() => {
 });
 
 describe('monitor pairing', () => {
+	it('queues refreshes only for the selected approved monitor and keeps the request across status reads', async () => {
+		const first = await requestPairing(undefined, '192.0.2.1', now);
+		const second = await requestPairing(undefined, '192.0.2.2', now);
+		const pending = await requestPairing(undefined, '192.0.2.3', now);
+		await approveMonitor(first.session.pairingCode, 'Break room', userId, now);
+		await approveMonitor(second.session.pairingCode, 'Office', userId, now);
+		expect(await requestMonitorRefresh(first.session._id.toString())).toBe(true);
+		expect(await requestMonitorRefresh(first.session._id.toString())).toBe(true);
+		expect((await getMonitorSession(first.token, now))?.refreshVersion).toBe(2);
+		expect((await getMonitorSession(first.token, now))?.refreshVersion).toBe(2);
+		expect((await getMonitorSession(second.token, now))?.refreshVersion ?? 0).toBe(0);
+		expect((await getMonitorSession(first.token, now))?.status).toBe('approved');
+		expect(await requestMonitorRefresh(pending.session._id.toString())).toBe(false);
+		expect(await requestMonitorRefresh({ $ne: null })).toBe(false);
+		await revokeMonitor(first.session._id.toString(), now);
+		expect(await requestMonitorRefresh(first.session._id.toString())).toBe(false);
+	});
 	it('sets only valid color modes on approved monitors', async () => {
 		for (const [id, mode] of [
 			[{ $ne: null }, 'dark'],

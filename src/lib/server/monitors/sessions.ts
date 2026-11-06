@@ -150,6 +150,15 @@ export async function setMonitorColorMode(id: unknown, mode: unknown) {
 	return result.matchedCount === 1;
 }
 
+export async function requestMonitorRefresh(id: unknown) {
+	if (typeof id !== 'string' || !/^[a-f\d]{24}$/i.test(id)) return false;
+	const result = await MonitorSession.updateOne(
+		{ _id: new Types.ObjectId(id), status: 'approved' },
+		{ $inc: { refreshVersion: 1 } }
+	);
+	return result.modifiedCount === 1;
+}
+
 export async function revokeMonitor(id: unknown, now = new Date()) {
 	if (typeof id !== 'string' || !/^[a-f\d]{24}$/i.test(id)) return false;
 	const result = await MonitorSession.updateOne(

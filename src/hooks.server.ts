@@ -139,7 +139,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			event.locals.monitor = {
 				id: session._id.toString(),
 				location: session.location,
-				colorMode: session.colorMode ?? 'dark'
+				colorMode: session.colorMode ?? 'dark',
+				refreshVersion: session.refreshVersion ?? 0
 			};
 		}
 		return resolve(event);

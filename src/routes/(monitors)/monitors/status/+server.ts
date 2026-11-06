@@ -11,5 +11,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		await touchMonitor(session._id);
 		setMonitorCookie(cookies, token!);
 	}
-	return json({ state: session.status });
+	return json({
+		state: session.status,
+		...(session.status === 'approved' ? { refreshVersion: session.refreshVersion ?? 0 } : {})
+	});
 };

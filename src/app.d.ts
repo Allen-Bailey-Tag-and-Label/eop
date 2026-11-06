@@ -21,7 +21,12 @@ declare global {
 				audience?: string;
 				formIds?: string[];
 			};
-			monitor: { id: string; location: string; colorMode: 'light' | 'dark' | 'system' };
+			monitor: {
+				id: string;
+				location: string;
+				colorMode: 'light' | 'dark' | 'system';
+				refreshVersion?: number;
+			};
 			navigation: Navigation[];
 			user: User;
 		}

@@ -19,10 +19,12 @@
 		Tr
 	} from '$lib/components';
 
+	import { RefreshCw } from '@lucide/svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	let isRevokeModalOpen = $state(false);
+	let refreshingMonitors = $state<string[]>([]);
 	let isRevoking = $state(false);
 	let monitorToRevoke = $state<{ id: string; location: string }>();
 </script>
@@ -31,7 +33,8 @@
 	<Div class="space-y-2">
 		<H1>Monitor management</H1>
 		<P
-			>Assign published playlists to monitors and revoke access when a device is removed or moved.</P
+			>Assign published playlists, remotely refresh displays, and revoke access when a device is
+			removed or moved.</P
 		>
 	</Div>
 	{#if form?.error}<P role="alert" class="text-red-600 dark:text-red-400">{form.error}</P>{/if}
@@ -47,7 +50,7 @@
 					<Thead
 						><Tr
 							><Th>Location</Th><Th>Last connected</Th><Th>Playlist</Th><Th>Color mode</Th><Th
-								>Access</Th
+								>Actions</Th
 							></Tr
 						></Thead
 					>
@@ -103,15 +106,45 @@
 									</Form>
 								</Td>
 								<Td>
-									<Button
-										type="button"
-										variants={['error', 'small']}
-										onclick={() => {
-											monitorToRevoke = monitor;
-											isRevokeModalOpen = true;
-										}}
-										aria-label={`Revoke access for ${monitor.location}`}>Revoke</Button
-									>
+									<Div class="flex items-center gap-2">
+										<Form
+											action="?/refresh"
+											class="max-w-none space-y-0"
+											submitFunction={() => {
+												refreshingMonitors = [...refreshingMonitors, monitor.id];
+												return async ({ update }) => {
+													try {
+														await update();
+													} finally {
+														refreshingMonitors = refreshingMonitors.filter(
+															(id) => id !== monitor.id
+														);
+													}
+												};
+											}}
+										>
+											<Input type="hidden" name="sessionId" value={monitor.id} />
+											<Button
+												type="submit"
+												variants={['small']}
+												class="flex items-center gap-2 whitespace-nowrap"
+												disabled={refreshingMonitors.includes(monitor.id)}
+												aria-label={`Hard refresh ${monitor.location}`}
+											>
+												<RefreshCw size={16} aria-hidden="true" />
+												{refreshingMonitors.includes(monitor.id) ? 'Requesting...' : 'Hard refresh'}
+											</Button>
+										</Form>
+										<Button
+											type="button"
+											variants={['error', 'small']}
+											onclick={() => {
+												monitorToRevoke = monitor;
+												isRevokeModalOpen = true;
+											}}
+											aria-label={`Revoke access for ${monitor.location}`}>Revoke</Button
+										>
+									</Div>
 								</Td>
 							</Tr>
 						{/each}

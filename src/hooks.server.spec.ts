@@ -113,7 +113,8 @@ describe('central monitor authentication', () => {
 		expect(display.event.locals.monitor).toEqual({
 			id: 'monitor-id',
 			location: 'Break room',
-			colorMode: 'dark'
+			colorMode: 'dark',
+			refreshVersion: 0
 		});
 		expect(display.event.locals.user).toBeUndefined();
 		for (const page of ['approval', 'management']) {
