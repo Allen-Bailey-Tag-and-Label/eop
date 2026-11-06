@@ -355,6 +355,7 @@ export async function getPlayback(monitorId: string, now = new Date()): Promise<
 		)
 	).filter((slide) => slideIsVisible(slide.definition.visibility, slide.data, now));
 	const content = {
+		playlistId: monitor.playlistId.toString(),
 		transition: playlist.published.transition ?? defaultPlaylistTransition(),
 		title: playlist.publishedTitle ?? 'Monitor playlist',
 		loop: playlist.published.loop,

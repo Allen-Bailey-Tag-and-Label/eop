@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { Types } from 'mongoose';
 import { MonitorPairingLimit, MonitorSession } from './model';
+import { MAX_MONITOR_COMMANDS } from '$lib/monitors/types';
 
 export const MONITOR_COOKIE = 'monitorSession';
 export const PAIRING_DURATION_MS = 10 * 60 * 1000;
@@ -150,11 +151,60 @@ export async function setMonitorColorMode(id: unknown, mode: unknown) {
 	return result.matchedCount === 1;
 }
 
+export async function requestMonitorNavigation(
+	id: unknown,
+	direction: unknown,
+	playlistId: unknown
+) {
+	if (
+		typeof id !== 'string' ||
+		!/^[a-f\d]{24}$/i.test(id) ||
+		typeof playlistId !== 'string' ||
+		!/^[a-f\d]{24}$/i.test(playlistId) ||
+		(direction !== 'prev' && direction !== 'next')
+	)
+		return false;
+	const result = await MonitorSession.updateOne(
+		{
+			_id: new Types.ObjectId(id),
+			status: 'approved',
+			playlistId: new Types.ObjectId(playlistId),
+			[`navigationCommands.${MAX_MONITOR_COMMANDS - 1}`]: { $exists: false }
+		},
+		{
+			$push: {
+				navigationCommands: {
+					id: randomBytes(16).toString('hex'),
+					direction,
+					playlistId: playlistId.toLowerCase()
+				}
+			}
+		}
+	);
+	return result.modifiedCount === 1;
+}
+
+export async function acknowledgeMonitorNavigation(id: string, ids: unknown) {
+	if (
+		!/^[a-f\d]{24}$/i.test(id) ||
+		!Array.isArray(ids) ||
+		!ids.length ||
+		ids.length > MAX_MONITOR_COMMANDS ||
+		ids.some((value) => typeof value !== 'string' || !/^[a-f\d]{32}$/.test(value))
+	)
+		return false;
+	const result = await MonitorSession.updateOne(
+		{ _id: new Types.ObjectId(id), status: 'approved' },
+		{ $pull: { navigationCommands: { id: { $in: ids } } } }
+	);
+	return result.matchedCount === 1;
+}
+
 export async function requestMonitorRefresh(id: unknown) {
 	if (typeof id !== 'string' || !/^[a-f\d]{24}$/i.test(id)) return false;
 	const result = await MonitorSession.updateOne(
 		{ _id: new Types.ObjectId(id), status: 'approved' },
-		{ $inc: { refreshVersion: 1 } }
+		{ $inc: { refreshVersion: 1 }, $set: { navigationCommands: [] } }
 	);
 	return result.modifiedCount === 1;
 }

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-06T12:43:18.803Z
+## 2026-11-06T13:23:06.549Z
+
+feat: Add remote playlist navigation controls
+
+## 2026-11-06T07:51:02-05:00
 
 feat: Add per-monitor remote display refresh
 

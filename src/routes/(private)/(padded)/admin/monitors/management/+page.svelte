@@ -25,6 +25,7 @@
 	let { data, form }: PageProps = $props();
 	let isRevokeModalOpen = $state(false);
 	let refreshingMonitors = $state<string[]>([]);
+	let navigatingMonitors = $state<string[]>([]);
 	let isRevoking = $state(false);
 	let monitorToRevoke = $state<{ id: string; location: string }>();
 </script>
@@ -107,6 +108,36 @@
 								</Td>
 								<Td>
 									<Div class="flex items-center gap-2">
+										<Form
+											action="?/navigate"
+											class="flex max-w-none items-center gap-2 space-y-0"
+											submitFunction={() => {
+												navigatingMonitors = [...navigatingMonitors, monitor.id];
+												return async ({ update }) => {
+													try {
+														await update();
+													} finally {
+														navigatingMonitors = navigatingMonitors.filter(
+															(id) => id !== monitor.id
+														);
+													}
+												};
+											}}
+										>
+											<Input type="hidden" name="sessionId" value={monitor.id} />
+											<Input type="hidden" name="playlistId" value={monitor.playlistId} />
+											{#each ['prev', 'next'] as direction (direction)}
+												<Button
+													type="submit"
+													name="direction"
+													value={direction}
+													variants={['small']}
+													disabled={!monitor.playlistId || navigatingMonitors.includes(monitor.id)}
+													aria-label={`${direction === 'prev' ? 'Previous' : 'Next'} slide on ${monitor.location}`}
+													>{direction === 'prev' ? 'Prev' : 'Next'}</Button
+												>
+											{/each}
+										</Form>
 										<Form
 											action="?/refresh"
 											class="max-w-none space-y-0"

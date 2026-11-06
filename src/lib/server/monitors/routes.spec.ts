@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 import { load as pair } from '../../../routes/(monitors)/monitors/pair/+page.server';
 import { GET as status } from '../../../routes/(monitors)/monitors/status/+server';
+import { POST as acknowledge } from '../../../routes/(monitors)/monitors/(approved)/commands/+server';
 import { load as monitorIndex } from '../../../routes/(private)/(padded)/admin/monitors/+page.server';
 import { actions as approvalActions } from '../../../routes/(private)/(padded)/admin/monitors/approval/+page.server';
 import {
@@ -16,6 +17,8 @@ import {
 	PairingLimitError,
 	requestPairing,
 	requestMonitorRefresh,
+	requestMonitorNavigation,
+	acknowledgeMonitorNavigation,
 	revokeMonitor,
 	setMonitorColorMode
 } from './sessions';
@@ -30,6 +33,8 @@ vi.mock('./sessions', () => ({
 	PairingLimitError: class extends Error {},
 	requestPairing: vi.fn(),
 	requestMonitorRefresh: vi.fn(),
+	requestMonitorNavigation: vi.fn(),
+	acknowledgeMonitorNavigation: vi.fn(),
 	getMonitorSession: vi.fn(),
 	touchMonitor: vi.fn(),
 	approveMonitor: vi.fn(),
@@ -73,6 +78,48 @@ beforeEach(() => {
 });
 
 describe('monitor route wiring', () => {
+	it('queues the submitted direction for the selected monitor and assignment', async () => {
+		const navigate = managementActions.navigate!;
+		const fields = {
+			sessionId: session._id.toString(),
+			playlistId: 'c'.repeat(24),
+			direction: 'prev'
+		};
+		vi.mocked(requestMonitorNavigation).mockResolvedValue(false);
+		expect(await navigate(event(fields) as never)).toMatchObject({ status: 400 });
+		vi.mocked(requestMonitorNavigation).mockResolvedValue(true);
+		expect(await navigate(event(fields) as never)).toHaveProperty('success');
+		expect(requestMonitorNavigation).toHaveBeenLastCalledWith(
+			fields.sessionId,
+			'prev',
+			fields.playlistId
+		);
+	});
+	it('acknowledges commands using only the monitor identity supplied by the hook', async () => {
+		const ids = ['d'.repeat(32)];
+		vi.mocked(acknowledgeMonitorNavigation).mockResolvedValue(true);
+		const input = {
+			locals: { monitor: { id: session._id.toString() } },
+			request: new Request('https://eop.example/monitors/commands', {
+				method: 'POST',
+				body: JSON.stringify({ ids, monitorId: 'a'.repeat(24) })
+			})
+		};
+		expect((await acknowledge(input as never)).status).toBe(200);
+		expect(acknowledgeMonitorNavigation).toHaveBeenLastCalledWith(session._id.toString(), ids);
+		vi.mocked(acknowledgeMonitorNavigation).mockResolvedValue(false);
+		expect(
+			(
+				await acknowledge({
+					...input,
+					request: new Request('https://eop.example/monitors/commands', {
+						method: 'POST',
+						body: '{}'
+					})
+				} as never)
+			).status
+		).toBe(400);
+	});
 	it('queues a refresh for the submitted monitor without changing assignments or access', async () => {
 		vi.mocked(requestMonitorRefresh).mockResolvedValue(false);
 		const refresh = managementActions.refresh!;
@@ -96,7 +143,12 @@ describe('monitor route wiring', () => {
 			expiresAt: undefined
 		});
 		const response = await status(event() as unknown as Parameters<typeof status>[0]);
-		expect(await response.json()).toEqual({ state: 'approved', refreshVersion: 3 });
+		expect(await response.json()).toEqual({
+			state: 'approved',
+			refreshVersion: 3,
+			playlistId: '',
+			navigationCommands: []
+		});
 		expect(getMonitorSession).toHaveBeenCalledWith(token);
 		vi.mocked(getMonitorSession).mockResolvedValue(session);
 		expect(await (await status(event() as unknown as Parameters<typeof status>[0])).json()).toEqual(
@@ -186,7 +238,12 @@ describe('monitor route wiring', () => {
 		const input = event();
 		const response = await status(input as unknown as Parameters<typeof status>[0]);
 		expect(getMonitorSession).toHaveBeenCalledWith(token);
-		expect(await response.json()).toEqual({ state: 'approved', refreshVersion: 0 });
+		expect(await response.json()).toEqual({
+			state: 'approved',
+			refreshVersion: 0,
+			playlistId: '',
+			navigationCommands: []
+		});
 		expect(setMonitorCookie).toHaveBeenCalledWith(input.cookies, token);
 	});
 

@@ -1,5 +1,6 @@
 import { Schema, type Types } from 'mongoose';
 import { defineModel } from '../mongoose/defineModel';
+import type { MonitorNavigationCommand } from '$lib/monitors/types';
 
 export type MonitorRecord = {
 	_id: Types.ObjectId;
@@ -14,6 +15,7 @@ export type MonitorRecord = {
 	playlistId?: Types.ObjectId;
 	colorMode?: 'light' | 'dark' | 'system';
 	refreshVersion?: number;
+	navigationCommands?: MonitorNavigationCommand[];
 };
 
 // Deliberately outside the general model barrel: credentials must not be exposed
@@ -32,7 +34,20 @@ export const MonitorSession = defineModel<MonitorRecord>(
 		lastSeenAt: Date,
 		playlistId: { type: Schema.Types.ObjectId, ref: 'MonitorPlaylist' },
 		colorMode: { type: String, enum: ['light', 'dark', 'system'], default: 'dark' },
-		refreshVersion: { type: Number, default: 0, min: 0 }
+		refreshVersion: { type: Number, default: 0, min: 0 },
+		navigationCommands: {
+			type: [
+				new Schema(
+					{
+						id: { type: String, required: true },
+						direction: { type: String, enum: ['prev', 'next'], required: true },
+						playlistId: { type: String, required: true }
+					},
+					{ _id: false, id: false }
+				)
+			],
+			default: []
+		}
 	},
 	{ log: false }
 );

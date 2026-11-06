@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { onMount, untrack, tick } from 'svelte';
+	import type { MonitorNavigationCommand } from '$lib/monitors/types';
 	import CrossfadeStage from './CrossfadeStage.svelte';
 	import { allElements } from './repeater';
 	import { Div, H1, P } from '$lib/components';
@@ -75,13 +76,71 @@
 	const cache = new SlideMediaCache();
 	let orderedVersion: string | undefined;
 	let startOffset = 0;
+	let mounted = false;
+	let navigation: Promise<boolean> | undefined;
+	let navigationCount = 0;
+	let contentRevision = 0;
+
+	// Serialize remote clicks. Existing slide preparation and crossfades handle the new entry.
+	export function navigate(command: MonitorNavigationCommand): Promise<boolean> {
+		navigationCount++;
+		const previousNavigation = navigation;
+		const task = (async () => {
+			await previousNavigation;
+			if (!mounted || !refresh) return false;
+			const revision = contentRevision;
+			await refresh();
+			// Keep commands queued if content could not be revalidated, including initial loading.
+			if (!mounted || revision === contentRevision) return false;
+			const current = playback;
+			const latest = queued !== undefined ? queued : current;
+			if (!latest || latest.playlistId !== command.playlistId) {
+				// The assignment changed while the command was in transit. Never step the new playlist.
+				if (queued !== undefined) {
+					queued = undefined;
+					index = 0;
+					playback = latest;
+					await tick();
+				}
+				return true;
+			}
+			if (!latest.slides.length) return true;
+			let position = index;
+			if (current?.version !== latest.version) {
+				// Keep the same occurrence when the playlist contains a slide more than once.
+				const id = current?.slides[index]?.id;
+				const occurrence =
+					current?.slides.slice(0, index + 1).filter((slide) => slide.id === id).length ?? 1;
+				const matches = latest.slides.flatMap((slide, i) => (slide.id === id ? [i] : []));
+				position = matches[occurrence - 1] ?? Math.min(index, latest.slides.length - 1);
+			}
+			const step = command.direction === 'prev' ? -1 : 1;
+			const target = latest.loop
+				? (position + step + latest.slides.length) % latest.slides.length
+				: Math.max(0, Math.min(latest.slides.length - 1, position + step));
+			queued = undefined;
+			if (target !== index || latest.loop || current?.version !== latest.version) {
+				index = target;
+				playback = { ...latest };
+				await tick();
+			} else if (shown) shown.data = latest.slides[index]?.data ?? {};
+			return true;
+		})();
+		navigation = task;
+		return task.finally(() => {
+			navigationCount--;
+			if (navigation === task) navigation = undefined;
+		});
+	}
 	onMount(() => {
+		mounted = true;
 		const media = window.matchMedia('(prefers-color-scheme: dark)');
 		const updateScheme = () => (prefersDark = media.matches);
 		updateScheme();
 		media.addEventListener('change', updateScheme);
 		const source = watchPlayback(
 			(received) => {
+				contentRevision++;
 				if (received?.version !== orderedVersion) {
 					orderedVersion = received?.version;
 					startOffset = received?.randomStart
@@ -90,7 +149,7 @@
 				}
 				const content = received ? rotatePlayback(received, startOffset) : null;
 				loading = false;
-				if (!playback?.slides.length || finished) {
+				if ((!playback?.slides.length || finished) && !navigationCount) {
 					if (content?.version !== playback?.version) {
 						index = 0;
 						playback = content;
@@ -102,6 +161,7 @@
 		);
 		refresh = source.refresh;
 		return () => {
+			mounted = false;
 			media.removeEventListener('change', updateScheme);
 			source.stop();
 			cache.destroy();
@@ -197,8 +257,12 @@
 				if (!allElements(slide.definition).some((element) => element.repeater))
 					cancelAnimationFrame(frame);
 				timeMs = timing.totalMs;
+				// A manual step takes precedence over an automatic boundary already in flight.
+				await navigation;
+				if (disposed) return;
 				// Revalidate published content before every new slide, including single-slide loops.
 				await refresh?.();
+				await navigation;
 				if (disposed) return;
 				let updated = current;
 				if (queued !== undefined) {

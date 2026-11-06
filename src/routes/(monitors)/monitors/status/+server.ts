@@ -13,6 +13,12 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	}
 	return json({
 		state: session.status,
-		...(session.status === 'approved' ? { refreshVersion: session.refreshVersion ?? 0 } : {})
+		...(session.status === 'approved'
+			? {
+					refreshVersion: session.refreshVersion ?? 0,
+					playlistId: session.playlistId?.toString() ?? '',
+					navigationCommands: session.navigationCommands ?? []
+				}
+			: {})
 	});
 };

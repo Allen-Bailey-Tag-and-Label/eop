@@ -68,6 +68,132 @@ afterEach(() => {
 });
 
 describe('monitor player', () => {
+	it('steps immediately in both directions, wraps loops, and restarts the countdown', async () => {
+		const playlistId = 'a'.repeat(24);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		receive({ ...content(), playlistId });
+		vi.mocked(watchPlayback).mock.results[0].value.refresh.mockImplementation(async () =>
+			receive({ ...content(), playlistId })
+		);
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		const command = { id: '1'.repeat(32), playlistId, direction: 'prev' as const };
+		await vi.advanceTimersByTimeAsync(400);
+		expect(await view.component.navigate(command)).toBe(true);
+		await flush();
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		expect(view.getByRole('timer')).toHaveTextContent('0:01');
+		await view.component.navigate({ ...command, direction: 'next' });
+		await flush();
+		expect(current.getByText('one First')).toBeInTheDocument();
+		await view.component.navigate({ ...command, direction: 'next' });
+		await flush();
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(999);
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1);
+		await flush();
+		expect(current.getByText('one First')).toBeInTheDocument();
+	});
+	it('clamps non-looping boundaries without restarting the slide and resumes from a held final slide', async () => {
+		const playlistId = 'a'.repeat(24);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		receive({ ...content('one', false), playlistId });
+		vi.mocked(watchPlayback).mock.results[0].value.refresh.mockImplementation(async () =>
+			receive({ ...content('one', false), playlistId })
+		);
+		await flush();
+		const command = { id: '1'.repeat(32), playlistId, direction: 'prev' as const };
+		await vi.advanceTimersByTimeAsync(900);
+		await view.component.navigate(command);
+		await vi.advanceTimersByTimeAsync(100);
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		await view.component.navigate({ ...command, direction: 'next' });
+		expect(view.getByRole('timer')).toHaveTextContent('0:00');
+		await view.component.navigate(command);
+		await flush();
+		expect(current.getByText('one First')).toBeInTheDocument();
+		expect(view.getByRole('timer')).toHaveTextContent('0:01');
+	});
+	it('uses freshly published content and does not apply old commands to a newly assigned playlist', async () => {
+		const playlistId = 'a'.repeat(24);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		receive({ ...content(), playlistId });
+		await flush();
+		const refresh = vi.mocked(watchPlayback).mock.results[0].value.refresh;
+		refresh.mockImplementation(async () => receive({ ...content('two'), playlistId }));
+		const command = { id: '1'.repeat(32), playlistId, direction: 'next' as const };
+		await view.component.navigate(command);
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByText('two Second')).toBeInTheDocument();
+		refresh.mockImplementation(async () =>
+			receive({ ...content('three'), playlistId: 'b'.repeat(24) })
+		);
+		await view.component.navigate(command);
+		await flush();
+		expect(current.getByText('three First')).toBeInTheDocument();
+		expect(current.queryByText('three Second')).not.toBeInTheDocument();
+	});
+	it('gives ordered manual steps priority over an automatic boundary during a slow refresh', async () => {
+		const playlistId = 'a'.repeat(24);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		receive({ ...content(), playlistId });
+		await flush();
+		let release!: () => void;
+		const refresh = vi.mocked(watchPlayback).mock.results[0].value.refresh;
+		refresh.mockImplementation(async () => receive({ ...content(), playlistId }));
+		refresh.mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					release = () => {
+						receive({ ...content(), playlistId });
+						resolve();
+					};
+				})
+		);
+		await vi.advanceTimersByTimeAsync(900);
+		const command = { id: '1'.repeat(32), playlistId, direction: 'next' as const };
+		const step = view.component.navigate(command);
+		await flush();
+		await vi.advanceTimersByTimeAsync(100);
+		release();
+		await step;
+		await flush();
+		const current = within(view.getByRole('region', { name: 'Current slide' }));
+		expect(current.getByText('one Second')).toBeInTheDocument();
+		await Promise.all([
+			view.component.navigate({ ...command, direction: 'prev' }),
+			view.component.navigate(command)
+		]);
+		await flush();
+		expect(current.getByText('one Second')).toBeInTheDocument();
+	});
+	it('keeps commands pending when published content cannot be loaded, then applies them after recovery', async () => {
+		const playlistId = 'a'.repeat(24);
+		const view = render(SlidePlayer, { location: 'Break room' });
+		const command = { id: '1'.repeat(32), playlistId, direction: 'next' as const };
+		expect(await view.component.navigate(command)).toBe(false);
+		const receive = vi.mocked(watchPlayback).mock.calls[0][0];
+		receive({ ...content(), playlistId });
+		await flush();
+		expect(await view.component.navigate(command)).toBe(false);
+		vi.mocked(watchPlayback).mock.results[0].value.refresh.mockImplementation(async () =>
+			receive({ ...content(), playlistId })
+		);
+		expect(await view.component.navigate(command)).toBe(true);
+		await flush();
+		expect(
+			within(view.getByRole('region', { name: 'Current slide' })).getByText('one Second')
+		).toBeInTheDocument();
+	});
 	it('holds the outgoing slide while media is unavailable and crossfades only after the next slide is ready', async () => {
 		let ready = false;
 		const image = 'a'.repeat(24);

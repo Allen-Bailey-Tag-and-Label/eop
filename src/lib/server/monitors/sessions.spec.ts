@@ -11,6 +11,8 @@ import {
 	PairingLimitError,
 	requestPairing,
 	requestMonitorRefresh,
+	requestMonitorNavigation,
+	acknowledgeMonitorNavigation,
 	revokeMonitor,
 	setMonitorColorMode
 } from './sessions';
@@ -42,11 +44,15 @@ type Filter = {
 	status?: string | { $in: string[] };
 	expiresAt?: { $gt: Date };
 	$or?: Filter[];
+	playlistId?: Types.ObjectId;
+	'navigationCommands.99'?: { $exists: false };
 };
 type Update = {
 	$set?: Partial<MonitorRecord>;
 	$unset?: Record<string, unknown>;
 	$inc?: { refreshVersion?: number };
+	$push?: { navigationCommands: NonNullable<MonitorRecord['navigationCommands']>[number] };
+	$pull?: { navigationCommands: { id: { $in: string[] } } };
 };
 
 function matches(record: MonitorRecord, filter: Filter): boolean {
@@ -54,6 +60,8 @@ function matches(record: MonitorRecord, filter: Filter): boolean {
 		(!filter.tokenHash || record.tokenHash === filter.tokenHash) &&
 		(!filter.pairingCode || record.pairingCode === filter.pairingCode) &&
 		(!filter._id || record._id.toString() === filter._id.toString()) &&
+		(!filter.playlistId || record.playlistId?.toString() === filter.playlistId.toString()) &&
+		(!filter['navigationCommands.99'] || (record.navigationCommands?.length ?? 0) < 100) &&
 		(!filter.expiresAt || (!!record.expiresAt && record.expiresAt > filter.expiresAt.$gt)) &&
 		(!filter.$or || filter.$or.some((branch) => matches(record, branch))) &&
 		(!filter.status ||
@@ -76,6 +84,11 @@ function updateRecord(filter: Filter, update: Update) {
 	const record = records.find((entry) => matches(entry, filter));
 	if (!record) return null;
 	Object.assign(record, update.$set);
+	if (update.$push) (record.navigationCommands ??= []).push(update.$push.navigationCommands);
+	if (update.$pull)
+		record.navigationCommands = record.navigationCommands?.filter(
+			(command) => !update.$pull!.navigationCommands.id.$in.includes(command.id)
+		);
 	if (update.$inc?.refreshVersion)
 		record.refreshVersion = (record.refreshVersion ?? 0) + update.$inc.refreshVersion;
 	if (update.$unset?.pairingCode) delete record.pairingCode;
@@ -100,15 +113,61 @@ beforeEach(() => {
 	model.findOneAndUpdate.mockImplementation((filter: Filter, update: Update) =>
 		query(updateRecord(filter, update))
 	);
-	model.updateOne.mockImplementation(async (filter: Filter, update: Update) => ({
-		modifiedCount: updateRecord(filter, update) ? 1 : 0
-	}));
+	model.updateOne.mockImplementation(async (filter: Filter, update: Update) => {
+		const matchedCount = updateRecord(filter, update) ? 1 : 0;
+		return { modifiedCount: matchedCount, matchedCount };
+	});
 	model.find.mockImplementation((filter: Filter) =>
 		query(records.filter((entry) => matches(entry, filter)))
 	);
 });
 
 describe('monitor pairing', () => {
+	it('queues ordered navigation for only the approved monitor and expected assignment, then acknowledges exact IDs', async () => {
+		const first = await requestPairing(undefined, '192.0.2.1', now);
+		const second = await requestPairing(undefined, '192.0.2.2', now);
+		const playlistId = 'c'.repeat(24);
+		for (const pairing of [first, second]) {
+			await approveMonitor(pairing.session.pairingCode, 'Office', userId, now);
+			records.find((record) => record._id.equals(pairing.session._id))!.playlistId =
+				new Types.ObjectId(playlistId);
+		}
+		const id = first.session._id.toString();
+		for (const direction of ['next', 'prev', 'next'])
+			expect(await requestMonitorNavigation(id, direction, playlistId)).toBe(true);
+		const commands = (await getMonitorSession(first.token, now))!.navigationCommands!;
+		expect(commands.map((command) => command.direction)).toEqual(['next', 'prev', 'next']);
+		expect(new Set(commands.map((command) => command.id)).size).toBe(3);
+		expect((await getMonitorSession(second.token, now))?.navigationCommands ?? []).toEqual([]);
+		expect(await requestMonitorNavigation(id, 'next', 'd'.repeat(24))).toBe(false);
+		expect(await requestMonitorNavigation(id, 'invalid', playlistId)).toBe(false);
+		expect(await requestMonitorNavigation({ $ne: null }, 'next', playlistId)).toBe(false);
+		expect(
+			await acknowledgeMonitorNavigation(second.session._id.toString(), [commands[0].id])
+		).toBe(true);
+		expect((await getMonitorSession(first.token, now))!.navigationCommands).toHaveLength(3);
+		expect(await acknowledgeMonitorNavigation(id, [commands[0].id, commands[1].id])).toBe(true);
+		expect(await acknowledgeMonitorNavigation(id, [commands[0].id])).toBe(true);
+		expect((await getMonitorSession(first.token, now))!.navigationCommands).toEqual([commands[2]]);
+		expect(await acknowledgeMonitorNavigation(id, [{ $ne: null }])).toBe(false);
+		await revokeMonitor(id, now);
+		expect(await requestMonitorNavigation(id, 'next', playlistId)).toBe(false);
+		expect(await acknowledgeMonitorNavigation(id, [commands[2].id])).toBe(false);
+	});
+	it('bounds the offline navigation queue and clears earlier commands for a hard refresh', async () => {
+		const pairing = await requestPairing(undefined, '192.0.2.1', now);
+		const id = pairing.session._id.toString(),
+			playlistId = 'c'.repeat(24);
+		expect(await requestMonitorNavigation(id, 'next', playlistId)).toBe(false);
+		await approveMonitor(pairing.session.pairingCode, 'Office', userId, now);
+		records[0].playlistId = new Types.ObjectId(playlistId);
+		for (let i = 0; i < 100; i++)
+			expect(await requestMonitorNavigation(id, 'next', playlistId)).toBe(true);
+		expect(await requestMonitorNavigation(id, 'prev', playlistId)).toBe(false);
+		expect(await requestMonitorRefresh(id)).toBe(true);
+		expect(records[0].navigationCommands).toEqual([]);
+		expect(await requestMonitorNavigation(id, 'prev', playlistId)).toBe(true);
+	});
 	it('queues refreshes only for the selected approved monitor and keeps the request across status reads', async () => {
 		const first = await requestPairing(undefined, '192.0.2.1', now);
 		const second = await requestPairing(undefined, '192.0.2.2', now);

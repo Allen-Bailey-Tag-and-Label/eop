@@ -7,6 +7,97 @@ afterEach(() => {
 });
 
 describe('monitor status polling', () => {
+	it('applies commands in order and retries acknowledgments across reloads without repeating steps', async () => {
+		vi.useFakeTimers();
+		const storage = new Map<string, string>();
+		vi.stubGlobal('sessionStorage', {
+			getItem: (key: string) => storage.get(key),
+			setItem: (key: string, value: string) => storage.set(key, value)
+		});
+		const playlistId = 'a'.repeat(24);
+		const commands = ['prev', 'next', 'next'].map((direction, index) => ({
+			id: String(index + 1).repeat(32),
+			direction,
+			playlistId
+		}));
+		let acknowledge = false;
+		const fetch = vi.fn(async (url: string) =>
+			url === '/monitors/status'
+				? {
+						ok: true,
+						json: async () => ({
+							state: 'approved',
+							refreshVersion: 0,
+							playlistId,
+							navigationCommands: commands
+						})
+					}
+				: { ok: acknowledge }
+		);
+		vi.stubGlobal('fetch', fetch);
+		const onNavigate = vi.fn(async () => true);
+		const options = {
+			version: 0,
+			onRefresh: vi.fn(),
+			navigation: { monitorId: 'device', onNavigate }
+		};
+		let stop = watchMonitorStatus(vi.fn(), vi.fn(), 2000, options);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onNavigate.mock.calls).toHaveLength(3);
+		expect(onNavigate).toHaveBeenNthCalledWith(1, commands[0]);
+		expect(onNavigate).toHaveBeenNthCalledWith(2, commands[1]);
+		expect(onNavigate).toHaveBeenNthCalledWith(3, commands[2]);
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(onNavigate).toHaveBeenCalledTimes(3);
+		stop();
+		acknowledge = true;
+		stop = watchMonitorStatus(vi.fn(), vi.fn(), 2000, options);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onNavigate).toHaveBeenCalledTimes(3);
+		expect(fetch).toHaveBeenLastCalledWith(
+			'/monitors/commands',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({ ids: commands.map((command) => command.id) })
+			})
+		);
+		stop();
+	});
+	it('discards obsolete assignments and waits for a ready player before consuming later commands', async () => {
+		vi.useFakeTimers();
+		const playlistId = 'a'.repeat(24);
+		const commands = [
+			{ id: '1'.repeat(32), direction: 'next', playlistId: 'b'.repeat(24) },
+			{ id: '2'.repeat(32), direction: 'prev', playlistId },
+			{ id: '3'.repeat(32), direction: 'next', playlistId }
+		];
+		const fetch = vi.fn(async (url: string) =>
+			url === '/monitors/status'
+				? {
+						ok: true,
+						json: async () => ({ state: 'approved', playlistId, navigationCommands: commands })
+					}
+				: { ok: true }
+		);
+		vi.stubGlobal('fetch', fetch);
+		const onNavigate = vi.fn(async () => false);
+		const stop = watchMonitorStatus(vi.fn(), vi.fn(), 2000, {
+			version: 0,
+			onRefresh: vi.fn(),
+			navigation: { monitorId: 'another-device', onNavigate }
+		});
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onNavigate).toHaveBeenCalledExactlyOnceWith(commands[1]);
+		expect(fetch).toHaveBeenLastCalledWith(
+			'/monitors/commands',
+			expect.objectContaining({ body: JSON.stringify({ ids: [commands[0].id] }) })
+		);
+		onNavigate.mockResolvedValue(true);
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(onNavigate).toHaveBeenCalledTimes(3);
+		expect(onNavigate).toHaveBeenLastCalledWith(commands[2]);
+		stop();
+	});
 	it('refreshes once after reconnection and does not replay the command after a fresh page load', async () => {
 		vi.useFakeTimers();
 		let version = 0;

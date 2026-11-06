@@ -3,7 +3,8 @@ import {
 	listMonitors,
 	revokeMonitor,
 	setMonitorColorMode,
-	requestMonitorRefresh
+	requestMonitorRefresh,
+	requestMonitorNavigation
 } from '$lib/server/monitors/sessions';
 import { assignPlaylist, listPlaylists } from '$lib/server/slides/content';
 import type { Actions, PageServerLoad } from './$types';
@@ -15,13 +16,31 @@ export const load: PageServerLoad = async () => {
 
 // Employee authentication and role-based route access are enforced by the hook.
 export const actions: Actions = {
+	navigate: async ({ request }) => {
+		const fields = await request.formData();
+		if (
+			!(await requestMonitorNavigation(
+				fields.get('sessionId'),
+				fields.get('direction'),
+				fields.get('playlistId')
+			))
+		)
+			return fail(400, {
+				error:
+					'Could not queue navigation. Choose an approved monitor with an assigned playlist, or refresh the management page and try again.'
+			});
+		return {
+			success:
+				'Slide change queued. Online displays normally receive it within two seconds; offline displays receive it when they reconnect.'
+		};
+	},
 	refresh: async ({ request }) => {
 		const fields = await request.formData();
 		if (!(await requestMonitorRefresh(fields.get('sessionId'))))
 			return fail(400, { error: 'Choose an approved monitor to refresh.' });
 		return {
 			success:
-				'Refresh requested. This monitor will reload on its next status check, normally within 30 seconds. Offline monitors receive it when they reconnect.'
+				'Refresh requested. This monitor will reload on its next status check, normally within two seconds. Offline monitors receive it when they reconnect.'
 		};
 	},
 	colorMode: async ({ request }) => {

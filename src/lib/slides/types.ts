@@ -212,6 +212,7 @@ export type PlaybackSlide = {
 	data?: SlideData;
 };
 export type Playback = {
+	playlistId?: string;
 	transition?: PlaylistTransition;
 	version: string;
 	title: string;
