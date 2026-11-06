@@ -1,9 +1,23 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, tick } from 'svelte';
+	import { GripVertical, Trash2 } from '@lucide/svelte';
 	import { theme } from '$lib/theme';
 	import { twMerge } from 'tailwind-merge';
-	import { A, Button, Card, Checkbox, Div, Form, H1, Input, P, Select } from '$lib/components';
-	import type { ContentEditor, PlaylistDefinition } from './types';
+	import {
+		A,
+		Button,
+		Card,
+		Checkbox,
+		DialogActions,
+		Div,
+		Form,
+		H1,
+		Input,
+		Modal,
+		P,
+		Select
+	} from '$lib/components';
+	import type { ContentEditor, PlaylistDefinition, PlaylistItem } from './types';
 	import PlaylistTransitionFields from './PlaylistTransitionFields.svelte';
 	import PlaylistTransitionPreview from './PlaylistTransitionPreview.svelte';
 	import { defaultPlaylistTransition } from './types';
@@ -28,6 +42,82 @@
 		const next = index + offset;
 		if (next < 0 || next >= draft.items.length) return;
 		[draft.items[index], draft.items[next]] = [draft.items[next], draft.items[index]];
+	}
+	let draggedItem = $state<PlaylistItem | null>(null);
+	let dropTarget = $state<{ item: PlaylistItem; after: boolean } | null>(null);
+	let announcement = $state('');
+	function clearDrag() {
+		draggedItem = null;
+		dropTarget = null;
+	}
+	function dragStart(event: DragEvent, item: PlaylistItem) {
+		if (
+			event.target instanceof Element &&
+			event.target.closest('input, select, button') &&
+			!event.target.closest('[data-playlist-drag-handle]')
+		) {
+			event.preventDefault();
+			return;
+		}
+		draggedItem = item;
+		dropTarget = null;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', String(draft.items.indexOf(item)));
+		}
+	}
+	function dragOver(event: DragEvent, item: PlaylistItem) {
+		if (!draggedItem || draggedItem === item || !draft.items.includes(draggedItem)) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		dropTarget = { item, after: event.clientY >= bounds.top + bounds.height / 2 };
+	}
+	function drop(event: DragEvent, item: PlaylistItem) {
+		if (!draggedItem || draggedItem === item) {
+			clearDrag();
+			return;
+		}
+		event.preventDefault();
+		const from = draft.items.indexOf(draggedItem);
+		const to = draft.items.indexOf(item);
+		if (from < 0 || to < 0) {
+			clearDrag();
+			return;
+		}
+		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		let next = to + (event.clientY >= bounds.top + bounds.height / 2 ? 1 : 0);
+		if (from < next) next--;
+		const [entry] = draft.items.splice(from, 1);
+		draft.items.splice(next, 0, entry);
+		announcement = 'Moved slide ' + (from + 1) + ' to position ' + (next + 1) + '.';
+		clearDrag();
+	}
+	const uid = $props.id();
+	let pendingRemoval = $state<PlaylistItem | null>(null);
+	let removalCancel = $state<HTMLButtonElement | null>(null);
+	let addSlideButton = $state<HTMLButtonElement | null>(null);
+	let removalReturnFocus: HTMLButtonElement | null = null;
+	async function requestRemoval(item: PlaylistItem, button: HTMLButtonElement) {
+		clearDrag();
+		removalReturnFocus = button;
+		pendingRemoval = item;
+		await tick();
+		removalCancel?.focus();
+	}
+	async function dismissRemoval() {
+		pendingRemoval = null;
+		await tick();
+		if (removalReturnFocus?.isConnected) removalReturnFocus.focus();
+		else addSlideButton?.focus();
+	}
+	function confirmRemoval() {
+		const index = pendingRemoval ? draft.items.indexOf(pendingRemoval) : -1;
+		if (index >= 0) {
+			draft.items.splice(index, 1);
+			announcement = 'Removed slide ' + (index + 1) + ' from the playlist.';
+		}
+		void dismissRemoval();
 	}
 </script>
 
@@ -93,63 +183,105 @@
 					starts every 12 seconds. The countdown shows time until the next slide starts. Missing
 					transition settings use a 2000ms crossfade. The final non-looping slide remains visible.</P
 				>
-				{#each draft.items as item, index (item)}
-					<Div class="flex flex-wrap items-end gap-4 rounded border border-gray-500 p-4">
-						<Div class="min-w-0 grow basis-64">
-							<Select
-								label={`Slide ${index + 1}`}
-								class="w-full min-w-0"
-								bind:value={item.slideId}
-								options={[
-									{ value: '', label: 'Choose a slide' },
-									...data.slides.map((slide) => ({
-										value: slide.id,
-										label: `${slide.title}${slide.publishedAt ? '' : ' (unpublished)'}`
-									}))
-								]}
-							/>
-						</Div>
-						<Div class="min-w-0 grow basis-48">
-							<Input
-								label="Override (seconds)"
-								class="w-full min-w-0"
-								type="number"
-								min={1}
-								max={600}
-								step={0.1}
-								value={item.durationMs === null ? '' : String(item.durationMs / 1000)}
-								oninput={(e) =>
-									(item.durationMs =
-										e.currentTarget.value === '' ? null : Number(e.currentTarget.value) * 1000)}
-							/>
-						</Div>
-						<Div class="flex flex-wrap gap-2"
-							><Button
-								aria-label={`Move slide ${index + 1} up`}
-								disabled={index === 0}
-								onclick={() => move(index, -1)}>Up</Button
-							><Button
-								aria-label={`Move slide ${index + 1} down`}
-								disabled={index === draft.items.length - 1}
-								onclick={() => move(index, 1)}>Down</Button
-							><Button variants={['error']} onclick={() => draft.items.splice(index, 1)}
-								>Remove</Button
-							></Div
+
+				<P role="status" aria-live="polite" class="sr-only">{announcement}</P>
+				<Div class="space-y-3 overflow-x-auto p-2" role="region" aria-label="Playlist slides">
+					{#each draft.items as item, index (item)}
+						<Card
+							role="group"
+							aria-label={`Playlist slide ${index + 1}`}
+							draggable="true"
+							class={`relative grid min-w-[52rem] grid-cols-[2.5rem_minmax(10rem,1fr)_8.5rem_12rem_10rem_2.5rem] items-end gap-3 p-4 ${draggedItem === item ? 'opacity-50' : ''}`}
+							ondragstart={(event) => dragStart(event, item)}
+							ondragover={(event) => dragOver(event, item)}
+							ondragleave={(event) => {
+								if (
+									!event.currentTarget.contains(event.relatedTarget as Node | null) &&
+									dropTarget?.item === item
+								)
+									dropTarget = null;
+							}}
+							ondrop={(event) => drop(event, item)}
+							ondragend={clearDrag}
 						>
-						<Div class="w-full min-w-0">
+							{#if dropTarget?.item === item}<Div
+									aria-hidden="true"
+									class={`bg-primary-500 pointer-events-none absolute inset-x-0 h-0.5 ${dropTarget.after ? 'bottom-0' : 'top-0'}`}
+								></Div>{/if}
+							<Button
+								variants={['ghost', 'icon']}
+								draggable="true"
+								data-playlist-drag-handle
+								class="cursor-grab active:cursor-grabbing"
+								aria-label={`Reorder slide ${index + 1}`}
+								title="Drag to reorder; Alt+Up/Down moves one position"
+								onkeydown={(event) => {
+									if (event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+										event.preventDefault();
+										const offset = event.key === 'ArrowUp' ? -1 : 1;
+										move(index, offset);
+										announcement =
+											'Slide moved to position ' + (draft.items.indexOf(item) + 1) + '.';
+									}
+								}}><GripVertical size={18} aria-hidden="true" /></Button
+							>
+							<Div class="min-w-0">
+								<Select
+									label={`Slide ${index + 1}`}
+									class="w-full min-w-0"
+									bind:value={item.slideId}
+									options={[
+										{ value: '', label: 'Choose a slide' },
+										...data.slides.map((slide) => ({
+											value: slide.id,
+											label: slide.title + (slide.publishedAt ? '' : ' (unpublished)')
+										}))
+									]}
+								/>
+							</Div>
+							<Div class="min-w-0">
+								<Input
+									label="Override (s)"
+									aria-label={`Slide ${index + 1} override (seconds)`}
+									class="w-full min-w-0"
+									type="number"
+									min={1}
+									max={600}
+									step={0.1}
+									value={item.durationMs === null ? '' : String(item.durationMs / 1000)}
+									oninput={(event) =>
+										(item.durationMs =
+											event.currentTarget.value === ''
+												? null
+												: Number(event.currentTarget.value) * 1000)}
+								/>
+							</Div>
 							<PlaylistTransitionFields
 								bind:value={item.transition}
 								inherit
+								compact
 								label={`Transition into slide ${index + 1}`}
 							/>
-						</Div>
-					</Div>
-				{/each}
-				<Button
-					disabled={draft.items.length >= 100}
-					onclick={() => draft.items.push({ slideId: data.slides[0]?.id ?? '', durationMs: null })}
-					>Add slide</Button
-				>
+							<Button
+								variants={['error', 'icon']}
+								aria-label={`Remove slide ${index + 1}`}
+								title="Remove slide"
+								onclick={(event) => void requestRemoval(item, event.currentTarget)}
+								><Trash2 size={18} aria-hidden="true" /></Button
+							>
+						</Card>
+					{/each}
+				</Div>
+
+				<Div class="flex justify-end">
+					<Button
+						bind:element={addSlideButton}
+						disabled={draft.items.length >= 100}
+						onclick={() =>
+							draft.items.push({ slideId: data.slides[0]?.id ?? '', durationMs: null })}
+						>Add slide</Button
+					>
+				</Div>
 			{/snippet}
 			{#snippet buttons()}<Button type="submit" name="intent" value="draft" disabled={saving}
 					>Save draft</Button
@@ -164,3 +296,31 @@
 		>
 	</Card>
 </Div>
+
+{#if pendingRemoval}
+	<Modal
+		isOpen={true}
+		onDismiss={dismissRemoval}
+		role="alertdialog"
+		title="Remove slide from playlist?"
+		titleId={uid + '-remove-title'}
+		aria-labelledby={uid + '-remove-title'}
+		aria-describedby={uid + '-remove-description'}
+		class="w-full max-w-lg space-y-4"
+	>
+		<P class="font-semibold break-words"
+			>{data.slides.find((slide) => slide.id === pendingRemoval?.slideId)?.title ??
+				'Selected slide'}</P
+		>
+		<P id={uid + '-remove-description'}
+			>Remove this entry from the playlist? The slide itself will remain available in Slides. Save
+			or publish the playlist to apply this change.</P
+		>
+		<DialogActions>
+			<Button variants={['ghost']} bind:element={removalCancel} onclick={dismissRemoval}
+				>Cancel</Button
+			>
+			<Button variants={['error']} onclick={confirmRemoval}>Remove slide</Button>
+		</DialogActions>
+	</Modal>
+{/if}

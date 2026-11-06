@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-01T15:02:49.187Z
+## 2026-11-04T21:11:28.471Z
+
+feat: Improve playlist layout, reordering, and removal confirmation
+
+## 2026-11-01T10:07:58-05:00
 
 feat: Add Figma-style slide shortcuts and shape primitives
 

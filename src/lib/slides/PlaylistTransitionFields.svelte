@@ -4,19 +4,22 @@
 	let {
 		value = $bindable(),
 		label = 'Playlist transition',
-		inherit = false
+		inherit = false,
+		compact = false
 	}: {
 		value?: PlaylistTransition;
 		label?: string;
 		inherit?: boolean;
+		compact?: boolean;
 	} = $props();
 </script>
 
-<Div class="flex flex-wrap items-end gap-4">
-	<Div class="min-w-0 grow basis-48">
+<Div class={compact ? 'contents' : 'flex flex-wrap items-end gap-4'}>
+	<Div class={compact ? 'min-w-0' : 'min-w-0 grow basis-48'}>
 		<Select
-			{label}
+			label={compact ? 'Transition' : label}
 			aria-label={label}
+			class="w-full min-w-0"
 			value={value?.type ?? (inherit ? 'inherit' : 'crossfade')}
 			options={[
 				...(inherit ? [{ value: 'inherit', label: 'Use playlist default' }] : []),
@@ -34,10 +37,11 @@
 			}}
 		/>
 	</Div>
-	<Div class="min-w-0 grow basis-48">
+	<Div class={compact ? 'min-w-0' : 'min-w-0 grow basis-48'}>
 		<Input
-			label="Transition duration (ms)"
+			label={compact ? 'Duration (ms)' : 'Transition duration (ms)'}
 			aria-label={`${label} duration (ms)`}
+			class="w-full min-w-0"
 			type="number"
 			min={0}
 			max={60000}
