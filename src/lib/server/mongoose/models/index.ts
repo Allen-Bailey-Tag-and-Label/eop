@@ -33,6 +33,8 @@ export { SchedulingModifier } from './SchedulingModifier';
 export { SchedulingProductType } from './SchedulingProductType';
 export { SignUp } from './SignUp';
 export { UpsQuote } from './UpsQuote';
+export { ShippingQuote } from './ShippingQuote';
+export { ShippingMarkup } from './ShippingMarkup';
 export { User } from './User';
 export { UserPasswordReset } from './UserPasswordReset';
 export { UserProfile } from './UserProfile';

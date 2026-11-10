@@ -1,6 +1,6 @@
 import { UPS_CLIENT_ID, UPS_CLIENT_SECRET } from '$env/static/private';
 
-export const getAccessToken = async () => {
+export const getAccessToken = async (signal?: AbortSignal) => {
 	const creds = Buffer.from(`${UPS_CLIENT_ID}:${UPS_CLIENT_SECRET}`).toString('base64');
 
 	const body = new URLSearchParams({
@@ -8,6 +8,7 @@ export const getAccessToken = async () => {
 	});
 
 	const res = await fetch('https://onlinetools.ups.com/security/v1/oauth/token', {
+		signal,
 		method: 'POST',
 		headers: {
 			Authorization: `Basic ${creds}`,

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-06T13:23:06.549Z
+## 2026-11-10T20:34:56.388Z
+
+feat: Add shipping quotes with legacy UPS support and configurable markups
+
+## 2026-11-06T09:04:32-05:00
 
 feat: Add remote playlist navigation controls
 
