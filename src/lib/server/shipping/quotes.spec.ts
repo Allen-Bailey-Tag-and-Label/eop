@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blankRequest, type CarrierRate } from '$lib/shipping/types';
-import { collectRates, createShippingQuote, findShippingQuote, listShippingQuotes } from './quotes';
+import { collectRates, createShippingQuote, findShippingQuote } from './quotes';
 import { getMarkupConfigs } from './markups';
 import { getUpsShippingRates } from './ups';
 import { ShippingQuote, ShippingQuoteSequence } from '../mongoose/models/ShippingQuote';
@@ -111,44 +111,5 @@ describe('shipping quote persistence', () => {
 		await findShippingQuote('S-000001');
 		expect(ShippingQuote.findOne).toHaveBeenCalledWith({ number: 'S-000001' });
 		expect(await findShippingQuote('{"$ne":null}')).toBeNull();
-	});
-	it('unions both collections before filtering, sorting and paginating quote history', async () => {
-		vi.mocked(ShippingQuote.aggregate).mockResolvedValue([
-			{
-				rows: [
-					{
-						number: '123',
-						origin: 'legacy-ups',
-						createdAt: new Date('2025-01-01'),
-						services: 'UPS',
-						customer: '',
-						reference: '',
-						destination: 'Caledonia',
-						status: 'Legacy'
-					}
-				],
-				count: [{ total: 40 }]
-			}
-		]);
-		const result = await listShippingQuotes(
-			new URL('https://eop.example/shipping/quotes?q=Main.*&page=2')
-		);
-		expect(result).toMatchObject({
-			page: 2,
-			total: 40,
-			quotes: [{ number: '123', createdAt: '2025-01-01T00:00:00.000Z' }]
-		});
-		const pipeline = vi.mocked(ShippingQuote.aggregate).mock.calls[0][0]!;
-		expect(pipeline).toContainEqual(
-			expect.objectContaining({ $unionWith: expect.objectContaining({ coll: 'upsquotes' }) })
-		);
-		expect(JSON.stringify(pipeline)).toContain('"to":"date"');
-		expect(JSON.stringify(pipeline)).toContain('"to":"string","onError":"","onNull":""');
-		expect(JSON.stringify(pipeline)).toContain('Main\\\\.\\\\*');
-		expect(pipeline.at(-1)).toHaveProperty('$facet.rows', [
-			{ $skip: 25 },
-			{ $limit: 25 },
-			{ $unset: '_id' }
-		]);
 	});
 });

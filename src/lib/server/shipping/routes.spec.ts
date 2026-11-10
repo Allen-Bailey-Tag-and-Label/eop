@@ -1,18 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { actions as quoteActions } from '../../../routes/(private)/(padded)/shipping/quote/+page.server';
 import { load as detail } from '../../../routes/(private)/(padded)/shipping/quotes/[number]/+page.server';
-import { load as history } from '../../../routes/(private)/(padded)/shipping/quotes/+page.server';
+import { load as oldHistory } from '../../../routes/(private)/(padded)/shipping/quotes/+page.server';
+import { load as history } from '../../../routes/(private)/(padded)/shipping/quote-finder/+page.server';
 import { actions as markupActions } from '../../../routes/(private)/(padded)/admin/shipping/markups/+page.server';
-import { createShippingQuote, findShippingQuote, listShippingQuotes } from './quotes';
+import { createShippingQuote, findShippingQuote } from './quotes';
+import { loadShippingQuoteFinder } from './finder';
 import { manageMarkup } from './markups';
 import { ShippingError } from '$lib/shipping/validation';
 import { blankRequest } from '$lib/shipping/types';
 vi.mock('$lib/server/mongoose/connect', () => ({ connect: vi.fn(async () => {}) }));
 vi.mock('./quotes', () => ({
 	createShippingQuote: vi.fn(),
-	findShippingQuote: vi.fn(),
-	listShippingQuotes: vi.fn()
+	findShippingQuote: vi.fn()
 }));
+vi.mock('./finder', () => ({ loadShippingQuoteFinder: vi.fn() }));
 vi.mock('./markups', () => ({ manageMarkup: vi.fn(), getMarkupConfigs: vi.fn() }));
 beforeEach(() => vi.clearAllMocks());
 function event(service = 'UPS') {
@@ -66,21 +68,20 @@ describe('shipping route wiring', () => {
 		});
 		expect(createShippingQuote).not.toHaveBeenCalled();
 	});
-	it('returns 404 for missing quotes and delegates pagination to the shared history repository', async () => {
+	it('keeps detail URLs and uses the standard table loader at the renamed finder route', async () => {
 		vi.mocked(findShippingQuote).mockResolvedValue(null);
 		await expect(detail({ params: { number: '123' } } as never)).rejects.toMatchObject({
 			status: 404
 		});
-		vi.mocked(listShippingQuotes).mockResolvedValue({
-			quotes: [],
-			total: 0,
-			page: 1,
-			pageSize: 25,
-			search: ''
-		});
-		const url = new URL('https://eop.example/shipping/quotes');
-		expect(await history({ url } as never)).toMatchObject({ quotes: [], total: 0 });
-		expect(listShippingQuotes).toHaveBeenCalledWith(url);
+		const input = {
+			url: new URL('https://eop.example/shipping/quote-finder'),
+			locals: event().locals
+		};
+		await history(input as never);
+		expect(loadShippingQuoteFinder).toHaveBeenCalledWith(input);
+		expect(() => oldHistory()).toThrow(
+			expect.objectContaining({ status: 303, location: '/shipping/quote-finder' })
+		);
 	});
 	it('reports rule validation and concurrent edit failures without claiming a successful save', async () => {
 		vi.mocked(manageMarkup).mockRejectedValueOnce(new ShippingError('Cost ranges overlap.'));

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-10T20:34:56.388Z
+## 2026-11-10T21:02:56.913Z
+
+refactor: Align shipping quote finder with UPS table conventions
+
+## 2026-11-10T15:43:03-05:00
 
 feat: Add shipping quotes with legacy UPS support and configurable markups
 

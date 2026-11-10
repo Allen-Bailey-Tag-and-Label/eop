@@ -4,6 +4,7 @@ import { tick } from 'svelte';
 import Quote from '../../routes/(private)/(padded)/shipping/quote/+page.svelte';
 import Markups from '../../routes/(private)/(padded)/admin/shipping/markups/+page.svelte';
 import Detail from '../../routes/(private)/(padded)/shipping/quotes/[number]/+page.svelte';
+import Finder from '../../routes/(private)/(padded)/shipping/quote-finder/+page.svelte';
 import { legacyQuoteView } from './legacy';
 vi.mock('$app/forms', () => ({ enhance: () => ({ destroy() {} }) }));
 vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn() }));
@@ -15,8 +16,84 @@ vi.mock('svelte/transition', async (original) => ({
 	...(await original<typeof import('svelte/transition')>()),
 	scale: () => ({ duration: 0 })
 }));
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	vi.unstubAllGlobals();
+});
 describe('shipping forms', () => {
+	it('uses the native finder table without an extra heading, search form, or custom pagination', async () => {
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				observe() {}
+				disconnect() {}
+				unobserve() {}
+			}
+		);
+		const request = {
+			services: 'UPS',
+			shipTo: { address: '123 Main', city: 'Caledonia', state: 'NY', zip: '14423' }
+		};
+		const view = render(Finder, {
+			data: {
+				columns: [
+					{ key: 'number', label: 'Quote', type: 'string' },
+					{ key: 'request.shipTo.city', label: 'City', type: 'string' },
+					{ key: 'createdAt', type: 'timestamp' },
+					{ key: 'updatedAt', type: 'timestamp' },
+					{ key: '_createdById', type: 'select', options: [] }
+				],
+				settings: {
+					_routeId: 'a'.repeat(24),
+					columnsOrder: [],
+					currentPage: 0,
+					filter: [],
+					rowsPerPage: 10,
+					sortDirection: 'asc',
+					sortKey: 'number',
+					isPaginateable: true
+				},
+				rows: Promise.resolve([
+					{ _id: '1', number: 'S-000001', origin: 'shipping', request },
+					{
+						_id: '2',
+						number: '123',
+						origin: 'legacy-ups',
+						request,
+						packageTotalCount: 2,
+						packageTotalWeight: 20
+					}
+				]),
+				totalRows: Promise.resolve(12)
+			}
+		} as never);
+		await tick();
+		await Promise.resolve();
+		await tick();
+		expect(view.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+		expect(
+			view.queryByText('Search quote, customer, reference, or destination')
+		).not.toBeInTheDocument();
+		expect(
+			view.getAllByRole('link', { name: 'View' }).map((link) => link.getAttribute('href'))
+		).toEqual(['/shipping/quotes/S-000001', '/shipping/quotes/123']);
+		expect(view.getAllByRole('link', { name: 'Duplicate' })[0]).toHaveAttribute(
+			'href',
+			'/shipping/quote?from=S-000001'
+		);
+		const forms = Array.from(
+			view.container.querySelectorAll<HTMLFormElement>('form[action="/api/mongooseTable?/find"]')
+		);
+		expect(forms.length).toBeGreaterThan(4);
+		expect(forms.some((form) => new FormData(form).get('currentPage') === '1')).toBe(true);
+		const filter = view.container.querySelector('svg.lucide-funnel')!.closest('button')!;
+		await fireEvent.click(filter);
+		expect(view.getByRole('dialog')).toBeInTheDocument();
+		expect(view.getByRole('dialog').querySelector('form')).toHaveAttribute(
+			'action',
+			'/api/mongooseTable?/find'
+		);
+	});
 	it('requires selected service details, retains values when switching, and posts native form values', async () => {
 		const branch = { _id: 'a'.repeat(24), number: 2046, label: 'ABTL' };
 		const view = render(Quote, {

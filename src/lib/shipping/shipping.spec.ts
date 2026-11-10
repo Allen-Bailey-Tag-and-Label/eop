@@ -3,6 +3,7 @@ import { blankRequest, type CarrierRate, type MarkupConfig } from './types';
 import { parseShipment, shipmentFromForm } from './validation';
 import { decimalHundredths, parseMarkupRange, priceRate, validateRanges } from './markups';
 import { legacyQuoteView } from './legacy';
+import { duplicateShippingQuoteUrl } from './finder';
 
 function shipment() {
 	const request = blankRequest('2026-11-10');
@@ -108,6 +109,29 @@ describe('shipping validation and pricing', () => {
 });
 
 describe('legacy UPS compatibility', () => {
+	it('duplicates new shipping quotes in shipping and preserves legacy UPS package/address details', () => {
+		const row = {
+			number: 'S-000001',
+			origin: 'shipping' as const,
+			request: { shipTo: { address: '123 Main', city: 'Caledonia', state: 'NY', zip: '01234' } }
+		};
+		expect(duplicateShippingQuoteUrl(row)).toBe('/shipping/quote?from=S-000001');
+		const url = new URL(
+			duplicateShippingQuoteUrl({
+				...row,
+				number: '123',
+				origin: 'legacy-ups',
+				packageTotalCount: 3,
+				packageTotalWeight: 45,
+				isValidated: true
+			}),
+			'https://eop.example'
+		);
+		expect(url.pathname).toBe('/ups/quote');
+		expect(url.searchParams.get('zip')).toBe('01234');
+		expect(url.searchParams.get('totalPackages')).toBe('3');
+		expect(url.searchParams.get('totalWeight')).toBe('45');
+	});
 	it('handles missing addresses and numeric ZIPs in older mixed-schema records', () => {
 		expect(
 			legacyQuoteView({

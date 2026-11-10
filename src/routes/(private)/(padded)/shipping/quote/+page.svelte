@@ -7,6 +7,7 @@
 	import AddressFields from '$lib/shipping/editor/AddressFields.svelte';
 	import ShipmentItems from '$lib/shipping/editor/ShipmentItems.svelte';
 	import type { PageProps } from './$types';
+	import type { Branch } from '$lib/types';
 	let { data, form }: PageProps = $props();
 	let draft = $state(
 		untrack(() => {
@@ -29,7 +30,7 @@
 <Div class="space-y-6">
 	<Div class="flex flex-wrap items-center justify-between gap-4"
 		><H1>Shipping quote</H1><A
-			href="/shipping/quotes"
+			href="/shipping/quote-finder"
 			class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
 			>Quote history</A
 		></Div
@@ -73,7 +74,7 @@
 					bind:value={draft.branchId}
 					options={[
 						{ value: '', label: 'Select branch' },
-						...data.locals.user.branches.map((branch) => ({
+						...data.locals.user.branches.map((branch: Branch) => ({
 							value: branch._id,
 							label: `${branch.number} — ${branch.label}`
 						}))

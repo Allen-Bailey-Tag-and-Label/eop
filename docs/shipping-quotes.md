@@ -3,11 +3,13 @@
 ## Routes and access
 
 - `/shipping/quote`: choose UPS, LTL, or Both. Required fields follow the selection.
-- `/shipping/quotes`: server-paginated, searchable history across new and legacy UPS quotes.
+- `/shipping/quote-finder`: the same MongooseTable layout, saved filters, sorting,
+  column settings, and footer pagination as `/ups/quote-finder`. Includes new and
+  legacy UPS quotes. `/shipping/quotes` redirects here for existing bookmarks.
 - `/shipping/quotes/[number]`: original shipment, provider status, and saved pricing.
 - `/admin/shipping/markups`: separate UPS and LTL cost-range rules with create/edit/delete dialogs.
 
-Register `/shipping/quote`, `/shipping/quotes`, and `/admin/shipping/markups` in
+Register `/shipping/quote`, `/shipping/quote-finder`, `/shipping/quotes`, and `/admin/shipping/markups` in
 Admin → Routes and assign them to the appropriate roles in Admin → Roles. Existing
 `/shipping` or `/admin` grants already cover their respective descendants. Access
 continues to be enforced centrally by `src/hooks.server.ts`; no route bypasses or
@@ -62,6 +64,15 @@ collisions with numeric legacy UPS quotes. Submissions have per-user idempotency
 keys to avoid duplicate saved records when retried. Number gaps can occur on
 failed writes. The new collections and indexes are created through the existing
 Mongoose model lifecycle; no destructive migration is required.
+
+The finder normalizes both collections before applying the shared table's saved
+filters and sorting; counts and pagination cover the combined filtered results.
+Branch and creator sorting use their display labels. New quote duplication uses
+the shipping form; legacy duplication retains the original UPS form and data.
+The visible page is just MongooseTable, matching the UPS finder, with no separate
+heading, search form, or custom pager. Keep an explicit Route entry for
+`/shipping/quote-finder` so its table settings can be saved. Retain `/shipping/quotes`
+access for individual quote detail URLs when updating role assignments.
 
 Quote again copies a new quote's shipment into a fresh request with today's ship
 date and new request ID; it fetches current rates and current markup rules. Provider

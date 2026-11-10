@@ -15,7 +15,7 @@
 	<Div class="flex flex-wrap items-center justify-between gap-4"
 		><H1>Quote {quote.number}</H1><Div class="flex flex-wrap gap-2"
 			><A
-				href="/shipping/quotes"
+				href="/shipping/quote-finder"
 				class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
 				>Quote history</A
 			>{#if quote.request}<A
