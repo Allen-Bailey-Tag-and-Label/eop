@@ -25,11 +25,41 @@ describe('UPS quote duplication', () => {
 				{ quantity: 1, weight: 20 }
 			],
 			generation: { validation: 'pending', rates: 'pending' },
-			isValidated: false
+			isValidated: false,
+			scenarios: [
+				{
+					id: 'original',
+					label: 'Large order',
+					unitQuantity: 30000,
+					services: ['03'],
+					weightMode: 'cartons',
+					packageTotalCount: 12,
+					packageTotalWeight: 240,
+					packageGroups: [{ quantity: 12, weight: 20 }],
+					casePacking: {
+						unitsPerCarton: 2500,
+						cartonWeight: 20,
+						tareWeight: 2,
+						partialCase: 'full'
+					}
+				}
+			]
 		} as never);
 		const result = await load({ url: new URL('https://eop.example/ups/quote?from=1234') } as never);
 		expect(result).toMatchObject({
 			isValidated: 'true',
+			scenarios: [
+				{
+					label: 'Large order',
+					unitQuantity: '30000',
+					services: ['03'],
+					weightMode: 'cartons',
+					unitsPerCarton: '2500',
+					cartonWeight: '20',
+					tareWeight: '2',
+					partialCase: 'full'
+				}
+			],
 			formData: { shipFrom: { address: '1 Main' }, shipTo: { address: '3177 Lehigh' } },
 			weights: {
 				mode: 'groups',

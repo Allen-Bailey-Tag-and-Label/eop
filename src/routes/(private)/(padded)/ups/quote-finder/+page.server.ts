@@ -12,6 +12,7 @@ export const load = serverLoad({
 		'requestKey',
 		'generation',
 		'packageGroups',
-		'weightMode'
+		'weightMode',
+		'scenarios'
 	]
 });

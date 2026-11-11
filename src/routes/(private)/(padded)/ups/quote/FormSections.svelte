@@ -5,8 +5,8 @@
 	import { Button, Div, H2, H3, Input, Label, Radio, Select } from '$lib/components';
 	import { ArrowLeftRight } from '@lucide/svelte';
 	import QuoteLayout from '$lib/ups/QuoteLayout.svelte';
-	import PackageWeights from '$lib/ups/PackageWeights.svelte';
-	import type { PackageGroupInput, WeightMode } from '$lib/ups/quote';
+	import RateStrategies from '$lib/ups/RateStrategies.svelte';
+	import type { RateScenarioInput } from '$lib/ups/quote';
 
 	let {
 		_branchId = $bindable(''),
@@ -32,9 +32,7 @@
 		isValidationCheckboxRequired = $bindable(true),
 		isValidationRequired = $bindable(true),
 		responsive = false,
-		weightMode = $bindable('total' as WeightMode),
-		eachWeight = $bindable(''),
-		packageGroups = $bindable([] as PackageGroupInput[]),
+		rateRows = $bindable([] as RateScenarioInput[]),
 		actions = undefined as Snippet | undefined
 	} = $props();
 
@@ -139,13 +137,7 @@
 {/snippet}
 {#snippet packageInfo()}
 	{#if responsive}
-		<PackageWeights
-			bind:mode={weightMode}
-			bind:totalPackages={formData.packageInfo.totalPackages}
-			bind:totalWeight={formData.packageInfo.totalWeight}
-			bind:eachWeight
-			bind:groups={packageGroups}
-		/>
+		<RateStrategies bind:rows={rateRows} />
 	{:else}
 		<Input
 			bind:value={formData.packageInfo.totalPackages}

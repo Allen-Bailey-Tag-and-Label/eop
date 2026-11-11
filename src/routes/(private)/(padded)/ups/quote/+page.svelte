@@ -4,8 +4,9 @@
 	import { createUpsQuote } from './quote.remote';
 	import { Button, Div, Form, H1, Input, Spinner } from '$lib/components';
 	import { slide } from 'svelte/transition';
+	import { untrack } from 'svelte';
 	import FormSections from './FormSections.svelte';
-	import type { PackageGroupInput, WeightMode } from '$lib/ups/quote';
+	import { blankRateScenario, type RateScenarioInput } from '$lib/ups/quote';
 
 	let { data } = $props();
 	let _branchId = $state('');
@@ -30,15 +31,11 @@
 	});
 	let isLoading = $state(false);
 	let isValidationRequired = $state(true);
-	let weightMode = $state<WeightMode>('total');
-	let eachWeight = $state('');
-	let packageGroups = $state<PackageGroupInput[]>([]);
+	let rateRows = $state<RateScenarioInput[]>(untrack(() => data.scenarios ?? []));
 	let requestId = crypto.randomUUID();
 	let lastSubmission = '';
 	const reset = () => {
-		weightMode = 'total';
-		eachWeight = '';
-		packageGroups = [];
+		rateRows = [blankRateScenario()];
 		requestId = crypto.randomUUID();
 		formData = {
 			shipFrom: {
@@ -94,11 +91,18 @@
 		if (data._branchId) _branchId = data._branchId;
 		if (data.isValidated) isValidationRequired = data.isValidated === 'true';
 		if (data.formData) formData = data.formData;
-		if (data.weights) {
-			weightMode = data.weights.mode;
-			eachWeight = data.weights.eachWeight;
-			packageGroups = data.weights.groups;
-		}
+		if (data.scenarios?.length) rateRows = data.scenarios;
+		else
+			rateRows = [
+				{
+					...blankRateScenario(),
+					totalPackages: data.formData?.packageInfo.totalPackages ?? '',
+					totalWeight: data.formData?.packageInfo.totalWeight ?? '',
+					weightMode: data.weights?.mode ?? 'total',
+					eachWeight: data.weights?.eachWeight ?? '',
+					groups: data.weights?.groups ?? []
+				}
+			];
 	});
 </script>
 
@@ -118,9 +122,7 @@
 			bind:_branchId
 			bind:formData
 			bind:isValidationRequired
-			bind:weightMode
-			bind:eachWeight
-			bind:packageGroups
+			bind:rateRows
 			responsive
 		>
 			{#snippet actions()}

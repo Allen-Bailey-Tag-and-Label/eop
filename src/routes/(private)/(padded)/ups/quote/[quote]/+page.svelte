@@ -19,7 +19,7 @@
 	} from '$lib/components';
 	import { currency, dateTime } from '$lib/formats';
 	import { advanceUpsQuote } from '../quote.remote';
-	import { quoteIsPending, type UpsQuoteView } from '$lib/ups/quote';
+	import { quoteIsPending, UPS_SERVICES, type UpsQuoteView } from '$lib/ups/quote';
 	import type { PageProps } from './$types';
 	import { theme } from '$lib/theme/index.js';
 	import { twMerge } from 'tailwind-merge';
@@ -110,25 +110,32 @@
 	</Div>
 {/snippet}
 {#snippet packages()}
-	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4">
-		<Div class="min-w-0 space-y-1"
-			><P class="font-semibold">Total Packages</P><P>{quote.packageTotalCount}</P></Div
+	{#if (quote.scenarios?.length ?? 0) > 1}
+		<P class="col-span-full"
+			>{quote.scenarios?.length} rate rows. Carton counts, weights, and services are shown with each
+			result.</P
 		>
-		<Div class="min-w-0 space-y-1"
-			><P class="font-semibold">Total Weight</P><P>{quote.packageTotalWeight}</P></Div
-		>
-		{#if quote.packageGroups?.length}
-			<Div class="col-span-full space-y-2">
-				<P class="font-semibold"
-					>{quote.weightMode === 'total' ? 'Estimated package weights' : 'Package weights'}</P
-				>
-				{#each quote.packageGroups as group, index (index)}<P
-						>{group.quantity}
-						{group.quantity === 1 ? 'package' : 'packages'} @ {group.weight} lbs</P
-					>{/each}
-			</Div>
-		{/if}
-	</Div>
+	{:else}
+		<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4">
+			<Div class="min-w-0 space-y-1"
+				><P class="font-semibold">Total Packages</P><P>{quote.packageTotalCount}</P></Div
+			>
+			<Div class="min-w-0 space-y-1"
+				><P class="font-semibold">Total Weight</P><P>{quote.packageTotalWeight}</P></Div
+			>
+			{#if quote.packageGroups?.length}
+				<Div class="col-span-full space-y-2">
+					<P class="font-semibold"
+						>{quote.weightMode === 'total' ? 'Estimated package weights' : 'Package weights'}</P
+					>
+					{#each quote.packageGroups as group, index (index)}<P
+							>{group.quantity}
+							{group.quantity === 1 ? 'package' : 'packages'} @ {group.weight} lbs</P
+						>{/each}
+				</Div>
+			{/if}
+		</Div>
+	{/if}
 {/snippet}
 {#snippet extras()}
 	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4">
@@ -159,6 +166,10 @@
 	{#if quote.generation}
 		<Card class="w-full space-y-4" role="status" aria-live="polite" aria-busy={busy}>
 			<H2>Quote progress</H2>
+			{#if quote.scenarios?.length}<P
+					>{quote.scenarios.filter((scenario) => scenario.status === 'complete').length} of {quote
+						.scenarios.length} rate rows complete</P
+				>{/if}
 			<Div class="flex items-center gap-3">
 				{#if ['pending', 'running'].includes(quote.generation.validation) && !networkError}<Spinner
 						class="h-5 w-5 shrink-0"
@@ -198,7 +209,50 @@
 		</Card>
 	{/if}
 
-	{#if !quote.generation || quote.generation.rates === 'complete'}
+	{#if quote.scenarios?.length}
+		{#each quote.scenarios as scenario, index (scenario.id)}
+			<Card class="min-w-0 space-y-4" role="region" aria-label={`Rate results ${index + 1}`}>
+				<H2 class="text-lg"
+					>{scenario.label ||
+						(scenario.unitQuantity
+							? `${scenario.unitQuantity.toLocaleString('en-US')} units`
+							: `Rate row ${index + 1}`)}</H2
+				>
+				<P
+					>{scenario.packageTotalCount}
+					{scenario.packageTotalCount === 1 ? 'carton' : 'cartons'} · {scenario.packageTotalWeight} lbs
+					total</P
+				>
+				{#if scenario.casePacking}<P class="text-sm"
+						>{scenario.casePacking.unitsPerCarton.toLocaleString('en-US')} units per case · {scenario
+							.casePacking.cartonWeight} lbs per full case</P
+					>{/if}
+				{#each scenario.packageGroups as group, groupIndex (groupIndex)}<P class="text-sm"
+						>{group.quantity} @ {group.weight} lbs</P
+					>{/each}
+				{#if scenario.status === 'complete'}
+					<Div class="overflow-x-auto"
+						><Table class="w-full"
+							><Thead><Tr><Th>Service</Th><Th class="text-right">Rate</Th></Tr></Thead><Tbody>
+								{#each scenario.services as code (code)}
+									{@const rate = scenario.rates.find((item) => item.serviceCode === code)}
+									<Tr
+										><Td>{UPS_SERVICES.find((service) => service.code === code)?.title ?? code}</Td
+										><Td class="text-right">{rate ? currency(rate.rate) : 'Unavailable'}</Td></Tr
+									>
+								{/each}
+							</Tbody></Table
+						></Div
+					>
+				{:else if scenario.status === 'failed'}<P role="alert">{scenario.message}</P>
+				{:else}<Div class="flex items-center gap-3" role="status"
+						><Spinner class="h-5 w-5" aria-hidden="true" /><P
+							>{scenario.status === 'running' ? 'Getting rates…' : 'Waiting for rates…'}</P
+						></Div
+					>{/if}
+			</Card>
+		{/each}
+	{:else if !quote.generation || quote.generation.rates === 'complete'}
 		<Card class="min-w-0 space-y-4">
 			<H2 class="text-lg">Rates</H2>
 			<Div class="overflow-x-auto">

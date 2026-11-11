@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T13:46:16.271Z
+## 2026-11-11T14:28:21.773Z
+
+feat: Add advanced UPS rate scenarios with simplified package entry
+
+## 2026-11-11T08:51:23-05:00
 
 feat: Support address swapping and mixed UPS package weights
 

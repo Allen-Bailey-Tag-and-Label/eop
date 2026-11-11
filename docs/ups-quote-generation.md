@@ -41,13 +41,43 @@ The `/shipping/quote` implementation is unchanged.
 ## Addresses and package weights
 
 The Shipment Details section can swap the complete Ship From and Ship To
-addresses. Package Info offers three modes:
+addresses. Package Info defaults to just package count and total weight. The
+**Advanced** toggle reveals service selections, multiple rate rows, and the case
+quantity helper. Advanced configurations open automatically when duplicating a
+quote that uses them. Closing Advanced preserves the configured rows and shows a
+summary rather than silently replacing them with a basic estimate.
+
+Advanced package entry offers four modes:
 
 - **Total weight:** enter package count and combined weight. The estimate divides
   that weight evenly and rounds each package upward to the nearest 0.001 lb.
 - **Per package:** enter package count and the weight shared by every package.
 - **Different weights:** add quantity/weight groups, such as 1 package at 10 lbs
   and 1 package at 20 lbs. Totals are calculated from the groups.
+- **Cases / units:** enter total units, units per case, and full case gross weight.
+  Full cartons and a final partial carton are calculated automatically. The
+  partial carton can use the full case weight or prorate the contents while
+  retaining the optional empty-carton weight.
+
+The **Build rows from case quantities** helper accepts packing details once and
+one total quantity per line (for example, 10,000 / 20,000 / 30,000 on separate
+lines). It creates editable rate rows and retains any populated rows already in
+the quote. Blank rows are replaced. Draft helper values are not submitted until
+the calculated rows are added.
+
+Each quote supports up to 20 rate rows. Each row has its own optional label,
+unit quantity, UPS service selections, and packaging input mode. For example,
+2,500 units per case at 20 lbs creates 4 / 8 / 12 cartons for the three quantities
+above, with total weights of 80 / 160 / 240 lbs. The existing limit of 50 physical
+packages applies to each row; larger estimates are rejected rather than silently
+split into separate shipments.
+
+Address validation runs once. Rates are then requested one row at a time and
+persisted as they arrive, so completed results remain visible while later rows
+load. A failed row does not stop other rows, and Retry only repeats failed rows.
+Selected services missing from UPS's response are shown as unavailable, not as
+zero-dollar rates. Duplicate restores all rows, service choices, and case inputs.
+Historical quotes without rate rows retain their existing behavior.
 
 Quotes support up to 50 packages, each weighing 0.001–150 lbs. Counts and weights
 are checked on the server before a number is allocated. New quotes save optional

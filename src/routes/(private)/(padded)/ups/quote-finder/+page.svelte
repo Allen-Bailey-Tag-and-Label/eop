@@ -33,11 +33,15 @@
 			key: 'ground',
 			label: 'Ground',
 			type: 'function',
-			valueFn: ({ object }) =>
-				currency(
-					object?.rates?.find((rate: { description: string }) => rate?.description === 'Ground')
-						?.rate ?? 0
-				)
+			valueFn: ({ object }) => {
+				if (object?.scenarios?.length > 1) return 'Multiple options';
+				const rates = object?.scenarios?.[0]?.rates ?? object?.rates;
+				const ground = rates?.find(
+					(rate: { description: string; serviceCode?: string }) =>
+						rate?.description === 'Ground' || rate?.serviceCode === '03'
+				);
+				return ground ? currency(ground.rate) : 'Unavailable';
+			}
 		},
 		{ key: 'shipTo.AddressLine', label: 'Street', type: 'string' },
 		{ key: 'shipTo.City', label: 'City', type: 'string' },

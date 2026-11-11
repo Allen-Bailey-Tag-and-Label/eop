@@ -7,12 +7,16 @@ import { nextQuoteNumber } from '../shipping/numbering';
 import { getRates, validateAddress } from '$lib/ups';
 import {
 	MAX_QUOTE_PACKAGES,
+	MAX_RATE_SCENARIOS,
+	UPS_SERVICES,
 	type QuoteAddress,
 	type QuoteGeneration,
 	type UpsQuoteView,
 	type QuotePackageGroup,
-	type WeightMode
+	type WeightMode,
+	type QuoteScenario
 } from '$lib/ups/quote';
+import { calculateCases } from '$lib/ups/casePacking';
 
 type QuoteRecord = Omit<UpsQuoteView, '_branchId' | 'createdAt' | 'rates'> & {
 	_id: Types.ObjectId;
@@ -64,8 +68,42 @@ function address(
 }
 function packageDetails(input: Record<string, unknown>) {
 	const mode = input.weightMode ?? 'total';
-	if (mode !== 'total' && mode !== 'each' && mode !== 'groups')
+	if (mode !== 'total' && mode !== 'each' && mode !== 'groups' && mode !== 'cartons')
 		error(400, 'Select a valid weight mode.');
+	if (mode === 'cartons') {
+		const unitQuantity = wholeUnits(input.unitQuantity);
+		const casePacking = {
+			unitsPerCarton: wholeUnits(input.unitsPerCarton),
+			cartonWeight: Number(input.cartonWeight),
+			tareWeight: Number(input.tareWeight || 0),
+			partialCase: input.partialCase ?? 'prorate'
+		};
+		if (
+			(typeof input.cartonWeight !== 'number' && typeof input.cartonWeight !== 'string') ||
+			(input.tareWeight !== undefined &&
+				typeof input.tareWeight !== 'number' &&
+				typeof input.tareWeight !== 'string') ||
+			(casePacking.partialCase !== 'prorate' && casePacking.partialCase !== 'full')
+		)
+			error(400, 'Enter valid case weights and a partial-case strategy.');
+		try {
+			const result = calculateCases(unitQuantity, {
+				...casePacking,
+				partialCase: casePacking.partialCase
+			});
+			return {
+				...result,
+				weightMode: 'cartons' as const,
+				packageWeight: Math.ceil(result.packageTotalWeight / result.packageTotalCount),
+				casePacking: {
+					...casePacking,
+					partialCase: casePacking.partialCase as 'prorate' | 'full'
+				}
+			};
+		} catch (cause) {
+			error(400, cause instanceof Error ? cause.message : 'Invalid case packing.');
+		}
+	}
 	const quantity = (value: unknown) => {
 		const count = positive(value, 'package count', true);
 		if (count > MAX_QUOTE_PACKAGES)
@@ -129,6 +167,73 @@ function packageDetails(input: Record<string, unknown>) {
 		packageWeight: Math.ceil(totalWeight / count)
 	};
 }
+function wholeUnits(value: unknown) {
+	if (
+		(typeof value !== 'string' && typeof value !== 'number') ||
+		!Number.isSafeInteger(Number(value)) ||
+		Number(value) < 1
+	)
+		error(400, 'Enter a positive whole-number unit quantity.');
+	return Number(value);
+}
+function parseScenarios(value: unknown): QuoteScenario[] {
+	let raw = value;
+	if (typeof raw === 'string') {
+		if (raw.length > 128_000) error(400, 'Too much rate scenario information.');
+		try {
+			raw = JSON.parse(raw);
+		} catch {
+			error(400, 'Enter valid rate rows.');
+		}
+	}
+	if (!Array.isArray(raw) || !raw.length || raw.length > MAX_RATE_SCENARIOS)
+		error(400, `Enter 1–${MAX_RATE_SCENARIOS} rate rows.`);
+	const rows = raw.map((value) => {
+		const row = object(value);
+		const id = text(row.id, 'rate row ID');
+		if (!/^[a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(id)) error(400, 'Invalid rate row ID.');
+		if (
+			!Array.isArray(row.services) ||
+			!row.services.length ||
+			row.services.length > UPS_SERVICES.length ||
+			row.services.some(
+				(code) => typeof code !== 'string' || !UPS_SERVICES.some((service) => service.code === code)
+			) ||
+			new Set(row.services).size !== row.services.length
+		)
+			error(400, 'Choose at least one valid UPS service for each rate row.');
+		const selected = row.services as string[];
+		return {
+			...packageDetails({
+				weightMode: row.weightMode,
+				packageInfoTotalPackages: row.totalPackages,
+				packageInfoTotalWeight: row.totalWeight,
+				packageInfoPackageWeight: row.eachWeight,
+				packageGroups: row.groups,
+				unitQuantity: row.unitQuantity,
+				unitsPerCarton: row.unitsPerCarton,
+				cartonWeight: row.cartonWeight,
+				tareWeight: row.tareWeight,
+				partialCase: row.partialCase
+			}),
+			id,
+			label: text(row.label ?? '', 'rate row label', false),
+			...(row.unitQuantity === '' || row.unitQuantity === undefined
+				? {}
+				: { unitQuantity: wholeUnits(row.unitQuantity) }),
+			services: UPS_SERVICES.filter((service) => selected.includes(service.code)).map(
+				(service) => service.code
+			),
+			status: 'pending' as const,
+			rates: [],
+			unavailableServices: [],
+			message: ''
+		};
+	});
+	if (new Set(rows.map((row) => row.id)).size !== rows.length)
+		error(400, 'Each rate row must have a unique ID.');
+	return rows;
+}
 export function parseQuoteNumber(value: unknown) {
 	if (
 		(typeof value !== 'string' && typeof value !== 'number') ||
@@ -149,6 +254,22 @@ function view(row: QuoteRecord): UpsQuoteView {
 		packageTotalCount: row.packageTotalCount,
 		packageTotalWeight: row.packageTotalWeight,
 		packageWeight: row.packageWeight,
+		...(row.scenarios?.length
+			? {
+					scenarios: row.scenarios.map((scenario) => ({
+						...scenario,
+						packageGroups: scenario.packageGroups.map(({ quantity, weight }) => ({
+							quantity,
+							weight
+						})),
+						rates: scenario.rates.map(({ description, rate, serviceCode }) => ({
+							description,
+							rate,
+							serviceCode
+						}))
+					}))
+				}
+			: {}),
 		...(row.packageGroups?.length
 			? {
 					weightMode: row.weightMode ?? 'groups',
@@ -203,7 +324,9 @@ export async function createPendingUpsQuote(value: unknown, actor: Actor) {
 	const validationRequired = input.isValidated === 'true';
 	const shipper = address(input, 'shipFrom', validationRequired),
 		shipTo = address(input, 'shipTo', validationRequired);
-	const packages = packageDetails(input);
+	const scenarios =
+		input.rateScenarios === undefined ? undefined : parseScenarios(input.rateScenarios);
+	const packages = scenarios?.[0] ?? packageDetails(input);
 	const requestKey = `${actor._id}:${requestId}`;
 	await UpsQuote.init();
 	const existing = await UpsQuote.findOne({ requestKey })
@@ -219,7 +342,12 @@ export async function createPendingUpsQuote(value: unknown, actor: Actor) {
 			_createdById: actor._id,
 			classification: 'Unknown',
 			isValidated: false,
-			...packages,
+			packageTotalCount: packages.packageTotalCount,
+			packageTotalWeight: packages.packageTotalWeight,
+			packageWeight: packages.packageWeight,
+			weightMode: packages.weightMode,
+			packageGroups: packages.packageGroups,
+			...(scenarios ? { scenarios } : {}),
 			shipper,
 			shipTo,
 			rates: [],
@@ -264,7 +392,7 @@ async function validated(row: QuoteRecord, signal: AbortSignal) {
 		}
 	};
 }
-async function rated(row: QuoteRecord, signal: AbortSignal) {
+async function rated(row: QuoteRecord, signal: AbortSignal, selected?: string[]) {
 	const result = await getRates(
 		upsAddress(row.shipper),
 		upsAddress(row.shipTo),
@@ -283,16 +411,7 @@ async function rated(row: QuoteRecord, signal: AbortSignal) {
 	}[];
 	// Multi-package responses already contain the shipment total. Older pending
 	// quotes without groups retain the original single-package estimate behavior.
-	const services = [
-		['03', 'Ground'],
-		['12', '3 Day Select'],
-		['02', '2nd Day Air'],
-		['59', '2nd Day Air A.M.'],
-		['13', 'Next Day Air Saver'],
-		['01', 'Next Day Air'],
-		['14', 'Next Day Air Early'],
-		['75', 'Heavy Goods']
-	];
+	const services = UPS_SERVICES.filter((service) => !selected || selected.includes(service.code));
 	const branch = await Branch.findById(row._branchId)
 		.select('number')
 		.lean<{ number: number } | null>();
@@ -305,7 +424,7 @@ async function rated(row: QuoteRecord, signal: AbortSignal) {
 		])
 			if (now >= phase.from && now <= phase.to) discount = phase.discount;
 	}
-	const rates = services.flatMap(([code, description]) => {
+	const rates = services.flatMap(({ code, title: description }) => {
 		const value = rows.find((item) => item.Service?.Code === code)?.TotalCharges?.MonetaryValue;
 		if (value === undefined) return [];
 		const amount = Number(value);
@@ -314,12 +433,20 @@ async function rated(row: QuoteRecord, signal: AbortSignal) {
 		return [
 			{
 				description,
+				...(selected ? { serviceCode: code } : {}),
 				rate: amount * (row.packageGroups?.length ? 1 : row.packageTotalCount) * (1 - discount)
 			}
 		];
 	});
-	if (!rates.length) throw new Error('UPS returned no supported rates. Please try again.');
-	return { rates };
+	if (!rates.length && !selected)
+		throw new Error('UPS returned no supported rates. Please try again.');
+	return {
+		rates,
+		unavailableServices:
+			selected?.filter(
+				(code) => !rates.some((rate) => 'serviceCode' in rate && rate.serviceCode === code)
+			) ?? []
+	};
 }
 export async function advancePendingUpsQuote(value: unknown) {
 	const input = object(value),
@@ -331,6 +458,18 @@ export async function advancePendingUpsQuote(value: unknown) {
 	if (!generation || generation.rates === 'complete') return view(row);
 	const step = ['complete', 'skipped'].includes(generation.validation) ? 'rates' : 'validation';
 	if (generation[step] === 'failed' && input.retry !== true) return view(row);
+	const scenarios =
+		step === 'rates'
+			? row.scenarios?.map((scenario) =>
+					input.retry === true && scenario.status === 'failed'
+						? { ...scenario, status: 'pending' as const, message: '' }
+						: scenario
+				)
+			: undefined;
+	const scenarioIndex =
+		scenarios?.findIndex(
+			(scenario) => scenario.status === 'pending' || scenario.status === 'running'
+		) ?? -1;
 	const attemptId = randomUUID();
 	const claimed = await UpsQuote.findOneAndUpdate(
 		{
@@ -346,7 +485,14 @@ export async function advancePendingUpsQuote(value: unknown) {
 				[`generation.${step}`]: 'running',
 				'generation.attemptId': attemptId,
 				'generation.leaseUntil': new Date(Date.now() + 60_000),
-				'generation.message': ''
+				'generation.message': '',
+				...(scenarios && scenarioIndex >= 0
+					? {
+							scenarios: scenarios.map((scenario, index) =>
+								index === scenarioIndex ? { ...scenario, status: 'running' } : scenario
+							)
+						}
+					: {})
 			}
 		},
 		{ new: true }
@@ -355,19 +501,28 @@ export async function advancePendingUpsQuote(value: unknown) {
 	let changes: Record<string, unknown>;
 	try {
 		const signal = AbortSignal.timeout(25_000);
-		changes = {
-			...(step === 'validation' ? await validated(claimed, signal) : await rated(claimed, signal)),
-			[`generation.${step}`]: 'complete',
-			'generation.message': ''
-		};
+		if (scenarios && scenarioIndex >= 0) {
+			const scenario = scenarios[scenarioIndex];
+			const result = await rated({ ...claimed, ...scenario }, signal, scenario.services);
+			scenarios[scenarioIndex] = { ...scenario, ...result, status: 'complete', message: '' };
+			changes = scenarioProgress(scenarios);
+		} else
+			changes = {
+				...(step === 'validation'
+					? await validated(claimed, signal)
+					: await rated(claimed, signal)),
+				[`generation.${step}`]: 'complete',
+				'generation.message': ''
+			};
 	} catch (cause) {
-		changes = {
-			[`generation.${step}`]: 'failed',
-			'generation.message':
-				cause instanceof Error && cause.name !== 'TimeoutError'
-					? cause.message
-					: 'UPS did not respond in time. Please try again.'
-		};
+		const message =
+			cause instanceof Error && cause.name !== 'TimeoutError'
+				? cause.message
+				: 'UPS did not respond in time. Please try again.';
+		if (scenarios && scenarioIndex >= 0) {
+			scenarios[scenarioIndex] = { ...scenarios[scenarioIndex], status: 'failed', message };
+			changes = scenarioProgress(scenarios);
+		} else changes = { [`generation.${step}`]: 'failed', 'generation.message': message };
 	}
 	// Fence stale requests after a lease expires; they cannot replace a newer attempt.
 	await UpsQuote.updateOne(
@@ -375,4 +530,29 @@ export async function advancePendingUpsQuote(value: unknown) {
 		{ $set: changes, $unset: { 'generation.attemptId': 1, 'generation.leaseUntil': 1 } }
 	);
 	return findUpsQuote(quote);
+}
+
+function scenarioProgress(scenarios: QuoteScenario[]): Record<string, unknown> {
+	const pending = scenarios.some(
+		(scenario) => scenario.status === 'pending' || scenario.status === 'running'
+	);
+	const failed = scenarios.some((scenario) => scenario.status === 'failed');
+	return {
+		scenarios,
+		rates: scenarios.flatMap((scenario, index) =>
+			scenario.rates.map((rate) => ({
+				...rate,
+				description:
+					scenarios.length === 1 && !scenario.label && !scenario.unitQuantity
+						? rate.description
+						: `${scenario.label || (scenario.unitQuantity ? `${scenario.unitQuantity.toLocaleString('en-US')} units` : `Rate row ${index + 1}`)} — ${rate.description}`,
+				scenarioId: scenario.id
+			}))
+		),
+		'generation.rates': pending ? 'pending' : failed ? 'failed' : 'complete',
+		'generation.message':
+			!pending && failed
+				? 'Some rate rows failed. Retry to continue those rows; completed rates are retained.'
+				: ''
+	};
 }

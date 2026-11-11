@@ -1,7 +1,12 @@
 import { connect } from '$lib/server/mongoose';
 import { findUpsQuote } from '$lib/server/ups/quotes';
 import type { PageServerLoad } from './$types';
-import type { PackageGroupInput, WeightMode } from '$lib/ups/quote';
+import {
+	blankRateScenario,
+	scenarioInput,
+	type PackageGroupInput,
+	type WeightMode
+} from '$lib/ups/quote';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const searchParams = Object.fromEntries(url.searchParams);
@@ -15,6 +20,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			zip: value.PostalCode
 		});
 		return {
+			scenarios: source.scenarios?.map(scenarioInput) ?? [],
 			_branchId: source._branchId,
 			isValidated: String(
 				source.generation ? source.generation.validation !== 'skipped' : source.isValidated
@@ -40,6 +46,13 @@ export const load: PageServerLoad = async ({ url }) => {
 		};
 	}
 	return {
+		scenarios: [
+			{
+				...blankRateScenario(),
+				totalPackages: searchParams.totalPackages ?? '',
+				totalWeight: searchParams.totalWeight ?? ''
+			}
+		],
 		_branchId: searchParams._branchId ?? '',
 		isValidated: searchParams.isValidated ?? 'true',
 		weights: { mode: 'total' as WeightMode, eachWeight: '', groups: [] as PackageGroupInput[] },

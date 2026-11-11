@@ -8,12 +8,13 @@ import {
 	createUpsQuote,
 	advanceUpsQuote
 } from '../../routes/(private)/(padded)/ups/quote/quote.remote';
-import type { UpsQuoteView } from './quote';
+import { UPS_SERVICES, type UpsQuoteView } from './quote';
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 vi.mock('$app/forms', () => ({ enhance: () => ({ destroy() {} }) }));
 vi.mock('svelte/transition', async (original) => ({
 	...(await original<typeof import('svelte/transition')>()),
-	slide: () => ({ duration: 0 })
+	slide: () => ({ duration: 0 }),
+	scale: () => ({ duration: 0 })
 }));
 vi.mock('../../routes/(private)/(padded)/ups/quote/quote.remote', () => ({
 	createUpsQuote: vi.fn(),
@@ -88,6 +89,119 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('UPS quote feedback', () => {
+	it('keeps the default package form simple and preserves values when Advanced is toggled', async () => {
+		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
+		const view = editor();
+		await flush();
+		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		const toggle = view.getByRole('button', { name: 'Advanced' });
+		expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		expect(view.queryByRole('tab', { name: 'Cases / units' })).not.toBeInTheDocument();
+		expect(view.queryByText('Build rows from case quantities')).not.toBeInTheDocument();
+		expect(view.queryByRole('checkbox', { name: 'Ground' })).not.toBeInTheDocument();
+		expect(view.getByRole('spinbutton', { name: 'Total Packages' })).toHaveValue(2);
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' }), {
+			target: { value: '45' }
+		});
+		await fireEvent.click(toggle);
+		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(45);
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Ground' }));
+		await fireEvent.click(toggle);
+		expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		expect(view.getByText(/1 rate configuration configured/)).toBeInTheDocument();
+		await fireEvent.submit(view.container.querySelector('form')!);
+		await flush();
+		const fields = vi.mocked(createUpsQuote).mock.calls[0][0] as { rateScenarios: string };
+		const [row] = JSON.parse(fields.rateScenarios);
+		expect(Number(row.totalWeight)).toBe(45);
+		expect(row.services).not.toContain('03');
+		await fireEvent.click(toggle);
+		expect(view.getByRole('checkbox', { name: 'Ground' })).not.toBeChecked();
+	});
+	it('builds editable case rows for multiple quantities and submits their packing settings', async () => {
+		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
+		const view = editor();
+		await flush();
+		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		await fireEvent.click(view.getByRole('button', { name: 'Advanced' }));
+		await fireEvent.click(view.getByText('Build rows from case quantities').closest('summary')!);
+		const helper = within(view.getByText('Build rows from case quantities').closest('details')!);
+		await fireEvent.input(helper.getByRole('textbox', { name: 'Units per case' }), {
+			target: { value: '2500' }
+		});
+		await fireEvent.input(helper.getByRole('textbox', { name: 'Full case weight (lbs)' }), {
+			target: { value: '20' }
+		});
+		await fireEvent.input(helper.getByRole('textbox', { name: 'Total quantities, one per line' }), {
+			target: { value: '10,000\n20,000\n30,000' }
+		});
+		await fireEvent.click(helper.getByRole('button', { name: 'Add calculated rate rows' }));
+		await flush();
+		// The existing populated manual row is retained alongside the three estimates.
+		expect(view.getAllByRole('region', { name: /^Rate scenario/ })).toHaveLength(4);
+		const firstEstimate = within(view.getByRole('region', { name: 'Rate scenario 2' }));
+		for (const service of UPS_SERVICES.filter((service) => service.code !== '03'))
+			await fireEvent.click(firstEstimate.getByRole('checkbox', { name: service.title }));
+		expect(
+			within(view.getByRole('region', { name: 'Rate scenario 3' })).getByRole('checkbox', {
+				name: 'Next Day Air'
+			})
+		).toBeChecked();
+		await fireEvent.submit(view.container.querySelector('form')!);
+		await flush();
+		const submitted = vi.mocked(createUpsQuote).mock.calls[0][0] as { rateScenarios: string };
+		const rows = JSON.parse(submitted.rateScenarios);
+		expect(rows.slice(1).map((row: { unitQuantity: string }) => row.unitQuantity)).toEqual([
+			'10000',
+			'20000',
+			'30000'
+		]);
+		expect(rows[1]).toMatchObject({
+			services: ['03'],
+			weightMode: 'cartons',
+			unitsPerCarton: '2500',
+			cartonWeight: '20',
+			partialCase: 'prorate'
+		});
+	});
+	it('shows completed scenario prices and unavailable services while another row is pending', async () => {
+		vi.mocked(advanceUpsQuote).mockReturnValue(new Promise(() => {}) as never);
+		const scenario = {
+			id: 'first',
+			label: '',
+			unitQuantity: 10000,
+			services: ['03', '12'],
+			weightMode: 'cartons',
+			packageGroups: [{ quantity: 4, weight: 20 }],
+			packageTotalCount: 4,
+			packageTotalWeight: 80,
+			packageWeight: 20,
+			status: 'complete',
+			rates: [{ description: 'Ground', serviceCode: '03', rate: 12.5 }],
+			unavailableServices: ['12'],
+			message: ''
+		};
+		const view = render(Detail, {
+			data: {
+				quote: {
+					...quote(),
+					generation: { validation: 'skipped', rates: 'pending' },
+					scenarios: [
+						scenario,
+						{ ...scenario, id: 'second', unitQuantity: 20000, status: 'pending', rates: [] }
+					]
+				}
+			}
+		} as never);
+		await flush();
+		const result = within(view.getByRole('region', { name: 'Rate results 1' }));
+		expect(result.getByRole('table')).toHaveTextContent('$12.50');
+		expect(result.getByRole('table')).toHaveTextContent('Unavailable');
+		expect(view.getByText('1 of 2 rate rows complete')).toBeInTheDocument();
+		expect(
+			within(view.getByRole('region', { name: 'Rate results 2' })).queryByRole('table')
+		).not.toBeInTheDocument();
+	});
 	it('swaps the complete origin and destination addresses', async () => {
 		const view = editor();
 		await flush();
@@ -107,6 +221,7 @@ describe('UPS quote feedback', () => {
 		const view = editor();
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		await fireEvent.click(view.getByRole('button', { name: 'Advanced' }));
 		await fireEvent.click(view.getByRole('tab', { name: 'Per package' }));
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Weight per package (lbs)' }), {
 			target: { value: '10' }
@@ -127,6 +242,7 @@ describe('UPS quote feedback', () => {
 		const view = editor();
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		await fireEvent.click(view.getByRole('button', { name: 'Advanced' }));
 		await fireEvent.click(view.getByRole('tab', { name: 'Different weights' }));
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Quantity for group 1' }), {
 			target: { value: '1' }
@@ -195,7 +311,11 @@ describe('UPS quote feedback', () => {
 			}
 		} as never);
 		await flush();
-		const sections = [...view.container.querySelectorAll('details')];
+		const sections = [...view.container.querySelectorAll('details')].filter((element) =>
+			['Shipment Details', 'Package Info', 'Extras'].includes(
+				element.querySelector('summary')?.textContent?.trim() ?? ''
+			)
+		);
 		expect(sections).toHaveLength(3);
 		expect(sections[0].querySelector('summary')).toHaveTextContent('Shipment Details');
 		expect(sections[0].open).toBe(true);
@@ -209,7 +329,7 @@ describe('UPS quote feedback', () => {
 		desktop = true;
 		resize();
 		await flush();
-		expect(view.container.querySelectorAll('details')).toHaveLength(0);
+		expect(sections.every((section) => !section.isConnected)).toBe(true);
 		for (const title of ['Shipment Details', 'Package Info', 'Extras'])
 			expect(view.getByRole('heading', { name: title })).toBeVisible();
 		desktop = false;

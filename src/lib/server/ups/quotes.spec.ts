@@ -5,6 +5,7 @@ import { nextQuoteNumber } from '../shipping/numbering';
 import { getRates, validateAddress } from '$lib/ups';
 import { advancePendingUpsQuote, createPendingUpsQuote, findUpsQuote } from './quotes';
 import type { UpsQuoteView } from '$lib/ups/quote';
+import { blankRateScenario } from '$lib/ups/quote';
 vi.mock('../mongoose/models/UpsQuote', () => ({
 	UpsQuote: {
 		init: vi.fn(),
@@ -20,6 +21,108 @@ vi.mock('../mongoose/models/Branch', () => ({
 vi.mock('../shipping/numbering', () => ({ nextQuoteNumber: vi.fn() }));
 vi.mock('$lib/ups', () => ({ getRates: vi.fn(), validateAddress: vi.fn() }));
 const actor = { _id: 'a'.repeat(24), branches: [{ _id: 'b'.repeat(24) }] } as App.Locals['user'];
+function caseRow(units = '10000', services = ['03']) {
+	return {
+		...blankRateScenario(),
+		unitQuantity: units,
+		services,
+		weightMode: 'cartons' as const,
+		unitsPerCarton: '2500',
+		cartonWeight: '20',
+		tareWeight: '2'
+	};
+}
+describe('UPS rate scenarios', () => {
+	it('prices three case quantities progressively and keeps service choices separate', async () => {
+		await createPendingUpsQuote(
+			{
+				...input(),
+				isValidated: 'false',
+				rateScenarios: JSON.stringify([
+					caseRow(),
+					caseRow('20000', ['01']),
+					caseRow('30000', ['03', '01'])
+				])
+			},
+			actor
+		);
+		const first = await advancePendingUpsQuote({ quote: 1234 });
+		expect(first.generation?.rates).toBe('pending');
+		expect(first.scenarios?.map((scenario) => scenario.status)).toEqual([
+			'complete',
+			'pending',
+			'pending'
+		]);
+		expect(first.scenarios?.[0]).toMatchObject({
+			packageTotalCount: 4,
+			packageTotalWeight: 80,
+			rates: [{ serviceCode: '03', rate: 12.5 }]
+		});
+		await advancePendingUpsQuote({ quote: 1234 });
+		const final = await advancePendingUpsQuote({ quote: 1234 });
+		expect(final.generation?.rates).toBe('complete');
+		expect(final.scenarios?.map((scenario) => scenario.packageTotalCount)).toEqual([4, 8, 12]);
+		expect(final.scenarios?.[1].rates).toEqual([
+			{ description: 'Next Day Air', serviceCode: '01', rate: 30 }
+		]);
+		expect(final.rates.map((rate) => rate.description)).toEqual(
+			expect.arrayContaining([
+				'10,000 units — Ground',
+				'20,000 units — Next Day Air',
+				'30,000 units — Ground'
+			])
+		);
+		expect(getRates).toHaveBeenCalledTimes(3);
+		expect(
+			vi.mocked(getRates).mock.calls.map((call) => (call[2] as { weight: number }[]).length)
+		).toEqual([4, 8, 12]);
+		expect(validateAddress).not.toHaveBeenCalled();
+	});
+	it('marks selected services that UPS did not return as unavailable', async () => {
+		await createPendingUpsQuote(
+			{ ...input(), isValidated: 'false', rateScenarios: [caseRow('11000', ['12'])] },
+			actor
+		);
+		const result = await advancePendingUpsQuote({ quote: 1234 });
+		expect(result.scenarios?.[0]).toMatchObject({
+			status: 'complete',
+			rates: [],
+			unavailableServices: ['12'],
+			packageTotalWeight: 89.2
+		});
+		expect(result.generation?.rates).toBe('complete');
+	});
+	it('continues after a failed row and retries it without repeating completed rows', async () => {
+		await createPendingUpsQuote(
+			{ ...input(), isValidated: 'false', rateScenarios: [caseRow(), caseRow('20000')] },
+			actor
+		);
+		vi.mocked(getRates).mockRejectedValueOnce(new Error('UPS unavailable'));
+		expect((await advancePendingUpsQuote({ quote: 1234 })).generation?.rates).toBe('pending');
+		const failed = await advancePendingUpsQuote({ quote: 1234 });
+		expect(failed.generation?.rates).toBe('failed');
+		expect(failed.scenarios?.map((scenario) => scenario.status)).toEqual(['failed', 'complete']);
+		const recovered = await advancePendingUpsQuote({ quote: 1234, retry: true });
+		expect(recovered.generation?.rates).toBe('complete');
+		expect(recovered.scenarios?.[1]).toEqual(failed.scenarios?.[1]);
+		expect(getRates).toHaveBeenCalledTimes(3);
+	});
+	it.each([
+		{ services: [] },
+		{ services: ['bad'] },
+		{ services: ['03', '03'] },
+		{ unitQuantity: '' },
+		{ unitsPerCarton: '0' },
+		{ cartonWeight: '151' },
+		{ tareWeight: '21' },
+		{ partialCase: 'invalid' }
+	])('rejects invalid case rows before allocating a quote: %j', async (change) => {
+		await expect(
+			createPendingUpsQuote({ ...input(), rateScenarios: [{ ...caseRow(), ...change }] }, actor)
+		).rejects.toMatchObject({ status: 400 });
+		expect(nextQuoteNumber).not.toHaveBeenCalled();
+	});
+});
 function input() {
 	return {
 		requestId: crypto.randomUUID(),
@@ -84,7 +187,8 @@ beforeEach(() => {
 		)
 			return query(null) as never;
 		for (const [path, value] of Object.entries((update as Update).$set))
-			row.generation![path.split('.')[1]] = value;
+			if (path.startsWith('generation.')) row.generation![path.split('.')[1]] = value;
+			else row[path] = value;
 		return query(structuredClone(row)) as never;
 	});
 	model.updateOne.mockImplementation(async (filter: Record<string, unknown>, update: Update) => {
