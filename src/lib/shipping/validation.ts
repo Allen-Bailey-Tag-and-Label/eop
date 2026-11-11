@@ -82,13 +82,13 @@ function items(value: unknown, freight: boolean): (PackageGroup | FreightItem)[]
 				throw new ShippingError(`${label} exceeds UPS length plus girth limits.`);
 			return item;
 		}
-		if (!FREIGHT_CLASSES.includes(String(row.freightClass)))
+		if (row.freightClass && !FREIGHT_CLASSES.includes(String(row.freightClass)))
 			throw new ShippingError(`Select a freight class for ${label}.`);
 		return {
 			...item,
-			description: text(row.description, `${label} description`, 200, true),
-			freightClass: String(row.freightClass),
-			nmfc: text(row.nmfc, 'NMFC code', 40),
+			description: text(row.description ?? '', `${label} description`, 200),
+			freightClass: text(row.freightClass ?? '', 'freight class', 10),
+			nmfc: text(row.nmfc, 'NMFC code', 40, true),
 			stackable: flag(row.stackable)
 		};
 	});

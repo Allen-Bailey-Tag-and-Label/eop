@@ -21,7 +21,7 @@
 		responsive?: boolean;
 		rateRows?: RateScenarioInput[];
 		actions?: Snippet;
-		shipmentHeader?: Snippet;
+		services?: Snippet;
 		packageFields?: Snippet;
 		extraFields?: Snippet;
 	};
@@ -52,7 +52,7 @@
 		responsive = false,
 		rateRows = $bindable([] as RateScenarioInput[]),
 		actions = undefined as Snippet | undefined,
-		shipmentHeader = undefined as Snippet | undefined,
+		services = undefined as Snippet | undefined,
 		packageFields = undefined as Snippet | undefined,
 		extraFields = undefined as Snippet | undefined
 	}: Props = $props();
@@ -64,7 +64,13 @@
 </script>
 
 {#if responsive}
-	<QuoteLayout shipment={shipmentDetails} packages={packageInfo} extras={extraInfo} {actions} />
+	<QuoteLayout
+		shipment={shipmentDetails}
+		packages={packageInfo}
+		extras={extraInfo}
+		{actions}
+		{services}
+	/>
 {:else}
 	<Div class="flex flex-col gap-4 lg:flex-row">
 		<Div class="flex flex-col space-y-2"
@@ -78,7 +84,6 @@
 
 {#snippet shipmentDetails()}
 	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
-		{#if shipmentHeader}{@render shipmentHeader()}{/if}
 		<Div class="col-span-full flex justify-end"
 			><Button
 				variants={['small']}

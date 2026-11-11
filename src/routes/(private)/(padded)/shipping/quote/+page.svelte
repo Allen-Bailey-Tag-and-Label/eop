@@ -1,21 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import {
-		A,
-		Button,
-		Checkbox,
-		Div,
-		Form,
-		H1,
-		H3,
-		Input,
-		P,
-		Select,
-		Spinner
-	} from '$lib/components';
-	import { theme } from '$lib/theme';
-	import { twMerge } from 'tailwind-merge';
-	import { blankRequest } from '$lib/shipping/types';
+	import { Button, Checkbox, Div, Form, H1, H3, Input, P, Select, Spinner } from '$lib/components';
+	import { blankRequest, DEFAULT_NMFC_CODE } from '$lib/shipping/types';
 	import FormSections from '$lib/ups/FormSections.svelte';
 	import RateStrategies from '$lib/ups/RateStrategies.svelte';
 	import { blankRateScenario, scenarioInput, type RateScenarioInput } from '$lib/ups/quote';
@@ -23,16 +9,19 @@
 	import type { PageProps } from './$types';
 	import type { Branch } from '$lib/types';
 	let { data, form }: PageProps = $props();
+	const emptyDraft = () => ({ ...blankRequest(data.shipDate), services: 'Both' as const });
 	let draft = $state(
 		untrack(() => {
-			const value = data.initialRequest
-				? structuredClone(data.initialRequest)
-				: blankRequest(data.shipDate);
+			const value = data.initialRequest ? structuredClone(data.initialRequest) : emptyDraft();
 			value.shipDate = data.shipDate;
 			value.branchId ||=
 				data.locals.user.defaultBranch?._id ?? data.locals.user.branches[0]?._id ?? '';
 			if (!value.packages.length) value.packages = blankRequest(data.shipDate).packages;
 			if (!value.freight.length) value.freight = blankRequest(data.shipDate).freight;
+			value.freight = value.freight.map((item) => ({
+				...item,
+				nmfc: item.nmfc || DEFAULT_NMFC_CODE
+			}));
 			return value;
 		})
 	);
@@ -83,7 +72,7 @@
 	]);
 	const ltl = $derived(draft.services === 'LTL' || draft.services === 'Both');
 	function reset() {
-		draft = { ...blankRequest(data.shipDate), branchId: draft.branchId };
+		draft = { ...emptyDraft(), branchId: draft.branchId };
 		formData = addressForm();
 		rateRows = [blankRateScenario()];
 		isValidationRequired = true;
@@ -94,14 +83,7 @@
 
 <svelte:head><title>Shipping quote - EOP</title></svelte:head>
 <Div class="w-full min-w-0 space-y-6">
-	<Div class="flex flex-wrap items-center justify-between gap-4">
-		<H1>Shipping quote</H1>
-		<A
-			href="/shipping/quote-finder"
-			class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
-			>Quote history</A
-		>
-	</Div>
+	<H1>Shipping quote</H1>
 	<Form
 		class="w-full max-w-none"
 		submitFunction={({ cancel }) => {
@@ -128,7 +110,7 @@
 			bind:isValidationRequired
 			bind:rateRows
 			responsive
-			shipmentHeader={shipmentDetails}
+			services={serviceSelection}
 			packageFields={packageDetails}
 			extraFields={extraInfo}
 		>
@@ -137,9 +119,9 @@
 	</Form>
 </Div>
 
-{#snippet shipmentDetails()}
+{#snippet serviceSelection()}
 	<Select
-		label="Services to quote"
+		aria-label="Services to quote"
 		name="services"
 		bind:value={draft.services}
 		options={[

@@ -48,6 +48,15 @@ function quoteData() {
 describe('shipping forms', () => {
 	it('shares the actual UPS addresses, package options and Extras without unwanted fields', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
+		expect(view.queryByRole('link', { name: 'Quote history' })).not.toBeInTheDocument();
+		const services = view.getByRole('combobox', { name: 'Services to quote' });
+		expect(services).toHaveValue('Both');
+		expect(
+			view.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+		).toEqual(['Services to quote', 'Shipment Details', 'Package Info', 'Extras']);
+		expect(
+			view.getByRole('heading', { name: 'Shipment Details' }).parentElement
+		).not.toContainElement(services);
 		for (const name of ['Shipment Details', 'Package Info', 'Extras'])
 			expect(view.getByRole('heading', { name })).toBeInTheDocument();
 		for (const name of [
@@ -102,7 +111,7 @@ describe('shipping forms', () => {
 		const reset = new FormData(form);
 		expect(reset.get('requestId')).not.toBe(data.requestId);
 		expect(reset.get('_branchId')).toBe('a'.repeat(24));
-		expect(reset.get('services')).toBe('UPS');
+		expect(reset.get('services')).toBe('Both');
 		expect(JSON.parse(String(reset.get('rateScenarios')))).toHaveLength(1);
 		expect(view.getByRole('tab', { name: 'Simple' })).toHaveAttribute('aria-selected', 'true');
 		expect(view.getByRole('alert')).toHaveTextContent(/^$/);
@@ -119,15 +128,16 @@ describe('shipping forms', () => {
 		}));
 		const view = render(Quote, { data: quoteData() } as never);
 		const sections = view.container.querySelectorAll('details');
-		expect(sections).toHaveLength(3);
+		expect(sections).toHaveLength(4);
 		expect(sections[0]).toHaveAttribute('open');
-		expect(sections[1]).not.toHaveAttribute('open');
-		const weight = view.container.querySelector('input[name="packageInfoTotalWeight"]')!;
-		await fireEvent.invalid(weight);
 		expect(sections[1]).toHaveAttribute('open');
 		expect(sections[2]).not.toHaveAttribute('open');
-		await fireEvent.invalid(view.container.querySelector('input[name="isValidated"]')!);
+		const weight = view.container.querySelector('input[name="packageInfoTotalWeight"]')!;
+		await fireEvent.invalid(weight);
 		expect(sections[2]).toHaveAttribute('open');
+		expect(sections[3]).not.toHaveAttribute('open');
+		await fireEvent.invalid(view.container.querySelector('input[name="isValidated"]')!);
+		expect(sections[3]).toHaveAttribute('open');
 	});
 	it('shows submission progress, prevents duplicate submissions, and retains entered values', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
@@ -235,6 +245,7 @@ describe('shipping forms', () => {
 			}
 		} as never);
 		const services = view.container.querySelector('select[name="services"]')!;
+		await fireEvent.change(services, { target: { value: 'UPS' } });
 		expect(view.queryByText('LTL freight')).not.toBeInTheDocument();
 		const weight = view.getByRole('spinbutton', { name: 'Total Weight (lbs)' });
 		await fireEvent.input(weight, { target: { value: '25' } });
@@ -242,14 +253,16 @@ describe('shipping forms', () => {
 		await fireEvent.input(weight, { target: { value: '25' } });
 		await fireEvent.change(services, { target: { value: 'Both' } });
 		expect(view.getByText('LTL freight')).toBeInTheDocument();
-		const description = view.container.querySelector('input[name$=".description"]')!;
-		expect(description).toBeRequired();
-		await fireEvent.input(description, { target: { value: 'Tags' } });
+		const nmfc = view.getByRole('textbox', { name: 'Freight item 1 NMFC code' });
+		expect(nmfc).toBeRequired();
+		await fireEvent.input(nmfc, { target: { value: '123456-01' } });
 		await fireEvent.change(services, { target: { value: 'UPS' } });
 		expect(view.queryByText('LTL freight')).not.toBeInTheDocument();
 		await fireEvent.change(services, { target: { value: 'LTL' } });
 		expect(view.queryByRole('tab', { name: 'Simple' })).not.toBeInTheDocument();
-		expect(view.container.querySelector('input[name$=".description"]')).toHaveValue('Tags');
+		expect(view.getByRole('textbox', { name: 'Freight item 1 NMFC code' })).toHaveValue(
+			'123456-01'
+		);
 		await fireEvent.change(services, { target: { value: 'Both' } });
 		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(25);
 		await fireEvent.click(view.getByRole('checkbox', { name: 'Liftgate delivery' }));
@@ -257,6 +270,26 @@ describe('shipping forms', () => {
 		const fields = new FormData(view.container.querySelector('form')!);
 		expect(fields.get('deliveryLiftgate')).toBe('on');
 		expect(fields.get('services')).toBe('Both');
+	});
+	it('uses the default NMFC for new and reset freight items while duplicates retain their edited code', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		expect(view.container.querySelector('[name$=".description"]')).toBeNull();
+		expect(view.container.querySelector('[name$=".freightClass"]')).toBeNull();
+		const first = view.getByRole('textbox', { name: 'Freight item 1 NMFC code' });
+		expect(first).toHaveValue('153500-02');
+		await fireEvent.input(first, { target: { value: '123456-01' } });
+		await fireEvent.click(view.getByRole('button', { name: 'Add freight item' }));
+		expect(view.getByRole('textbox', { name: 'Freight item 2 NMFC code' })).toHaveValue(
+			'153500-02'
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Duplicate freight 1' }));
+		expect(view.getByRole('textbox', { name: 'Freight item 3 NMFC code' })).toHaveValue(
+			'123456-01'
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Reset' }));
+		expect(view.getByRole('textbox', { name: 'Freight item 1 NMFC code' })).toHaveValue(
+			'153500-02'
+		);
 	});
 	it('opens markup CRUD in separate dialogs, supports blank upper bounds, and switches service tabs', async () => {
 		const view = render(Markups, {

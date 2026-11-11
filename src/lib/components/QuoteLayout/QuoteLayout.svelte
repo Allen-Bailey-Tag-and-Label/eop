@@ -10,6 +10,7 @@
 		extras: Snippet;
 		actions?: Snippet;
 		rates?: Snippet;
+		services?: Snippet;
 	};
 	let {
 		shipment,
@@ -17,12 +18,16 @@
 		extras,
 		actions,
 		rates,
+		services,
 		class: className,
 		variants = [],
 		...restProps
 	}: Props = $props();
 	let desktop = $state(false);
-	let opened = $state<Record<string, boolean>>({ 'Shipment Details': true });
+	let opened = $state<Record<string, boolean>>({
+		'Services to quote': true,
+		'Shipment Details': true
+	});
 	onMount(() => {
 		const media = window.matchMedia('(min-width: 1024px)');
 		const update = () => (desktop = media.matches);
@@ -45,7 +50,8 @@
 		role="region"
 		aria-label="Quote details"
 	>
-		{@render section('Shipment Details', shipment)}
+		{#if services}{@render section('Services to quote', services)}{/if}
+		{@render section('Shipment Details', shipment, !!services)}
 		{@render section('Package Info', packages, true)}
 		{@render section('Extras', extras, true)}
 		{#if actions}<Div class="col-span-full min-w-0">{@render actions()}</Div>{/if}

@@ -129,6 +129,7 @@ export const blankPackage = (): PackageGroup => ({
 	width: 12,
 	height: 12
 });
+export const DEFAULT_NMFC_CODE = '153500-02';
 export const blankFreight = (): FreightItem => ({
 	...blankPackage(),
 	weight: 100,
@@ -137,7 +138,7 @@ export const blankFreight = (): FreightItem => ({
 	height: 48,
 	description: '',
 	freightClass: '',
-	nmfc: '',
+	nmfc: DEFAULT_NMFC_CODE,
 	stackable: false
 });
 export const blankRequest = (shipDate: string): ShippingRequest => ({

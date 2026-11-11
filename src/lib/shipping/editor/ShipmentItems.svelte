@@ -1,13 +1,7 @@
 <script lang="ts">
-	import { Button, Card, Div, H3, Input, Select, Checkbox, P } from '$lib/components';
+	import { Button, Card, Div, H3, Input, Checkbox, P } from '$lib/components';
 	import { Copy, Plus, Trash2 } from '@lucide/svelte';
-	import {
-		FREIGHT_CLASSES,
-		blankPackage,
-		blankFreight,
-		type PackageGroup,
-		type FreightItem
-	} from '../types';
+	import { blankPackage, blankFreight, type PackageGroup, type FreightItem } from '../types';
 	let { items = $bindable(), freight = false }: { items: PackageGroup[]; freight?: boolean } =
 		$props();
 	const prefix = $derived(freight ? 'freight' : 'package');
@@ -68,30 +62,13 @@
 			{#if freight}
 				{@const cargo = item as FreightItem}
 				<Input
-					label="Commodity description"
-					name={`${prefix}.${item.id}.description`}
-					bind:value={cargo.description}
-					maxlength={200}
+					label="NMFC code"
+					aria-label={`Freight item ${index + 1} NMFC code`}
+					name={`${prefix}.${item.id}.nmfc`}
+					bind:value={cargo.nmfc}
+					maxlength={40}
 					required
 				/>
-				<Div class="grid gap-4 md:grid-cols-2">
-					<Select
-						label="Freight class"
-						name={`${prefix}.${item.id}.freightClass`}
-						bind:value={cargo.freightClass}
-						options={[
-							{ value: '', label: 'Select class' },
-							...FREIGHT_CLASSES.map((value) => ({ value, label: value }))
-						]}
-						required
-					/>
-					<Input
-						label="NMFC code (if known)"
-						name={`${prefix}.${item.id}.nmfc`}
-						bind:value={cargo.nmfc}
-						maxlength={40}
-					/>
-				</Div>
 				<Checkbox
 					label="Stackable"
 					name={`${prefix}.${item.id}.stackable`}

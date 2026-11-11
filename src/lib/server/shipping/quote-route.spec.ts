@@ -47,6 +47,29 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('shipping shared form submission', () => {
+	it('submits Both with an NMFC-only LTL item and no freight class or commodity description', async () => {
+		const body = fields();
+		body.set('services', 'Both');
+		body.append('freightId', 'freight-1');
+		for (const [key, value] of Object.entries({
+			quantity: '1',
+			weight: '100',
+			length: '48',
+			width: '40',
+			height: '48',
+			nmfc: '153500-02'
+		}))
+			body.set('freight.freight-1.' + key, value);
+		await expect(submit(event(body) as never)).rejects.toMatchObject({ status: 303 });
+		expect(createShippingQuote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				services: 'Both',
+				freight: [expect.objectContaining({ nmfc: '153500-02', description: '', freightClass: '' })]
+			}),
+			expect.any(String),
+			expect.any(String)
+		);
+	});
 	it('parses the real UPS controls and assigns the current business date without a date input', async () => {
 		await expect(submit(event(fields()) as never)).rejects.toMatchObject({
 			status: 303,

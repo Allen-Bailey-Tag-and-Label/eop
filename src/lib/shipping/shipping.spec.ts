@@ -28,12 +28,26 @@ describe('shipping validation and pricing', () => {
 	it('requires only the selected service fields and strips unused inputs', () => {
 		const value = shipment();
 		expect(parseShipment({ ...value, freight: null, accessorials: null }).packages).toHaveLength(1);
-		expect(() => parseShipment({ ...value, services: 'Both' })).toThrow('freight class');
-		value.freight[0].freightClass = '70';
-		value.freight[0].description = 'Tags and labels';
+		expect(parseShipment({ ...value, services: 'Both' }).freight[0]).toMatchObject({
+			nmfc: '153500-02',
+			description: '',
+			freightClass: ''
+		});
 		expect(parseShipment({ ...value, services: 'Both' }).freight).toHaveLength(1);
 		expect(parseShipment({ ...value, services: 'LTL', packages: null }).packages).toEqual([]);
 		expect(() => parseShipment({ ...value, services: 'unknown' })).toThrow('UPS, LTL, or Both');
+	});
+	it('requires an NMFC code but accepts LTL items without a commodity description or freight class', () => {
+		const value = shipment();
+		const { description, freightClass, ...freight } = value.freight[0];
+		expect(description).toBe('');
+		expect(freightClass).toBe('');
+		expect(
+			parseShipment({ ...value, services: 'LTL', freight: [freight] }).freight[0]
+		).toMatchObject({ nmfc: '153500-02' });
+		expect(() =>
+			parseShipment({ ...value, services: 'LTL', freight: [{ ...freight, nmfc: '' }] })
+		).toThrow('NMFC code');
 	});
 	it('rejects malformed dates, addresses, dangerous quantities, and UPS oversize packages', () => {
 		const value = shipment();

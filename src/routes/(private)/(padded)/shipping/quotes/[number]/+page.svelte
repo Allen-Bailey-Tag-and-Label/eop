@@ -115,8 +115,10 @@
 						class="space-y-3"
 						><H2>{section.title}</H2>{#each section.items as item (item.id)}<P
 								>{item.quantity} × {item.weight} lb · {item.length} × {item.width} × {item.height} in{#if isFreight(item)}
-									· {item.description} · Class {item.freightClass} · NMFC {item.nmfc ||
-										'Not specified'} · {item.stackable ? 'Stackable' : 'Not stackable'}{/if}</P
+									{#if item.description}· {item.description}{/if}{#if item.freightClass}
+										· Class {item.freightClass}{/if} · NMFC {item.nmfc || 'Not specified'} · {item.stackable
+										? 'Stackable'
+										: 'Not stackable'}{/if}</P
 							>{/each}</Card
 					>{/if}
 			{/each}

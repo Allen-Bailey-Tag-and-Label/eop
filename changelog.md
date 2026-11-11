@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T15:57:24.730Z
+## 2026-11-11T16:05:28.230Z
+
+feat: Simplify shipping quote services and NMFC freight entry
+
+## 2026-11-11T10:59:47-05:00
 
 feat: Share UPS quote controls and validation with shipping
 
