@@ -1,11 +1,12 @@
 import { getAccessToken, type Address } from '../';
 
-export const validateAddress = async (address: Address) => {
+export const validateAddress = async (address: Address, signal?: AbortSignal) => {
 	if (typeof address.zip === 'number') address.zip = address.zip.toString();
 
-	const token = await getAccessToken();
+	const token = await getAccessToken(signal);
 
 	const response = await fetch('https://onlinetools.ups.com/api/addressvalidation/v2/3', {
+		signal,
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',

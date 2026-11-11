@@ -1,10 +1,16 @@
 // getRates.ts
 import { getAccessToken, type Address, type Package } from '../';
 
-export const getRates = async (shipper: Address, shipTo: Address, upsPackage: Package) => {
-	const token = await getAccessToken();
+export const getRates = async (
+	shipper: Address,
+	shipTo: Address,
+	upsPackage: Package,
+	signal?: AbortSignal
+) => {
+	const token = await getAccessToken(signal);
 
 	const response = await fetch('https://onlinetools.ups.com/api/rating/v1/Shop', {
+		signal,
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',

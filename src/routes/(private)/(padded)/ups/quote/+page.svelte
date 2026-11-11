@@ -1,6 +1,8 @@
 <script lang="ts">
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import { Button, Div, Form, H1, Input, SubmitButton } from '$lib/components';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { createUpsQuote } from './quote.remote';
+	import { Button, Div, Form, H1, Input, Spinner } from '$lib/components';
 	import { slide } from 'svelte/transition';
 	import FormSections from './FormSections.svelte';
 
@@ -27,7 +29,10 @@
 	});
 	let isLoading = $state(false);
 	let isValidationRequired = $state(true);
+	let requestId = crypto.randomUUID();
+	let lastSubmission = '';
 	const reset = () => {
+		requestId = crypto.randomUUID();
 		formData = {
 			shipFrom: {
 				address: '',
@@ -47,18 +52,24 @@
 			}
 		};
 	};
-	const submitFunction: SubmitFunction = () => {
+	const submit = async (event: SubmitEvent) => {
+		event.preventDefault();
+		if (isLoading) return;
 		error = '';
 		isLoading = true;
-		return async ({ result, update }) => {
+		try {
+			const fields = Object.fromEntries(new FormData(event.currentTarget as HTMLFormElement));
+			const signature = JSON.stringify(fields);
+			if (lastSubmission && lastSubmission !== signature) requestId = crypto.randomUUID();
+			lastSubmission = signature;
+			const quote = await createUpsQuote({ ...fields, requestId });
+			await goto(resolve('/(private)/(padded)/ups/quote/[quote]', { quote: String(quote) }));
+		} catch (cause) {
+			error =
+				cause instanceof Error ? cause.message : 'Could not create the quote. Please try again.';
+		} finally {
 			isLoading = false;
-			if (result.type === 'failure') {
-				error = result?.data?.error ?? '';
-			}
-			if (result.type === 'redirect') {
-				await update();
-			}
-		};
+		}
 	};
 
 	const _branchIdOptions = $derived.by(() => [
@@ -84,7 +95,7 @@
 		<Div class="flex items-center justify-between space-x-2">
 			<H1 class="whitespace-nowrap">UPS Freight Estimator</H1>
 		</Div>
-		<Form class="flex w-auto max-w-none flex-col lg:items-end" {submitFunction}>
+		<Form class="flex w-auto max-w-none flex-col lg:items-end" isEnhanced={false} onsubmit={submit}>
 			<Input
 				class="sr-only absolute top-0 left-0 h-0 w-0"
 				type="hidden"
@@ -92,7 +103,7 @@
 				value={_branchId}
 			/>
 			<FormSections {_branchIdOptions} bind:_branchId bind:formData bind:isValidationRequired />
-			<Div class="min-h-6 w-full text-red-500">
+			<Div role="alert" class="min-h-6 w-full text-red-500">
 				{error}
 			</Div>
 			<Div class="flex justify-end space-x-2">
@@ -101,7 +112,9 @@
 						<Button onclick={reset} variants={['glass']}>Reset</Button>
 					</div>
 				{/if}
-				<SubmitButton bind:isLoading>Get Quote</SubmitButton>
+				<Button type="submit" disabled={isLoading} class="flex items-center gap-2">
+					{#if isLoading}<Spinner class="h-4 w-4" aria-hidden="true" />{/if}Get Quote
+				</Button>
 			</Div>
 		</Form>
 	</Div>

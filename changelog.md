@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-10T21:23:26.613Z
+## 2026-11-11T12:23:39.338Z
+
+refactor: Generate UPS quotes with remote functions and progress feedback
+
+## 2026-11-11T06:56:04-05:00
 
 refactor: Share quote numbering between UPS and shipping
 

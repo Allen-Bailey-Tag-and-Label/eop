@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blankRequest } from '$lib/shipping/types';
 
 const models = vi.hoisted(() => ({
-	ups: { findOne: vi.fn(), create: vi.fn() },
+	ups: { findOne: vi.fn(), create: vi.fn(), init: vi.fn(async () => {}) },
 	shipping: { aggregate: vi.fn(), findOne: vi.fn(), create: vi.fn(), init: vi.fn(async () => {}) },
 	sequence: { findOneAndUpdate: vi.fn() },
 	branch: { find: vi.fn(async () => []) }
@@ -12,6 +12,8 @@ vi.mock('../mongoose/models/ShippingQuote', () => ({
 	ShippingQuoteSequence: models.sequence
 }));
 vi.mock('../mongoose/models/UpsQuote', () => ({ UpsQuote: models.ups }));
+vi.mock('../mongoose/models/Branch', () => ({ Branch: models.branch }));
+vi.mock('$lib/ups', () => ({ getRates: vi.fn(), validateAddress: vi.fn() }));
 vi.mock('$lib/server/mongoose/models', () => ({ UpsQuote: models.ups, Branch: models.branch }));
 vi.mock('$lib/server/mongoose', () => ({ connect: vi.fn(async () => {}) }));
 vi.mock('$app/forms', () => ({
@@ -53,8 +55,8 @@ beforeEach(() => {
 	upsNumber = 1500;
 	shippingNumbers = [];
 	reserved = undefined;
-	models.ups.findOne.mockImplementation(() =>
-		query(upsNumber === null ? null : { quote: upsNumber })
+	models.ups.findOne.mockImplementation((filter?: { requestKey?: string }) =>
+		query(filter?.requestKey || upsNumber === null ? null : { quote: upsNumber })
 	);
 	models.shipping.aggregate.mockImplementation(async () =>
 		shippingNumbers.length
@@ -171,11 +173,11 @@ describe('shared shipping and UPS quote numbering', () => {
 		await expect(nextServer.nextQuoteNumber()).rejects.toThrow('numbering range');
 	});
 	it('uses a single sequence when actual UPS and shipping creation paths alternate', async () => {
-		const { actions } = await import('../../../routes/(private)/(padded)/ups/quote/+page.server');
+		const { createPendingUpsQuote } = await import('../ups/quotes');
 		const { createShippingQuote } = await import('./quotes');
 		const createUps = () => {
-			const fields = new FormData();
-			for (const [key, value] of Object.entries({
+			const fields = {
+				requestId: crypto.randomUUID(),
 				_branchId: 'a'.repeat(24),
 				isValidated: 'false',
 				shipFromAddress: '3177 Lehigh Street',
@@ -188,20 +190,18 @@ describe('shared shipping and UPS quote numbering', () => {
 				shipToState: 'NY',
 				packageInfoTotalPackages: '1',
 				packageInfoTotalWeight: '10'
-			}))
-				fields.set(key, value);
-			return actions.default!({
-				request: new Request('https://eop.example/ups/quote', { method: 'POST', body: fields }),
-				locals: { user: { _id: 'b'.repeat(24) } },
-				fetch: async () => new Response('{}')
-			} as never);
+			};
+			return createPendingUpsQuote(fields, {
+				_id: 'b'.repeat(24),
+				branches: [{ _id: 'a'.repeat(24) }]
+			} as App.Locals['user']);
 		};
-		await expect(createUps()).rejects.toMatchObject({ status: 303, location: '/ups/quote/1501' });
+		await expect(createUps()).resolves.toBe(1501);
 		const request = blankRequest('2026-11-10');
 		request.branchId = 'a'.repeat(24);
 		request.services = 'Both';
 		expect(await createShippingQuote(request, crypto.randomUUID(), 'b'.repeat(24))).toBe('1502');
-		await expect(createUps()).rejects.toMatchObject({ status: 303, location: '/ups/quote/1503' });
+		await expect(createUps()).resolves.toBe(1503);
 		expect(models.ups.create.mock.calls.map(([row]) => row.quote)).toEqual([1501, 1503]);
 		expect(models.shipping.create).toHaveBeenCalledWith(
 			expect.objectContaining({

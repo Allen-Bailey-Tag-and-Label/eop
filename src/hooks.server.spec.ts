@@ -76,6 +76,52 @@ beforeEach(() => {
 });
 
 describe('central monitor authentication', () => {
+	it('requires UPS quote permission for remote commands even with a forged public or monitor page URL', async () => {
+		for (const [route, path] of [
+			['/(public)/sign-in', '/sign-in'],
+			['/(monitors)/monitors/status', '/monitors/status'],
+			['/(private)/(padded)/dashboard', '/dashboard']
+		]) {
+			const input = context(route, path, 'a'.repeat(24));
+			Object.assign(input.event, {
+				isRemoteRequest: true,
+				request: new Request('https://eop.example/_app/remote/test/advanceUpsQuote', {
+					method: 'POST'
+				})
+			});
+			expect((await invoke(input)).status).toBe(303);
+			expect(input.resolve).not.toHaveBeenCalled();
+		}
+		userModel.findById.mockReturnValue(userQuery(userWithRoutes(['/ups/quote'])));
+		const allowed = context(
+			'/(private)/(padded)/ups/quote/[quote]',
+			'/ups/quote/1234',
+			'a'.repeat(24)
+		);
+		Object.assign(allowed.event, {
+			isRemoteRequest: true,
+			request: new Request('https://eop.example/_app/remote/test/advanceUpsQuote', {
+				method: 'POST'
+			})
+		});
+		expect((await invoke(allowed)).status).toBe(200);
+		expect(allowed.event.locals.user._id).toBe('a'.repeat(24));
+	});
+	it('rejects unregistered remote commands and requires login for registered commands', async () => {
+		const input = context('/(public)/sign-in', '/sign-in');
+		Object.assign(input.event, {
+			isRemoteRequest: true,
+			request: new Request('https://eop.example/_app/remote/test/unknown', { method: 'POST' })
+		});
+		expect((await invoke(input)).status).toBe(403);
+		Object.assign(input.event, {
+			request: new Request('https://eop.example/_app/remote/test/createUpsQuote', {
+				method: 'POST'
+			})
+		});
+		expect((await invoke(input)).headers.get('location')).toBe('/sign-in');
+		expect(input.resolve).not.toHaveBeenCalled();
+	});
 	it('keeps pairing and polling public without an employee session', async () => {
 		for (const path of ['pair', 'status']) {
 			const input = context(`/(monitors)/monitors/${path}`, `/monitors/${path}`);

@@ -1,14 +1,10 @@
 import { connect } from '$lib/server/mongoose';
-import { UpsQuote } from '$lib/server/mongoose/models';
-import type { PageLoad } from './$types';
+import { findUpsQuote } from '$lib/server/ups/quotes';
+import type { PageServerLoad } from './$types';
 
-export const load: PageLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, setHeaders }) => {
+	setHeaders({ 'cache-control': 'private, no-store' });
 	await connect();
 
-	return {
-		quote: new Promise(async (res) => {
-			const quote = await UpsQuote.findOne({ quote: params.quote });
-			res(JSON.parse(JSON.stringify(quote)));
-		})
-	};
+	return { quote: await findUpsQuote(params.quote) };
 };

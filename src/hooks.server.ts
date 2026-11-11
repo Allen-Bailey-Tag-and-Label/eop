@@ -127,11 +127,22 @@ const initDB = async () => {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// A remote caller can forge its originating page headers. Bind commands to
+	// feature permissions here instead of trusting the caller's page URL.
+	const remotePaths = new Map([
+		['createUpsQuote', '/ups/quote'],
+		['advanceUpsQuote', '/ups/quote']
+	]);
+	const remotePath = event.isRemoteRequest
+		? remotePaths.get(new URL(event.request.url).pathname.split('/').at(-1) ?? '')
+		: undefined;
+	if (event.isRemoteRequest && !remotePath) return new Response('Forbidden', { status: 403 });
+	const accessPath = remotePath ?? event.url.pathname;
 	await connect();
 	await preserveMonitorApprovals();
 
 	// Device credentials are independent of employees and only authorize monitor displays.
-	if (event.route.id?.startsWith('/(monitors)/')) {
+	if (!event.isRemoteRequest && event.route.id?.startsWith('/(monitors)/')) {
 		event.setHeaders({ 'cache-control': 'private, no-store' });
 		if (event.route.id.startsWith('/(monitors)/monitors/(approved)/')) {
 			const session = await getMonitorSession(event.cookies.get(MONITOR_COOKIE));
@@ -152,6 +163,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Published posts and forms use record-level audiences, enforced centrally for pages and submissions.
 	if (
+		!event.isRemoteRequest &&
 		['/(public)/(padded)/news/', '/(public)/(padded)/posts/'].some((prefix) =>
 			event.route.id?.startsWith(prefix)
 		)
@@ -162,13 +174,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// handle root path
-	if (event.url.pathname === '/') {
+	if (!event.isRemoteRequest && event.url.pathname === '/') {
 		if (userIdCookie === undefined) return redirect('/sign-in');
 		if (userIdCookie !== undefined) return redirect('/dashboard');
 	}
 
 	// handle (private) routes
-	if (event.route.id?.startsWith('/(private)')) {
+	if (event.isRemoteRequest || event.route.id?.startsWith('/(private)')) {
 		if (userIdCookie === undefined || userIdCookie === '') return redirect('/sign-in');
 
 		const userId = new Types.ObjectId(userIdCookie);
@@ -249,11 +261,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const { passwordHash, roles, ...user } = userData;
 
 		const navigationMap = buildNavigationMap(roles);
-		const navigation = navigationMapToArray({ currentPath: event.url.pathname, navigationMap });
+		const navigation = navigationMapToArray({ currentPath: accessPath, navigationMap });
 
 		const isMatch = navigation.some((route) => {
 			const routeHref = route.href;
-			const pathname = event.url.pathname;
+			const pathname = accessPath;
 
 			// Exact match
 			if (pathname === routeHref) return true;
@@ -263,7 +275,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		});
 
 		// Redirect if event.url.pathname is not in flatRoutes
-		if (!isMatch && !event.url.pathname.startsWith('/api')) return redirect('/dashboard');
+		if (!isMatch && !accessPath.startsWith('/api')) return redirect('/dashboard');
 
 		event.locals.navigation = navigation;
 		event.locals.user = user;
