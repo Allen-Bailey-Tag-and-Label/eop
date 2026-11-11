@@ -55,6 +55,7 @@
 	import type { Props, Row, TdSnippet } from './types';
 
 	let {
+		class: className = '',
 		columns = $bindable([]),
 		columnInferredTypes = $bindable([]),
 		columnsSanitized = $bindable([]),
@@ -504,7 +505,7 @@
 	});
 </script>
 
-<Card class="flex max-h-full max-w-full flex-col overflow-auto p-0">
+<Card class={twMerge('flex max-h-full max-w-full flex-col overflow-auto p-0', className)}>
 	{#if toolbar}
 		{@render toolbar()}
 	{:else if isToolbarVisible}

@@ -54,6 +54,7 @@ export type PaginationSettings = {
 	totalPages: number;
 };
 export type Props<CompareType = any> = {
+	class?: string;
 	columns: Column<CompareType>[];
 	columnInferredTypes?: string[];
 	columnOverrides?: ColumnOverrides;

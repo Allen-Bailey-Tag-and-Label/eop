@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Datatable, Details, Div, P, Summary, Tabs } from '$lib/components';
+	import { Datatable, Details, Div, P, Summary, Tabs, Td } from '$lib/components';
 	import { currency } from '$lib/formats';
-	import type { Column } from '$lib/components/Datatable/types';
+	import type { Column, TdSnippet } from '$lib/components/Datatable/types';
 	import { UPS_SERVICES, type QuoteScenario } from './quote';
 
 	type Props = { scenarios: QuoteScenario[] };
@@ -58,6 +58,7 @@
 				({
 					...column,
 					type: 'function',
+					snippet: rateCell,
 					class: 'text-right whitespace-nowrap',
 					compareFn: compareRates,
 					valueFn: ({ key, object }) => formatRate(object[key])
@@ -82,27 +83,31 @@
 </script>
 
 <Div class="min-w-0 space-y-4" role="region" aria-label="UPS rate comparison">
-	<Tabs
-		aria-label="Rate table layout"
-		bind:value={orientation}
-		tabs={[
-			{ title: 'Services as rows', value: 'services' },
-			{ title: 'Quantities as rows', value: 'quantities' }
-		]}
-	/>
-	{#key orientation}
-		<Datatable
-			{columns}
-			{rows}
-			isCreatable={false}
-			isEditable={false}
-			isDeletable={false}
-			isSelectable={false}
-			isFilterable={false}
-			isPaginateable={false}
-			isColumnsReorderable={false}
+	<Div class="min-w-0">
+		<Tabs
+			class="gap-0 rounded-b-none p-0 [&_button]:rounded-b-none"
+			aria-label="Rate table layout"
+			bind:value={orientation}
+			tabs={[
+				{ title: 'Services as rows', value: 'services' },
+				{ title: 'Quantities as rows', value: 'quantities' }
+			]}
 		/>
-	{/key}
+		{#key orientation}
+			<Datatable
+				class="rounded-t-none"
+				{columns}
+				{rows}
+				isCreatable={false}
+				isEditable={false}
+				isDeletable={false}
+				isSelectable={false}
+				isFilterable={false}
+				isPaginateable={false}
+				isColumnsReorderable={false}
+			/>
+		{/key}
+	</Div>
 	<Details>
 		<Summary>Packing details</Summary>
 		<Div class="grid gap-4 pt-4 sm:grid-cols-2">
@@ -115,6 +120,10 @@
 			>{/if}
 	{/each}
 </Div>
+
+{#snippet rateCell({ key, object }: TdSnippet)}
+	<Td class="text-right whitespace-nowrap">{formatRate(object[key])}</Td>
+{/snippet}
 
 {#snippet quantity(scenario: QuoteScenario, index: number)}
 	<Div class="min-w-40 space-y-1">

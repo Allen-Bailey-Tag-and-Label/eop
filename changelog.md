@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T18:49:39.456Z
+## 2026-11-11T18:53:58.448Z
+
+fix: Align UPS rates and join comparison tabs to the table
+
+## 2026-11-11T13:51:51-05:00
 
 feat: Add sorting and export to UPS rate comparisons
 
