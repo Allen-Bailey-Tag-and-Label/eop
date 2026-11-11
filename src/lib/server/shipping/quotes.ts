@@ -25,6 +25,15 @@ export async function collectRates(request: ShippingRequest) {
 				if (!unishippersStatus().configured)
 					return {
 						rates: [],
+						...(request.ltlScenarios
+							? {
+									ltlScenarios: request.ltlScenarios.map((scenario) => ({
+										...scenario,
+										status: 'failed' as const,
+										message: 'Unishippers LTL is not configured on this server.'
+									}))
+								}
+							: {}),
 						attempt: {
 							service,
 							status: 'not-configured',
@@ -32,38 +41,86 @@ export async function collectRates(request: ShippingRequest) {
 								'Unishippers LTL is not configured on this server. The freight details have been saved.'
 						} as ProviderAttempt
 					};
-				try {
-					const rates = (await getUnishippersShippingRates(request)).map((rate) =>
-						priceRate(rate, configs.find((config) => config.service === 'LTL')!)
-					);
-					const warnings = [
-						...new Set(
-							rates.flatMap((rate) =>
-								rate.classificationWarning ? [rate.classificationWarning] : []
-							)
+				const scenarios = request.ltlScenarios ?? [
+					{ id: '', label: '', freight: request.freight, status: 'pending' as const, message: '' }
+				];
+				const rows = await Promise.all(
+					scenarios.map(async (scenario, index) => {
+						const scenarioLabel =
+							scenario.label ||
+							('unitQuantity' in scenario && scenario.unitQuantity
+								? `${Number(scenario.unitQuantity).toLocaleString('en-US')} units`
+								: `Rate row ${index + 1}`);
+						try {
+							const incoming = await getUnishippersShippingRates({
+								...request,
+								freight: scenario.freight
+							});
+							const seen = new Map<string, number>();
+							const rates = incoming.map((rate) => {
+								const key = `${rate.code}:${rate.description}`;
+								const ordinal = seen.get(key) ?? 0;
+								seen.set(key, ordinal + 1);
+								return priceRate(
+									{
+										...rate,
+										...(request.ltlScenarios
+											? {
+													scenarioId: scenario.id,
+													scenarioLabel,
+													comparisonKey: `${key}:${ordinal}`,
+													...('unitQuantity' in scenario && scenario.unitQuantity
+														? { unitQuantity: Number(scenario.unitQuantity) }
+														: {})
+												}
+											: {})
+									},
+									configs.find((config) => config.service === 'LTL')!
+								);
+							});
+							return {
+								rates,
+								scenario: {
+									...scenario,
+									status: rates.length ? ('complete' as const) : ('failed' as const),
+									message: rates.length ? '' : 'No LTL offers were returned.'
+								}
+							};
+						} catch (cause) {
+							return {
+								rates: [] as PricedRate[],
+								scenario: {
+									...scenario,
+									status: 'failed' as const,
+									message:
+										cause instanceof ShippingError
+											? cause.message
+											: 'Unishippers rates are temporarily unavailable. Quote again to retry.'
+								}
+							};
+						}
+					})
+				);
+				const rates = rows.flatMap((row) => row.rates);
+				const warnings = [
+					...new Set(
+						rates.flatMap((rate) =>
+							rate.classificationWarning ? [rate.classificationWarning] : []
 						)
-					];
-					return {
-						rates,
-						attempt: {
-							service,
-							status: 'success',
-							message: `${rates.length} Unishippers LTL offers returned.${rates.some((rate) => rate.staging) ? ' Staging test prices; not live-account rates.' : ''}${warnings.length ? ' ' + warnings.join(' ') : ''}`
-						} as ProviderAttempt
-					};
-				} catch (cause) {
-					return {
-						rates: [],
-						attempt: {
-							service,
-							status: 'error',
-							message:
-								cause instanceof ShippingError
-									? cause.message
-									: 'Unishippers rates are temporarily unavailable. Quote again to retry.'
-						} as ProviderAttempt
-					};
-				}
+					)
+				];
+				const failures = rows
+					.filter((row) => row.scenario.status === 'failed')
+					.map((row) => row.scenario.message);
+				return {
+					rates,
+					...(request.ltlScenarios ? { ltlScenarios: rows.map((row) => row.scenario) } : {}),
+					attempt: {
+						service,
+						status: rates.length ? 'success' : 'error',
+						message: `${rates.length} Unishippers LTL offers returned.${rates.some((rate) => rate.staging) ? ' Staging test prices; not live-account rates.' : ''}${[...warnings, ...failures].length ? ' ' + [...warnings, ...failures].join(' ') : ''}`
+					} as ProviderAttempt
+				};
 			}
 			if (request.upsScenarios?.length) {
 				const rows = await Promise.all(
@@ -166,6 +223,9 @@ export async function collectRates(request: ShippingRequest) {
 	return {
 		rates: results.flatMap((result) => result.rates) as PricedRate[],
 		attempts: results.map((result) => result.attempt),
+		ltlScenarios: results.flatMap((result) =>
+			'ltlScenarios' in result ? (result.ltlScenarios ?? []) : []
+		),
 		upsScenarios: results.flatMap((result) =>
 			'upsScenarios' in result ? (result.upsScenarios ?? []) : []
 		)
@@ -184,7 +244,7 @@ export async function createShippingQuote(
 	const existing = await ShippingQuote.findOne({ requestKey }).select('number').lean();
 	if (existing) return existing.number;
 	const validated = await validateShippingDestination(request);
-	const { upsScenarios, ...result } = await collectRates(validated);
+	const { upsScenarios, ltlScenarios, ...result } = await collectRates(validated);
 	const number = String(await nextQuoteNumber());
 	try {
 		await ShippingQuote.create({
@@ -192,7 +252,11 @@ export async function createShippingQuote(
 			requestKey,
 			_createdById: userId,
 			_branchId: request.branchId,
-			request: upsScenarios.length ? { ...validated, upsScenarios } : validated,
+			request: {
+				...validated,
+				...(upsScenarios.length ? { upsScenarios } : {}),
+				...(ltlScenarios.length ? { ltlScenarios } : {})
+			},
 			...result
 		});
 	} catch (error) {

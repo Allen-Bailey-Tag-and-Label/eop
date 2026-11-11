@@ -14,7 +14,7 @@
 		Textarea
 	} from '$lib/components';
 	import { Copy, Plus, Trash2 } from '@lucide/svelte';
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import {
 		blankRateScenario,
 		MAX_RATE_SCENARIOS,
@@ -24,11 +24,29 @@
 	import { calculateCases } from './casePacking';
 	import PackageWeights from './PackageWeights.svelte';
 	import CasePackingFields from './CasePackingFields.svelte';
-	let { rows = $bindable([]) }: { rows?: RateScenarioInput[] } = $props();
+	let {
+		rows = $bindable([]),
+		packageFields,
+		createRow = blankRateScenario,
+		copyRow,
+		showServices = true,
+		freight = false,
+		fieldName = 'rateScenarios'
+	}: {
+		rows?: RateScenarioInput[];
+		packageFields?: Snippet<[RateScenarioInput, number]>;
+		createRow?: () => RateScenarioInput;
+		copyRow?: (row: RateScenarioInput) => RateScenarioInput;
+		showServices?: boolean;
+		freight?: boolean;
+		fieldName?: string;
+	} = $props();
 	const hasAdvancedSettings = () =>
 		rows.length > 1 ||
 		rows.some(
-			(row) => row.label || UPS_SERVICES.some((service) => !row.services.includes(service.code))
+			(row) =>
+				row.label ||
+				(showServices && UPS_SERVICES.some((service) => !row.services.includes(service.code)))
 		);
 	let advanced = $state(untrack(hasAdvancedSettings));
 	let loadedRow: string | undefined;
@@ -48,13 +66,17 @@
 	let helperOpen = $state(false);
 	const quantityExample = '10000\n20000\n30000';
 	function add() {
-		rows = [...rows, blankRateScenario()];
+		rows = [...rows, createRow()];
 	}
 	function duplicate(row: RateScenarioInput) {
+		if (copyRow) {
+			rows = [...rows, copyRow(row)];
+			return;
+		}
 		rows = [
 			...rows,
 			{
-				...row,
+				...structuredClone($state.snapshot(row)),
 				id: crypto.randomUUID(),
 				services: [...row.services],
 				groups: row.groups.map((group) => ({ ...group, id: crypto.randomUUID() }))
@@ -73,14 +95,18 @@
 				if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(line))
 					throw new Error('Enter one whole-number quantity per line.');
 				const units = Number(line.replaceAll(',', ''));
-				calculateCases(units, {
-					unitsPerCarton: Number(unitsPerCarton),
-					cartonWeight: Number(cartonWeight),
-					tareWeight: Number(tareWeight || 0),
-					partialCase
-				});
+				calculateCases(
+					units,
+					{
+						unitsPerCarton: Number(unitsPerCarton),
+						cartonWeight: Number(cartonWeight),
+						tareWeight: Number(tareWeight || 0),
+						partialCase
+					},
+					{ maxWeight: freight ? 20000 : 150, maxCount: freight ? 100 : 50 }
+				);
 				return {
-					...blankRateScenario(),
+					...createRow(),
 					unitQuantity: String(units),
 					weightMode: 'cartons' as const,
 					unitsPerCarton,
@@ -110,7 +136,7 @@
 </script>
 
 <Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
-	<Input type="hidden" name="rateScenarios" value={JSON.stringify(rows)} />
+	<Input type="hidden" name={fieldName} value={JSON.stringify(rows)} />
 	<Tabs
 		class="col-span-full"
 		aria-label="Shipment options"
@@ -138,21 +164,26 @@
 					min={1}
 					step={1}
 					required
-					bind:value={rows[0].unitQuantity}
+					bind:value={
+						() => String(rows[0].unitQuantity ?? ''),
+						(value) => (rows[0].unitQuantity = String(value ?? ''))
+					}
 				/>
 			{/if}
-			<PackageWeights
-				bind:mode={rows[0].weightMode}
-				bind:totalPackages={rows[0].totalPackages}
-				bind:totalWeight={rows[0].totalWeight}
-				bind:eachWeight={rows[0].eachWeight}
-				bind:groups={rows[0].groups}
-				unitQuantity={rows[0].unitQuantity}
-				bind:unitsPerCarton={rows[0].unitsPerCarton}
-				bind:cartonWeight={rows[0].cartonWeight}
-				bind:tareWeight={rows[0].tareWeight}
-				bind:partialCase={rows[0].partialCase}
-			/>
+			{#if packageFields}{@render packageFields(rows[0], 0)}{:else}
+				<PackageWeights
+					bind:mode={rows[0].weightMode}
+					bind:totalPackages={rows[0].totalPackages}
+					bind:totalWeight={rows[0].totalWeight}
+					bind:eachWeight={rows[0].eachWeight}
+					bind:groups={rows[0].groups}
+					unitQuantity={rows[0].unitQuantity}
+					bind:unitsPerCarton={rows[0].unitsPerCarton}
+					bind:cartonWeight={rows[0].cartonWeight}
+					bind:tareWeight={rows[0].tareWeight}
+					bind:partialCase={rows[0].partialCase}
+				/>
+			{/if}
 		{/if}
 	{:else}
 		<Div class="col-span-full flex justify-end">
@@ -161,7 +192,7 @@
 				onclick={() => {
 					helperError = '';
 					helperOpen = true;
-				}}>Build rows from case quantities</Button
+				}}>Build rows from {freight ? 'pallet' : 'case'} quantities</Button
 			>
 		</Div>
 		{#each rows as row, index (row.id)}
@@ -202,43 +233,50 @@
 					min={1}
 					step={1}
 					required={row.weightMode === 'cartons'}
-					bind:value={row.unitQuantity}
+					bind:value={
+						() => String(row.unitQuantity ?? ''),
+						(value) => (row.unitQuantity = String(value ?? ''))
+					}
 				/>
-				<Div
-					class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-2"
-					role="group"
-					aria-label={`Services for rate row ${index + 1}`}
-				>
-					<P class="col-span-full font-semibold">Services</P>
-					{#each UPS_SERVICES as service (service.code)}<Div class="flex items-center gap-2"
-							><Checkbox
-								id={`service-${row.id}-${service.code}`}
-								aria-label={service.title}
-								checked={row.services.includes(service.code)}
-								onchange={(event) => {
-									row.services = event.currentTarget.checked
-										? [...row.services, service.code]
-										: row.services.filter((code) => code !== service.code);
-								}}
-							/><Label for={`service-${row.id}-${service.code}`}>{service.title}</Label></Div
-						>{/each}
-					{#if !row.services.length}<P class="col-span-full" role="alert"
-							>Select at least one service.</P
-						>{/if}
-				</Div>
-				<PackageWeights
-					prefix={index === 0 ? '' : `scenario.${row.id}`}
-					bind:mode={row.weightMode}
-					bind:totalPackages={row.totalPackages}
-					bind:totalWeight={row.totalWeight}
-					bind:eachWeight={row.eachWeight}
-					bind:groups={row.groups}
-					unitQuantity={row.unitQuantity}
-					bind:unitsPerCarton={row.unitsPerCarton}
-					bind:cartonWeight={row.cartonWeight}
-					bind:tareWeight={row.tareWeight}
-					bind:partialCase={row.partialCase}
-				/>
+				{#if showServices}
+					<Div
+						class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-2"
+						role="group"
+						aria-label={`Services for rate row ${index + 1}`}
+					>
+						<P class="col-span-full font-semibold">Services</P>
+						{#each UPS_SERVICES as service (service.code)}<Div class="flex items-center gap-2"
+								><Checkbox
+									id={`service-${row.id}-${service.code}`}
+									aria-label={service.title}
+									checked={row.services.includes(service.code)}
+									onchange={(event) => {
+										row.services = event.currentTarget.checked
+											? [...row.services, service.code]
+											: row.services.filter((code) => code !== service.code);
+									}}
+								/><Label for={`service-${row.id}-${service.code}`}>{service.title}</Label></Div
+							>{/each}
+						{#if !row.services.length}<P class="col-span-full" role="alert"
+								>Select at least one service.</P
+							>{/if}
+					</Div>
+				{/if}
+				{#if packageFields}{@render packageFields(row, index)}{:else}
+					<PackageWeights
+						prefix={index === 0 ? '' : `scenario.${row.id}`}
+						bind:mode={row.weightMode}
+						bind:totalPackages={row.totalPackages}
+						bind:totalWeight={row.totalWeight}
+						bind:eachWeight={row.eachWeight}
+						bind:groups={row.groups}
+						unitQuantity={row.unitQuantity}
+						bind:unitsPerCarton={row.unitsPerCarton}
+						bind:cartonWeight={row.cartonWeight}
+						bind:tareWeight={row.tareWeight}
+						bind:partialCase={row.partialCase}
+					/>
+				{/if}
 			</Card>
 		{/each}
 		<Div class="col-span-full flex justify-end"
@@ -255,7 +293,7 @@
 {#if helperOpen}
 	<Modal
 		bind:isOpen={helperOpen}
-		title="Build rows from case quantities"
+		title={`Build rows from ${freight ? 'pallet' : 'case'} quantities`}
 		class="max-h-[90svh] w-full max-w-lg space-y-4 overflow-y-auto p-5"
 	>
 		<Div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
@@ -264,6 +302,7 @@
 				lines. New rows use the first row’s service choices.</P
 			>
 			<CasePackingFields
+				{freight}
 				bind:unitsPerCarton
 				bind:cartonWeight
 				bind:tareWeight

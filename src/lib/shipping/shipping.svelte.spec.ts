@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { SubmitFunction } from '@sveltejs/kit';
 import Quote from '../../routes/(private)/(padded)/shipping/quote/+page.svelte';
@@ -8,6 +8,7 @@ import Detail from '../../routes/(private)/(padded)/shipping/quotes/[number]/+pa
 import Finder from '../../routes/(private)/(padded)/shipping/quote-finder/+page.svelte';
 import { legacyQuoteView } from './legacy';
 import { blankRequest } from './types';
+import { parsePackingScenarios } from './packing';
 const submitHandlers = vi.hoisted(() => new Map<HTMLFormElement, SubmitFunction>());
 vi.mock('$app/forms', () => ({
 	enhance: (form: HTMLFormElement, submit: SubmitFunction) => {
@@ -55,6 +56,111 @@ function quoteData() {
 	};
 }
 describe('shipping forms', () => {
+	it('keeps the entered total when changing to different pallet weights', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		await fireEvent.click(view.getByRole('tab', { name: 'LTL' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Pallet quantity' }), {
+			target: { value: '3' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' }), {
+			target: { value: '10' }
+		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Different weights' }));
+		const parsed = parsePackingScenarios(
+			new FormData(view.container.querySelector('form')!).get('shippingScenarios'),
+			'LTL'
+		);
+		expect(
+			Number(
+				parsed.ltlScenarios[0].freight
+					.reduce((sum, item) => sum + item.quantity * item.weight, 0)
+					.toFixed(3)
+			)
+		).toBe(10);
+	});
+	it('serializes and duplicates different-weight pallet groups without sharing their dimensions', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		await fireEvent.click(view.getByRole('tab', { name: 'LTL' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Pallet quantity' }), {
+			target: { value: '2' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' }), {
+			target: { value: '1000' }
+		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Different weights' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Width (in) for pallet group 1' }), {
+			target: { value: '60' }
+		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Duplicate rate row 1' }));
+		await fireEvent.input(
+			within(view.getByRole('region', { name: 'Rate scenario 2' })).getByRole('spinbutton', {
+				name: 'Width (in) for pallet group 1'
+			}),
+			{ target: { value: '50' } }
+		);
+		const parsed = parsePackingScenarios(
+			new FormData(view.container.querySelector('form')!).get('shippingScenarios'),
+			'LTL'
+		);
+		expect(parsed.ltlScenarios.map((scenario) => scenario.freight[0].width)).toEqual([60, 50]);
+	});
+	it('shares one reactive weight between UPS cartons and LTL pallets and allows entry from either basis', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		const input = async (name: string, value: string) =>
+			fireEvent.input(view.getByRole('spinbutton', { name }), { target: { value } });
+		await input('Total Packages', '20');
+		await input('Total Weight (lbs)', '1000');
+		await input('Pallet quantity', '2');
+		const parsed = () =>
+			parsePackingScenarios(
+				new FormData(view.container.querySelector('form')!).get('shippingScenarios'),
+				'Both'
+			);
+		expect(parsed().upsScenarios[0].packageTotalWeight).toBe(1000);
+		expect(parsed().ltlScenarios[0].freight[0]).toMatchObject({ quantity: 2, weight: 500 });
+		await input('Total Weight (lbs)', '2000');
+		expect(view.getByText('Shared total weight: 2000 lb')).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('tab', { name: 'Enter pallet weights' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Per pallet' }));
+		await input('Weight per pallet (lbs)', '500');
+		expect(parsed().upsScenarios[0].packageGroups).toEqual([{ quantity: 20, weight: 50 }]);
+		expect(parsed().ltlScenarios[0].freight[0]).toMatchObject({ quantity: 2, weight: 500 });
+		await fireEvent.click(view.getByRole('tab', { name: 'UPS' }));
+		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(1000);
+		expect(view.getByRole('spinbutton', { name: 'Total Packages' })).toHaveValue(20);
+	});
+	it('uses all four LTL modes and creates independent Advanced case quantities', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		await fireEvent.click(view.getByRole('tab', { name: 'LTL' }));
+		for (const name of ['Total weight', 'Per pallet', 'Different weights', 'Cases / units'])
+			expect(view.getByRole('tab', { name })).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('tab', { name: 'Cases / units' }));
+		for (const [name, value] of [
+			['Total units', '20000'],
+			['Units per pallet', '10000'],
+			['Full pallet weight (lbs)', '500']
+		])
+			await fireEvent.input(view.getByRole('spinbutton', { name }), { target: { value } });
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
+		expect(view.queryByRole('checkbox', { name: 'Ground' })).not.toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Duplicate rate row 1' }));
+		await fireEvent.input(
+			within(view.getByRole('region', { name: 'Rate scenario 2' })).getByRole('spinbutton', {
+				name: 'Total units for rate row 2'
+			}),
+			{ target: { value: '40000' } }
+		);
+		const parsed = parsePackingScenarios(
+			new FormData(view.container.querySelector('form')!).get('shippingScenarios'),
+			'LTL'
+		);
+		expect(
+			parsed.ltlScenarios.map((scenario) =>
+				scenario.freight.reduce((sum, item) => sum + item.quantity * item.weight, 0)
+			)
+		).toEqual([1000, 2000]);
+	});
 	it('shares the quote layout and shows saved staging LTL prices with configurable detail columns', async () => {
 		const view = render(Detail, {
 			data: {
@@ -107,8 +213,8 @@ describe('shipping forms', () => {
 	it('shares the actual UPS addresses, package options and Extras without unwanted fields', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
 		expect(view.queryByRole('link', { name: 'Quote history' })).not.toBeInTheDocument();
-		const services = view.getByRole('combobox', { name: 'Services to quote' });
-		expect(services).toHaveValue('Both');
+		const services = view.getByRole('tablist', { name: 'Services to quote' });
+		expect(view.getByRole('tab', { name: 'Both' })).toHaveAttribute('aria-selected', 'true');
 		expect(
 			view.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
 		).toEqual(['Services to quote', 'Shipment Details', 'Package Info', 'Extras']);
@@ -157,25 +263,21 @@ describe('shipping forms', () => {
 		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Duplicate rate row 1' }));
 		const form = view.container.querySelector('form')!;
-		const rows = JSON.parse(String(new FormData(form).get('rateScenarios')));
+		const rows = JSON.parse(String(new FormData(form).get('shippingScenarios')));
 		expect(rows).toHaveLength(2);
 		expect(rows[0].id).not.toBe(rows[1].id);
 		expect(Number(rows[1].totalWeight)).toBe(50);
-		await fireEvent.change(view.container.querySelector('[name="services"]')!, {
-			target: { value: 'Both' }
-		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Both' }));
 		await fireEvent.click(view.getByRole('checkbox', { name: 'Liftgate delivery' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Reset' }));
 		const reset = new FormData(form);
 		expect(reset.get('requestId')).not.toBe(data.requestId);
 		expect(reset.get('_branchId')).toBe('a'.repeat(24));
 		expect(reset.get('services')).toBe('Both');
-		expect(JSON.parse(String(reset.get('rateScenarios')))).toHaveLength(1);
+		expect(JSON.parse(String(reset.get('shippingScenarios')))).toHaveLength(1);
 		expect(view.getByRole('tab', { name: 'Simple' })).toHaveAttribute('aria-selected', 'true');
 		expect(view.getByRole('alert')).toHaveTextContent(/^$/);
-		await fireEvent.change(view.container.querySelector('[name="services"]')!, {
-			target: { value: 'Both' }
-		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Both' }));
 		expect(view.getByRole('checkbox', { name: 'Liftgate delivery' })).not.toBeChecked();
 	});
 	it('expands collapsed mobile sections when a field fails validation', async () => {
@@ -190,7 +292,7 @@ describe('shipping forms', () => {
 		expect(sections[0]).toHaveAttribute('open');
 		expect(sections[1]).toHaveAttribute('open');
 		expect(sections[2]).not.toHaveAttribute('open');
-		const weight = view.container.querySelector('input[name="packageInfoTotalWeight"]')!;
+		const weight = view.container.querySelector('input[name$=".packageInfoTotalWeight"]')!;
 		await fireEvent.invalid(weight);
 		expect(sections[2]).toHaveAttribute('open');
 		expect(sections[3]).not.toHaveAttribute('open');
@@ -215,7 +317,9 @@ describe('shipping forms', () => {
 		await finish({ update } as never);
 		await tick();
 		expect(update).toHaveBeenCalledWith({ reset: false });
-		expect(new FormData(form).get('packageInfoTotalPackages')).toBe('3');
+		expect(
+			Number(JSON.parse(String(new FormData(form).get('shippingScenarios')))[0].totalPackages)
+		).toBe(3);
 		expect(view.getByRole('button', { name: 'Get quotes' })).not.toBeDisabled();
 		expect(view.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
 	});
@@ -302,26 +406,24 @@ describe('shipping forms', () => {
 				locals: { user: { branches: [branch], defaultBranch: branch } }
 			}
 		} as never);
-		const services = view.container.querySelector('select[name="services"]')!;
-		await fireEvent.change(services, { target: { value: 'UPS' } });
+		const selectService = async (name: string) => fireEvent.click(view.getByRole('tab', { name }));
+		await selectService('UPS');
 		expect(view.queryByText('LTL freight')).not.toBeInTheDocument();
 		const weight = view.getByRole('spinbutton', { name: 'Total Weight (lbs)' });
 		await fireEvent.input(weight, { target: { value: '25' } });
 		await fireEvent.input(weight, { target: { value: '' } });
 		await fireEvent.input(weight, { target: { value: '25' } });
-		await fireEvent.change(services, { target: { value: 'Both' } });
+		await selectService('Both');
 		expect(view.getByText('LTL freight')).toBeInTheDocument();
-		const nmfc = view.getByRole('textbox', { name: 'Freight item 1 NMFC code' });
+		const nmfc = view.getByRole('textbox', { name: 'NMFC code' });
 		expect(nmfc).toBeRequired();
 		await fireEvent.input(nmfc, { target: { value: '123456-01' } });
-		await fireEvent.change(services, { target: { value: 'UPS' } });
+		await selectService('UPS');
 		expect(view.queryByText('LTL freight')).not.toBeInTheDocument();
-		await fireEvent.change(services, { target: { value: 'LTL' } });
-		expect(view.queryByRole('tab', { name: 'Simple' })).not.toBeInTheDocument();
-		expect(view.getByRole('textbox', { name: 'Freight item 1 NMFC code' })).toHaveValue(
-			'123456-01'
-		);
-		await fireEvent.change(services, { target: { value: 'Both' } });
+		await selectService('LTL');
+		expect(view.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
+		expect(view.getByRole('textbox', { name: 'NMFC code' })).toHaveValue('123456-01');
+		await selectService('Both');
 		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(25);
 		await fireEvent.click(view.getByRole('checkbox', { name: 'Liftgate delivery' }));
 		await tick();
@@ -329,25 +431,21 @@ describe('shipping forms', () => {
 		expect(fields.get('deliveryLiftgate')).toBe('on');
 		expect(fields.get('services')).toBe('Both');
 	});
-	it('uses the default NMFC for new and reset freight items while duplicates retain their edited code', async () => {
+	it('duplicates and resets LTL rate rows with independent pallet details', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
-		expect(view.container.querySelector('[name$=".description"]')).toBeNull();
-		expect(view.container.querySelector('[name$=".freightClass"]')).toBeNull();
-		const first = view.getByRole('textbox', { name: 'Freight item 1 NMFC code' });
-		expect(first).toHaveValue('153500-02');
-		await fireEvent.input(first, { target: { value: '123456-01' } });
-		await fireEvent.click(view.getByRole('button', { name: 'Add freight item' }));
-		expect(view.getByRole('textbox', { name: 'Freight item 2 NMFC code' })).toHaveValue(
-			'153500-02'
-		);
-		await fireEvent.click(view.getByRole('button', { name: 'Duplicate freight 1' }));
-		expect(view.getByRole('textbox', { name: 'Freight item 3 NMFC code' })).toHaveValue(
-			'123456-01'
-		);
+		await fireEvent.click(view.getByRole('tab', { name: 'LTL' }));
+		expect(view.getByRole('textbox', { name: 'NMFC code' })).toHaveValue('153500-02');
+		await fireEvent.input(view.getByRole('textbox', { name: 'NMFC code' }), {
+			target: { value: '123456-01' }
+		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Duplicate rate row 1' }));
+		const codes = view.getAllByRole('textbox', { name: 'NMFC code' });
+		expect(codes).toHaveLength(2);
+		await fireEvent.input(codes[1], { target: { value: '999999-01' } });
+		expect(codes[0]).toHaveValue('123456-01');
 		await fireEvent.click(view.getByRole('button', { name: 'Reset' }));
-		expect(view.getByRole('textbox', { name: 'Freight item 1 NMFC code' })).toHaveValue(
-			'153500-02'
-		);
+		expect(view.getByRole('textbox', { name: 'NMFC code' })).toHaveValue('153500-02');
 	});
 	it('opens markup CRUD in separate dialogs, supports blank upper bounds, and switches service tabs', async () => {
 		const view = render(Markups, {

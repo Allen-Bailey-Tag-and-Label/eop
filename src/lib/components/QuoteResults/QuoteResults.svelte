@@ -196,12 +196,22 @@
 			>{/if}
 		<P class="text-sm"
 			>{scenario.packageTotalCount ?? 'Unknown'}
-			{scenario.packageTotalCount === 1 ? 'carton' : 'cartons'} · {scenario.packageTotalWeight ??
-				'Unknown'} lbs total</P
+			{scenario.handlingUnit === 'pallet'
+				? scenario.packageTotalCount === 1
+					? 'pallet'
+					: 'pallets'
+				: scenario.packageTotalCount === 1
+					? 'carton'
+					: 'cartons'} · {scenario.packageTotalWeight ?? 'Unknown'} lbs total</P
 		>
 		{#if scenario.casePacking}<P class="text-sm"
-				>{scenario.casePacking.unitsPerCarton.toLocaleString('en-US')} units per case · {scenario
-					.casePacking.cartonWeight} lbs per full case</P
+				>{scenario.casePacking.unitsPerCarton.toLocaleString('en-US')} units per {scenario.handlingUnit ===
+				'pallet'
+					? 'pallet'
+					: 'case'} · {scenario.casePacking.cartonWeight} lbs per full {scenario.handlingUnit ===
+				'pallet'
+					? 'pallet'
+					: 'case'}</P
 			>{/if}
 		{#each scenario.packageGroups ?? [] as group, index (index)}<P class="text-sm"
 				>{group.quantity} @ {group.weight} lbs</P

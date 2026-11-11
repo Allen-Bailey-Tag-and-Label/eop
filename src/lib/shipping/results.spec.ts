@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { shippingResultOptions, shippingResultServices } from './results';
 import { blankRequest, type QuoteView, type PricedRate } from './types';
 import type { QuoteScenario } from '$lib/ups/quote';
+import { blankShippingScenario, parsePackingScenarios } from './packing';
 
 function scenario(id: string, unitQuantity: number): QuoteScenario {
 	return {
@@ -71,6 +72,58 @@ function quote(): QuoteView {
 	};
 }
 describe('saved shipping results', () => {
+	it('compares UPS and LTL in the same quantity columns using stable service keys', () => {
+		const first = {
+			...blankShippingScenario(),
+			totalPackages: '20',
+			totalWeight: '1000',
+			unitQuantity: '10000'
+		};
+		first.shipping!.palletCount = '2';
+		const second = {
+			...blankShippingScenario(),
+			totalPackages: '40',
+			totalWeight: '2000',
+			unitQuantity: '20000'
+		};
+		second.shipping!.palletCount = '4';
+		const packing = parsePackingScenarios([first, second], 'Both');
+		const input = quote();
+		input.request = { ...input.request!, ...packing };
+		input.rates = [
+			{ ...rate, scenarioId: first.id },
+			{ ...rate, scenarioId: second.id, priceCents: 23000 },
+			{
+				...rate,
+				service: 'LTL',
+				provider: 'Unishippers',
+				scenarioId: first.id,
+				providerReference: 'offer-a',
+				comparisonKey: 'freight-standard',
+				priceCents: 40000
+			},
+			{
+				...rate,
+				service: 'LTL',
+				provider: 'Unishippers',
+				scenarioId: second.id,
+				providerReference: 'offer-b',
+				comparisonKey: 'freight-standard',
+				priceCents: 50000
+			}
+		];
+		const options = shippingResultOptions(input);
+		expect(options).toHaveLength(2);
+		expect(options.map((option) => option.unitQuantity)).toEqual([10000, 20000]);
+		expect(options[0].rates).toEqual([
+			{ serviceCode: 'UPS:03', rate: 125 },
+			{ serviceCode: 'LTL:freight-standard', rate: 400 }
+		]);
+		expect(options[1].rates).toEqual([
+			{ serviceCode: 'UPS:03', rate: 230 },
+			{ serviceCode: 'LTL:freight-standard', rate: 500 }
+		]);
+	});
 	it('keeps separate LTL offers from the same carrier instead of collapsing their prices', () => {
 		const input = quote();
 		const freight = input.rates.find((rate) => rate.service === 'LTL')!;

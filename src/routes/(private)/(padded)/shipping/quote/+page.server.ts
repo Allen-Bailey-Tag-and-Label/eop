@@ -5,6 +5,7 @@ import { connect } from '$lib/server/mongoose/connect';
 import { createShippingQuote } from '$lib/server/shipping/quotes';
 import { findShippingQuote } from '$lib/server/shipping/quotes';
 import { parseShipment, shipmentFromForm, ShippingError } from '$lib/shipping/validation';
+import { parsePackingScenarios } from '$lib/shipping/packing';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -31,12 +32,21 @@ export const actions: Actions = {
 		try {
 			const fields = await request.formData();
 			const input = shipmentFromForm(fields);
-			const upsScenarios =
-				input.services !== 'LTL' && fields.has('rateScenarios')
+			if (input.services !== 'UPS' && input.services !== 'LTL' && input.services !== 'Both')
+				throw new ShippingError('Select UPS, LTL, or Both.');
+			const packing = fields.has('shippingScenarios')
+				? parsePackingScenarios(fields.get('shippingScenarios'), input.services)
+				: undefined;
+			const upsScenarios = packing
+				? packing.upsScenarios.length
+					? packing.upsScenarios
+					: undefined
+				: input.services !== 'LTL' && fields.has('rateScenarios')
 					? parseScenarios(fields.get('rateScenarios'))
 					: undefined;
 			const shipment = parseShipment({
 				...input,
+				...(packing?.ltlScenarios.length ? { freight: packing.ltlScenarios[0].freight } : {}),
 				...(upsScenarios
 					? {
 							packages: upsScenarios[0].packageGroups.map((group) => ({
@@ -47,6 +57,20 @@ export const actions: Actions = {
 					: {})
 			});
 			if (upsScenarios) shipment.upsScenarios = upsScenarios;
+			if (packing) {
+				for (let index = 0; index < packing.packingInputs.length; index++)
+					parseShipment({
+						...shipment,
+						packages:
+							packing.upsScenarios[index]?.packageGroups.map((group, groupIndex) => ({
+								...group,
+								id: `${packing.packingInputs[index].id}-${groupIndex}`
+							})) ?? [],
+						freight: packing.ltlScenarios[index]?.freight ?? []
+					});
+				shipment.packingInputs = packing.packingInputs;
+				if (packing.ltlScenarios.length) shipment.ltlScenarios = packing.ltlScenarios;
+			}
 			if (!locals.user.branches.some((branch) => branch._id.toString() === shipment.branchId))
 				throw new ShippingError('Choose one of your branches.');
 			await connect();

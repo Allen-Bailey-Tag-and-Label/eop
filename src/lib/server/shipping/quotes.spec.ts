@@ -10,6 +10,7 @@ import { nextQuoteNumber } from './numbering';
 import { Types } from 'mongoose';
 import { validateShippingDestination } from './addresses';
 import type { QuoteScenario } from '$lib/ups/quote';
+import { blankShippingScenario, parsePackingScenarios } from '$lib/shipping/packing';
 vi.mock('./addresses', () => ({ validateShippingDestination: vi.fn() }));
 vi.mock('./markups', () => ({ getMarkupConfigs: vi.fn() }));
 vi.mock('./ups', () => ({ getUpsShippingRates: vi.fn() }));
@@ -57,6 +58,55 @@ beforeEach(() => {
 	vi.mocked(ShippingQuote.create).mockResolvedValue({} as never);
 });
 describe('shipping quote persistence', () => {
+	it('requests LTL and UPS for each shared quantity and retains partial LTL failures', async () => {
+		vi.mocked(unishippersStatus).mockReturnValue({ configured: true, staging: true });
+		const first = {
+			...blankShippingScenario(),
+			totalPackages: '20',
+			totalWeight: '1000',
+			unitQuantity: '10000'
+		};
+		first.shipping!.palletCount = '2';
+		const second = {
+			...blankShippingScenario(),
+			totalPackages: '40',
+			totalWeight: '2000',
+			unitQuantity: '20000'
+		};
+		second.shipping!.palletCount = '4';
+		const packing = parsePackingScenarios([first, second], 'Both');
+		const request = { ...blankRequest('2026-11-11'), services: 'Both' as const, ...packing };
+		vi.mocked(getUnishippersShippingRates).mockImplementation(async (input) => {
+			const total = input.freight.reduce((sum, item) => sum + item.quantity * item.weight, 0);
+			if (total === 2000) throw new Error('private-provider-error');
+			return [
+				{
+					...rate,
+					service: 'LTL',
+					provider: 'Unishippers',
+					carrier: 'Freight',
+					providerReference: `offer-${total}`,
+					costCents: total * 100
+				}
+			];
+		});
+		await createShippingQuote(request, crypto.randomUUID(), 'user');
+		expect(getUnishippersShippingRates).toHaveBeenCalledTimes(2);
+		expect(getUpsShippingRates).toHaveBeenCalledTimes(2);
+		const saved = vi.mocked(ShippingQuote.create).mock.calls[0][0] as unknown as {
+			request: typeof request;
+			rates: CarrierRate[];
+		};
+		expect(saved.request.ltlScenarios.map((scenario) => scenario.status)).toEqual([
+			'complete',
+			'failed'
+		]);
+		expect(saved.rates.filter((rate) => rate.service === 'LTL')).toMatchObject([
+			{ scenarioId: first.id, unitQuantity: 10000, comparisonKey: '03:Ground:0' }
+		]);
+		expect(saved.rates.filter((rate) => rate.service === 'UPS')).toHaveLength(2);
+		expect(JSON.stringify(saved)).not.toContain('private-provider-error');
+	});
 	it('runs LTL with UPS, applies the LTL markup, and saves the staging pricing snapshot', async () => {
 		vi.mocked(unishippersStatus).mockReturnValue({
 			configured: true,

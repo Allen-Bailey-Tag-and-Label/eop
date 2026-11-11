@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T19:08:20.067Z
+## 2026-11-11T20:03:13.100Z
+
+feat: Unify UPS and LTL packing and quantity quotes
+
+## 2026-11-11T14:09:21-05:00
 
 refactor: Share UPS and shipping quote layouts and results
 

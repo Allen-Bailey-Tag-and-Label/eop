@@ -10,5 +10,6 @@ export type QuoteRateOption = {
 	packageTotalCount?: number;
 	packageTotalWeight?: number;
 	packageGroups?: { quantity: number; weight: number }[];
+	handlingUnit?: 'carton' | 'pallet';
 	casePacking?: { unitsPerCarton: number; cartonWeight: number };
 };

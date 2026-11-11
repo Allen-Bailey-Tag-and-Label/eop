@@ -5,10 +5,52 @@ import type { PricedRate, QuoteView, ShippingService } from './types';
 const serviceKey = (rate: PricedRate) =>
 	rate.service === 'UPS'
 		? `UPS:${rate.code}`
-		: `LTL:${rate.providerReference ?? `${rate.code}:${rate.description}`}`;
+		: `LTL:${rate.comparisonKey ?? rate.providerReference ?? `${rate.code}:${rate.description}`}`;
 
 export function shippingResultOptions(quote: QuoteView): QuoteRateOption[] {
 	if (!quote.request) return [];
+	if (quote.request.packingInputs?.length) {
+		const ltlServices = [
+			...new Set(quote.rates.filter((rate) => rate.service === 'LTL').map(serviceKey))
+		];
+		return quote.request.packingInputs.map((input) => {
+			const ups = quote.request!.upsScenarios?.find((scenario) => scenario.id === input.id);
+			const ltl = quote.request!.ltlScenarios?.find((scenario) => scenario.id === input.id);
+			const primary = input.shipping?.basis === 'LTL' ? ltl?.freight : ups?.packageGroups;
+			const rates = quote.rates.filter((rate) => rate.scenarioId === input.id);
+			return {
+				id: input.id,
+				label: input.label,
+				...(input.unitQuantity ? { unitQuantity: Number(input.unitQuantity) } : {}),
+				services: [
+					...(ups?.services.map((code) => `UPS:${code}`) ?? []),
+					...(ltl ? ltlServices : [])
+				],
+				rates: rates.map((rate) => ({
+					serviceCode: serviceKey(rate),
+					rate: rate.priceCents / 100
+				})),
+				status: rates.length
+					? ('complete' as const)
+					: [ups?.status, ltl?.status].includes('pending')
+						? ('pending' as const)
+						: ('failed' as const),
+				message: [ups?.message, ltl?.message].filter(Boolean).join(' '),
+				packageGroups: primary,
+				...(input.weightMode === 'cartons'
+					? {
+							casePacking: {
+								unitsPerCarton: Number(input.unitsPerCarton),
+								cartonWeight: Number(input.cartonWeight)
+							}
+						}
+					: {}),
+				handlingUnit: input.shipping?.basis === 'LTL' ? ('pallet' as const) : ('carton' as const),
+				packageTotalCount: primary?.reduce((sum, group) => sum + group.quantity, 0),
+				packageTotalWeight: primary?.reduce((sum, group) => sum + group.quantity * group.weight, 0)
+			};
+		});
+	}
 	const status = (service: ShippingService) =>
 		quote.attempts.find((attempt) => attempt.service === service)?.status === 'success'
 			? ('complete' as const)
@@ -50,6 +92,7 @@ export function shippingResultOptions(quote: QuoteView): QuoteRateOption[] {
 		const rates = quote.rates.filter((rate) => rate.service === 'LTL');
 		options.push({
 			id: 'ltl',
+			handlingUnit: 'pallet',
 			label: 'LTL shipment',
 			status: status('LTL'),
 			message: '',

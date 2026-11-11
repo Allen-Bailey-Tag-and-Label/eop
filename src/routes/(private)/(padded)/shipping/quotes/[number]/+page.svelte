@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { A, Div, H1, H3, P, QuoteLayout, QuoteProgress } from '$lib/components';
+	import { A, Details, Div, H1, H3, P, QuoteLayout, QuoteProgress, Summary } from '$lib/components';
 	import { dateTime } from '$lib/formats';
 	import { theme } from '$lib/theme';
 	import { twMerge } from 'tailwind-merge';
@@ -58,8 +58,32 @@
 					>
 				{/each}
 			{/if}
+			{#if quote.request.ltlScenarios?.length}
+				<H3 class="text-base">LTL pallet options</H3>
+				{#each quote.request.ltlScenarios as scenario, index (scenario.id)}
+					<P
+						>{scenario.label ||
+							(scenario.unitQuantity
+								? `${scenario.unitQuantity.toLocaleString()} units`
+								: `Rate row ${index + 1}`)} - {scenario.freight.reduce(
+							(sum, item) => sum + item.quantity,
+							0
+						)} pallets - {scenario.freight
+							.reduce((sum, item) => sum + item.quantity * item.weight, 0)
+							.toLocaleString(undefined, { maximumFractionDigits: 3 })} lb total</P
+					>
+					<Details
+						><Summary>Pallet details</Summary><Div class="space-y-2 pt-2">
+							{#each scenario.freight as item (item.id)}<P
+									>{item.quantity} x {item.weight} lb - {item.length} x {item.width} x {item.height}
+									in - NMFC {item.nmfc} - {item.stackable ? 'Stackable' : 'Not stackable'}</P
+								>{/each}
+						</Div></Details
+					>
+				{/each}
+			{/if}
 			{#each [{ title: 'UPS packaging', service: 'UPS', items: quote.request.packages }, { title: 'LTL handling units', service: 'LTL', items: quote.request.freight }] as section (section.title)}
-				{#if quote.request.services !== (section.service === 'UPS' ? 'LTL' : 'UPS') && section.items.length && !(section.service === 'UPS' && quote.request.upsScenarios?.length)}
+				{#if quote.request.services !== (section.service === 'UPS' ? 'LTL' : 'UPS') && section.items.length && !(section.service === 'UPS' && quote.request.upsScenarios?.length) && !(section.service === 'LTL' && quote.request.ltlScenarios?.length)}
 					<Div class="space-y-2"
 						><H3 class="text-base">{section.title}</H3>
 						{#each section.items as item (item.id)}

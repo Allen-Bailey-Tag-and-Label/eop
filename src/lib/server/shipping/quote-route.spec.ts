@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { actions } from '../../../routes/(private)/(padded)/shipping/quote/+page.server';
 import { createShippingQuote } from './quotes';
 import { blankRateScenario } from '$lib/ups/quote';
+import { blankShippingScenario } from '$lib/shipping/packing';
 
 vi.mock('$lib/server/mongoose/connect', () => ({ connect: vi.fn(async () => {}) }));
 vi.mock('./quotes', () => ({
@@ -47,6 +48,32 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('shipping shared form submission', () => {
+	it('normalizes shared packing for all quantities and validates later LTL rows before requesting rates', async () => {
+		const first = { ...blankShippingScenario(), totalPackages: '20', totalWeight: '1000' };
+		first.shipping!.palletCount = '2';
+		const second = { ...blankShippingScenario(), totalPackages: '40', totalWeight: '2000' };
+		second.shipping!.palletCount = '4';
+		const body = fields();
+		body.delete('rateScenarios');
+		body.set('services', 'Both');
+		body.set('shippingScenarios', JSON.stringify([first, second]));
+		await expect(submit(event(body) as never)).rejects.toMatchObject({ status: 303 });
+		const saved = vi.mocked(createShippingQuote).mock.calls[0][0];
+		expect(saved.upsScenarios?.map((scenario) => scenario.packageTotalWeight)).toEqual([
+			1000, 2000
+		]);
+		expect(
+			saved.ltlScenarios?.map((scenario) =>
+				scenario.freight.reduce((sum, item) => sum + item.quantity * item.weight, 0)
+			)
+		).toEqual([1000, 2000]);
+		expect(saved.packingInputs).toHaveLength(2);
+		vi.mocked(createShippingQuote).mockClear();
+		second.shipping!.height = '0';
+		body.set('shippingScenarios', JSON.stringify([first, second]));
+		expect(await submit(event(body) as never)).toMatchObject({ status: 400 });
+		expect(createShippingQuote).not.toHaveBeenCalled();
+	});
 	it('submits Both with an NMFC-only LTL item and no freight class or commodity description', async () => {
 		const body = fields();
 		body.set('services', 'Both');

@@ -1,6 +1,10 @@
 import { MAX_QUOTE_PACKAGES, type CasePacking, type QuotePackageGroup } from './quote';
 
-export function calculateCases(units: number, packing: CasePacking) {
+export function calculateCases(
+	units: number,
+	packing: CasePacking,
+	limits = { maxWeight: 150, maxCount: MAX_QUOTE_PACKAGES }
+) {
 	if (
 		!Number.isSafeInteger(units) ||
 		units < 1 ||
@@ -11,10 +15,14 @@ export function calculateCases(units: number, packing: CasePacking) {
 	if (
 		!Number.isFinite(packing.cartonWeight) ||
 		packing.cartonWeight < 0.001 ||
-		packing.cartonWeight > 150 ||
+		packing.cartonWeight > limits.maxWeight ||
 		Math.abs(packing.cartonWeight * 1000 - Math.round(packing.cartonWeight * 1000)) > 1e-7
 	)
-		throw new Error('Full case weight must be 0.001–150 lbs, with at most three decimal places.');
+		throw new Error(
+			limits.maxWeight === 150
+				? 'Full case weight must be 0.001–150 lbs, with at most three decimal places.'
+				: `Full pallet weight must be 0.001–${limits.maxWeight} lbs, with at most three decimal places.`
+		);
 	if (
 		!Number.isFinite(packing.tareWeight) ||
 		packing.tareWeight < 0 ||
@@ -26,9 +34,9 @@ export function calculateCases(units: number, packing: CasePacking) {
 	const fullCases = Math.floor(units / packing.unitsPerCarton),
 		remainder = units % packing.unitsPerCarton;
 	const count = fullCases + (remainder ? 1 : 0);
-	if (count > MAX_QUOTE_PACKAGES)
+	if (count > limits.maxCount)
 		throw new Error(
-			`This quantity requires more than ${MAX_QUOTE_PACKAGES} cartons. Adjust the packing or split the shipment.`
+			`This quantity requires more than ${limits.maxCount} ${limits.maxCount === MAX_QUOTE_PACKAGES ? 'cartons' : 'pallets'}. Adjust the packing or split the shipment.`
 		);
 	const groups: QuotePackageGroup[] = fullCases
 		? [{ quantity: fullCases, weight: packing.cartonWeight }]

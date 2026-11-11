@@ -155,12 +155,12 @@ This requested rates only; it did not create a database quote or book freight.
 
 To test the complete UI and saved quote flow:
 
-1. Open `/shipping/quote` and choose **LTL** in **Services to quote**. Both also
-   works, but requires the UPS package details as well.
+1. Open `/shipping/quote` and use the **Both**, **LTL**, or **UPS** service tabs.
 2. Confirm the origin and enter a valid destination. The staging test destination
    used Highland Park, TX 75219; use a real street address when validating.
-3. Enter pallet quantity, weight **per pallet**, dimensions, stackability, and
-   NMFC (default `153500-02`). Check the live density/class shown for each group.
+3. In **Simple**, enter weight using **Total weight**, **Per pallet/package**,
+   **Different weights**, or **Cases / units**. For LTL, enter pallet dimensions,
+   stackability, and NMFC (default `153500-02`). Check the live density/class.
    For example, a 500 lb, 48 × 48 × 48 inch pallet has density 7.8125 PCF and
    density class `125`. Two identical pallets retain the same class.
 4. Review accessorials. The existing **Validate** option uses UPS address
@@ -170,6 +170,23 @@ To test the complete UI and saved quote flow:
    and a staging test notice. Check any classification warning.
 6. Try **Both** to verify UPS and LTL results appear together. Quote again creates
    a fresh provider request; reopening a saved quote preserves its original prices.
+
+In **Both**, choose package or pallet weight entry. The total shipment weight is
+shared; the other service needs only its separate handling-unit count. Editing
+the source weight updates both providers. Any tare entered in that source is
+included in the shared total; no additional pallet weight is added automatically.
+Totals are distributed in thousandths of a pound without increasing the total
+through per-unit rounding.
+Changing the entry basis retains the total weight and handling-unit counts and
+starts with total-weight entry. Case/unit packing settings belong to their
+packaging basis and must be entered for the new basis if that mode is selected.
+
+Use **Advanced** to add, duplicate, or build multiple quantity rows. Each row
+has its own packing and pallet geometry, and each provider quotes each row.
+Successful rows remain available if another row fails. Saved results compare
+UPS/LTL customer prices by the same quantity IDs and preserve the original markup.
+The original quote records remain readable; duplicating them initializes the new
+editor, including multiple existing pallet geometries.
 
 If the form reports an unconfigured connection after editing `.env`, restart the
 dev server to reload the environment. No further credentials are needed for the

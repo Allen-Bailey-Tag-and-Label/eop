@@ -1,4 +1,5 @@
 import type { QuoteScenario } from '$lib/ups/quote';
+import type { FreightScenario, ShippingScenarioInput } from './packing';
 
 export type ShippingService = 'UPS' | 'LTL';
 export type QuoteServices = ShippingService | 'Both';
@@ -29,6 +30,8 @@ export type FreightItem = PackageGroup & {
 export type ShippingRequest = {
 	validateAddresses?: boolean;
 	upsScenarios?: QuoteScenario[];
+	ltlScenarios?: FreightScenario[];
+	packingInputs?: ShippingScenarioInput[];
 	services: QuoteServices;
 	branchId: string;
 	customer: string;
@@ -56,6 +59,7 @@ export type MarkupRange = {
 };
 export type MarkupConfig = { service: ShippingService; revision: number; ranges: MarkupRange[] };
 export type CarrierRate = {
+	comparisonKey?: string;
 	staging?: boolean;
 	freightClass?: string;
 	classificationWarning?: string;

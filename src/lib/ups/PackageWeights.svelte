@@ -17,6 +17,8 @@
 		tareWeight?: string;
 		partialCase?: 'prorate' | 'full';
 		simple?: boolean;
+		freight?: boolean;
+		splitTotal?: (weight: number, count: number) => { quantity: number; weight: number }[];
 	};
 	let {
 		mode = $bindable('total'),
@@ -30,19 +32,27 @@
 		cartonWeight = $bindable(''),
 		tareWeight = $bindable('0'),
 		partialCase = $bindable('prorate'),
-		simple = false
+		simple = false,
+		freight = false,
+		splitTotal
 	}: Props = $props();
 	const field = (key: string) => (prefix ? `${prefix}.${key}` : key);
+	const maxCount = $derived(freight ? 100 : MAX_QUOTE_PACKAGES);
+	const maxWeight = $derived(freight ? 20000 : 150);
 	const cases = $derived.by(() => {
 		if (mode !== 'cartons') return { result: null, error: '' };
 		try {
 			return {
-				result: calculateCases(Number(unitQuantity), {
-					unitsPerCarton: Number(unitsPerCarton),
-					cartonWeight: Number(cartonWeight),
-					tareWeight: Number(tareWeight || 0),
-					partialCase
-				}),
+				result: calculateCases(
+					Number(unitQuantity),
+					{
+						unitsPerCarton: Number(unitsPerCarton),
+						cartonWeight: Number(cartonWeight),
+						tareWeight: Number(tareWeight || 0),
+						partialCase
+					},
+					{ maxWeight, maxCount }
+				),
 				error: ''
 			};
 		} catch (cause) {
@@ -76,6 +86,23 @@
 	}
 	function select(next: WeightMode) {
 		if (next === 'groups' && !groups.length) {
+			if (splitTotal && count > 0 && weight > 0) {
+				try {
+					const values =
+						mode === 'cartons' && cases.result
+							? cases.result.packageGroups
+							: splitTotal(weight, count);
+					groups = values.map((group) => ({
+						id: crypto.randomUUID(),
+						quantity: String(group.quantity),
+						weight: String(group.weight)
+					}));
+				} catch {
+					groups = [{ id: crypto.randomUUID(), quantity: String(count), weight: '' }];
+				}
+				mode = next;
+				return;
+			}
 			const estimate =
 				mode === 'each'
 					? Number(eachWeight)
@@ -97,12 +124,12 @@
 <Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4">
 	{#if !simple}<Tabs
 			class="col-span-full"
-			aria-label="Package weight entry"
+			aria-label={freight ? 'Pallet weight entry' : 'Package weight entry'}
 			value={mode}
 			onValueChange={select}
 			tabs={[
 				{ title: 'Total weight', value: 'total' },
-				{ title: 'Per package', value: 'each' },
+				{ title: freight ? 'Per pallet' : 'Per package', value: 'each' },
 				{ title: 'Different weights', value: 'groups' },
 				{ title: 'Cases / units', value: 'cartons' }
 			]}
@@ -110,6 +137,7 @@
 	<Input type="hidden" name={field('weightMode')} value={mode} />
 	{#if mode === 'cartons'}
 		<CasePackingFields
+			{freight}
 			bind:unitsPerCarton
 			bind:cartonWeight
 			bind:tareWeight
@@ -118,10 +146,18 @@
 		/>
 		{#if cases.result}
 			<P class="col-span-full" aria-live="polite"
-				>{cases.result.packageTotalCount} cartons · {cases.result.packageTotalWeight} lbs total</P
+				>{cases.result.packageTotalCount}
+				{freight ? 'pallets' : 'cartons'} · {cases.result.packageTotalWeight} lbs total</P
 			>
 			{#each cases.result.packageGroups as group, index (index)}<P class="col-span-full"
-					>{group.quantity} {group.quantity === 1 ? 'carton' : 'cartons'} @ {group.weight} lbs</P
+					>{group.quantity}
+					{freight
+						? group.quantity === 1
+							? 'pallet'
+							: 'pallets'
+						: group.quantity === 1
+							? 'carton'
+							: 'cartons'} @ {group.weight} lbs</P
 				>{/each}
 		{:else}<P class="col-span-full" role="status">{cases.error}</P>{/if}
 	{:else if mode === 'groups'}
@@ -133,9 +169,10 @@
 		{#each groups as group, index (group.id)}
 			<Card class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4 p-4">
 				<Div class="col-span-full flex items-center justify-between gap-4"
-					><P class="font-semibold">Package group {index + 1}</P><Button
+					><P class="font-semibold">{freight ? 'Pallet group' : 'Package group'} {index + 1}</P
+					><Button
 						variants={['ghost', 'icon']}
-						aria-label={`Remove package group ${index + 1}`}
+						aria-label={`Remove ${freight ? 'pallet' : 'package'} group ${index + 1}`}
 						disabled={groups.length === 1}
 						onclick={() => (groups = groups.filter((item) => item.id !== group.id))}
 						><Trash2 size={18} aria-hidden="true" /></Button
@@ -147,21 +184,25 @@
 					name={field(`packageGroup.${group.id}.quantity`)}
 					type="number"
 					min={1}
-					max={MAX_QUOTE_PACKAGES}
+					max={maxCount}
 					step={1}
 					required
-					bind:value={group.quantity}
+					bind:value={
+						() => String(group.quantity ?? ''), (value) => (group.quantity = String(value ?? ''))
+					}
 				/>
 				<Input
-					label="Weight per package (lbs)"
+					label={freight ? 'Weight per pallet (lbs)' : 'Weight per package (lbs)'}
 					aria-label={`Weight for group ${index + 1} (lbs)`}
 					name={field(`packageGroup.${group.id}.weight`)}
 					type="number"
 					min={0.001}
-					max={150}
+					max={maxWeight}
 					step={0.001}
 					required
-					bind:value={group.weight}
+					bind:value={
+						() => String(group.weight ?? ''), (value) => (group.weight = String(value ?? ''))
+					}
 				/>
 			</Card>
 		{/each}
@@ -169,21 +210,24 @@
 			><Button
 				variants={['small']}
 				class="flex items-center gap-2"
-				disabled={groups.length >= MAX_QUOTE_PACKAGES}
-				onclick={addGroup}><Plus size={16} aria-hidden="true" />Add package group</Button
+				disabled={groups.length >= maxCount}
+				onclick={addGroup}
+				><Plus size={16} aria-hidden="true" />Add {freight ? 'pallet' : 'package'} group</Button
 			></Div
 		>
 	{:else}
 		<Input
-			label="Total Packages"
-			aria-label="Total Packages"
+			label={freight ? 'Pallet quantity' : 'Total Packages'}
+			aria-label={freight ? 'Pallet quantity' : 'Total Packages'}
 			name={field('packageInfoTotalPackages')}
 			type="number"
 			min={1}
-			max={MAX_QUOTE_PACKAGES}
+			max={maxCount}
 			step={1}
 			required
-			bind:value={totalPackages}
+			bind:value={
+				() => String(totalPackages ?? ''), (value) => (totalPackages = String(value ?? ''))
+			}
 		/>
 		{#if mode === 'total'}
 			<Input
@@ -194,26 +238,29 @@
 				min={0.001}
 				step={0.001}
 				required
-				bind:value={totalWeight}
+				bind:value={() => String(totalWeight ?? ''), (value) => (totalWeight = String(value ?? ''))}
 			/>
 			{#if !simple}<P class="col-span-full text-sm"
-					>Total weight is divided evenly between packages for the estimate.</P
+					>Total weight is distributed across {freight ? 'pallets' : 'packages'} for the estimate.</P
 				>{/if}
 		{:else}
 			<Input
-				label="Weight per package (lbs)"
-				aria-label="Weight per package (lbs)"
+				label={freight ? 'Weight per pallet (lbs)' : 'Weight per package (lbs)'}
+				aria-label={freight ? 'Weight per pallet (lbs)' : 'Weight per package (lbs)'}
 				name={field('packageInfoPackageWeight')}
 				type="number"
 				min={0.001}
-				max={150}
+				max={maxWeight}
 				step={0.001}
 				required
-				bind:value={eachWeight}
+				bind:value={() => String(eachWeight ?? ''), (value) => (eachWeight = String(value ?? ''))}
 			/>
 		{/if}
 	{/if}
 	{#if !simple && mode !== 'cartons'}<P class="col-span-full" aria-live="polite"
-			>{count} {count === 1 ? 'package' : 'packages'} · {Number(weight.toFixed(3))} lbs total</P
+			>{count}
+			{freight ? (count === 1 ? 'pallet' : 'pallets') : count === 1 ? 'package' : 'packages'} · {Number(
+				weight.toFixed(3)
+			)} lbs total</P
 		>{/if}
 </Div>

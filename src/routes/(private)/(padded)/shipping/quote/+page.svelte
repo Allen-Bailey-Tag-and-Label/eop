@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { Button, Checkbox, Div, Form, H1, H3, Input, P, Select, Spinner } from '$lib/components';
+	import { Button, Checkbox, Div, Form, H1, H3, Input, P, Tabs, Spinner } from '$lib/components';
 	import { blankRequest, DEFAULT_NMFC_CODE } from '$lib/shipping/types';
 	import FormSections from '$lib/ups/FormSections.svelte';
-	import RateStrategies from '$lib/ups/RateStrategies.svelte';
-	import { blankRateScenario, scenarioInput, type RateScenarioInput } from '$lib/ups/quote';
-	import ShipmentItems from '$lib/shipping/editor/ShipmentItems.svelte';
+	import PackingEditor from '$lib/shipping/editor/PackingEditor.svelte';
+	import {
+		blankShippingScenario,
+		changePackingBasis,
+		packingInputsFromRequest,
+		type ShippingScenarioInput
+	} from '$lib/shipping/packing';
 	import type { PageProps } from './$types';
 	import type { Branch } from '$lib/types';
 	let { data, form }: PageProps = $props();
@@ -44,24 +48,8 @@
 		packageInfo: { totalPackages: '', totalWeight: '' }
 	});
 	let formData = $state(untrack(addressForm));
-	let rateRows = $state<RateScenarioInput[]>(
-		untrack(() => {
-			if (data.initialRequest?.upsScenarios?.length)
-				return data.initialRequest.upsScenarios.map(scenarioInput);
-			if (data.initialRequest?.packages.length)
-				return [
-					{
-						...blankRateScenario(),
-						weightMode: 'groups',
-						groups: data.initialRequest.packages.map((group) => ({
-							id: crypto.randomUUID(),
-							quantity: String(group.quantity),
-							weight: String(group.weight)
-						}))
-					}
-				];
-			return [blankRateScenario()];
-		})
+	let rateRows = $state<ShippingScenarioInput[]>(
+		untrack(() => packingInputsFromRequest(data.initialRequest))
 	);
 	const branchOptions = $derived([
 		{ label: '', value: '' },
@@ -74,7 +62,7 @@
 	function reset() {
 		draft = { ...emptyDraft(), branchId: draft.branchId };
 		formData = addressForm();
-		rateRows = [blankRateScenario()];
+		rateRows = [blankShippingScenario()];
 		isValidationRequired = true;
 		requestId = crypto.randomUUID();
 		form = null;
@@ -120,25 +108,25 @@
 </Div>
 
 {#snippet serviceSelection()}
-	<Select
+	<Input type="hidden" name="services" value={draft.services} />
+	<Tabs
 		aria-label="Services to quote"
-		name="services"
-		bind:value={draft.services}
-		options={[
-			{ value: 'UPS', label: 'UPS' },
-			{ value: 'LTL', label: 'LTL' },
-			{ value: 'Both', label: 'Both' }
+		value={draft.services}
+		onValueChange={(value) => {
+			draft.services = value;
+			if (value !== 'Both') for (const row of rateRows) changePackingBasis(row, value);
+		}}
+		tabs={[
+			{ value: 'Both', title: 'Both' },
+			{ value: 'LTL', title: 'LTL' },
+			{ value: 'UPS', title: 'UPS' }
 		]}
-		required
 	/>
 {/snippet}
 
 {#snippet packageDetails()}
-	{#if draft.services === 'UPS' || draft.services === 'Both'}
-		<RateStrategies bind:rows={rateRows} />
-	{/if}
+	<PackingEditor bind:rows={rateRows} services={draft.services} />
 	{#if ltl}
-		<ShipmentItems bind:items={draft.freight} freight />
 		<P class="col-span-full" role="status"
 			>{!data.unishippers?.configured
 				? 'Unishippers LTL is not configured on this server. Freight details can be saved, but no LTL prices will be returned.'
