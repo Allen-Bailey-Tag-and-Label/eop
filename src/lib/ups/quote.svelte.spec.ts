@@ -11,6 +11,7 @@ import {
 import { UPS_SERVICES, type UpsQuoteView } from './quote';
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 vi.mock('$app/forms', () => ({ enhance: () => ({ destroy() {} }) }));
+vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 vi.mock('svelte/transition', async (original) => ({
 	...(await original<typeof import('svelte/transition')>()),
 	slide: () => ({ duration: 0 }),
@@ -100,7 +101,9 @@ describe('UPS quote feedback', () => {
 		expect(simple).toHaveAttribute('aria-selected', 'true');
 		for (const name of ['Total weight', 'Per package', 'Different weights', 'Cases / units'])
 			expect(view.getByRole('tab', { name })).toBeInTheDocument();
-		expect(view.queryByText('Build rows from case quantities')).not.toBeInTheDocument();
+		expect(
+			view.queryByRole('button', { name: 'Build rows from case quantities' })
+		).not.toBeInTheDocument();
 		expect(view.queryByRole('checkbox', { name: 'Ground' })).not.toBeInTheDocument();
 		expect(view.getByRole('spinbutton', { name: 'Total Packages' })).toHaveValue(2);
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' }), {
@@ -156,8 +159,17 @@ describe('UPS quote feedback', () => {
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
 		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
-		await fireEvent.click(view.getByText('Build rows from case quantities').closest('summary')!);
-		const helper = within(view.getByText('Build rows from case quantities').closest('details')!);
+		await fireEvent.click(view.getByRole('button', { name: 'Build rows from case quantities' }));
+		let helper = within(view.getByRole('dialog', { name: 'Build rows from case quantities' }));
+		await fireEvent.click(helper.getByRole('button', { name: 'Add calculated rate rows' }));
+		expect(helper.getByRole('alert')).toHaveTextContent('Enter at least one total quantity');
+		expect(view.getAllByRole('region', { name: /^Rate scenario/ })).toHaveLength(1);
+		await fireEvent.click(helper.getByRole('button', { name: 'Cancel' }));
+		await flush();
+		expect(view.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(createUpsQuote).not.toHaveBeenCalled();
+		await fireEvent.click(view.getByRole('button', { name: 'Build rows from case quantities' }));
+		helper = within(view.getByRole('dialog', { name: 'Build rows from case quantities' }));
 		await fireEvent.input(helper.getByRole('textbox', { name: 'Units per case' }), {
 			target: { value: '2500' }
 		});
@@ -169,6 +181,7 @@ describe('UPS quote feedback', () => {
 		});
 		await fireEvent.click(helper.getByRole('button', { name: 'Add calculated rate rows' }));
 		await flush();
+		expect(view.queryByRole('dialog')).not.toBeInTheDocument();
 		// The existing populated manual row is retained alongside the three estimates.
 		expect(view.getAllByRole('region', { name: /^Rate scenario/ })).toHaveLength(4);
 		const firstEstimate = within(view.getByRole('region', { name: 'Rate scenario 2' }));

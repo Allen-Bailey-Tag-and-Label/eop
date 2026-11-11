@@ -3,13 +3,13 @@
 		Button,
 		Card,
 		Checkbox,
-		Details,
+		DialogActions,
 		Div,
 		H3,
 		Input,
 		Label,
+		Modal,
 		P,
-		Summary,
 		Tabs,
 		Textarea
 	} from '$lib/components';
@@ -45,6 +45,7 @@
 		tareWeight = $state('0');
 	let partialCase = $state<'prorate' | 'full'>('prorate');
 	let helperError = $state('');
+	let helperOpen = $state(false);
 	const quantityExample = '10000\n20000\n30000';
 	function add() {
 		rows = [...rows, blankRateScenario()];
@@ -101,6 +102,7 @@
 			if (existing.length + generated.length > MAX_RATE_SCENARIOS)
 				throw new Error(`Use at most ${MAX_RATE_SCENARIOS} rate rows per quote.`);
 			rows = [...existing, ...generated];
+			helperOpen = false;
 		} catch (cause) {
 			helperError = cause instanceof Error ? cause.message : 'Check the case details.';
 		}
@@ -153,37 +155,15 @@
 			/>
 		{/if}
 	{:else}
-		<Details class="col-span-full">
-			<Summary class="cursor-pointer font-semibold">Build rows from case quantities</Summary>
-			<Div class="grid min-w-0 grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
-				<P class="col-span-full"
-					>Enter the packing once, then add quantities such as 10000, 20000, and 30000 on separate
-					lines. New rows use the first row’s service choices.</P
-				>
-				<CasePackingFields
-					bind:unitsPerCarton
-					bind:cartonWeight
-					bind:tareWeight
-					bind:partialCase
-					required={false}
-					serialize={false}
-					inputType="text"
-				/>
-				<Div class="col-span-full"
-					><Textarea
-						aria-label="Total quantities, one per line"
-						label="Total quantities (one per line)"
-						bind:value={quantities}
-						rows={3}
-						placeholder={quantityExample}
-					/></Div
-				>
-				{#if helperError}<P class="col-span-full" role="alert">{helperError}</P>{/if}
-				<Div class="col-span-full flex justify-end"
-					><Button variants={['small']} onclick={buildRows}>Add calculated rate rows</Button></Div
-				>
-			</Div>
-		</Details>
+		<Div class="col-span-full flex justify-end">
+			<Button
+				variants={['small']}
+				onclick={() => {
+					helperError = '';
+					helperOpen = true;
+				}}>Build rows from case quantities</Button
+			>
+		</Div>
 		{#each rows as row, index (row.id)}
 			<Card
 				role="region"
@@ -271,3 +251,40 @@
 		>
 	{/if}
 </Div>
+
+{#if helperOpen}
+	<Modal
+		bind:isOpen={helperOpen}
+		title="Build rows from case quantities"
+		class="max-h-[90svh] w-full max-w-lg space-y-4 overflow-y-auto p-5"
+	>
+		<Div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+			<P class="col-span-full"
+				>Enter the packing once, then add quantities such as 10000, 20000, and 30000 on separate
+				lines. New rows use the first row’s service choices.</P
+			>
+			<CasePackingFields
+				bind:unitsPerCarton
+				bind:cartonWeight
+				bind:tareWeight
+				bind:partialCase
+				required={false}
+				serialize={false}
+				inputType="text"
+			/>
+			<Div class="col-span-full"
+				><Textarea
+					aria-label="Total quantities, one per line"
+					label="Total quantities (one per line)"
+					bind:value={quantities}
+					rows={3}
+					placeholder={quantityExample}
+				/></Div
+			>
+			{#if helperError}<P class="col-span-full" role="alert">{helperError}</P>{/if}
+		</Div>
+		<DialogActions onClose={() => (helperOpen = false)} closeLabel="Cancel">
+			<Button onclick={buildRows}>Add calculated rate rows</Button>
+		</DialogActions>
+	</Modal>
+{/if}

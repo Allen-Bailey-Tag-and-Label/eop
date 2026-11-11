@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T14:46:20.533Z
+## 2026-11-11T14:52:30.113Z
+
+refactor: Move UPS case quantity builder into a dialog
+
+## 2026-11-11T09:48:29-05:00
 
 refactor: Organize UPS package options into Simple and Advanced tabs
 

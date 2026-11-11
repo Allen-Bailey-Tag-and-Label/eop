@@ -60,7 +60,7 @@ Both tabs offer four weight-entry modes:
   partial carton can use the full case weight or prorate the contents while
   retaining the optional empty-carton weight.
 
-The **Build rows from case quantities** helper accepts packing details once and
+The **Build rows from case quantities** button opens a dialog with packing details and
 one total quantity per line (for example, 10,000 / 20,000 / 30,000 on separate
 lines). It creates editable rate rows and retains any populated rows already in
 the quote. Blank rows are replaced. Draft helper values are not submitted until
