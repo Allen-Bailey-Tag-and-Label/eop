@@ -1,9 +1,25 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import RateComparison from './RateComparison.svelte';
 import type { QuoteScenario } from './quote';
+import { exportFunctions } from '$lib/components/Datatable/exportFunctions';
+vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
+});
+beforeEach(() => {
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			disconnect() {}
+			unobserve() {}
+		}
+	);
+});
 const scenarios: QuoteScenario[] = [
 	{
 		id: 'a',
@@ -40,37 +56,101 @@ const scenarios: QuoteScenario[] = [
 	}
 ];
 describe('UPS rate comparison', () => {
+	it('sorts dollar rates numerically and exports the active orientation with formatted values', async () => {
+		const exported = vi.fn(async () => {});
+		vi.spyOn(exportFunctions, 'get').mockReturnValue(exported);
+		const view = render(RateComparison, {
+			scenarios: [
+				{
+					...scenarios[0],
+					rates: [
+						{ description: 'Ground', serviceCode: '03', rate: 100 },
+						{ description: '3 Day Select', serviceCode: '12', rate: 9 }
+					]
+				},
+				scenarios[1]
+			]
+		});
+		const firstPrices = () =>
+			within(view.getByRole('table'))
+				.getAllByRole('row')
+				.filter((row) => row.querySelector('td'))
+				.map((row) => within(row).getAllByRole('cell')[1].textContent);
+		const header = view.getByRole('button', { name: /First option/ });
+		await fireEvent.click(header);
+		expect(firstPrices()).toEqual(['$9.00', '$100.00', 'Not selected']);
+		await fireEvent.click(header);
+		expect(firstPrices()).toEqual(['$100.00', '$9.00', 'Not selected']);
+		await fireEvent.click(view.getByRole('button', { name: 'Export data' }));
+		await fireEvent.click(within(view.getByRole('dialog')).getByRole('button', { name: 'Export' }));
+		expect(exported).toHaveBeenLastCalledWith({
+			headers: ['Service', 'First option - 10,000 units', '20,000 units'],
+			data: [
+				['Ground', '$100.00', '$25.00'],
+				['3 Day Select', '$9.00', 'Not selected'],
+				['2nd Day Air', 'Not selected', 'Unavailable']
+			]
+		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Quantities as rows' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Ground' }));
+		expect(firstPrices()).toEqual(['$25.00', '$100.00']);
+		await fireEvent.click(view.getByRole('button', { name: 'Export data' }));
+		await fireEvent.click(within(view.getByRole('dialog')).getByRole('button', { name: 'Export' }));
+		expect(exported).toHaveBeenLastCalledWith({
+			headers: ['Quantity', 'Ground', '3 Day Select', '2nd Day Air'],
+			data: [
+				['20,000 units', '$25.00', 'Not selected', 'Unavailable'],
+				['First option - 10,000 units', '$100.00', '$9.00', 'Not selected']
+			]
+		});
+	});
 	it('transposes service/quantity cells while preserving saved dollar values, zero rates and missing selections', async () => {
 		const view = render(RateComparison, { scenarios });
-		const table = within(view.getByRole('table', { name: 'UPS rate comparison' }));
-		expect(table.getAllByRole('columnheader')).toHaveLength(3);
-		expect(table.getAllByRole('rowheader')).toHaveLength(3);
-		const ground = table.getByRole('rowheader', { name: 'Ground' }).closest('tr')!;
+		expect(view.queryByRole('heading', { name: 'Rate comparison' })).not.toBeInTheDocument();
+		const table = () => within(view.getByRole('table'));
+		expect(table().getAllByRole('columnheader')).toHaveLength(3);
+		expect(
+			table()
+				.getAllByRole('row')
+				.filter((row) => row.querySelector('td'))
+		).toHaveLength(3);
+		const ground = table().getByRole('cell', { name: 'Ground' }).closest('tr')!;
 		expect(
 			within(ground)
 				.getAllByRole('cell')
+				.slice(1)
 				.map((cell) => cell.textContent)
 		).toEqual(['$12.50', '$25.00']);
-		expect(table.getByText('$0.00')).toBeInTheDocument();
-		expect(table.getByText('Unavailable')).toBeInTheDocument();
-		expect(table.getAllByText('Not selected')).toHaveLength(2);
+		expect(table().getByText('$0.00')).toBeInTheDocument();
+		expect(table().getByText('Unavailable')).toBeInTheDocument();
+		expect(table().getAllByText('Not selected')).toHaveLength(2);
 		await fireEvent.click(view.getByRole('tab', { name: 'Quantities as rows' }));
-		expect(table.getAllByRole('columnheader')).toHaveLength(4);
-		expect(table.getAllByRole('rowheader')).toHaveLength(2);
-		const first = table.getByRole('rowheader', { name: /First option/ }).closest('tr')!;
+		expect(table().getAllByRole('columnheader')).toHaveLength(4);
+		expect(
+			table()
+				.getAllByRole('row')
+				.filter((row) => row.querySelector('td'))
+		).toHaveLength(2);
+		const first = table()
+			.getByRole('cell', { name: /First option/ })
+			.closest('tr')!;
 		expect(
 			within(first)
 				.getAllByRole('cell')
+				.slice(1)
 				.map((cell) => cell.textContent)
 		).toEqual(['$12.50', '$0.00', 'Not selected']);
-		const second = table.getByRole('rowheader', { name: /20,000 units/ }).closest('tr')!;
+		const second = table()
+			.getByRole('cell', { name: /20,000 units/ })
+			.closest('tr')!;
 		expect(
 			within(second)
 				.getAllByRole('cell')
+				.slice(1)
 				.map((cell) => cell.textContent)
 		).toEqual(['$25.00', 'Not selected', 'Unavailable']);
 		await fireEvent.click(view.getByRole('tab', { name: 'Services as rows' }));
-		expect(table.getAllByRole('columnheader')).toHaveLength(3);
+		expect(table().getAllByRole('columnheader')).toHaveLength(3);
 	});
 	it('retains pending and failed status and error details without showing stale rates', () => {
 		const view = render(RateComparison, {

@@ -74,6 +74,14 @@ let desktop = false;
 let resize: () => void;
 beforeEach(() => {
 	vi.clearAllMocks();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			disconnect() {}
+			unobserve() {}
+		}
+	);
 	desktop = false;
 	vi.stubGlobal('matchMedia', () => ({
 		get matches() {
@@ -254,7 +262,9 @@ describe('UPS quote feedback', () => {
 		);
 		const view = render(Detail, { data: { quote: initial } } as never);
 		await flush();
-		const result = view.getByRole('table', { name: 'UPS rate comparison' });
+		const result = within(view.getByRole('region', { name: 'UPS rate comparison' })).getByRole(
+			'table'
+		);
 		expect(result).toHaveTextContent('$12.50');
 		expect(result).toHaveTextContent('Unavailable');
 		expect(view.getByText('1 of 2 rate rows complete')).toBeInTheDocument();
@@ -264,7 +274,9 @@ describe('UPS quote feedback', () => {
 		await flush();
 		expect(advanceUpsQuote).toHaveBeenCalledWith({ quote: 1234, poll: true });
 		expect(view.getByText('2 of 2 rate rows complete')).toBeInTheDocument();
-		expect(within(result).getAllByText('$12.50')).toHaveLength(2);
+		expect(
+			within(view.getByRole('region', { name: 'UPS rate comparison' })).getAllByText('$12.50')
+		).toHaveLength(2);
 		expect(view.getByRole('tab', { name: 'Quantities as rows' })).toHaveAttribute(
 			'aria-selected',
 			'true'

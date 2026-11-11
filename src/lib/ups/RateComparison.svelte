@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Card, Div, H2, P, Table, Tabs, Tbody, Td, Th, Thead, Tr } from '$lib/components';
+	import { Datatable, Details, Div, P, Summary, Tabs } from '$lib/components';
 	import { currency } from '$lib/formats';
+	import type { Column } from '$lib/components/Datatable/types';
 	import { UPS_SERVICES, type QuoteScenario } from './quote';
 
 	type Props = { scenarios: QuoteScenario[] };
@@ -28,12 +29,59 @@
 		if (scenario.status !== 'complete')
 			return scenario.status === 'running' ? 'Getting rates…' : 'Waiting…';
 		const rate = scenario.rates.find((rate) => rate.serviceCode === code);
-		return rate ? currency(rate.rate) : 'Unavailable';
+		return rate ? rate.rate : 'Unavailable';
 	}
+
+	const formatRate = (value: unknown) =>
+		typeof value === 'number' ? currency(value) : String(value ?? '');
+	const compareRates = (a: unknown, b: unknown, direction: -1 | 1) => {
+		if (typeof a === 'number' && typeof b === 'number') return (a - b) * direction;
+		if (typeof a === 'number') return -1;
+		if (typeof b === 'number') return 1;
+		return String(a).localeCompare(String(b)) * direction;
+	};
+	const optionTitle = (scenario: QuoteScenario, index: number) =>
+		quantityTitle(scenario, index) +
+		(scenario.label && scenario.unitQuantity
+			? ` - ${scenario.unitQuantity.toLocaleString('en-US')} units`
+			: '');
+	const columns = $derived<Column[]>([
+		{ key: 'label', label: orientation === 'services' ? 'Service' : 'Quantity', type: 'string' },
+		...(orientation === 'services'
+			? scenarios.map((scenario, index) => ({
+					key: `rate_${index}`,
+					label: optionTitle(scenario, index)
+				}))
+			: services.map((code, index) => ({ key: `rate_${index}`, label: serviceTitle(code) }))
+		).map(
+			(column) =>
+				({
+					...column,
+					type: 'function',
+					class: 'text-right whitespace-nowrap',
+					compareFn: compareRates,
+					valueFn: ({ key, object }) => formatRate(object[key])
+				}) satisfies Column
+		)
+	]);
+	const rows = $derived(
+		orientation === 'services'
+			? services.map((code) => ({
+					label: serviceTitle(code),
+					...Object.fromEntries(
+						scenarios.map((scenario, index) => [`rate_${index}`, rateValue(scenario, code)])
+					)
+				}))
+			: scenarios.map((scenario, index) => ({
+					label: optionTitle(scenario, index),
+					...Object.fromEntries(
+						services.map((code, index) => [`rate_${index}`, rateValue(scenario, code)])
+					)
+				}))
+	);
 </script>
 
-<Card class="min-w-0 space-y-4">
-	<H2 class="text-lg">Rate comparison</H2>
+<Div class="min-w-0 space-y-4" role="region" aria-label="UPS rate comparison">
 	<Tabs
 		aria-label="Rate table layout"
 		bind:value={orientation}
@@ -42,53 +90,31 @@
 			{ title: 'Quantities as rows', value: 'quantities' }
 		]}
 	/>
-	<Div class="max-w-full overflow-x-auto">
-		<Table class="w-full" aria-label="UPS rate comparison">
-			<Thead>
-				<Tr>
-					<Th scope="col"
-						>{orientation === 'services' ? 'Service / quantity' : 'Quantity / service'}</Th
-					>
-					{#if orientation === 'services'}
-						{#each scenarios as scenario, index (scenario.id)}
-							<Th scope="col">{@render quantity(scenario, index)}</Th>
-						{/each}
-					{:else}
-						{#each services as code (code)}<Th scope="col" class="text-right whitespace-nowrap"
-								>{serviceTitle(code)}</Th
-							>{/each}
-					{/if}
-				</Tr>
-			</Thead>
-			<Tbody>
-				{#if orientation === 'services'}
-					{#each services as code (code)}
-						<Tr
-							><Th scope="row" class="whitespace-nowrap">{serviceTitle(code)}</Th>
-							{#each scenarios as scenario (scenario.id)}<Td class="text-right whitespace-nowrap"
-									>{rateValue(scenario, code)}</Td
-								>{/each}
-						</Tr>
-					{/each}
-				{:else}
-					{#each scenarios as scenario, index (scenario.id)}
-						<Tr
-							><Th scope="row">{@render quantity(scenario, index)}</Th>
-							{#each services as code (code)}<Td class="text-right whitespace-nowrap"
-									>{rateValue(scenario, code)}</Td
-								>{/each}
-						</Tr>
-					{/each}
-				{/if}
-			</Tbody>
-		</Table>
-	</Div>
+	{#key orientation}
+		<Datatable
+			{columns}
+			{rows}
+			isCreatable={false}
+			isEditable={false}
+			isDeletable={false}
+			isSelectable={false}
+			isFilterable={false}
+			isPaginateable={false}
+			isColumnsReorderable={false}
+		/>
+	{/key}
+	<Details>
+		<Summary>Packing details</Summary>
+		<Div class="grid gap-4 pt-4 sm:grid-cols-2">
+			{#each scenarios as scenario, index (scenario.id)}{@render quantity(scenario, index)}{/each}
+		</Div>
+	</Details>
 	{#each scenarios as scenario, index (scenario.id)}
 		{#if scenario.message}<P role={scenario.status === 'failed' ? 'alert' : 'status'}
 				>{quantityTitle(scenario, index)}: {scenario.message}</P
 			>{/if}
 	{/each}
-</Card>
+</Div>
 
 {#snippet quantity(scenario: QuoteScenario, index: number)}
 	<Div class="min-w-40 space-y-1">

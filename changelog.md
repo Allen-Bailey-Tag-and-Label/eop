@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T18:42:58.886Z
+## 2026-11-11T18:49:39.456Z
+
+feat: Add sorting and export to UPS rate comparisons
+
+## 2026-11-11T13:43:46-05:00
 
 feat: Compare UPS quantity rates in a transposable table
 

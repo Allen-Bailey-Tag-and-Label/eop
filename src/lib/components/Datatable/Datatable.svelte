@@ -519,7 +519,11 @@
 				</Button>
 			{/if}
 			{#if isExportable}
-				<Button onclick={() => (isExportModalOpen = true)} variants={['icon']}>
+				<Button
+					aria-label="Export data"
+					onclick={() => (isExportModalOpen = true)}
+					variants={['icon']}
+				>
 					<Download />
 				</Button>
 				<Modal title="Export data" bind:isOpen={isExportModalOpen} class="space-y-6">
