@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T18:31:32.314Z
+## 2026-11-11T18:36:13.856Z
+
+fix: Persist table sorting when route records are missing
+
+## 2026-11-11T13:32:09-05:00
 
 feat: Add density-based Unishippers LTL shipping quotes
 

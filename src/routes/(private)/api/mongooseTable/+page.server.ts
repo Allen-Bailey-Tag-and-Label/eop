@@ -59,6 +59,8 @@ export const actions: Actions = {
 	find: async ({ locals, request }) => {
 		const form = await request.formData();
 		const _routeId = String(form.get('_routeId') ?? '');
+		if (!Types.ObjectId.isValid(_routeId))
+			return fail(400, { error: 'Invalid table route. Reload the page and try again.' });
 		const columnsOrder = JSON.parse(form.get('columnsOrder')?.toString() ?? JSON.stringify([]));
 		const currentPage = Number(form.get('currentPage') ?? 0);
 		const isPaginateable = (form.get('isPaginateable') ?? 'off') === 'on';
