@@ -11,6 +11,15 @@ afterEach(() => {
 	vi.clearAllMocks();
 });
 describe('UPS shipping adapter', () => {
+	it('does not invent dimensions for shared UPS weight-based estimates', () => {
+		const request = {
+			...blankRequest('2026-11-11'),
+			packages: [{ id: 'weights', quantity: 2, weight: 10 }]
+		};
+		const packages = upsRatePayload(request).RateRequest.Shipment.Package;
+		expect(packages).toHaveLength(2);
+		expect(packages[0]).not.toHaveProperty('Dimensions');
+	});
 	it('sends one multi-package request with actual weights, dimensions, date, and account options', () => {
 		const request = blankRequest('2026-11-10');
 		request.shipTo.residential = true;
@@ -19,7 +28,7 @@ describe('UPS shipping adapter', () => {
 		const body = upsRatePayload(request, 'account').RateRequest.Shipment;
 		expect(body.Package).toHaveLength(3);
 		expect(body.Package[2].PackageWeight.Weight).toBe('25');
-		expect(body.Package[0].Dimensions.Length).toBe('12');
+		expect(body.Package[0].Dimensions?.Length).toBe('12');
 		expect(body.ShipTo.Address.ResidentialAddressIndicator).toBe('Y');
 		expect(body.DeliveryTimeInformation.Pickup.Date).toBe('20261110');
 		expect(body.Shipper.ShipperNumber).toBe('account');

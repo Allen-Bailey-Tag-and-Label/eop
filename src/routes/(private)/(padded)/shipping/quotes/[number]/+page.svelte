@@ -8,6 +8,7 @@
 	const isFreight = (item: PackageGroup): item is FreightItem => 'freightClass' in item;
 	let { data }: PageProps = $props();
 	const quote = $derived(data.quote);
+	const hasScenarios = $derived(quote.rates.some((rate) => rate.scenarioId));
 </script>
 
 <svelte:head><title>Shipping quote {quote.number} - EOP</title></svelte:head>
@@ -71,13 +72,15 @@
 				><Table class="w-full"
 					><Thead
 						><Tr
-							><Th>Service</Th><Th>Carrier</Th><Th>Rate basis</Th><Th>Carrier cost</Th><Th
-								>Markup</Th
-							><Th>Customer price</Th></Tr
+							>{#if hasScenarios}<Th>Shipment</Th>{/if}<Th>Service</Th><Th>Carrier</Th><Th
+								>Rate basis</Th
+							><Th>Carrier cost</Th><Th>Markup</Th><Th>Customer price</Th></Tr
 						></Thead
 					><Tbody
 						>{#each quote.rates as rate, index (index)}<Tr
-								><Td>{rate.description}</Td><Td>{rate.carrier}</Td><Td>{rate.rateBasis}</Td><Td
+								>{#if hasScenarios}<Td>{rate.scenarioLabel ?? 'Shipment'}</Td>{/if}<Td
+									>{rate.description}</Td
+								><Td>{rate.carrier}</Td><Td>{rate.rateBasis}</Td><Td
 									>{currency(rate.costCents / 100)}</Td
 								><Td
 									>{rate.markup.percentBps / 100}% · {currency(rate.markup.amountCents / 100)}<P
@@ -92,8 +95,24 @@
 				></Card
 			>{/if}
 		{#if quote.request}
+			{#if quote.request.upsScenarios?.length}
+				<Card class="space-y-3"
+					><H2>UPS package options</H2>
+					{#each quote.request.upsScenarios as scenario, index (scenario.id)}
+						<P
+							>{scenario.label ||
+								(scenario.unitQuantity
+									? `${scenario.unitQuantity.toLocaleString()} units`
+									: `Rate row ${index + 1}`)} · {scenario.packageTotalCount} packages · {scenario.packageTotalWeight}
+							lb total</P
+						>
+						{#if scenario.message}<P role="status">{scenario.message}</P>{/if}
+					{/each}
+				</Card>
+			{/if}
 			{#each [{ title: 'UPS packaging', items: quote.request.packages }, { title: 'LTL handling units', items: quote.request.freight }] as section (section.title)}
-				{#if section.items.length}<Card class="space-y-3"
+				{#if section.items.length && !(section.title === 'UPS packaging' && quote.request.upsScenarios?.length)}<Card
+						class="space-y-3"
 						><H2>{section.title}</H2>{#each section.items as item (item.id)}<P
 								>{item.quantity} × {item.weight} lb · {item.length} × {item.width} × {item.height} in{#if isFreight(item)}
 									· {item.description} · Class {item.freightClass} · NMFC {item.nmfc ||

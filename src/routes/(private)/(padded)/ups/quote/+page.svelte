@@ -5,7 +5,7 @@
 	import { Button, Div, Form, H1, Input, Spinner } from '$lib/components';
 	import { slide } from 'svelte/transition';
 	import { untrack } from 'svelte';
-	import FormSections from './FormSections.svelte';
+	import FormSections from '$lib/ups/FormSections.svelte';
 	import { blankRateScenario, type RateScenarioInput } from '$lib/ups/quote';
 
 	let { data } = $props();

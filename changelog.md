@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T14:52:30.113Z
+## 2026-11-11T15:57:24.730Z
+
+feat: Share UPS quote controls and validation with shipping
+
+## 2026-11-11T09:54:04-05:00
 
 refactor: Move UPS case quantity builder into a dialog
 

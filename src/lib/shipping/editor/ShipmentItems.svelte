@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Button, Card, Div, H2, H3, Input, Select, Checkbox, P } from '$lib/components';
+	import { Button, Card, Div, H3, Input, Select, Checkbox, P } from '$lib/components';
+	import { Copy, Plus, Trash2 } from '@lucide/svelte';
 	import {
 		FREIGHT_CLASSES,
 		blankPackage,
@@ -19,25 +20,37 @@
 	] as const;
 </script>
 
-<Card class="space-y-4">
-	<H2>{freight ? 'LTL freight' : 'UPS packages'}</H2>
+<Div class="col-span-full min-w-0 space-y-4">
+	<H3 class="text-base">{freight ? 'LTL freight' : 'UPS packages'}</H3>
 	<P
 		>{freight
 			? 'Enter each pallet or handling unit including its packaging. Weight and dimensions are per unit.'
 			: 'Group identical cartons together. Weight and dimensions are per carton.'}</P
 	>
 	{#each items as item, index (item.id)}
-		<Card class="space-y-4">
+		<Card class="min-w-0 space-y-4 p-4">
 			<Input type="hidden" name={`${prefix}Id`} value={item.id} />
 			<Div class="flex items-center justify-between gap-4"
-				><H3 class="text-base">{freight ? 'Freight item' : 'Package group'} {index + 1}</H3><Button
-					variants={['small', 'ghost']}
-					disabled={items.length === 1}
-					aria-label={`Remove ${prefix} ${index + 1}`}
-					onclick={() => (items = items.filter((row) => row.id !== item.id))}>Remove</Button
+				><H3 class="text-base">{freight ? 'Freight item' : 'Package group'} {index + 1}</H3><Div
+					class="flex gap-2"
+				>
+					<Button
+						variants={['ghost', 'icon']}
+						disabled={items.length >= 50}
+						aria-label={`Duplicate ${prefix} ${index + 1}`}
+						onclick={() => (items = [...items, { ...item, id: crypto.randomUUID() }])}
+						><Copy size={18} aria-hidden="true" /></Button
+					>
+					<Button
+						variants={['ghost', 'icon']}
+						disabled={items.length === 1}
+						aria-label={`Remove ${prefix} ${index + 1}`}
+						onclick={() => (items = items.filter((row) => row.id !== item.id))}
+						><Trash2 size={18} aria-hidden="true" /></Button
+					></Div
 				></Div
 			>
-			<Div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
+			<Div class="grid min-w-0 grid-cols-2 gap-4 sm:grid-cols-3">
 				{#each numberFields as field (field.key)}
 					<Input
 						type="number"
@@ -87,12 +100,19 @@
 			{/if}
 		</Card>
 	{/each}
+	<P aria-live="polite"
+		>{items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)}
+		{freight ? 'handling units' : 'packages'} · {items
+			.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.weight) || 0), 0)
+			.toLocaleString(undefined, { maximumFractionDigits: 2 })} lb total</P
+	>
 	<Div class="flex justify-end"
 		><Button
-			variants={['contrast']}
+			variants={['small']}
+			class="flex items-center gap-2"
 			disabled={items.length >= 50}
 			onclick={() => (items = [...items, freight ? blankFreight() : blankPackage()])}
-			>Add {freight ? 'freight item' : 'package group'}</Button
+			><Plus size={16} aria-hidden="true" />Add {freight ? 'freight item' : 'package group'}</Button
 		></Div
 	>
-</Card>
+</Div>

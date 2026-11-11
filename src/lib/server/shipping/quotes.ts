@@ -13,6 +13,7 @@ import { getMarkupConfigs } from './markups';
 import { getUpsShippingRates } from './ups';
 import { legacyQuoteView } from '$lib/shipping/legacy';
 import { nextQuoteNumber } from './numbering';
+import { validateShippingDestination } from './addresses';
 
 export async function collectRates(request: ShippingRequest) {
 	// Snapshot rule revisions before calling either provider.
@@ -29,6 +30,77 @@ export async function collectRates(request: ShippingRequest) {
 							'Unishippers rating is not connected yet. LTL details have been saved; no LTL price was returned.'
 					} as ProviderAttempt
 				};
+			if (request.upsScenarios?.length) {
+				const rows = await Promise.all(
+					request.upsScenarios.map(async (scenario, index) => {
+						const scenarioLabel =
+							scenario.label ||
+							(scenario.unitQuantity
+								? `${scenario.unitQuantity.toLocaleString('en-US')} units`
+								: `Rate row ${index + 1}`);
+						try {
+							const packages = scenario.packageGroups.map((group) => ({
+								...group,
+								id: crypto.randomUUID()
+							}));
+							const rates = (await getUpsShippingRates({ ...request, packages }))
+								.filter((rate) => scenario.services.includes(rate.code))
+								.map((rate) =>
+									priceRate(
+										{
+											...rate,
+											scenarioId: scenario.id,
+											scenarioLabel,
+											...(scenario.unitQuantity ? { unitQuantity: scenario.unitQuantity } : {})
+										},
+										configs.find((config) => config.service === service)!
+									)
+								);
+							return {
+								rates,
+								scenario: {
+									...scenario,
+									status: rates.length ? ('complete' as const) : ('failed' as const),
+									rates: rates.map((rate) => ({
+										description: rate.description,
+										rate: rate.priceCents / 100,
+										serviceCode: rate.code
+									})),
+									unavailableServices: scenario.services.filter(
+										(code) => !rates.some((rate) => rate.code === code)
+									),
+									message: rates.length ? '' : 'No selected UPS services were returned.'
+								}
+							};
+						} catch (cause) {
+							return {
+								rates: [] as PricedRate[],
+								scenario: {
+									...scenario,
+									status: 'failed' as const,
+									rates: [],
+									unavailableServices: [...scenario.services],
+									message:
+										cause instanceof ShippingError
+											? cause.message
+											: 'UPS rates are temporarily unavailable. Quote again to retry.'
+								}
+							};
+						}
+					})
+				);
+				const rates = rows.flatMap((row) => row.rates);
+				const failed = rows.filter((row) => row.scenario.status === 'failed').length;
+				return {
+					rates,
+					upsScenarios: rows.map((row) => row.scenario),
+					attempt: {
+						service,
+						status: rates.length ? 'success' : 'error',
+						message: `${rates.length} UPS service options returned across ${rows.length} rate rows.${failed ? ` ${failed} rate rows could not return prices.` : ''}`
+					} as ProviderAttempt
+				};
+			}
 			try {
 				const rates = (await getUpsShippingRates(request)).map((rate) =>
 					priceRate(rate, configs.find((config) => config.service === service)!)
@@ -58,7 +130,10 @@ export async function collectRates(request: ShippingRequest) {
 	);
 	return {
 		rates: results.flatMap((result) => result.rates) as PricedRate[],
-		attempts: results.map((result) => result.attempt)
+		attempts: results.map((result) => result.attempt),
+		upsScenarios: results.flatMap((result) =>
+			'upsScenarios' in result ? (result.upsScenarios ?? []) : []
+		)
 	};
 }
 
@@ -73,7 +148,8 @@ export async function createShippingQuote(
 	await ShippingQuote.init();
 	const existing = await ShippingQuote.findOne({ requestKey }).select('number').lean();
 	if (existing) return existing.number;
-	const result = await collectRates(request);
+	const validated = await validateShippingDestination(request);
+	const { upsScenarios, ...result } = await collectRates(validated);
 	const number = String(await nextQuoteNumber());
 	try {
 		await ShippingQuote.create({
@@ -81,7 +157,7 @@ export async function createShippingQuote(
 			requestKey,
 			_createdById: userId,
 			_branchId: request.branchId,
-			request,
+			request: upsScenarios.length ? { ...validated, upsScenarios } : validated,
 			...result
 		});
 	} catch (error) {

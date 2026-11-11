@@ -51,12 +51,18 @@ export function upsRatePayload(request: ShippingRequest, account?: string) {
 					Array.from({ length: group.quantity }, () => ({
 						PackagingType: { Code: '02' },
 						PackageWeight: { UnitOfMeasurement: { Code: 'LBS' }, Weight: String(group.weight) },
-						Dimensions: {
-							UnitOfMeasurement: { Code: 'IN' },
-							Length: String(group.length),
-							Width: String(group.width),
-							Height: String(group.height)
-						}
+						...(group.length !== undefined &&
+						group.width !== undefined &&
+						group.height !== undefined
+							? {
+									Dimensions: {
+										UnitOfMeasurement: { Code: 'IN' },
+										Length: String(group.length),
+										Width: String(group.width),
+										Height: String(group.height)
+									}
+								}
+							: {})
 					}))
 				)
 			}

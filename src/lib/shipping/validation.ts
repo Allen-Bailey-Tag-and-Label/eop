@@ -29,14 +29,14 @@ function flag(value: unknown): boolean {
 	if (typeof value !== 'boolean') throw new ShippingError('Invalid shipment option.');
 	return value;
 }
-function address(value: unknown, label: string): ShippingAddress {
+function address(value: unknown, label: string, required = true): ShippingAddress {
 	const row = record(value);
 	const state = text(row.state, `${label} state`, 2, true).toUpperCase();
 	const zip = text(row.zip, `${label} ZIP`, 10, true);
 	if (!/^[A-Z]{2}$/.test(state) || !/^\d{5}(-\d{4})?$/.test(zip))
 		throw new ShippingError(`Enter a two-letter state and US ZIP for ${label}.`);
 	return {
-		address: text(row.address, `${label} address`, 160, true),
+		address: text(row.address, `${label} address`, 160, required),
 		city: text(row.city, `${label} city`, 80, true),
 		state,
 		zip,
@@ -60,17 +60,25 @@ function items(value: unknown, freight: boolean): (PackageGroup | FreightItem)[]
 	const result = value.map((entry, index) => {
 		const row = record(entry),
 			label = `${freight ? 'freight item' : 'package group'} ${index + 1}`;
+		const dimensions =
+			freight || ['length', 'width', 'height'].some((key) => row[key] !== undefined)
+				? {
+						length: positive(row.length, `${label} length`, freight ? 1200 : 108),
+						width: positive(row.width, `${label} width`, freight ? 120 : 108),
+						height: positive(row.height, `${label} height`, freight ? 144 : 108)
+					}
+				: undefined;
 		const item: PackageGroup = {
 			id: text(row.id, 'item ID', 64, true),
 			quantity: positive(row.quantity, `${label} quantity`, freight ? 100 : 200, true),
 			weight: positive(row.weight, `${label} weight`, freight ? 20000 : 150),
-			length: positive(row.length, `${label} length`, freight ? 1200 : 108),
-			width: positive(row.width, `${label} width`, freight ? 120 : 108),
-			height: positive(row.height, `${label} height`, freight ? 144 : 108)
+			...dimensions
 		};
 		if (!freight) {
-			const dimensions = [item.length, item.width, item.height].sort((a, b) => b - a);
-			if (dimensions[0] + 2 * (dimensions[1] + dimensions[2]) > 165)
+			const sides = dimensions
+				? [dimensions.length, dimensions.width, dimensions.height].sort((a, b) => b - a)
+				: null;
+			if (sides && sides[0] + 2 * (sides[1] + sides[2]) > 165)
 				throw new ShippingError(`${label} exceeds UPS length plus girth limits.`);
 			return item;
 		}
@@ -92,6 +100,8 @@ function items(value: unknown, freight: boolean): (PackageGroup | FreightItem)[]
 }
 export function parseShipment(value: unknown): ShippingRequest {
 	const row = record(value);
+	if (row.validateAddresses !== undefined && typeof row.validateAddresses !== 'boolean')
+		throw new ShippingError('Select whether to validate the address.');
 	if (row.services !== 'UPS' && row.services !== 'LTL' && row.services !== 'Both')
 		throw new ShippingError('Select UPS, LTL, or Both.');
 	const branchId = text(row.branchId, 'branch', 24, true);
@@ -116,13 +126,16 @@ export function parseShipment(value: unknown): ShippingRequest {
 		].map((key) => [key, services.includes('LTL') ? flag(extras[key]) : false])
 	) as ShippingRequest['accessorials'];
 	return {
+		...(row.validateAddresses !== undefined
+			? { validateAddresses: row.validateAddresses as boolean }
+			: {}),
 		services: row.services,
 		branchId,
 		customer: text(row.customer, 'customer', 160),
 		reference: text(row.reference, 'reference', 100),
 		shipDate,
-		shipFrom: address(row.shipFrom, 'origin'),
-		shipTo: address(row.shipTo, 'destination'),
+		shipFrom: address(row.shipFrom, 'origin', row.validateAddresses !== false),
+		shipTo: address(row.shipTo, 'destination', row.validateAddresses !== false),
 		packages: services.includes('UPS') ? items(row.packages, false) : [],
 		freight: services.includes('LTL') ? (items(row.freight, true) as FreightItem[]) : [],
 		accessorials
@@ -131,11 +144,17 @@ export function parseShipment(value: unknown): ShippingRequest {
 
 export function shipmentFromForm(fields: FormData) {
 	const value = (key: string) => fields.get(key) ?? '';
+	if (fields.has('isValidated') && !['true', 'false'].includes(String(value('isValidated'))))
+		throw new ShippingError('Select whether to validate the address.');
+	const addressValue = (key: string, field: string, suffix: string) =>
+		fields.get(`${key}.${field}`) ?? value(`${key}${suffix}`);
 	const addressFields = (key: string) => ({
-		address: value(`${key}.address`),
-		city: value(`${key}.city`),
-		state: value(`${key}.state`),
-		zip: value(`${key}.zip`),
+		address: addressValue(key, 'address', 'Address'),
+		city: addressValue(key, 'city', 'City'),
+		state: addressValue(key, 'state', 'State'),
+		zip: /^\d{1,5}$/.test(String(addressValue(key, 'zip', 'ZIP')))
+			? String(addressValue(key, 'zip', 'ZIP')).padStart(5, '0')
+			: addressValue(key, 'zip', 'ZIP'),
 		residential: value(`${key}.residential`) === 'on'
 	});
 	const groups = (prefix: string) =>
@@ -157,11 +176,14 @@ export function shipmentFromForm(fields: FormData) {
 				: {})
 		}));
 	return {
+		...(fields.has('isValidated') ? { validateAddresses: value('isValidated') === 'true' } : {}),
 		services: value('services'),
-		branchId: value('branchId'),
+		branchId: fields.get('branchId') ?? value('_branchId'),
 		customer: value('customer'),
 		reference: value('reference'),
-		shipDate: value('shipDate'),
+		shipDate:
+			fields.get('shipDate') ??
+			new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()),
 		shipFrom: addressFields('shipFrom'),
 		shipTo: addressFields('shipTo'),
 		packages: groups('package'),

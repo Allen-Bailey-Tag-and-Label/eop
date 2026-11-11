@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, redirect, isHttpError } from '@sveltejs/kit';
+import { parseScenarios } from '$lib/server/ups/quotes';
 import { connect } from '$lib/server/mongoose/connect';
 import { createShippingQuote } from '$lib/server/shipping/quotes';
 import { findShippingQuote } from '$lib/server/shipping/quotes';
@@ -27,7 +28,23 @@ export const actions: Actions = {
 		let number;
 		try {
 			const fields = await request.formData();
-			const shipment = parseShipment(shipmentFromForm(fields));
+			const input = shipmentFromForm(fields);
+			const upsScenarios =
+				input.services !== 'LTL' && fields.has('rateScenarios')
+					? parseScenarios(fields.get('rateScenarios'))
+					: undefined;
+			const shipment = parseShipment({
+				...input,
+				...(upsScenarios
+					? {
+							packages: upsScenarios[0].packageGroups.map((group) => ({
+								...group,
+								id: crypto.randomUUID()
+							}))
+						}
+					: {})
+			});
+			if (upsScenarios) shipment.upsScenarios = upsScenarios;
 			if (!locals.user.branches.some((branch) => branch._id.toString() === shipment.branchId))
 				throw new ShippingError('Choose one of your branches.');
 			await connect();
@@ -38,6 +55,8 @@ export const actions: Actions = {
 			);
 		} catch (error) {
 			if (error instanceof ShippingError) return fail(error.status, { error: error.message });
+			if (isHttpError(error) && error.status === 400)
+				return fail(400, { error: error.body.message });
 			throw error;
 		}
 		redirect(303, `/shipping/quotes/${number}`);

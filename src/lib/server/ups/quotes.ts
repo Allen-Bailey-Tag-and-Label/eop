@@ -176,7 +176,7 @@ function wholeUnits(value: unknown) {
 		error(400, 'Enter a positive whole-number unit quantity.');
 	return Number(value);
 }
-function parseScenarios(value: unknown): QuoteScenario[] {
+export function parseScenarios(value: unknown): QuoteScenario[] {
 	let raw = value;
 	if (typeof raw === 'string') {
 		if (raw.length > 128_000) error(400, 'Too much rate scenario information.');

@@ -7,6 +7,9 @@ import { ShippingQuote } from '../mongoose/models/ShippingQuote';
 import { UpsQuote } from '../mongoose/models/UpsQuote';
 import { nextQuoteNumber } from './numbering';
 import { Types } from 'mongoose';
+import { validateShippingDestination } from './addresses';
+import type { QuoteScenario } from '$lib/ups/quote';
+vi.mock('./addresses', () => ({ validateShippingDestination: vi.fn() }));
 vi.mock('./markups', () => ({ getMarkupConfigs: vi.fn() }));
 vi.mock('./ups', () => ({ getUpsShippingRates: vi.fn() }));
 vi.mock('./numbering', () => ({ nextQuoteNumber: vi.fn() }));
@@ -34,6 +37,7 @@ const rate: CarrierRate = {
 const query = (value: unknown) => ({ select: () => query(value), lean: async () => value });
 beforeEach(() => {
 	vi.resetAllMocks();
+	vi.mocked(validateShippingDestination).mockImplementation(async (request) => request);
 	vi.mocked(getMarkupConfigs).mockResolvedValue([
 		{ service: 'UPS', revision: 0, ranges: [] },
 		{ service: 'LTL', revision: 0, ranges: [] }
@@ -44,6 +48,86 @@ beforeEach(() => {
 	vi.mocked(ShippingQuote.create).mockResolvedValue({} as never);
 });
 describe('shipping quote persistence', () => {
+	it('validates before pricing and persists the corrected address; failures do not allocate a quote', async () => {
+		const request = { ...blankRequest('2026-11-11'), validateAddresses: true };
+		const corrected = { ...request, shipTo: { ...request.shipFrom, residential: true } };
+		vi.mocked(validateShippingDestination).mockResolvedValue(corrected);
+		await createShippingQuote(request, crypto.randomUUID(), 'user');
+		expect(getUpsShippingRates).toHaveBeenCalledWith(corrected);
+		expect(ShippingQuote.create).toHaveBeenCalledWith(
+			expect.objectContaining({ request: corrected })
+		);
+		vi.mocked(getUpsShippingRates).mockClear();
+		vi.mocked(nextQuoteNumber).mockClear();
+		vi.mocked(validateShippingDestination).mockRejectedValue(new Error('Validation failed'));
+		await expect(createShippingQuote(request, crypto.randomUUID(), 'user')).rejects.toThrow(
+			'Validation failed'
+		);
+		expect(getUpsShippingRates).not.toHaveBeenCalled();
+		expect(nextQuoteNumber).not.toHaveBeenCalled();
+	});
+	it('prices shared UPS scenarios in parallel and preserves each row and selected services', async () => {
+		const scenario = (label: string, quantity: number, services: string[]): QuoteScenario => ({
+			id: crypto.randomUUID(),
+			label,
+			unitQuantity: quantity * 100,
+			services,
+			weightMode: 'groups',
+			packageGroups: [{ quantity, weight: 10 }],
+			packageTotalCount: quantity,
+			packageTotalWeight: quantity * 10,
+			packageWeight: 10,
+			status: 'pending',
+			rates: [],
+			unavailableServices: [],
+			message: ''
+		});
+		const request = {
+			...blankRequest('2026-11-11'),
+			upsScenarios: [scenario('Small run', 2, ['03']), scenario('Large run', 3, ['02'])]
+		};
+		let release!: (rates: CarrierRate[]) => void;
+		vi.mocked(getUpsShippingRates)
+			.mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						release = resolve;
+					})
+			)
+			.mockResolvedValueOnce([{ ...rate, code: '02' }]);
+		const pending = collectRates(request);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(getUpsShippingRates).toHaveBeenCalledTimes(2);
+		release([rate, { ...rate, code: '02' }]);
+		const result = await pending;
+		expect(result.rates.map((row) => [row.scenarioLabel, row.code])).toEqual([
+			['Small run', '03'],
+			['Large run', '02']
+		]);
+		expect(result.upsScenarios.map((row) => row.status)).toEqual(['complete', 'complete']);
+		expect(getUpsShippingRates).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({ packages: [expect.objectContaining({ quantity: 3, weight: 10 })] })
+		);
+		vi.mocked(getUpsShippingRates)
+			.mockRejectedValueOnce(new Error('private-token'))
+			.mockResolvedValueOnce([{ ...rate, code: '02' }]);
+		const partial = await collectRates(request);
+		expect(partial.rates).toHaveLength(1);
+		expect(partial.upsScenarios.map((row) => row.status)).toEqual(['failed', 'complete']);
+		expect(JSON.stringify(partial)).not.toContain('private-token');
+		await createShippingQuote(request, crypto.randomUUID(), 'user');
+		expect(ShippingQuote.create).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				request: expect.objectContaining({
+					upsScenarios: expect.arrayContaining([
+						expect.objectContaining({ label: 'Small run', status: 'complete' })
+					])
+				})
+			})
+		);
+	});
 	it('keeps successful UPS rates when LTL is not configured and does not quote unselected services', async () => {
 		const request = { ...blankRequest('2026-11-10'), services: 'Both' as const };
 		const result = await collectRates(request);

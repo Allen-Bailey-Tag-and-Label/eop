@@ -1,3 +1,5 @@
+import type { QuoteScenario } from '$lib/ups/quote';
+
 export type ShippingService = 'UPS' | 'LTL';
 export type QuoteServices = ShippingService | 'Both';
 export type ShippingAddress = {
@@ -11,17 +13,22 @@ export type PackageGroup = {
 	id: string;
 	quantity: number;
 	weight: number;
+	length?: number;
+	width?: number;
+	height?: number;
+};
+export type FreightItem = PackageGroup & {
 	length: number;
 	width: number;
 	height: number;
-};
-export type FreightItem = PackageGroup & {
 	description: string;
 	freightClass: string;
 	nmfc: string;
 	stackable: boolean;
 };
 export type ShippingRequest = {
+	validateAddresses?: boolean;
+	upsScenarios?: QuoteScenario[];
 	services: QuoteServices;
 	branchId: string;
 	customer: string;
@@ -49,6 +56,9 @@ export type MarkupRange = {
 };
 export type MarkupConfig = { service: ShippingService; revision: number; ranges: MarkupRange[] };
 export type CarrierRate = {
+	scenarioId?: string;
+	scenarioLabel?: string;
+	unitQuantity?: number;
 	service: ShippingService;
 	provider: 'UPS' | 'Unishippers';
 	carrier: string;

@@ -1,12 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/svelte';
 import { tick } from 'svelte';
+import type { SubmitFunction } from '@sveltejs/kit';
 import Quote from '../../routes/(private)/(padded)/shipping/quote/+page.svelte';
 import Markups from '../../routes/(private)/(padded)/admin/shipping/markups/+page.svelte';
 import Detail from '../../routes/(private)/(padded)/shipping/quotes/[number]/+page.svelte';
 import Finder from '../../routes/(private)/(padded)/shipping/quote-finder/+page.svelte';
 import { legacyQuoteView } from './legacy';
-vi.mock('$app/forms', () => ({ enhance: () => ({ destroy() {} }) }));
+const submitHandlers = vi.hoisted(() => new Map<HTMLFormElement, SubmitFunction>());
+vi.mock('$app/forms', () => ({
+	enhance: (form: HTMLFormElement, submit: SubmitFunction) => {
+		submitHandlers.set(form, submit);
+		return { destroy: () => submitHandlers.delete(form) };
+	}
+}));
 vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn() }));
 vi.mock('sveltewind/transitions', async (original) => ({
 	...(await original<typeof import('sveltewind/transitions')>()),
@@ -16,11 +23,134 @@ vi.mock('svelte/transition', async (original) => ({
 	...(await original<typeof import('svelte/transition')>()),
 	scale: () => ({ duration: 0 })
 }));
+beforeEach(() => {
+	vi.stubGlobal('matchMedia', () => ({
+		matches: true,
+		addEventListener: vi.fn(),
+		removeEventListener: vi.fn()
+	}));
+});
 afterEach(() => {
 	cleanup();
+	submitHandlers.clear();
 	vi.unstubAllGlobals();
 });
+
+function quoteData() {
+	const branch = { _id: 'a'.repeat(24), number: 2046, label: 'ABTL' };
+	return {
+		requestId: crypto.randomUUID(),
+		shipDate: '2026-11-11',
+		initialRequest: null,
+		locals: { user: { branches: [branch], defaultBranch: branch } }
+	};
+}
 describe('shipping forms', () => {
+	it('shares the actual UPS addresses, package options and Extras without unwanted fields', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		for (const name of ['Shipment Details', 'Package Info', 'Extras'])
+			expect(view.getByRole('heading', { name })).toBeInTheDocument();
+		for (const name of [
+			'shipDate',
+			'customer',
+			'reference',
+			'shipFrom.residential',
+			'shipTo.residential'
+		])
+			expect(view.container.querySelector('[name="' + name + '"]')).toBeNull();
+		expect(view.getByRole('tab', { name: 'Simple' })).toHaveAttribute('aria-selected', 'true');
+		expect(view.getByRole('tab', { name: 'Advanced' })).toBeInTheDocument();
+		expect(view.getByRole('tab', { name: 'Cases / units' })).toBeInTheDocument();
+		const field = (name: string) =>
+			view.container.querySelector<HTMLInputElement>('[name="' + name + '"]')!;
+		await fireEvent.input(field('shipToZIP'), { target: { value: '10001' } });
+		await fireEvent.change(field('shipToZIP'));
+		expect(field('shipToCity')).toHaveValue('New York');
+		expect(field('shipToState')).toHaveValue('NY');
+		await fireEvent.click(view.getByRole('button', { name: 'Swap Ship From and Ship To' }));
+		const form = view.container.querySelector('form')!;
+		expect(new FormData(form).get('shipFromZIP')).toBe('10001');
+		expect(new FormData(form).get('_branchId')).toBe('a'.repeat(24));
+		expect(new FormData(form).get('isValidated')).toBe('true');
+		await fireEvent.click(
+			view.container.querySelector('input[name="isValidated"][value="false"]')!
+		);
+		expect(new FormData(form).get('isValidated')).toBe('false');
+		expect(field('shipToAddress')).not.toBeRequired();
+	});
+	it('supports shared UPS advanced rows and resets them with a fresh request ID', async () => {
+		const data = quoteData();
+		const view = render(Quote, { data, form: { error: 'Previous request failed.' } } as never);
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Packages' }), {
+			target: { value: '2' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' }), {
+			target: { value: '50' }
+		});
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Duplicate rate row 1' }));
+		const form = view.container.querySelector('form')!;
+		const rows = JSON.parse(String(new FormData(form).get('rateScenarios')));
+		expect(rows).toHaveLength(2);
+		expect(rows[0].id).not.toBe(rows[1].id);
+		expect(Number(rows[1].totalWeight)).toBe(50);
+		await fireEvent.change(view.container.querySelector('[name="services"]')!, {
+			target: { value: 'Both' }
+		});
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Liftgate delivery' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Reset' }));
+		const reset = new FormData(form);
+		expect(reset.get('requestId')).not.toBe(data.requestId);
+		expect(reset.get('_branchId')).toBe('a'.repeat(24));
+		expect(reset.get('services')).toBe('UPS');
+		expect(JSON.parse(String(reset.get('rateScenarios')))).toHaveLength(1);
+		expect(view.getByRole('tab', { name: 'Simple' })).toHaveAttribute('aria-selected', 'true');
+		expect(view.getByRole('alert')).toHaveTextContent(/^$/);
+		await fireEvent.change(view.container.querySelector('[name="services"]')!, {
+			target: { value: 'Both' }
+		});
+		expect(view.getByRole('checkbox', { name: 'Liftgate delivery' })).not.toBeChecked();
+	});
+	it('expands collapsed mobile sections when a field fails validation', async () => {
+		vi.stubGlobal('matchMedia', () => ({
+			matches: false,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn()
+		}));
+		const view = render(Quote, { data: quoteData() } as never);
+		const sections = view.container.querySelectorAll('details');
+		expect(sections).toHaveLength(3);
+		expect(sections[0]).toHaveAttribute('open');
+		expect(sections[1]).not.toHaveAttribute('open');
+		const weight = view.container.querySelector('input[name="packageInfoTotalWeight"]')!;
+		await fireEvent.invalid(weight);
+		expect(sections[1]).toHaveAttribute('open');
+		expect(sections[2]).not.toHaveAttribute('open');
+		await fireEvent.invalid(view.container.querySelector('input[name="isValidated"]')!);
+		expect(sections[2]).toHaveAttribute('open');
+	});
+	it('shows submission progress, prevents duplicate submissions, and retains entered values', async () => {
+		const view = render(Quote, { data: quoteData() } as never);
+		const form = view.container.querySelector('form')!;
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Packages' }), {
+			target: { value: '3' }
+		});
+		const finish = await submitHandlers.get(form)!({ cancel: vi.fn() } as never);
+		await tick();
+		expect(view.getByRole('button', { name: 'Get quotes' })).toBeDisabled();
+		expect(view.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument();
+		const cancel = vi.fn();
+		await submitHandlers.get(form)!({ cancel } as never);
+		expect(cancel).toHaveBeenCalledOnce();
+		if (typeof finish !== 'function') throw new Error('Missing submit completion handler');
+		const update = vi.fn(async () => {});
+		await finish({ update } as never);
+		await tick();
+		expect(update).toHaveBeenCalledWith({ reset: false });
+		expect(new FormData(form).get('packageInfoTotalPackages')).toBe('3');
+		expect(view.getByRole('button', { name: 'Get quotes' })).not.toBeDisabled();
+		expect(view.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
+	});
 	it('uses the native finder table without an extra heading, search form, or custom pagination', async () => {
 		vi.stubGlobal(
 			'ResizeObserver',
@@ -106,7 +236,7 @@ describe('shipping forms', () => {
 		} as never);
 		const services = view.container.querySelector('select[name="services"]')!;
 		expect(view.queryByText('LTL freight')).not.toBeInTheDocument();
-		const weight = view.getByRole('spinbutton', { name: 'Package group 1 Weight each (lb)' });
+		const weight = view.getByRole('spinbutton', { name: 'Total Weight (lbs)' });
 		await fireEvent.input(weight, { target: { value: '25' } });
 		await fireEvent.input(weight, { target: { value: '' } });
 		await fireEvent.input(weight, { target: { value: '25' } });
@@ -118,12 +248,10 @@ describe('shipping forms', () => {
 		await fireEvent.change(services, { target: { value: 'UPS' } });
 		expect(view.queryByText('LTL freight')).not.toBeInTheDocument();
 		await fireEvent.change(services, { target: { value: 'LTL' } });
-		expect(view.queryByText('UPS packages')).not.toBeInTheDocument();
+		expect(view.queryByRole('tab', { name: 'Simple' })).not.toBeInTheDocument();
 		expect(view.container.querySelector('input[name$=".description"]')).toHaveValue('Tags');
 		await fireEvent.change(services, { target: { value: 'Both' } });
-		expect(view.getByRole('spinbutton', { name: 'Package group 1 Weight each (lb)' })).toHaveValue(
-			25
-		);
+		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(25);
 		await fireEvent.click(view.getByRole('checkbox', { name: 'Liftgate delivery' }));
 		await tick();
 		const fields = new FormData(view.container.querySelector('form')!);
