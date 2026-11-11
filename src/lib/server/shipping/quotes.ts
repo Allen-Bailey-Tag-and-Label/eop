@@ -11,6 +11,7 @@ import { ShippingError } from '$lib/shipping/validation';
 import { priceRate } from '$lib/shipping/markups';
 import { getMarkupConfigs } from './markups';
 import { getUpsShippingRates } from './ups';
+import { getUnishippersShippingRates, unishippersStatus } from './unishippers';
 import { legacyQuoteView } from '$lib/shipping/legacy';
 import { nextQuoteNumber } from './numbering';
 import { validateShippingDestination } from './addresses';
@@ -20,16 +21,50 @@ export async function collectRates(request: ShippingRequest) {
 	const configs = await getMarkupConfigs();
 	const results = await Promise.all(
 		selectedServices(request.services).map(async (service) => {
-			if (service === 'LTL')
-				return {
-					rates: [],
-					attempt: {
-						service,
-						status: 'not-configured',
-						message:
-							'Unishippers rating is not connected yet. LTL details have been saved; no LTL price was returned.'
-					} as ProviderAttempt
-				};
+			if (service === 'LTL') {
+				if (!unishippersStatus().configured)
+					return {
+						rates: [],
+						attempt: {
+							service,
+							status: 'not-configured',
+							message:
+								'Unishippers LTL is not configured on this server. The freight details have been saved.'
+						} as ProviderAttempt
+					};
+				try {
+					const rates = (await getUnishippersShippingRates(request)).map((rate) =>
+						priceRate(rate, configs.find((config) => config.service === 'LTL')!)
+					);
+					const warnings = [
+						...new Set(
+							rates.flatMap((rate) =>
+								rate.classificationWarning ? [rate.classificationWarning] : []
+							)
+						)
+					];
+					return {
+						rates,
+						attempt: {
+							service,
+							status: 'success',
+							message: `${rates.length} Unishippers LTL offers returned.${rates.some((rate) => rate.staging) ? ' Staging test prices; not live-account rates.' : ''}${warnings.length ? ' ' + warnings.join(' ') : ''}`
+						} as ProviderAttempt
+					};
+				} catch (cause) {
+					return {
+						rates: [],
+						attempt: {
+							service,
+							status: 'error',
+							message:
+								cause instanceof ShippingError
+									? cause.message
+									: 'Unishippers rates are temporarily unavailable. Quote again to retry.'
+						} as ProviderAttempt
+					};
+				}
+			}
 			if (request.upsScenarios?.length) {
 				const rows = await Promise.all(
 					request.upsScenarios.map(async (scenario, index) => {

@@ -7,6 +7,7 @@ import Markups from '../../routes/(private)/(padded)/admin/shipping/markups/+pag
 import Detail from '../../routes/(private)/(padded)/shipping/quotes/[number]/+page.svelte';
 import Finder from '../../routes/(private)/(padded)/shipping/quote-finder/+page.svelte';
 import { legacyQuoteView } from './legacy';
+import { blankRequest } from './types';
 const submitHandlers = vi.hoisted(() => new Map<HTMLFormElement, SubmitFunction>());
 vi.mock('$app/forms', () => ({
 	enhance: (form: HTMLFormElement, submit: SubmitFunction) => {
@@ -46,6 +47,46 @@ function quoteData() {
 	};
 }
 describe('shipping forms', () => {
+	it('shows saved staging LTL prices and transit alongside UPS without misaligning columns', () => {
+		const view = render(Detail, {
+			data: {
+				quote: {
+					number: '123',
+					origin: 'shipping',
+					createdAt: null,
+					request: blankRequest('2026-11-11'),
+					shipFrom: { city: 'Caledonia', state: 'NY', zip: '14423' },
+					shipTo: { city: 'Highland Park', state: 'TX', zip: '75219' },
+					attempts: [],
+					rates: [
+						{ service: 'UPS', description: 'Ground', carrier: 'UPS' },
+						{
+							service: 'LTL',
+							description: 'LTL standard',
+							carrier: 'Test Freight',
+							staging: true,
+							freightClass: '55',
+							transitDays: 3,
+							estimatedDeliveryDate: '2026-11-16'
+						}
+					].map((rate) => ({
+						...rate,
+						rateBasis: 'negotiated',
+						costCents: 10000,
+						priceCents: 12000,
+						markup: { percentBps: 2000, amountCents: 2000, label: 'Test markup', revision: 1 }
+					}))
+				}
+			}
+		} as never);
+		expect(view.getByRole('columnheader', { name: 'Transit estimate' })).toBeInTheDocument();
+		expect(view.getByText('Staging test rate · Class 55')).toBeInTheDocument();
+		expect(view.getByText('3 business days')).toBeInTheDocument();
+		expect(view.getByText('2026-11-16')).toBeInTheDocument();
+		expect(view.getAllByText('$120.00')).toHaveLength(2);
+		const rows = view.getAllByRole('row');
+		for (const row of rows.slice(1)) expect(row.querySelectorAll('td')).toHaveLength(7);
+	});
 	it('shares the actual UPS addresses, package options and Extras without unwanted fields', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
 		expect(view.queryByRole('link', { name: 'Quote history' })).not.toBeInTheDocument();

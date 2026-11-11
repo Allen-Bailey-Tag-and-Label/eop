@@ -140,8 +140,11 @@
 	{#if ltl}
 		<ShipmentItems bind:items={draft.freight} freight />
 		<P class="col-span-full" role="status"
-			>Unishippers API access is pending. Your LTL details will be saved, but LTL pricing is not
-			available yet. UPS pricing can still be returned when Both is selected.</P
+			>{!data.unishippers?.configured
+				? 'Unishippers LTL is not configured on this server. Freight details can be saved, but no LTL prices will be returned.'
+				: data.unishippers.staging
+					? 'LTL uses Unishippers staging prices. Freight class is calculated from each handling unit’s density. These are not live-account rates.'
+					: 'LTL carrier prices will be retrieved from Unishippers.'}</P
 		>
 	{/if}
 {/snippet}

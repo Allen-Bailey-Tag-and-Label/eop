@@ -3,6 +3,7 @@ import { blankRequest, type CarrierRate } from '$lib/shipping/types';
 import { collectRates, createShippingQuote, findShippingQuote } from './quotes';
 import { getMarkupConfigs } from './markups';
 import { getUpsShippingRates } from './ups';
+import { getUnishippersShippingRates, unishippersStatus } from './unishippers';
 import { ShippingQuote } from '../mongoose/models/ShippingQuote';
 import { UpsQuote } from '../mongoose/models/UpsQuote';
 import { nextQuoteNumber } from './numbering';
@@ -12,6 +13,10 @@ import type { QuoteScenario } from '$lib/ups/quote';
 vi.mock('./addresses', () => ({ validateShippingDestination: vi.fn() }));
 vi.mock('./markups', () => ({ getMarkupConfigs: vi.fn() }));
 vi.mock('./ups', () => ({ getUpsShippingRates: vi.fn() }));
+vi.mock('./unishippers', () => ({
+	getUnishippersShippingRates: vi.fn(),
+	unishippersStatus: vi.fn()
+}));
 vi.mock('./numbering', () => ({ nextQuoteNumber: vi.fn() }));
 vi.mock('../mongoose/models/ShippingQuote', () => ({
 	ShippingQuote: {
@@ -37,6 +42,10 @@ const rate: CarrierRate = {
 const query = (value: unknown) => ({ select: () => query(value), lean: async () => value });
 beforeEach(() => {
 	vi.resetAllMocks();
+	vi.mocked(unishippersStatus).mockReturnValue({
+		configured: false,
+		staging: true
+	});
 	vi.mocked(validateShippingDestination).mockImplementation(async (request) => request);
 	vi.mocked(getMarkupConfigs).mockResolvedValue([
 		{ service: 'UPS', revision: 0, ranges: [] },
@@ -48,6 +57,70 @@ beforeEach(() => {
 	vi.mocked(ShippingQuote.create).mockResolvedValue({} as never);
 });
 describe('shipping quote persistence', () => {
+	it('runs LTL with UPS, applies the LTL markup, and saves the staging pricing snapshot', async () => {
+		vi.mocked(unishippersStatus).mockReturnValue({
+			configured: true,
+			staging: true
+		});
+		const ltl: CarrierRate = {
+			service: 'LTL',
+			provider: 'Unishippers',
+			carrier: 'Test Carrier',
+			code: 'TEST',
+			description: 'LTL standard',
+			currency: 'USD',
+			costCents: 12534,
+			rateBasis: 'negotiated',
+			staging: true,
+			freightClass: '55',
+			transitDays: 3
+		};
+		vi.mocked(getUnishippersShippingRates).mockResolvedValue([ltl]);
+		vi.mocked(getMarkupConfigs).mockResolvedValue([
+			{ service: 'UPS', revision: 0, ranges: [] },
+			{
+				service: 'LTL',
+				revision: 2,
+				ranges: [
+					{ id: 'ltl-markup', label: 'LTL markup', minCents: 0, maxCents: null, percentBps: 2000 }
+				]
+			}
+		]);
+		const request = { ...blankRequest('2026-11-11'), services: 'Both' as const };
+		await createShippingQuote(request, crypto.randomUUID(), 'user');
+		expect(getUpsShippingRates).toHaveBeenCalledWith(request);
+		expect(getUnishippersShippingRates).toHaveBeenCalledWith(request);
+		expect(ShippingQuote.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				rates: expect.arrayContaining([
+					expect.objectContaining({
+						service: 'LTL',
+						costCents: 12534,
+						priceCents: 15041,
+						staging: true,
+						freightClass: '55',
+						markup: expect.objectContaining({ revision: 2, percentBps: 2000 })
+					})
+				]),
+				attempts: expect.arrayContaining([
+					expect.objectContaining({
+						service: 'LTL',
+						status: 'success',
+						message: expect.stringContaining('Staging test prices')
+					})
+				])
+			})
+		);
+		vi.mocked(getUnishippersShippingRates).mockRejectedValue(new Error('private-token'));
+		const partial = await collectRates(request);
+		expect(partial.rates).toHaveLength(1);
+		expect(partial.rates[0].service).toBe('UPS');
+		expect(partial.attempts[1].status).toBe('error');
+		expect(JSON.stringify(partial)).not.toContain('private-token');
+		vi.mocked(getUpsShippingRates).mockClear();
+		await collectRates({ ...request, services: 'LTL' });
+		expect(getUpsShippingRates).not.toHaveBeenCalled();
+	});
 	it('validates before pricing and persists the corrected address; failures do not allocate a quote', async () => {
 		const request = { ...blankRequest('2026-11-11'), validateAddresses: true };
 		const corrected = { ...request, shipTo: { ...request.shipFrom, residential: true } };

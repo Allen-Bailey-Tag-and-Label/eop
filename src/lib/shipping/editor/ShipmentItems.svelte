@@ -2,6 +2,7 @@
 	import { Button, Card, Div, H3, Input, Checkbox, P } from '$lib/components';
 	import { Copy, Plus, Trash2 } from '@lucide/svelte';
 	import { blankPackage, blankFreight, type PackageGroup, type FreightItem } from '../types';
+	import { freightDensity } from '../density';
 	let { items = $bindable(), freight = false }: { items: PackageGroup[]; freight?: boolean } =
 		$props();
 	const prefix = $derived(freight ? 'freight' : 'package');
@@ -61,6 +62,12 @@
 			</Div>
 			{#if freight}
 				{@const cargo = item as FreightItem}
+				{@const classification = freightDensity(cargo)}
+				<P aria-live="polite"
+					>{classification
+						? `Density: ${classification.density.toFixed(2)} lb/ft³ · Density class: ${classification.freightClass}`
+						: 'Enter weight and dimensions to calculate density and freight class.'}</P
+				>
 				<Input
 					label="NMFC code"
 					aria-label={`Freight item ${index + 1} NMFC code`}

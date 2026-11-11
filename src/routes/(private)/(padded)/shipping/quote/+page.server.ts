@@ -1,5 +1,6 @@
 import { fail, redirect, isHttpError } from '@sveltejs/kit';
 import { parseScenarios } from '$lib/server/ups/quotes';
+import { unishippersStatus } from '$lib/server/shipping/unishippers';
 import { connect } from '$lib/server/mongoose/connect';
 import { createShippingQuote } from '$lib/server/shipping/quotes';
 import { findShippingQuote } from '$lib/server/shipping/quotes';
@@ -11,6 +12,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	await connect();
 	const previous = source ? await findShippingQuote(source) : null;
 	return {
+		unishippers: unishippersStatus(),
 		requestId: crypto.randomUUID(),
 		shipDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()),
 		initialRequest: previous?.request

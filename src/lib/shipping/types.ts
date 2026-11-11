@@ -56,6 +56,11 @@ export type MarkupRange = {
 };
 export type MarkupConfig = { service: ShippingService; revision: number; ranges: MarkupRange[] };
 export type CarrierRate = {
+	staging?: boolean;
+	freightClass?: string;
+	classificationWarning?: string;
+	transitDays?: number;
+	estimatedDeliveryDate?: string;
 	scenarioId?: string;
 	scenarioLabel?: string;
 	unitQuantity?: number;

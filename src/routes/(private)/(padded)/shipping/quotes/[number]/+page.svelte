@@ -9,6 +9,7 @@
 	let { data }: PageProps = $props();
 	const quote = $derived(data.quote);
 	const hasScenarios = $derived(quote.rates.some((rate) => rate.scenarioId));
+	const hasLtl = $derived(quote.rates.some((rate) => rate.service === 'LTL'));
 </script>
 
 <svelte:head><title>Shipping quote {quote.number} - EOP</title></svelte:head>
@@ -74,15 +75,25 @@
 						><Tr
 							>{#if hasScenarios}<Th>Shipment</Th>{/if}<Th>Service</Th><Th>Carrier</Th><Th
 								>Rate basis</Th
-							><Th>Carrier cost</Th><Th>Markup</Th><Th>Customer price</Th></Tr
+							><Th>Carrier cost</Th>{#if hasLtl}<Th>Transit estimate</Th>{/if}<Th>Markup</Th><Th
+								>Customer price</Th
+							></Tr
 						></Thead
 					><Tbody
 						>{#each quote.rates as rate, index (index)}<Tr
 								>{#if hasScenarios}<Td>{rate.scenarioLabel ?? 'Shipment'}</Td>{/if}<Td
-									>{rate.description}</Td
+									>{rate.description}{#if rate.staging}<P class="text-xs"
+											>Staging test rate · Class {rate.freightClass}</P
+										>{/if}</Td
 								><Td>{rate.carrier}</Td><Td>{rate.rateBasis}</Td><Td
 									>{currency(rate.costCents / 100)}</Td
-								><Td
+								>{#if hasLtl}<Td
+										>{rate.transitDays !== undefined
+											? `${rate.transitDays} business days`
+											: '—'}{#if rate.estimatedDeliveryDate}<P class="text-xs"
+												>{rate.estimatedDeliveryDate}</P
+											>{/if}</Td
+									>{/if}<Td
 									>{rate.markup.percentBps / 100}% · {currency(rate.markup.amountCents / 100)}<P
 										class="text-xs">{rate.markup.label} · Revision {rate.markup.revision}</P
 									></Td

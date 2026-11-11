@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T16:05:28.230Z
+## 2026-11-11T18:31:32.314Z
+
+feat: Add density-based Unishippers LTL shipping quotes
+
+## 2026-11-11T12:07:57-05:00
 
 feat: Simplify shipping quote services and NMFC freight entry
 
