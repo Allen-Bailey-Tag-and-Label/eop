@@ -24,6 +24,7 @@
 	import { theme } from '$lib/theme/index.js';
 	import { twMerge } from 'tailwind-merge';
 	import QuoteLayout from '$lib/ups/QuoteLayout.svelte';
+	import RateComparison from '$lib/ups/RateComparison.svelte';
 
 	let { data }: PageProps = $props();
 	let quote = $state<UpsQuoteView>(untrack(() => data.quote));
@@ -229,7 +230,9 @@
 		</Card>
 	{/if}
 
-	{#if quote.scenarios?.length}
+	{#if (quote.scenarios?.length ?? 0) > 1}
+		<RateComparison scenarios={quote.scenarios!} />
+	{:else if quote.scenarios?.length}
 		{#each quote.scenarios as scenario, index (scenario.id)}
 			<Card class="min-w-0 space-y-4" role="region" aria-label={`Rate results ${index + 1}`}>
 				<H2 class="text-lg"

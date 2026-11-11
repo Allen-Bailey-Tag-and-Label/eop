@@ -254,20 +254,21 @@ describe('UPS quote feedback', () => {
 		);
 		const view = render(Detail, { data: { quote: initial } } as never);
 		await flush();
-		const result = within(view.getByRole('region', { name: 'Rate results 1' }));
-		expect(result.getByRole('table')).toHaveTextContent('$12.50');
-		expect(result.getByRole('table')).toHaveTextContent('Unavailable');
+		const result = view.getByRole('table', { name: 'UPS rate comparison' });
+		expect(result).toHaveTextContent('$12.50');
+		expect(result).toHaveTextContent('Unavailable');
 		expect(view.getByText('1 of 2 rate rows complete')).toBeInTheDocument();
-		expect(
-			within(view.getByRole('region', { name: 'Rate results 2' })).queryByRole('table')
-		).not.toBeInTheDocument();
+		expect(result).toHaveTextContent('Waiting…');
+		await fireEvent.click(view.getByRole('tab', { name: 'Quantities as rows' }));
 		await vi.advanceTimersByTimeAsync(1000);
 		await flush();
 		expect(advanceUpsQuote).toHaveBeenCalledWith({ quote: 1234, poll: true });
 		expect(view.getByText('2 of 2 rate rows complete')).toBeInTheDocument();
-		expect(
-			within(view.getByRole('region', { name: 'Rate results 2' })).getByRole('table')
-		).toHaveTextContent('$12.50');
+		expect(within(result).getAllByText('$12.50')).toHaveLength(2);
+		expect(view.getByRole('tab', { name: 'Quantities as rows' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		batch.resolve({ ...progress, generation: { validation: 'skipped', rates: 'complete' } });
 		await flush();
 		const calls = vi.mocked(advanceUpsQuote).mock.calls.length;

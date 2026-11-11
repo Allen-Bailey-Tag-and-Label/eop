@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T18:36:13.856Z
+## 2026-11-11T18:42:58.886Z
+
+feat: Compare UPS quantity rates in a transposable table
+
+## 2026-11-11T13:38:03-05:00
 
 fix: Persist table sorting when route records are missing
 
