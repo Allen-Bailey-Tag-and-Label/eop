@@ -117,6 +117,17 @@
 		<Div class="min-w-0 space-y-1"
 			><P class="font-semibold">Total Weight</P><P>{quote.packageTotalWeight}</P></Div
 		>
+		{#if quote.packageGroups?.length}
+			<Div class="col-span-full space-y-2">
+				<P class="font-semibold"
+					>{quote.weightMode === 'total' ? 'Estimated package weights' : 'Package weights'}</P
+				>
+				{#each quote.packageGroups as group, index (index)}<P
+						>{group.quantity}
+						{group.quantity === 1 ? 'package' : 'packages'} @ {group.weight} lbs</P
+					>{/each}
+			</Div>
+		{/if}
 	</Div>
 {/snippet}
 {#snippet extras()}
@@ -141,21 +152,7 @@
 {/snippet}
 {#snippet actions()}
 	<Div class="flex flex-wrap justify-end gap-2">
-		<A
-			class={twMerge($theme.Button.default)}
-			href="/ups/quote?{new URLSearchParams({
-				_branchId: quote._branchId,
-				address: quote.shipTo.AddressLine,
-				isValidated: String(
-					quote.generation ? quote.generation.validation !== 'skipped' : quote.isValidated
-				),
-				zip: quote.shipTo.PostalCode,
-				city: quote.shipTo.City,
-				state: quote.shipTo.StateProvinceCode,
-				totalPackages: String(quote.packageTotalCount),
-				totalWeight: String(quote.packageTotalWeight)
-			}).toString()}">Duplicate</A
-		>
+		<A class={twMerge($theme.Button.default)} href="/ups/quote?from={quote.quote}">Duplicate</A>
 	</Div>
 {/snippet}
 {#snippet rates()}

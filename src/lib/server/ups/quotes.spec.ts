@@ -121,6 +121,103 @@ beforeEach(() => {
 	});
 });
 describe('UPS remote quote generation', () => {
+	it('rates different package weights together and uses the returned shipment price once', async () => {
+		await createPendingUpsQuote(
+			{
+				...input(),
+				isValidated: 'false',
+				weightMode: 'groups',
+				packageGroups: JSON.stringify([
+					{ quantity: '1', weight: '10' },
+					{ quantity: '1', weight: '20' }
+				])
+			},
+			actor
+		);
+		const completed = await advancePendingUpsQuote({ quote: 1234 });
+		expect(completed).toMatchObject({
+			weightMode: 'groups',
+			packageTotalCount: 2,
+			packageTotalWeight: 30,
+			packageGroups: [
+				{ quantity: 1, weight: 10 },
+				{ quantity: 1, weight: 20 }
+			]
+		});
+		expect(getRates).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.anything(),
+			[{ weight: 10 }, { weight: 20 }],
+			expect.any(AbortSignal)
+		);
+		expect(completed.rates[0].rate).toBe(12.5);
+	});
+	it('calculates shipment totals from a per-package weight rather than trusting submitted totals', async () => {
+		await createPendingUpsQuote(
+			{
+				...input(),
+				weightMode: 'each',
+				packageInfoTotalPackages: '3',
+				packageInfoPackageWeight: '10',
+				packageInfoTotalWeight: '999'
+			},
+			actor
+		);
+		expect(row).toMatchObject({
+			packageTotalCount: 3,
+			packageTotalWeight: 30,
+			packageGroups: [{ quantity: 3, weight: 10 }]
+		});
+	});
+	it('rounds equal-weight estimates upward to three decimal places for total mode', async () => {
+		await createPendingUpsQuote(
+			{ ...input(), packageInfoTotalPackages: '3', packageInfoTotalWeight: '1' },
+			actor
+		);
+		expect(row).toMatchObject({
+			packageTotalWeight: 1,
+			packageGroups: [{ quantity: 3, weight: 0.334 }]
+		});
+	});
+	it('keeps the old single-package estimate for a pending quote saved before package groups existed', async () => {
+		await createPendingUpsQuote({ ...input(), isValidated: 'false' }, actor);
+		delete row!.packageGroups;
+		delete row!.weightMode;
+		const completed = await advancePendingUpsQuote({ quote: 1234 });
+		expect(getRates).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.anything(),
+			{ weight: 11 },
+			expect.any(AbortSignal)
+		);
+		expect(completed.rates[0].rate).toBe(25);
+	});
+	it.each([
+		{ weightMode: 'invalid' },
+		{ weightMode: 'each', packageInfoPackageWeight: '0' },
+		{ weightMode: 'each', packageInfoPackageWeight: '151' },
+		{ weightMode: 'each', packageInfoPackageWeight: '1.1234' },
+		{ weightMode: 'groups', packageGroups: 'invalid json' },
+		{ weightMode: 'groups', packageGroups: [] },
+		{ weightMode: 'groups', packageGroups: [{ quantity: 0, weight: 10 }] },
+		{ weightMode: 'groups', packageGroups: [{ quantity: 1, weight: 151 }] },
+		{
+			weightMode: 'groups',
+			packageGroups: [
+				{ quantity: 30, weight: 10 },
+				{ quantity: 21, weight: 20 }
+			]
+		},
+		{ packageInfoTotalPackages: '51' }
+	])(
+		'rejects invalid package groups and unsupported weights before allocating a quote: %j',
+		async (changes) => {
+			await expect(createPendingUpsQuote({ ...input(), ...changes }, actor)).rejects.toMatchObject({
+				status: 400
+			});
+			expect(nextQuoteNumber).not.toHaveBeenCalled();
+		}
+	);
 	it('reserves and saves a pending quote without waiting for UPS and deduplicates creation retries', async () => {
 		const values = input();
 		expect(await createPendingUpsQuote(values, actor)).toBe(1234);
@@ -149,12 +246,12 @@ describe('UPS remote quote generation', () => {
 		expect(getRates).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({ address: '1 MAIN ST' }),
-			{ weight: 11 },
+			[{ weight: 10.5 }, { weight: 10.5 }],
 			expect.any(AbortSignal)
 		);
 		expect(completed.rates).toEqual([
-			{ description: 'Ground', rate: 25 },
-			{ description: 'Next Day Air', rate: 60 }
+			{ description: 'Ground', rate: 12.5 },
+			{ description: 'Next Day Air', rate: 30 }
 		]);
 		expect(completed.generation).toMatchObject({ validation: 'complete', rates: 'complete' });
 		expect(JSON.stringify(completed)).not.toMatch(/requestKey|attemptId|leaseUntil/);
@@ -217,7 +314,7 @@ describe('UPS remote quote generation', () => {
 		expect((await advancePendingUpsQuote({ quote: 1234 })).generation?.rates).toBe('complete');
 		release(response);
 		await first;
-		expect((await findUpsQuote(1234)).rates[0].rate).toBe(25);
+		expect((await findUpsQuote(1234)).rates[0].rate).toBe(12.5);
 	});
 	it.each([
 		{ packageInfoTotalPackages: '0' },

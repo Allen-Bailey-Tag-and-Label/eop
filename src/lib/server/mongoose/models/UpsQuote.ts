@@ -8,6 +8,19 @@ export const UpsQuote = defineModel('UpsQuote', {
 	packageTotalCount: { type: Number, required: true },
 	packageTotalWeight: { type: Number, required: true },
 	packageWeight: { type: Number, required: true },
+	weightMode: { type: String, enum: ['total', 'each', 'groups'] },
+	packageGroups: {
+		type: [
+			new Schema(
+				{
+					quantity: { type: Number, required: true, min: 1 },
+					weight: { type: Number, required: true, min: 0.001, max: 150 }
+				},
+				{ _id: false }
+			)
+		],
+		default: undefined
+	},
 	quote: { type: Number, required: true },
 	rates: { type: [Schema.Types.Mixed], required: true },
 	shipper: { type: Schema.Types.Mixed, required: true },

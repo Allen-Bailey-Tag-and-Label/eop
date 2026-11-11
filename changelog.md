@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T13:29:11.956Z
+## 2026-11-11T13:46:16.271Z
+
+feat: Support address swapping and mixed UPS package weights
+
+## 2026-11-11T08:29:47-05:00
 
 refactor: Use content-sized responsive UPS quote layouts
 

@@ -19,7 +19,7 @@
 	isCreatable={false}
 	isDeletable={false}
 	isEditable={false}
-	modelName={'UpsQuote'}
+	modelName="UpsQuote"
 	virtualColumns={[
 		{
 			class: 'w-0',
@@ -51,16 +51,7 @@
 		<Div class="flex space-x-2">
 			<A
 				class={twMerge($theme.Button.default, $theme.Button.small, 'backdrop-blur-none')}
-				href="/ups/quote?{new URLSearchParams({
-					_branchId: object?._branchId,
-					address: object?.shipTo?.AddressLine,
-					isValidated: object?.isValidated,
-					zip: object?.shipTo?.PostalCode,
-					city: object?.shipTo?.City,
-					state: object?.shipTo?.StateProvinceCode,
-					totalPackages: object?.packageTotalCount,
-					totalWeight: object?.packageTotalWeight
-				}).toString()}"
+				href="/ups/quote?from={object?.quote}"
 			>
 				Duplicate
 			</A>
@@ -71,12 +62,5 @@
 				View
 			</A>
 		</Div>
-	</Td>
-{/snippet}
-{#snippet groundSnippet({ object }: TdSnippet)}
-	<Td class="text-right">
-		{currency(
-			object.rates.find((rate: { description: string }) => rate.description === 'Ground').rate ?? 0
-		)}
 	</Td>
 {/snippet}

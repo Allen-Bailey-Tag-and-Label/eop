@@ -5,6 +5,7 @@
 	import { Button, Div, Form, H1, Input, Spinner } from '$lib/components';
 	import { slide } from 'svelte/transition';
 	import FormSections from './FormSections.svelte';
+	import type { PackageGroupInput, WeightMode } from '$lib/ups/quote';
 
 	let { data } = $props();
 	let _branchId = $state('');
@@ -29,9 +30,15 @@
 	});
 	let isLoading = $state(false);
 	let isValidationRequired = $state(true);
+	let weightMode = $state<WeightMode>('total');
+	let eachWeight = $state('');
+	let packageGroups = $state<PackageGroupInput[]>([]);
 	let requestId = crypto.randomUUID();
 	let lastSubmission = '';
 	const reset = () => {
+		weightMode = 'total';
+		eachWeight = '';
+		packageGroups = [];
 		requestId = crypto.randomUUID();
 		formData = {
 			shipFrom: {
@@ -87,6 +94,11 @@
 		if (data._branchId) _branchId = data._branchId;
 		if (data.isValidated) isValidationRequired = data.isValidated === 'true';
 		if (data.formData) formData = data.formData;
+		if (data.weights) {
+			weightMode = data.weights.mode;
+			eachWeight = data.weights.eachWeight;
+			packageGroups = data.weights.groups;
+		}
 	});
 </script>
 
@@ -106,6 +118,9 @@
 			bind:_branchId
 			bind:formData
 			bind:isValidationRequired
+			bind:weightMode
+			bind:eachWeight
+			bind:packageGroups
 			responsive
 		>
 			{#snippet actions()}

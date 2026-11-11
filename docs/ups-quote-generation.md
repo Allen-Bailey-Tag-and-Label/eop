@@ -38,6 +38,30 @@ remote commands are denied. Register future remote commands there explicitly.
 
 The `/shipping/quote` implementation is unchanged.
 
+## Addresses and package weights
+
+The Shipment Details section can swap the complete Ship From and Ship To
+addresses. Package Info offers three modes:
+
+- **Total weight:** enter package count and combined weight. The estimate divides
+  that weight evenly and rounds each package upward to the nearest 0.001 lb.
+- **Per package:** enter package count and the weight shared by every package.
+- **Different weights:** add quantity/weight groups, such as 1 package at 10 lbs
+  and 1 package at 20 lbs. Totals are calculated from the groups.
+
+Quotes support up to 50 packages, each weighing 0.001–150 lbs. Counts and weights
+are checked on the server before a number is allocated. New quotes save optional
+`weightMode` and `packageGroups` fields; existing records need no backfill.
+
+New rate requests send one UPS Package entry for every actual package. The
+returned shipment total is used once, rather than multiplied by package count.
+An older pending quote without package groups retains the original average-weight
+estimate behavior. Completed historical prices are never recalculated.
+
+Quote details show the saved package groups. Duplicate loads the saved quote by
+number and restores both addresses, the validation choice, and the weight mode
+and groups, including after addresses have been swapped.
+
 To verify manually, request a quote with validation enabled and watch the URL
 change before UPS completes. Confirm the validation indicator completes before
 the rates indicator, then compare returned prices with the prior estimator.

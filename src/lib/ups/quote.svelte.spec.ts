@@ -49,6 +49,20 @@ function deferred<T>() {
 	});
 	return { promise, resolve };
 }
+function editor() {
+	return render(Create, {
+		data: {
+			locals: { user: { branches: [{ _id: 'b'.repeat(24), number: 2046 }] } },
+			_branchId: '',
+			isValidated: 'true',
+			formData: {
+				shipFrom: { address: '3177 Lehigh', city: 'Caledonia', state: 'NY', zip: '14423' },
+				shipTo: { address: '1 Main', city: 'Pittsburgh', state: 'PA', zip: '15222' },
+				packageInfo: { totalPackages: '2', totalWeight: '21' }
+			}
+		}
+	} as never);
+}
 async function flush() {
 	await tick();
 	await Promise.resolve();
@@ -74,6 +88,98 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('UPS quote feedback', () => {
+	it('swaps the complete origin and destination addresses', async () => {
+		const view = editor();
+		await flush();
+		await fireEvent.click(view.getByRole('button', { name: 'Swap Ship From and Ship To' }));
+		const fields = new FormData(view.container.querySelector('form')!);
+		expect(fields.get('shipFromAddress')).toBe('1 Main');
+		expect(fields.get('shipFromCity')).toBe('Pittsburgh');
+		expect(fields.get('shipFromState')).toBe('PA');
+		expect(fields.get('shipFromZIP')).toBe('15222');
+		expect(fields.get('shipToAddress')).toBe('3177 Lehigh');
+		expect(fields.get('shipToCity')).toBe('Caledonia');
+		expect(fields.get('shipToState')).toBe('NY');
+		expect(fields.get('shipToZIP')).toBe('14423');
+	});
+	it('accepts a per-package weight and submits the selected weight mode', async () => {
+		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
+		const view = editor();
+		await flush();
+		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		await fireEvent.click(view.getByRole('tab', { name: 'Per package' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Weight per package (lbs)' }), {
+			target: { value: '10' }
+		});
+		expect(view.getByText('2 packages · 20 lbs total')).toBeInTheDocument();
+		await fireEvent.submit(view.container.querySelector('form')!);
+		await flush();
+		expect(createUpsQuote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				weightMode: 'each',
+				packageInfoTotalPackages: '2',
+				packageInfoPackageWeight: '10'
+			})
+		);
+	});
+	it('adds and removes weight groups, preserves them across resizing, and submits unequal weights', async () => {
+		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
+		const view = editor();
+		await flush();
+		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		await fireEvent.click(view.getByRole('tab', { name: 'Different weights' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Quantity for group 1' }), {
+			target: { value: '1' }
+		});
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Weight for group 1 (lbs)' }), {
+			target: { value: '10' }
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Add package group' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Remove package group 2' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Add package group' }));
+		await fireEvent.input(view.getByRole('spinbutton', { name: 'Weight for group 2 (lbs)' }), {
+			target: { value: '20' }
+		});
+		desktop = true;
+		resize();
+		await flush();
+		expect(view.getByText('2 packages · 30 lbs total')).toBeInTheDocument();
+		await fireEvent.submit(view.container.querySelector('form')!);
+		await flush();
+		const fields = vi.mocked(createUpsQuote).mock.calls[0][0] as {
+			weightMode: string;
+			packageGroups: string;
+		};
+		expect(fields.weightMode).toBe('groups');
+		expect(
+			JSON.parse(fields.packageGroups).map((group: { quantity: string; weight: string }) => ({
+				quantity: Number(group.quantity),
+				weight: Number(group.weight)
+			}))
+		).toEqual([
+			{ quantity: 1, weight: 10 },
+			{ quantity: 1, weight: 20 }
+		]);
+	});
+	it('shows saved package groups and duplicates using the saved quote', () => {
+		desktop = true;
+		const initial = {
+			...quote(),
+			weightMode: 'groups',
+			packageGroups: [
+				{ quantity: 1, weight: 10 },
+				{ quantity: 1, weight: 20 }
+			],
+			generation: { validation: 'complete', rates: 'complete' }
+		};
+		const view = render(Detail, { data: { quote: initial } } as never);
+		expect(view.getByText('1 package @ 10 lbs')).toBeInTheDocument();
+		expect(view.getByText('1 package @ 20 lbs')).toBeInTheDocument();
+		expect(view.getByRole('link', { name: 'Duplicate' })).toHaveAttribute(
+			'href',
+			'/ups/quote?from=1234'
+		);
+	});
 	it('opens invalid mobile sections, keeps desktop sections expanded, and preserves input values across resizing', async () => {
 		vi.mocked(createUpsQuote).mockReturnValue(new Promise(() => {}) as never);
 		const view = render(Create, {

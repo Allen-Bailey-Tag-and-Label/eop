@@ -5,6 +5,10 @@ export type QuoteAddress = {
 	PostalCode: string;
 	CountryCode: string;
 };
+export type WeightMode = 'total' | 'each' | 'groups';
+export type QuotePackageGroup = { quantity: number; weight: number };
+export type PackageGroupInput = { id: string; quantity: string; weight: string };
+export const MAX_QUOTE_PACKAGES = 50;
 export type QuoteStepStatus = 'pending' | 'running' | 'complete' | 'skipped' | 'failed';
 export type QuoteGeneration = {
 	validation: QuoteStepStatus;
@@ -20,6 +24,8 @@ export type UpsQuoteView = {
 	packageTotalCount: number;
 	packageTotalWeight: number;
 	packageWeight: number;
+	weightMode?: WeightMode;
+	packageGroups?: QuotePackageGroup[];
 	shipper: QuoteAddress;
 	shipTo: QuoteAddress;
 	rates: { description: string; rate: number }[];

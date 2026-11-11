@@ -5,7 +5,14 @@ import { Branch } from '../mongoose/models/Branch';
 import { UpsQuote } from '../mongoose/models/UpsQuote';
 import { nextQuoteNumber } from '../shipping/numbering';
 import { getRates, validateAddress } from '$lib/ups';
-import type { QuoteAddress, QuoteGeneration, UpsQuoteView } from '$lib/ups/quote';
+import {
+	MAX_QUOTE_PACKAGES,
+	type QuoteAddress,
+	type QuoteGeneration,
+	type UpsQuoteView,
+	type QuotePackageGroup,
+	type WeightMode
+} from '$lib/ups/quote';
 
 type QuoteRecord = Omit<UpsQuoteView, '_branchId' | 'createdAt' | 'rates'> & {
 	_id: Types.ObjectId;
@@ -55,6 +62,73 @@ function address(
 		CountryCode: 'US'
 	};
 }
+function packageDetails(input: Record<string, unknown>) {
+	const mode = input.weightMode ?? 'total';
+	if (mode !== 'total' && mode !== 'each' && mode !== 'groups')
+		error(400, 'Select a valid weight mode.');
+	const quantity = (value: unknown) => {
+		const count = positive(value, 'package count', true);
+		if (count > MAX_QUOTE_PACKAGES)
+			error(400, `Enter at most ${MAX_QUOTE_PACKAGES} packages per quote.`);
+		return count;
+	};
+	const weight = (value: unknown) => {
+		const amount = positive(value, 'package weight');
+		if (
+			amount < 0.001 ||
+			amount > 150 ||
+			Math.abs(amount * 1000 - Math.round(amount * 1000)) > 1e-7
+		)
+			error(
+				400,
+				'Package weights must be between 0.001 and 150 lbs, with at most three decimal places.'
+			);
+		return amount;
+	};
+	let groups: QuotePackageGroup[];
+	let totalWeight: number;
+	if (mode === 'groups') {
+		let raw: unknown = input.packageGroups;
+		if (typeof raw === 'string') {
+			if (raw.length > 8000) error(400, 'Too many package groups.');
+			try {
+				raw = JSON.parse(raw);
+			} catch {
+				error(400, 'Enter valid package groups.');
+			}
+		}
+		if (!Array.isArray(raw) || !raw.length || raw.length > MAX_QUOTE_PACKAGES)
+			error(400, 'Enter at least one package group.');
+		groups = raw.map((value) => {
+			const group = object(value);
+			return { quantity: quantity(group.quantity), weight: weight(group.weight) };
+		});
+		totalWeight = Number(
+			groups.reduce((sum, group) => sum + group.quantity * group.weight, 0).toFixed(3)
+		);
+	} else {
+		const count = quantity(input.packageInfoTotalPackages);
+		totalWeight =
+			mode === 'total'
+				? positive(input.packageInfoTotalWeight, 'total weight')
+				: Number((weight(input.packageInfoPackageWeight) * count).toFixed(3));
+		const each =
+			mode === 'total'
+				? weight(Math.ceil((totalWeight / count) * 1000 - 1e-9) / 1000)
+				: weight(input.packageInfoPackageWeight);
+		groups = [{ quantity: count, weight: each }];
+	}
+	const count = groups.reduce((sum, group) => sum + group.quantity, 0);
+	if (count > MAX_QUOTE_PACKAGES)
+		error(400, `Enter at most ${MAX_QUOTE_PACKAGES} packages per quote.`);
+	return {
+		weightMode: mode as WeightMode,
+		packageGroups: groups,
+		packageTotalCount: count,
+		packageTotalWeight: totalWeight,
+		packageWeight: Math.ceil(totalWeight / count)
+	};
+}
 export function parseQuoteNumber(value: unknown) {
 	if (
 		(typeof value !== 'string' && typeof value !== 'number') ||
@@ -75,6 +149,12 @@ function view(row: QuoteRecord): UpsQuoteView {
 		packageTotalCount: row.packageTotalCount,
 		packageTotalWeight: row.packageTotalWeight,
 		packageWeight: row.packageWeight,
+		...(row.packageGroups?.length
+			? {
+					weightMode: row.weightMode ?? 'groups',
+					packageGroups: row.packageGroups.map(({ quantity, weight }) => ({ quantity, weight }))
+				}
+			: {}),
 		shipper: row.shipper,
 		shipTo: row.shipTo,
 		rates: (row.rates ?? []).flatMap((rate) => {
@@ -123,9 +203,7 @@ export async function createPendingUpsQuote(value: unknown, actor: Actor) {
 	const validationRequired = input.isValidated === 'true';
 	const shipper = address(input, 'shipFrom', validationRequired),
 		shipTo = address(input, 'shipTo', validationRequired);
-	const packageTotalCount = positive(input.packageInfoTotalPackages, 'package count', true);
-	const packageTotalWeight = positive(input.packageInfoTotalWeight, 'total weight');
-	const packageWeight = Math.ceil(packageTotalWeight / packageTotalCount);
+	const packages = packageDetails(input);
 	const requestKey = `${actor._id}:${requestId}`;
 	await UpsQuote.init();
 	const existing = await UpsQuote.findOne({ requestKey })
@@ -141,9 +219,7 @@ export async function createPendingUpsQuote(value: unknown, actor: Actor) {
 			_createdById: actor._id,
 			classification: 'Unknown',
 			isValidated: false,
-			packageTotalCount,
-			packageTotalWeight,
-			packageWeight,
+			...packages,
 			shipper,
 			shipTo,
 			rates: [],
@@ -192,7 +268,11 @@ async function rated(row: QuoteRecord, signal: AbortSignal) {
 	const result = await getRates(
 		upsAddress(row.shipper),
 		upsAddress(row.shipTo),
-		{ weight: row.packageWeight },
+		row.packageGroups?.length
+			? row.packageGroups.flatMap((group) =>
+					Array.from({ length: group.quantity }, () => ({ weight: group.weight }))
+				)
+			: { weight: row.packageWeight },
 		signal
 	);
 	const shipments = result?.RateResponse?.RatedShipment;
@@ -201,7 +281,8 @@ async function rated(row: QuoteRecord, signal: AbortSignal) {
 		Service?: { Code?: string };
 		TotalCharges?: { MonetaryValue?: string };
 	}[];
-	// Retain the estimator's service order and per-package pricing.
+	// Multi-package responses already contain the shipment total. Older pending
+	// quotes without groups retain the original single-package estimate behavior.
 	const services = [
 		['03', 'Ground'],
 		['12', '3 Day Select'],
@@ -230,7 +311,12 @@ async function rated(row: QuoteRecord, signal: AbortSignal) {
 		const amount = Number(value);
 		if (value === null || String(value).trim() === '' || !Number.isFinite(amount) || amount < 0)
 			throw new Error('UPS returned an invalid rate. Please try again.');
-		return [{ description, rate: amount * row.packageTotalCount * (1 - discount) }];
+		return [
+			{
+				description,
+				rate: amount * (row.packageGroups?.length ? 1 : row.packageTotalCount) * (1 - discount)
+			}
+		];
 	});
 	if (!rates.length) throw new Error('UPS returned no supported rates. Please try again.');
 	return { rates };

@@ -2,8 +2,11 @@
 	import { states } from 'states-us';
 	import type { Snippet } from 'svelte';
 	import zipcodes from 'zipcodes';
-	import { Div, H2, H3, Input, Label, Radio, Select } from '$lib/components';
+	import { Button, Div, H2, H3, Input, Label, Radio, Select } from '$lib/components';
+	import { ArrowLeftRight } from '@lucide/svelte';
 	import QuoteLayout from '$lib/ups/QuoteLayout.svelte';
+	import PackageWeights from '$lib/ups/PackageWeights.svelte';
+	import type { PackageGroupInput, WeightMode } from '$lib/ups/quote';
 
 	let {
 		_branchId = $bindable(''),
@@ -29,6 +32,9 @@
 		isValidationCheckboxRequired = $bindable(true),
 		isValidationRequired = $bindable(true),
 		responsive = false,
+		weightMode = $bindable('total' as WeightMode),
+		eachWeight = $bindable(''),
+		packageGroups = $bindable([] as PackageGroupInput[]),
 		actions = undefined as Snippet | undefined
 	} = $props();
 
@@ -53,6 +59,18 @@
 
 {#snippet shipmentDetails()}
 	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
+		<Div class="col-span-full flex justify-end"
+			><Button
+				variants={['small']}
+				class="flex items-center gap-2"
+				aria-label="Swap Ship From and Ship To"
+				onclick={() => {
+					const from = { ...formData.shipFrom };
+					formData.shipFrom = { ...formData.shipTo };
+					formData.shipTo = from;
+				}}><ArrowLeftRight size={16} aria-hidden="true" />Swap addresses</Button
+			></Div
+		>
 		{#each ['shipFrom', 'shipTo'] as key (key)}
 			<Div class="min-w-0 space-y-4">
 				<H3 class="text-base">{key === 'shipFrom' ? 'Ship From' : 'Ship To'}</H3>
@@ -120,20 +138,30 @@
 	{/if}
 {/snippet}
 {#snippet packageInfo()}
-	<Input
-		bind:value={formData.packageInfo.totalPackages}
-		class="text-right"
-		label="Total Packages"
-		name="packageInfoTotalPackages"
-		required={true}
-		type="number"
-	/>
-	<Input
-		bind:value={formData.packageInfo.totalWeight}
-		class="text-right"
-		label="Total Weight"
-		name="packageInfoTotalWeight"
-		required={true}
-		type="number"
-	/>
+	{#if responsive}
+		<PackageWeights
+			bind:mode={weightMode}
+			bind:totalPackages={formData.packageInfo.totalPackages}
+			bind:totalWeight={formData.packageInfo.totalWeight}
+			bind:eachWeight
+			bind:groups={packageGroups}
+		/>
+	{:else}
+		<Input
+			bind:value={formData.packageInfo.totalPackages}
+			class="text-right"
+			label="Total Packages"
+			name="packageInfoTotalPackages"
+			required={true}
+			type="number"
+		/>
+		<Input
+			bind:value={formData.packageInfo.totalWeight}
+			class="text-right"
+			label="Total Weight"
+			name="packageInfoTotalWeight"
+			required={true}
+			type="number"
+		/>
+	{/if}
 {/snippet}

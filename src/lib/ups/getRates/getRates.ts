@@ -4,7 +4,7 @@ import { getAccessToken, type Address, type Package } from '../';
 export const getRates = async (
 	shipper: Address,
 	shipTo: Address,
-	upsPackage: Package,
+	upsPackage: Package | Package[],
 	signal?: AbortSignal
 ) => {
 	const token = await getAccessToken(signal);
@@ -57,19 +57,17 @@ export const getRates = async (
 					ShipmentRatingOptions: {
 						NegotiatedRatesIndicator: ''
 					},
-					Package: [
-						{
-							PackagingType: {
-								Code: '02'
+					Package: (Array.isArray(upsPackage) ? upsPackage : [upsPackage]).map((item) => ({
+						PackagingType: {
+							Code: '02'
+						},
+						PackageWeight: {
+							UnitOfMeasurement: {
+								Code: 'LBS'
 							},
-							PackageWeight: {
-								UnitOfMeasurement: {
-									Code: 'LBS'
-								},
-								Weight: String(upsPackage.weight)
-							}
+							Weight: String(item.weight)
 						}
-					]
+					}))
 				}
 			}
 		})
