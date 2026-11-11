@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T14:28:21.773Z
+## 2026-11-11T14:39:03.154Z
+
+fix: Fetch UPS quote rate scenarios in parallel
+
+## 2026-11-11T09:33:24-05:00
 
 feat: Add advanced UPS rate scenarios with simplified package entry
 

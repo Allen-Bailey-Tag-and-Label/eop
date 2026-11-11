@@ -86,6 +86,7 @@ beforeEach(() => {
 });
 afterEach(() => {
 	cleanup();
+	vi.useRealTimers();
 	vi.unstubAllGlobals();
 });
 describe('UPS quote feedback', () => {
@@ -165,7 +166,8 @@ describe('UPS quote feedback', () => {
 		});
 	});
 	it('shows completed scenario prices and unavailable services while another row is pending', async () => {
-		vi.mocked(advanceUpsQuote).mockReturnValue(new Promise(() => {}) as never);
+		vi.useFakeTimers();
+		const batch = deferred<UpsQuoteView>();
 		const scenario = {
 			id: 'first',
 			label: '',
@@ -181,18 +183,28 @@ describe('UPS quote feedback', () => {
 			unavailableServices: ['12'],
 			message: ''
 		};
-		const view = render(Detail, {
-			data: {
-				quote: {
-					...quote(),
-					generation: { validation: 'skipped', rates: 'pending' },
-					scenarios: [
-						scenario,
-						{ ...scenario, id: 'second', unitQuantity: 20000, status: 'pending', rates: [] }
-					]
-				}
-			}
-		} as never);
+		const initial = {
+			...quote(),
+			generation: { validation: 'skipped', rates: 'pending' },
+			scenarios: [
+				scenario,
+				{ ...scenario, id: 'second', unitQuantity: 20000, status: 'pending', rates: [] }
+			]
+		} as UpsQuoteView;
+		const progress = {
+			...initial,
+			generation: { validation: 'skipped', rates: 'running' },
+			scenarios: initial.scenarios!.map((row) => ({
+				...row,
+				status: 'complete',
+				rates: scenario.rates
+			}))
+		} as UpsQuoteView;
+		vi.mocked(advanceUpsQuote).mockImplementation(
+			(input) =>
+				((input as { poll?: boolean }).poll ? Promise.resolve(progress) : batch.promise) as never
+		);
+		const view = render(Detail, { data: { quote: initial } } as never);
 		await flush();
 		const result = within(view.getByRole('region', { name: 'Rate results 1' }));
 		expect(result.getByRole('table')).toHaveTextContent('$12.50');
@@ -201,6 +213,18 @@ describe('UPS quote feedback', () => {
 		expect(
 			within(view.getByRole('region', { name: 'Rate results 2' })).queryByRole('table')
 		).not.toBeInTheDocument();
+		await vi.advanceTimersByTimeAsync(1000);
+		await flush();
+		expect(advanceUpsQuote).toHaveBeenCalledWith({ quote: 1234, poll: true });
+		expect(view.getByText('2 of 2 rate rows complete')).toBeInTheDocument();
+		expect(
+			within(view.getByRole('region', { name: 'Rate results 2' })).getByRole('table')
+		).toHaveTextContent('$12.50');
+		batch.resolve({ ...progress, generation: { validation: 'skipped', rates: 'complete' } });
+		await flush();
+		const calls = vi.mocked(advanceUpsQuote).mock.calls.length;
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(advanceUpsQuote).toHaveBeenCalledTimes(calls);
 	});
 	it('swaps the complete origin and destination addresses', async () => {
 		const view = editor();

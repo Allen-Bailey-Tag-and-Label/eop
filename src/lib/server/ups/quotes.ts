@@ -453,7 +453,10 @@ export async function advancePendingUpsQuote(value: unknown) {
 		quote = parseQuoteNumber(input.quote);
 	if (input.retry !== undefined && typeof input.retry !== 'boolean')
 		error(400, 'Invalid retry request.');
+	if (input.poll !== undefined && typeof input.poll !== 'boolean')
+		error(400, 'Invalid progress request.');
 	const row = await record(quote);
+	if (input.poll === true) return view(row);
 	const generation = row.generation;
 	if (!generation || generation.rates === 'complete') return view(row);
 	const step = ['complete', 'skipped'].includes(generation.validation) ? 'rates' : 'validation';
@@ -466,10 +469,13 @@ export async function advancePendingUpsQuote(value: unknown) {
 						: scenario
 				)
 			: undefined;
-	const scenarioIndex =
-		scenarios?.findIndex(
-			(scenario) => scenario.status === 'pending' || scenario.status === 'running'
-		) ?? -1;
+	// Keep each server invocation within the existing timeout and lease, even for
+	// large quotes. Three typical quantity comparisons start together.
+	const scenarioIndices = (scenarios ?? [])
+		.flatMap((scenario, index) =>
+			scenario.status === 'pending' || scenario.status === 'running' ? [index] : []
+		)
+		.slice(0, 3);
 	const attemptId = randomUUID();
 	const claimed = await UpsQuote.findOneAndUpdate(
 		{
@@ -486,10 +492,10 @@ export async function advancePendingUpsQuote(value: unknown) {
 				'generation.attemptId': attemptId,
 				'generation.leaseUntil': new Date(Date.now() + 60_000),
 				'generation.message': '',
-				...(scenarios && scenarioIndex >= 0
+				...(scenarios && scenarioIndices.length
 					? {
 							scenarios: scenarios.map((scenario, index) =>
-								index === scenarioIndex ? { ...scenario, status: 'running' } : scenario
+								scenarioIndices.includes(index) ? { ...scenario, status: 'running' } : scenario
 							)
 						}
 					: {})
@@ -498,31 +504,54 @@ export async function advancePendingUpsQuote(value: unknown) {
 		{ new: true }
 	).lean<QuoteRecord | null>();
 	if (!claimed) return findUpsQuote(quote);
+	if (scenarios && scenarioIndices.length) {
+		for (const index of scenarioIndices) scenarios[index].status = 'running';
+		let writes = Promise.resolve();
+		const results = await Promise.allSettled(
+			scenarioIndices.map(async (index) => {
+				const scenario = scenarios[index];
+				try {
+					const result = await rated(
+						{ ...claimed, ...scenario },
+						AbortSignal.timeout(25_000),
+						scenario.services
+					);
+					scenarios[index] = { ...scenario, ...result, status: 'complete', message: '' };
+				} catch (cause) {
+					scenarios[index] = { ...scenario, status: 'failed', message: failureMessage(cause) };
+				}
+				// Serialize database snapshots so an earlier completion cannot overwrite
+				// a later one. Keep the lease until every request in the batch finishes.
+				writes = writes.then(async () => {
+					await UpsQuote.updateOne(
+						{ _id: row._id, 'generation.attemptId': attemptId },
+						{ $set: { ...scenarioProgress([...scenarios]), 'generation.rates': 'running' } }
+					);
+				});
+				await writes;
+			})
+		);
+		const failedWrite = results.find((result) => result.status === 'rejected');
+		if (failedWrite?.status === 'rejected') throw failedWrite.reason;
+		await UpsQuote.updateOne(
+			{ _id: row._id, 'generation.attemptId': attemptId },
+			{
+				$set: scenarioProgress(scenarios),
+				$unset: { 'generation.attemptId': 1, 'generation.leaseUntil': 1 }
+			}
+		);
+		return findUpsQuote(quote);
+	}
 	let changes: Record<string, unknown>;
 	try {
 		const signal = AbortSignal.timeout(25_000);
-		if (scenarios && scenarioIndex >= 0) {
-			const scenario = scenarios[scenarioIndex];
-			const result = await rated({ ...claimed, ...scenario }, signal, scenario.services);
-			scenarios[scenarioIndex] = { ...scenario, ...result, status: 'complete', message: '' };
-			changes = scenarioProgress(scenarios);
-		} else
-			changes = {
-				...(step === 'validation'
-					? await validated(claimed, signal)
-					: await rated(claimed, signal)),
-				[`generation.${step}`]: 'complete',
-				'generation.message': ''
-			};
+		changes = {
+			...(step === 'validation' ? await validated(claimed, signal) : await rated(claimed, signal)),
+			[`generation.${step}`]: 'complete',
+			'generation.message': ''
+		};
 	} catch (cause) {
-		const message =
-			cause instanceof Error && cause.name !== 'TimeoutError'
-				? cause.message
-				: 'UPS did not respond in time. Please try again.';
-		if (scenarios && scenarioIndex >= 0) {
-			scenarios[scenarioIndex] = { ...scenarios[scenarioIndex], status: 'failed', message };
-			changes = scenarioProgress(scenarios);
-		} else changes = { [`generation.${step}`]: 'failed', 'generation.message': message };
+		changes = { [`generation.${step}`]: 'failed', 'generation.message': failureMessage(cause) };
 	}
 	// Fence stale requests after a lease expires; they cannot replace a newer attempt.
 	await UpsQuote.updateOne(
@@ -530,6 +559,12 @@ export async function advancePendingUpsQuote(value: unknown) {
 		{ $set: changes, $unset: { 'generation.attemptId': 1, 'generation.leaseUntil': 1 } }
 	);
 	return findUpsQuote(quote);
+}
+
+function failureMessage(cause: unknown) {
+	return cause instanceof Error && cause.name !== 'TimeoutError'
+		? cause.message
+		: 'UPS did not respond in time. Please try again.';
 }
 
 function scenarioProgress(scenarios: QuoteScenario[]): Record<string, unknown> {

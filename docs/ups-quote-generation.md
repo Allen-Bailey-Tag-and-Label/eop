@@ -72,9 +72,14 @@ above, with total weights of 80 / 160 / 240 lbs. The existing limit of 50 physic
 packages applies to each row; larger estimates are rejected rather than silently
 split into separate shipments.
 
-Address validation runs once. Rates are then requested one row at a time and
-persisted as they arrive, so completed results remain visible while later rows
-load. A failed row does not stop other rows, and Retry only repeats failed rows.
+Address validation runs once. Rates are then requested in parallel batches of up
+to three rows per invocation, with a separate 25-second UPS timeout per row.
+Each result is persisted as it arrives. The detail page polls saved progress
+once per second while a batch is working; progress requests never start UPS calls
+or acquire a lease. Completed results appear while other rows are still loading.
+Database snapshots are serialized and fenced by the batch attempt ID so parallel
+completions and expired requests cannot overwrite newer results. A failed row
+does not stop other rows, and Retry only repeats failed rows.
 Selected services missing from UPS's response are shown as unavailable, not as
 zero-dollar rates. Duplicate restores all rows, service choices, and case inputs.
 Historical quotes without rate rows retain their existing behavior.

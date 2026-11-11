@@ -33,6 +33,76 @@ function caseRow(units = '10000', services = ['03']) {
 	};
 }
 describe('UPS rate scenarios', () => {
+	it('starts three rows concurrently, persists partial results, and queues additional rows', async () => {
+		await createPendingUpsQuote(
+			{
+				...input(),
+				isValidated: 'false',
+				rateScenarios: [caseRow(), caseRow('20000'), caseRow('30000'), caseRow('40000')]
+			},
+			actor
+		);
+		expect((await advancePendingUpsQuote({ quote: 1234, poll: true })).generation?.rates).toBe(
+			'pending'
+		);
+		expect(getRates).not.toHaveBeenCalled();
+		const releases: Array<(value: unknown) => void> = [];
+		vi.mocked(getRates).mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					releases.push(resolve);
+				})
+		);
+		const response = {
+			RateResponse: {
+				RatedShipment: { Service: { Code: '03' }, TotalCharges: { MonetaryValue: '5' } }
+			}
+		};
+		const batch = advancePendingUpsQuote({ quote: 1234 });
+		await vi.waitFor(() => expect(getRates).toHaveBeenCalledTimes(3));
+		// Another tab cannot start a second batch while these rows own the lease.
+		expect((await advancePendingUpsQuote({ quote: 1234 })).generation?.rates).toBe('running');
+		expect(getRates).toHaveBeenCalledTimes(3);
+		releases[1](response);
+		await vi.waitFor(() => expect(row!.scenarios?.[1].status).toBe('complete'));
+		const partial = await advancePendingUpsQuote({ quote: 1234, poll: true });
+		expect(partial.scenarios?.map((scenario) => scenario.status)).toEqual([
+			'running',
+			'complete',
+			'running',
+			'pending'
+		]);
+		expect(partial.scenarios?.[1].rates[0].rate).toBe(5);
+		releases[0](response);
+		releases[2](response);
+		const first = await batch;
+		expect(first.generation?.rates).toBe('pending');
+		expect(first.scenarios?.map((scenario) => scenario.status)).toEqual([
+			'complete',
+			'complete',
+			'complete',
+			'pending'
+		]);
+		const next = advancePendingUpsQuote({ quote: 1234 });
+		await vi.waitFor(() => expect(getRates).toHaveBeenCalledTimes(4));
+		releases[3](response);
+		const complete = await next;
+		expect(complete.generation?.rates).toBe('complete');
+		expect(complete.rates).toHaveLength(4);
+	});
+	it('validates the destination once before starting the parallel rates', async () => {
+		await createPendingUpsQuote(
+			{ ...input(), rateScenarios: [caseRow(), caseRow('20000')] },
+			actor
+		);
+		await advancePendingUpsQuote({ quote: 1234 });
+		expect(validateAddress).toHaveBeenCalledOnce();
+		expect(getRates).not.toHaveBeenCalled();
+		await advancePendingUpsQuote({ quote: 1234 });
+		expect(getRates).toHaveBeenCalledTimes(2);
+		for (const call of vi.mocked(getRates).mock.calls)
+			expect(call[1]).toMatchObject({ address: '1 MAIN ST' });
+	});
 	it('prices three case quantities progressively and keeps service choices separate', async () => {
 		await createPendingUpsQuote(
 			{
@@ -46,20 +116,17 @@ describe('UPS rate scenarios', () => {
 			},
 			actor
 		);
-		const first = await advancePendingUpsQuote({ quote: 1234 });
-		expect(first.generation?.rates).toBe('pending');
-		expect(first.scenarios?.map((scenario) => scenario.status)).toEqual([
+		const final = await advancePendingUpsQuote({ quote: 1234 });
+		expect(final.scenarios?.map((scenario) => scenario.status)).toEqual([
 			'complete',
-			'pending',
-			'pending'
+			'complete',
+			'complete'
 		]);
-		expect(first.scenarios?.[0]).toMatchObject({
+		expect(final.scenarios?.[0]).toMatchObject({
 			packageTotalCount: 4,
 			packageTotalWeight: 80,
 			rates: [{ serviceCode: '03', rate: 12.5 }]
 		});
-		await advancePendingUpsQuote({ quote: 1234 });
-		const final = await advancePendingUpsQuote({ quote: 1234 });
 		expect(final.generation?.rates).toBe('complete');
 		expect(final.scenarios?.map((scenario) => scenario.packageTotalCount)).toEqual([4, 8, 12]);
 		expect(final.scenarios?.[1].rates).toEqual([
@@ -98,7 +165,6 @@ describe('UPS rate scenarios', () => {
 			actor
 		);
 		vi.mocked(getRates).mockRejectedValueOnce(new Error('UPS unavailable'));
-		expect((await advancePendingUpsQuote({ quote: 1234 })).generation?.rates).toBe('pending');
 		const failed = await advancePendingUpsQuote({ quote: 1234 });
 		expect(failed.generation?.rates).toBe('failed');
 		expect(failed.scenarios?.map((scenario) => scenario.status)).toEqual(['failed', 'complete']);
@@ -198,7 +264,7 @@ beforeEach(() => {
 			if (path.startsWith('generation.')) row!.generation![path.split('.')[1]] = value;
 			else row![path] = value;
 		}
-		for (const path of Object.keys((update as Update).$unset))
+		for (const path of Object.keys((update as Update).$unset ?? {}))
 			delete row!.generation![path.split('.')[1]];
 		return { matchedCount: 1 } as never;
 	});

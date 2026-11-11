@@ -37,6 +37,7 @@
 		let stopped = false,
 			working = false;
 		let timer: ReturnType<typeof setTimeout>;
+		let pollTimer: ReturnType<typeof setTimeout>;
 		let endWait: (() => void) | undefined;
 		const run = async (isRetry = false) => {
 			if (working || stopped) return;
@@ -45,7 +46,25 @@
 			networkError = '';
 			try {
 				do {
-					const result = await advanceUpsQuote({ quote: incoming.quote, retry: isRetry });
+					let polling = true;
+					const poll = async () => {
+						try {
+							const progress = await advanceUpsQuote({ quote: incoming.quote, poll: true });
+							if (polling && !stopped) quote = progress;
+						} catch {
+							// The owning request reports connection failures; polling is best effort.
+						} finally {
+							if (polling && !stopped) pollTimer = setTimeout(poll, 1000);
+						}
+					};
+					if (quote.scenarios?.length) pollTimer = setTimeout(poll, 1000);
+					let result: UpsQuoteView;
+					try {
+						result = await advanceUpsQuote({ quote: incoming.quote, retry: isRetry });
+					} finally {
+						polling = false;
+						clearTimeout(pollTimer);
+					}
 					if (stopped) return;
 					quote = result;
 					isRetry = false;
@@ -78,6 +97,7 @@
 		return () => {
 			stopped = true;
 			clearTimeout(timer);
+			clearTimeout(pollTimer);
 			endWait?.();
 		};
 	});
