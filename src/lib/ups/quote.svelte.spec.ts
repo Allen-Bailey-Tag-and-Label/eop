@@ -90,41 +90,72 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 describe('UPS quote feedback', () => {
-	it('keeps the default package form simple and preserves values when Advanced is toggled', async () => {
+	it('offers all weight options in Simple and preserves settings between shipment tabs', async () => {
 		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
 		const view = editor();
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
-		const toggle = view.getByRole('button', { name: 'Advanced' });
-		expect(toggle).toHaveAttribute('aria-expanded', 'false');
-		expect(view.queryByRole('tab', { name: 'Cases / units' })).not.toBeInTheDocument();
+		const advanced = view.getByRole('tab', { name: 'Advanced' });
+		const simple = view.getByRole('tab', { name: 'Simple' });
+		expect(simple).toHaveAttribute('aria-selected', 'true');
+		for (const name of ['Total weight', 'Per package', 'Different weights', 'Cases / units'])
+			expect(view.getByRole('tab', { name })).toBeInTheDocument();
 		expect(view.queryByText('Build rows from case quantities')).not.toBeInTheDocument();
 		expect(view.queryByRole('checkbox', { name: 'Ground' })).not.toBeInTheDocument();
 		expect(view.getByRole('spinbutton', { name: 'Total Packages' })).toHaveValue(2);
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' }), {
 			target: { value: '45' }
 		});
-		await fireEvent.click(toggle);
+		await fireEvent.click(advanced);
 		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(45);
 		await fireEvent.click(view.getByRole('checkbox', { name: 'Ground' }));
-		await fireEvent.click(toggle);
-		expect(toggle).toHaveAttribute('aria-expanded', 'false');
-		expect(view.getByText(/1 rate configuration configured/)).toBeInTheDocument();
+		await fireEvent.click(simple);
+		expect(simple).toHaveAttribute('aria-selected', 'true');
+		expect(view.getByRole('spinbutton', { name: 'Total Weight (lbs)' })).toHaveValue(45);
 		await fireEvent.submit(view.container.querySelector('form')!);
 		await flush();
 		const fields = vi.mocked(createUpsQuote).mock.calls[0][0] as { rateScenarios: string };
 		const [row] = JSON.parse(fields.rateScenarios);
 		expect(Number(row.totalWeight)).toBe(45);
 		expect(row.services).not.toContain('03');
-		await fireEvent.click(toggle);
+		await fireEvent.click(advanced);
 		expect(view.getByRole('checkbox', { name: 'Ground' })).not.toBeChecked();
+	});
+	it('calculates and submits case quantities entirely in Simple', async () => {
+		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
+		const view = editor();
+		await flush();
+		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
+		await fireEvent.click(view.getByRole('tab', { name: 'Cases / units' }));
+		for (const [name, value] of [
+			['Total units', '11000'],
+			['Units per case', '2500'],
+			['Full case weight (lbs)', '20'],
+			['Empty carton weight (lbs)', '2']
+		])
+			await fireEvent.input(view.getByRole('spinbutton', { name }), { target: { value } });
+		expect(view.getByText(/5 cartons.*89.2 lbs total/)).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Simple' }));
+		expect(view.getByRole('tab', { name: 'Cases / units' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+		expect(view.getByRole('spinbutton', { name: 'Total units' })).toHaveValue(11000);
+		await fireEvent.submit(view.container.querySelector('form')!);
+		await flush();
+		const fields = vi.mocked(createUpsQuote).mock.calls[0][0] as { rateScenarios: string };
+		const [row] = JSON.parse(fields.rateScenarios);
+		expect(row.weightMode).toBe('cartons');
+		expect(Number(row.unitQuantity)).toBe(11000);
+		expect(Number(row.tareWeight)).toBe(2);
 	});
 	it('builds editable case rows for multiple quantities and submits their packing settings', async () => {
 		vi.mocked(createUpsQuote).mockResolvedValue(1234 as never);
 		const view = editor();
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
-		await fireEvent.click(view.getByRole('button', { name: 'Advanced' }));
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
 		await fireEvent.click(view.getByText('Build rows from case quantities').closest('summary')!);
 		const helper = within(view.getByText('Build rows from case quantities').closest('details')!);
 		await fireEvent.input(helper.getByRole('textbox', { name: 'Units per case' }), {
@@ -148,6 +179,10 @@ describe('UPS quote feedback', () => {
 				name: 'Next Day Air'
 			})
 		).toBeChecked();
+		await fireEvent.click(view.getByRole('tab', { name: 'Simple' }));
+		expect(view.getByRole('spinbutton', { name: 'Total Packages' })).toHaveValue(2);
+		await fireEvent.click(view.getByRole('tab', { name: 'Advanced' }));
+		expect(view.getAllByRole('region', { name: /^Rate scenario/ })).toHaveLength(4);
 		await fireEvent.submit(view.container.querySelector('form')!);
 		await flush();
 		const submitted = vi.mocked(createUpsQuote).mock.calls[0][0] as { rateScenarios: string };
@@ -245,7 +280,6 @@ describe('UPS quote feedback', () => {
 		const view = editor();
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
-		await fireEvent.click(view.getByRole('button', { name: 'Advanced' }));
 		await fireEvent.click(view.getByRole('tab', { name: 'Per package' }));
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Weight per package (lbs)' }), {
 			target: { value: '10' }
@@ -266,7 +300,6 @@ describe('UPS quote feedback', () => {
 		const view = editor();
 		await flush();
 		await fireEvent.click(view.getByText('Package Info').closest('summary')!);
-		await fireEvent.click(view.getByRole('button', { name: 'Advanced' }));
 		await fireEvent.click(view.getByRole('tab', { name: 'Different weights' }));
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Quantity for group 1' }), {
 			target: { value: '1' }

@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T14:39:03.154Z
+## 2026-11-11T14:46:20.533Z
+
+refactor: Organize UPS package options into Simple and Advanced tabs
+
+## 2026-11-11T09:40:43-05:00
 
 fix: Fetch UPS quote rate scenarios in parallel
 

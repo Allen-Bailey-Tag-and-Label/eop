@@ -41,13 +41,14 @@ The `/shipping/quote` implementation is unchanged.
 ## Addresses and package weights
 
 The Shipment Details section can swap the complete Ship From and Ship To
-addresses. Package Info defaults to just package count and total weight. The
-**Advanced** toggle reveals service selections, multiple rate rows, and the case
-quantity helper. Advanced configurations open automatically when duplicating a
-quote that uses them. Closing Advanced preserves the configured rows and shows a
-summary rather than silently replacing them with a basic estimate.
+addresses. Package Info has shared **Simple** and **Advanced** tabs. Simple edits
+one shipment with all four weight-entry modes. Advanced adds service selections,
+multiple shipment quantities, and the bulk case-quantity helper. Quotes with
+multiple rows or customized services open in Advanced when duplicated. Switching
+back to Simple edits the first shipment while retaining all additional rows and
+service selections, with a notice that those settings are still configured.
 
-Advanced package entry offers four modes:
+Both tabs offer four weight-entry modes:
 
 - **Total weight:** enter package count and combined weight. The estimate divides
   that weight evenly and rounds each package upward to the nearest 0.001 lb.

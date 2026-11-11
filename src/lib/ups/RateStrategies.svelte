@@ -10,9 +10,10 @@
 		Label,
 		P,
 		Summary,
+		Tabs,
 		Textarea
 	} from '$lib/components';
-	import { ChevronDown, Copy, Plus, Trash2 } from '@lucide/svelte';
+	import { Copy, Plus, Trash2 } from '@lucide/svelte';
 	import { untrack } from 'svelte';
 	import {
 		blankRateScenario,
@@ -27,11 +28,7 @@
 	const hasAdvancedSettings = () =>
 		rows.length > 1 ||
 		rows.some(
-			(row) =>
-				row.weightMode !== 'total' ||
-				row.label ||
-				row.unitQuantity ||
-				UPS_SERVICES.some((service) => !row.services.includes(service.code))
+			(row) => row.label || UPS_SERVICES.some((service) => !row.services.includes(service.code))
 		);
 	let advanced = $state(untrack(hasAdvancedSettings));
 	let loadedRow: string | undefined;
@@ -112,28 +109,47 @@
 
 <Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
 	<Input type="hidden" name="rateScenarios" value={JSON.stringify(rows)} />
-	<Div class="col-span-full flex justify-end">
-		<Button
-			variants={['ghost', 'small']}
-			class="flex items-center gap-2"
-			aria-expanded={advanced}
-			onclick={() => (advanced = !advanced)}
-		>
-			Advanced <ChevronDown size={16} aria-hidden="true" class={advanced ? 'rotate-180' : ''} />
-		</Button>
-	</Div>
+	<Tabs
+		class="col-span-full"
+		aria-label="Shipment options"
+		value={advanced ? 'advanced' : 'simple'}
+		onValueChange={(value) => (advanced = value === 'advanced')}
+		tabs={[
+			{ title: 'Simple', value: 'simple' },
+			{ title: 'Advanced', value: 'advanced' }
+		]}
+	/>
 	{#if !advanced}
 		{#if hasAdvancedSettings()}
 			<P class="col-span-full"
-				>{rows.length}
-				{rows.length === 1 ? 'rate configuration' : 'rate configurations'} configured. Open Advanced
-				to review or edit.</P
+				>Editing the first shipment. Additional quantities and service selections are retained in
+				Advanced.</P
 			>
-		{:else if rows[0]}
+		{/if}
+		{#if rows[0]}
+			{#if rows[0].weightMode === 'cartons'}
+				<Input
+					label="Total units"
+					aria-label="Total units"
+					name="unitQuantity"
+					type="number"
+					min={1}
+					step={1}
+					required
+					bind:value={rows[0].unitQuantity}
+				/>
+			{/if}
 			<PackageWeights
-				simple
+				bind:mode={rows[0].weightMode}
 				bind:totalPackages={rows[0].totalPackages}
 				bind:totalWeight={rows[0].totalWeight}
+				bind:eachWeight={rows[0].eachWeight}
+				bind:groups={rows[0].groups}
+				unitQuantity={rows[0].unitQuantity}
+				bind:unitsPerCarton={rows[0].unitsPerCarton}
+				bind:cartonWeight={rows[0].cartonWeight}
+				bind:tareWeight={rows[0].tareWeight}
+				bind:partialCase={rows[0].partialCase}
 			/>
 		{/if}
 	{:else}
