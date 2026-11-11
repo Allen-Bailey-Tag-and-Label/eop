@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T12:23:39.338Z
+## 2026-11-11T13:29:11.956Z
+
+refactor: Use content-sized responsive UPS quote layouts
+
+## 2026-11-11T07:27:38-05:00
 
 refactor: Generate UPS quotes with remote functions and progress feedback
 

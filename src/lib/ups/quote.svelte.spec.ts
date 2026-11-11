@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { goto } from '$app/navigation';
 import Create from '../../routes/(private)/(padded)/ups/quote/+page.svelte';
@@ -54,9 +54,69 @@ async function flush() {
 	await Promise.resolve();
 	await tick();
 }
-beforeEach(() => vi.clearAllMocks());
-afterEach(() => cleanup());
+let desktop = false;
+let resize: () => void;
+beforeEach(() => {
+	vi.clearAllMocks();
+	desktop = false;
+	vi.stubGlobal('matchMedia', () => ({
+		get matches() {
+			return desktop;
+		},
+		addEventListener: (_event: string, listener: () => void) => {
+			resize = listener;
+		},
+		removeEventListener: vi.fn()
+	}));
+});
+afterEach(() => {
+	cleanup();
+	vi.unstubAllGlobals();
+});
 describe('UPS quote feedback', () => {
+	it('opens invalid mobile sections, keeps desktop sections expanded, and preserves input values across resizing', async () => {
+		vi.mocked(createUpsQuote).mockReturnValue(new Promise(() => {}) as never);
+		const view = render(Create, {
+			data: {
+				locals: { user: { branches: [{ _id: 'b'.repeat(24), number: 2046 }] } },
+				_branchId: '',
+				isValidated: 'true',
+				formData: {
+					shipFrom: { address: '3177 Lehigh', city: 'Caledonia', state: 'NY', zip: '14423' },
+					shipTo: { address: '1 Main', city: 'Caledonia', state: 'NY', zip: '14423' },
+					packageInfo: { totalPackages: '2', totalWeight: '21' }
+				}
+			}
+		} as never);
+		await flush();
+		const sections = [...view.container.querySelectorAll('details')];
+		expect(sections).toHaveLength(3);
+		expect(sections[0].querySelector('summary')).toHaveTextContent('Shipment Details');
+		expect(sections[0].open).toBe(true);
+		expect(sections[1].open).toBe(false);
+		const weight = view.container.querySelector('[name="packageInfoTotalWeight"]')!;
+		await fireEvent.invalid(weight);
+		await flush();
+		expect(sections[1].open).toBe(true);
+		const destination = view.container.querySelector('[name="shipToAddress"]')!;
+		await fireEvent.input(destination, { target: { value: '2 Main' } });
+		desktop = true;
+		resize();
+		await flush();
+		expect(view.container.querySelectorAll('details')).toHaveLength(0);
+		for (const title of ['Shipment Details', 'Package Info', 'Extras'])
+			expect(view.getByRole('heading', { name: title })).toBeVisible();
+		desktop = false;
+		resize();
+		await flush();
+		expect(view.container.querySelectorAll('[name="shipToAddress"]')).toHaveLength(1);
+		expect(new FormData(view.container.querySelector('form')!).get('shipToAddress')).toBe('2 Main');
+		expect(
+			within(view.getByRole('region', { name: 'Quote details' })).getByRole('button', {
+				name: 'Get Quote'
+			})
+		).toBeInTheDocument();
+	});
 	it('reuses a submission ID for connection retries and creates a new ID after the inputs change', async () => {
 		vi.mocked(createUpsQuote).mockRejectedValue(new Error('Connection interrupted'));
 		const view = render(Create, {

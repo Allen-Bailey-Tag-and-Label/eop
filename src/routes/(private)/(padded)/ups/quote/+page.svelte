@@ -90,32 +90,39 @@
 	});
 </script>
 
-<Div class="flex flex-col lg:items-start">
-	<Div class="flex flex-col space-y-6">
-		<Div class="flex items-center justify-between space-x-2">
-			<H1 class="whitespace-nowrap">UPS Freight Estimator</H1>
-		</Div>
-		<Form class="flex w-auto max-w-none flex-col lg:items-end" isEnhanced={false} onsubmit={submit}>
-			<Input
-				class="sr-only absolute top-0 left-0 h-0 w-0"
-				type="hidden"
-				name="_branchId"
-				value={_branchId}
-			/>
-			<FormSections {_branchIdOptions} bind:_branchId bind:formData bind:isValidationRequired />
-			<Div role="alert" class="min-h-6 w-full text-red-500">
-				{error}
-			</Div>
-			<Div class="flex justify-end space-x-2">
-				{#if !isLoading}
-					<div transition:slide={{ axis: 'y' }}>
-						<Button onclick={reset} variants={['glass']}>Reset</Button>
-					</div>
-				{/if}
-				<Button type="submit" disabled={isLoading} class="flex items-center gap-2">
-					{#if isLoading}<Spinner class="h-4 w-4" aria-hidden="true" />{/if}Get Quote
-				</Button>
-			</Div>
-		</Form>
+<Div class="w-full min-w-0 space-y-6">
+	<Div class="flex items-center justify-between space-x-2">
+		<H1>UPS Freight Estimator</H1>
 	</Div>
+	<Form class="w-full max-w-none" isEnhanced={false} onsubmit={submit}>
+		<Input
+			class="sr-only absolute top-0 left-0 h-0 w-0"
+			type="hidden"
+			name="_branchId"
+			value={_branchId}
+		/>
+		<FormSections
+			{_branchIdOptions}
+			bind:_branchId
+			bind:formData
+			bind:isValidationRequired
+			responsive
+		>
+			{#snippet actions()}
+				<Div role="alert" class="min-h-6 w-full text-red-500">
+					{error}
+				</Div>
+				<Div class="flex justify-end space-x-2">
+					{#if !isLoading}
+						<div transition:slide={{ axis: 'y' }}>
+							<Button onclick={reset} variants={['glass']}>Reset</Button>
+						</div>
+					{/if}
+					<Button type="submit" disabled={isLoading} class="flex items-center gap-2">
+						{#if isLoading}<Spinner class="h-4 w-4" aria-hidden="true" />{/if}Get Quote
+					</Button>
+				</Div>
+			{/snippet}
+		</FormSections>
+	</Form>
 </Div>

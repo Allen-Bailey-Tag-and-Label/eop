@@ -7,6 +7,7 @@
 		Div,
 		H1,
 		H2,
+		H3,
 		P,
 		Spinner,
 		Table,
@@ -22,6 +23,7 @@
 	import type { PageProps } from './$types';
 	import { theme } from '$lib/theme/index.js';
 	import { twMerge } from 'tailwind-merge';
+	import QuoteLayout from '$lib/ups/QuoteLayout.svelte';
 
 	let { data }: PageProps = $props();
 	let quote = $state<UpsQuoteView>(untrack(() => data.quote));
@@ -81,106 +83,137 @@
 	});
 </script>
 
-<Div class="flex flex-col items-start">
-	<Div class="flex flex-col items-start space-y-6">
+<Div class="w-full min-w-0 space-y-6">
+	<Div class="flex flex-wrap items-baseline justify-between gap-2">
 		<H1>Quote {quote.quote}</H1>
-		{#if quote.generation}
-			<Card class="w-full space-y-4" role="status" aria-live="polite" aria-busy={busy}>
-				<H2>Quote progress</H2>
-				<Div class="flex items-center gap-3">
-					{#if ['pending', 'running'].includes(quote.generation.validation) && !networkError}<Spinner
-							class="h-5 w-5 shrink-0"
-							aria-hidden="true"
-						/>{/if}
-					<P
-						>{quote.generation.validation === 'skipped'
-							? 'Address validation: Not requested'
-							: quote.generation.validation === 'complete'
-								? 'Address validation: Complete'
-								: quote.generation.validation === 'failed'
-									? 'Address validation: Failed'
-									: 'Validating destination address…'}</P
-					>
-				</Div>
-				<Div class="flex items-center gap-3">
-					{#if ['complete', 'skipped'].includes(quote.generation.validation) && ['pending', 'running'].includes(quote.generation.rates) && !networkError}<Spinner
-							class="h-5 w-5 shrink-0"
-							aria-hidden="true"
-						/>{/if}
-					<P
-						>{quote.generation.rates === 'complete'
-							? 'UPS rates: Complete'
-							: quote.generation.rates === 'failed'
-								? 'UPS rates: Failed'
-								: ['complete', 'skipped'].includes(quote.generation.validation)
-									? 'Getting UPS rates…'
-									: 'UPS rates: Waiting for address validation'}</P
-					>
-				</Div>
-				{#if networkError || quote.generation.message}
-					<P role="alert">{networkError || quote.generation.message}</P>
-					<Div class="flex justify-end"
-						><Button disabled={busy} onclick={() => retry?.()}>Retry</Button></Div
-					>
-				{/if}
-			</Card>
-		{/if}
-		<Div class="grid grid-cols-[fit-content(0px)_fit-content(0px)] gap-x-2">
-			{@render detail('Date', dateTime(new Date(quote.createdAt)))}
-			{@render detail(
-				'Ship From',
-				`${quote.shipper.AddressLine}, ${quote.shipper.City}, ${quote.shipper.StateProvinceCode} ${quote.shipper.PostalCode}`
-			)}
-			{@render detail(
-				'Ship To',
-				`${quote.shipTo.AddressLine}, ${quote.shipTo.City}, ${quote.shipTo.StateProvinceCode} ${quote.shipTo.PostalCode}`
-			)}
-			{@render detail('Classification', quote.classification)}
-			{@render detail('Total Packages', quote.packageTotalCount)}
-			{@render detail('Total Weight', quote.packageTotalWeight)}
-		</Div>
-		{#if !quote.generation || quote.generation.rates === 'complete'}
-			<Card class="rounded-none p-0">
-				<Table>
-					<Thead>
-						<Tr>
-							<Th>Description</Th>
-							<Th class="text-right">Rate</Th>
-						</Tr>
-					</Thead>
-					<Tbody>
-						{#each quote.rates as { description, rate }, index (index)}
-							<Tr>
-								<Td>{description}</Td>
-								<Td class="text-right">{currency(rate)}</Td>
-							</Tr>
-						{/each}
-					</Tbody>
-				</Table>
-			</Card>
-		{/if}
+		<P>{dateTime(new Date(quote.createdAt))}</P>
+	</Div>
+	<QuoteLayout {shipment} {packages} {extras} {actions} {rates} />
+</Div>
 
-		<Div class="flex w-full justify-end space-x-2">
-			<A
-				class={twMerge($theme.Button.default)}
-				href="/ups/quote?{new URLSearchParams({
-					_branchId: quote?._branchId,
-					address: quote?.shipTo?.AddressLine,
-					isValidated: String(
-						quote.generation ? quote.generation.validation !== 'skipped' : quote.isValidated
-					),
-					zip: quote?.shipTo?.PostalCode,
-					city: quote?.shipTo?.City,
-					state: quote?.shipTo?.StateProvinceCode,
-					totalPackages: String(quote.packageTotalCount),
-					totalWeight: String(quote.packageTotalWeight)
-				}).toString()}">Duplicate</A
+{#snippet shipment()}
+	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
+		<Div class="min-w-0 space-y-2">
+			<H3 class="text-base">Ship From</H3>
+			<P class="break-words"
+				>{quote.shipper.AddressLine}<br />{quote.shipper.City}, {quote.shipper.StateProvinceCode}
+				{quote.shipper.PostalCode}</P
+			>
+		</Div>
+		<Div class="min-w-0 space-y-2">
+			<H3 class="text-base">Ship To</H3>
+			<P class="break-words"
+				>{quote.shipTo.AddressLine}<br />{quote.shipTo.City}, {quote.shipTo.StateProvinceCode}
+				{quote.shipTo.PostalCode}</P
 			>
 		</Div>
 	</Div>
-</Div>
+{/snippet}
+{#snippet packages()}
+	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4">
+		<Div class="min-w-0 space-y-1"
+			><P class="font-semibold">Total Packages</P><P>{quote.packageTotalCount}</P></Div
+		>
+		<Div class="min-w-0 space-y-1"
+			><P class="font-semibold">Total Weight</P><P>{quote.packageTotalWeight}</P></Div
+		>
+	</Div>
+{/snippet}
+{#snippet extras()}
+	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-4">
+		<Div class="space-y-1"
+			><P class="font-semibold">Classification</P><P>{quote.classification}</P></Div
+		>
+		<Div class="space-y-1"
+			><P class="font-semibold">Validation</P><P
+				>{quote.generation
+					? quote.generation.validation === 'skipped'
+						? 'Not requested'
+						: quote.generation.validation === 'complete'
+							? 'Validated'
+							: 'Requested'
+					: quote.isValidated
+						? 'Validated'
+						: 'Not requested'}</P
+			></Div
+		>
+	</Div>
+{/snippet}
+{#snippet actions()}
+	<Div class="flex flex-wrap justify-end gap-2">
+		<A
+			class={twMerge($theme.Button.default)}
+			href="/ups/quote?{new URLSearchParams({
+				_branchId: quote._branchId,
+				address: quote.shipTo.AddressLine,
+				isValidated: String(
+					quote.generation ? quote.generation.validation !== 'skipped' : quote.isValidated
+				),
+				zip: quote.shipTo.PostalCode,
+				city: quote.shipTo.City,
+				state: quote.shipTo.StateProvinceCode,
+				totalPackages: String(quote.packageTotalCount),
+				totalWeight: String(quote.packageTotalWeight)
+			}).toString()}">Duplicate</A
+		>
+	</Div>
+{/snippet}
+{#snippet rates()}
+	{#if quote.generation}
+		<Card class="w-full space-y-4" role="status" aria-live="polite" aria-busy={busy}>
+			<H2>Quote progress</H2>
+			<Div class="flex items-center gap-3">
+				{#if ['pending', 'running'].includes(quote.generation.validation) && !networkError}<Spinner
+						class="h-5 w-5 shrink-0"
+						aria-hidden="true"
+					/>{/if}
+				<P
+					>{quote.generation.validation === 'skipped'
+						? 'Address validation: Not requested'
+						: quote.generation.validation === 'complete'
+							? 'Address validation: Complete'
+							: quote.generation.validation === 'failed'
+								? 'Address validation: Failed'
+								: 'Validating destination address…'}</P
+				>
+			</Div>
+			<Div class="flex items-center gap-3">
+				{#if ['complete', 'skipped'].includes(quote.generation.validation) && ['pending', 'running'].includes(quote.generation.rates) && !networkError}<Spinner
+						class="h-5 w-5 shrink-0"
+						aria-hidden="true"
+					/>{/if}
+				<P
+					>{quote.generation.rates === 'complete'
+						? 'UPS rates: Complete'
+						: quote.generation.rates === 'failed'
+							? 'UPS rates: Failed'
+							: ['complete', 'skipped'].includes(quote.generation.validation)
+								? 'Getting UPS rates…'
+								: 'UPS rates: Waiting for address validation'}</P
+				>
+			</Div>
+			{#if networkError || quote.generation.message}
+				<P role="alert">{networkError || quote.generation.message}</P>
+				<Div class="flex justify-end"
+					><Button disabled={busy} onclick={() => retry?.()}>Retry</Button></Div
+				>
+			{/if}
+		</Card>
+	{/if}
 
-{#snippet detail(label: string, value: string | number)}
-	<Div class="font-bold whitespace-nowrap">{label}:</Div>
-	<Div class="whitespace-nowrap">{value}</Div>
+	{#if !quote.generation || quote.generation.rates === 'complete'}
+		<Card class="min-w-0 space-y-4">
+			<H2 class="text-lg">Rates</H2>
+			<Div class="overflow-x-auto">
+				<Table class="w-full">
+					<Thead><Tr><Th>Description</Th><Th class="text-right">Rate</Th></Tr></Thead>
+					<Tbody>
+						{#each quote.rates as { description, rate }, index (index)}
+							<Tr><Td>{description}</Td><Td class="text-right">{currency(rate)}</Td></Tr>
+						{/each}
+					</Tbody>
+				</Table>
+			</Div>
+		</Card>
+	{/if}
 {/snippet}

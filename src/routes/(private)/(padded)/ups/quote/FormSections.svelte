@@ -2,7 +2,8 @@
 	import { states } from 'states-us';
 	import type { Snippet } from 'svelte';
 	import zipcodes from 'zipcodes';
-	import { Div, H2, Input, Label, Radio, Select } from '$lib/components';
+	import { Div, H2, H3, Input, Label, Radio, Select } from '$lib/components';
+	import QuoteLayout from '$lib/ups/QuoteLayout.svelte';
 
 	let {
 		_branchId = $bindable(''),
@@ -26,7 +27,9 @@
 			}
 		}),
 		isValidationCheckboxRequired = $bindable(true),
-		isValidationRequired = $bindable(true)
+		isValidationRequired = $bindable(true),
+		responsive = false,
+		actions = undefined as Snippet | undefined
 	} = $props();
 
 	const stateOptions = $derived.by(() => [
@@ -35,12 +38,29 @@
 	]);
 </script>
 
-<Div class="flex flex-col gap-4 lg:flex-row">
-	{@render section({ key: 'shipFrom', snippet: address, title: 'Ship From' })}
-	{@render section({ key: 'shipTo', snippet: address, title: 'Ship To' })}
-	{@render section({ snippet: packageInfo, title: 'Package Info' })}
-	{@render section({ snippet: extraInfo, title: 'Extras' })}
-</Div>
+{#if responsive}
+	<QuoteLayout shipment={shipmentDetails} packages={packageInfo} extras={extraInfo} {actions} />
+{:else}
+	<Div class="flex flex-col gap-4 lg:flex-row">
+		<Div class="flex flex-col space-y-2"
+			><H2>Ship From</H2>{@render address({ key: 'shipFrom' })}</Div
+		>
+		<Div class="flex flex-col space-y-2"><H2>Ship To</H2>{@render address({ key: 'shipTo' })}</Div>
+		<Div class="flex flex-col space-y-2"><H2>Package Info</H2>{@render packageInfo()}</Div>
+		<Div class="flex flex-col space-y-2"><H2>Extras</H2>{@render extraInfo()}</Div>
+	</Div>
+{/if}
+
+{#snippet shipmentDetails()}
+	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
+		{#each ['shipFrom', 'shipTo'] as key (key)}
+			<Div class="min-w-0 space-y-4">
+				<H3 class="text-base">{key === 'shipFrom' ? 'Ship From' : 'Ship To'}</H3>
+				{@render address({ key: key as 'shipFrom' | 'shipTo' })}
+			</Div>
+		{/each}
+	</Div>
+{/snippet}
 
 {#snippet address({ key }: { key: 'shipFrom' | 'shipTo' })}
 	<Input
@@ -79,7 +99,7 @@
 		<Div class="flex flex-col">
 			<Label>Validation</Label>
 			<Div class="flex space-x-2">
-				{#each [{ label: 'No', value: false }, { label: 'Yes', value: true }] as { label, value }}
+				{#each [{ label: 'No', value: false }, { label: 'Yes', value: true }] as { label, value } (label)}
 					<Radio bind:group={isValidationRequired} name="isValidated" {value} variants={['box']}>
 						{label}
 					</Radio>
@@ -116,11 +136,4 @@
 		required={true}
 		type="number"
 	/>
-{/snippet}
-
-{#snippet section({ snippet, title, ...restProps }: { snippet: Snippet; title: string } & any)}
-	<Div class="flex flex-col space-y-2">
-		<H2>{title}</H2>
-		{@render snippet(restProps)}
-	</Div>
 {/snippet}
