@@ -54,16 +54,29 @@ do not remove successful rates. Rating never books a shipment.
 ## Legacy compatibility and persistence
 
 Existing `UpsQuote` documents are not patched or renamed. The history repository
-unions their summaries with `ShippingQuote`, and numeric quote URLs read their
-original collection through a compatibility adapter. Null/missing service entries
+unions their summaries with `ShippingQuote`, and numeric quote URLs check both
+collections. Null/missing service entries
 are skipped; historical customer prices are preserved. Carrier costs and markups
 are unknown for legacy records and are shown as unavailable, never inferred.
 
-New quotes use `S-000001` style numbers from an atomic MongoDB counter, avoiding
-collisions with numeric legacy UPS quotes. Submissions have per-user idempotency
-keys to avoid duplicate saved records when retried. Number gaps can occur on
-failed writes. The new collections and indexes are created through the existing
-Mongoose model lifecycle; no destructive migration is required.
+New quotes from both `/ups/quote` and `/shipping/quote` use one atomic numeric
+sequence. For example, an UPS quote can reserve 1501, a shipping quote 1502, and
+the next UPS quote 1503. Both-mode quotes reserve one number for all their service
+options. Each server process reads the largest saved UPS number and the largest
+shipping number (including historical `S-` suffixes) before allocating. A single
+MongoDB update raises the counter to at least that floor and increments it. The
+existing counter document is reused, so previously reserved numbers are not reused.
+Concurrent requests and server instances reserve distinct numbers.
+
+Existing numeric UPS quotes and prefixed shipping quotes keep their original
+numbers and URLs. No historical documents are renumbered or repriced. Shipping
+submissions retain per-user idempotency keys to avoid duplicate saved records when
+retried; failed writes or competing retries can leave gaps in the sequence. The
+counter is initialized automatically; no manual data patch is required. Deploy
+both updated quote writers together and let requests from the previous version
+finish before resuming quoting, since older UPS writers do not reserve numbers
+from the shared counter. Restoring/importing historical quote data requires an app
+restart so the starting floor is read again.
 
 The finder normalizes both collections before applying the shared table's saved
 filters and sorting; counts and pagination cover the combined filtered results.
@@ -90,6 +103,8 @@ were returned. Only the existing UPS quote screen creates legacy UPS records.
 6. Open an existing numeric UPS quote through the new history and original route.
 7. Edit a markup rule and confirm the saved quote stays unchanged while Quote again
    uses the updated rule.
+8. Alternate quote creation between UPS and shipping and confirm the numbers
+   advance through a shared sequence. Verify existing `S-` quote links still open.
 
 API reference: https://github.com/UPS-API/api-documentation/blob/main/Rating.yaml
 Unishippers access: https://www.unishippers.com/shipping-technology/api-integrations

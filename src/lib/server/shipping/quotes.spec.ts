@@ -3,18 +3,20 @@ import { blankRequest, type CarrierRate } from '$lib/shipping/types';
 import { collectRates, createShippingQuote, findShippingQuote } from './quotes';
 import { getMarkupConfigs } from './markups';
 import { getUpsShippingRates } from './ups';
-import { ShippingQuote, ShippingQuoteSequence } from '../mongoose/models/ShippingQuote';
+import { ShippingQuote } from '../mongoose/models/ShippingQuote';
 import { UpsQuote } from '../mongoose/models/UpsQuote';
+import { nextQuoteNumber } from './numbering';
+import { Types } from 'mongoose';
 vi.mock('./markups', () => ({ getMarkupConfigs: vi.fn() }));
 vi.mock('./ups', () => ({ getUpsShippingRates: vi.fn() }));
+vi.mock('./numbering', () => ({ nextQuoteNumber: vi.fn() }));
 vi.mock('../mongoose/models/ShippingQuote', () => ({
 	ShippingQuote: {
 		findOne: vi.fn(),
 		create: vi.fn(),
 		aggregate: vi.fn(),
 		init: vi.fn(async () => {})
-	},
-	ShippingQuoteSequence: { findOneAndUpdate: vi.fn() }
+	}
 }));
 vi.mock('../mongoose/models/UpsQuote', () => ({
 	UpsQuote: { findOne: vi.fn(), collection: { name: 'upsquotes' } }
@@ -38,7 +40,7 @@ beforeEach(() => {
 	]);
 	vi.mocked(getUpsShippingRates).mockResolvedValue([rate]);
 	vi.mocked(ShippingQuote.findOne).mockReturnValue(query(null) as never);
-	vi.mocked(ShippingQuoteSequence.findOneAndUpdate).mockReturnValue(query({ value: 1 }) as never);
+	vi.mocked(nextQuoteNumber).mockResolvedValue(1502);
 	vi.mocked(ShippingQuote.create).mockResolvedValue({} as never);
 });
 describe('shipping quote persistence', () => {
@@ -65,14 +67,14 @@ describe('shipping quote persistence', () => {
 		expect(result.attempts[0].status).toBe('error');
 		expect(JSON.stringify(result)).not.toContain('private-token');
 	});
-	it('saves the exact pricing snapshot under a prefixed number and returns existing submissions without rating again', async () => {
+	it('saves the exact pricing snapshot under a shared numeric number and does not reserve again for a retry', async () => {
 		const request = blankRequest('2026-11-10'),
 			requestId = crypto.randomUUID();
 		request.branchId = 'a'.repeat(24);
-		expect(await createShippingQuote(request, requestId, 'user')).toBe('S-000001');
+		expect(await createShippingQuote(request, requestId, 'user')).toBe('1502');
 		expect(ShippingQuote.create).toHaveBeenCalledWith(
 			expect.objectContaining({
-				number: 'S-000001',
+				number: '1502',
 				requestKey: `user:${requestId}`,
 				request,
 				rates: [
@@ -84,9 +86,18 @@ describe('shipping quote persistence', () => {
 				]
 			})
 		);
-		vi.mocked(ShippingQuote.findOne).mockReturnValue(query({ number: 'S-000001' }) as never);
-		expect(await createShippingQuote(request, requestId, 'user')).toBe('S-000001');
+		vi.mocked(ShippingQuote.findOne).mockReturnValue(query({ number: '1502' }) as never);
+		expect(await createShippingQuote(request, requestId, 'user')).toBe('1502');
 		expect(getUpsShippingRates).toHaveBeenCalledOnce();
+		expect(nextQuoteNumber).toHaveBeenCalledOnce();
+	});
+	it('retains the prefixed number of a submission saved before the shared sequence', async () => {
+		vi.mocked(ShippingQuote.findOne).mockReturnValue(query({ number: 'S-000007' }) as never);
+		expect(await createShippingQuote(blankRequest('2026-11-10'), crypto.randomUUID(), 'user')).toBe(
+			'S-000007'
+		);
+		expect(nextQuoteNumber).not.toHaveBeenCalled();
+		expect(getUpsShippingRates).not.toHaveBeenCalled();
 	});
 	it('uses the saved result after a concurrent duplicate submission and never overwrites it', async () => {
 		vi.mocked(ShippingQuote.findOne)
@@ -107,9 +118,33 @@ describe('shipping quote persistence', () => {
 			legacyRates: [{ priceCents: 3000 }]
 		});
 		expect(UpsQuote.findOne).toHaveBeenCalledWith({ quote: 123 });
-		expect(ShippingQuote.findOne).not.toHaveBeenCalled();
+		expect(ShippingQuote.findOne).toHaveBeenCalledWith({ number: '123' });
 		await findShippingQuote('S-000001');
 		expect(ShippingQuote.findOne).toHaveBeenCalledWith({ number: 'S-000001' });
 		expect(await findShippingQuote('{"$ne":null}')).toBeNull();
+	});
+	it('finds numeric shipping quotes before falling back to UPS and keeps historical prefixed URLs working', async () => {
+		const request = blankRequest('2026-11-10');
+		const row = {
+			number: '1502',
+			createdAt: new Date('2026-11-10'),
+			_branchId: new Types.ObjectId(),
+			request,
+			rates: [],
+			attempts: []
+		};
+		vi.mocked(ShippingQuote.findOne).mockReturnValue(query(row) as never);
+		expect(await findShippingQuote('1502')).toMatchObject({ number: '1502', origin: 'shipping' });
+		expect(UpsQuote.findOne).not.toHaveBeenCalled();
+		expect(await findShippingQuote('001502')).toMatchObject({ number: '1502' });
+		expect(ShippingQuote.findOne).toHaveBeenLastCalledWith({ number: '1502' });
+		vi.mocked(ShippingQuote.findOne).mockReturnValue(
+			query({ ...row, number: 'S-000007' }) as never
+		);
+		expect(await findShippingQuote('S-000007')).toMatchObject({
+			number: 'S-000007',
+			origin: 'shipping'
+		});
+		expect(await findShippingQuote('9007199254740992')).toBeNull();
 	});
 });

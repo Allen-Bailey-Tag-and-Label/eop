@@ -2,6 +2,7 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { deserialize } from '$app/forms';
 import { Branch, UpsQuote } from '$lib/server/mongoose/models';
 import { connect } from '$lib/server/mongoose';
+import { nextQuoteNumber } from '$lib/server/shipping/numbering';
 
 export const actions: Actions = {
 	default: async ({ fetch, locals, request }) => {
@@ -148,9 +149,7 @@ const createQuote = async ({
 		CountryCode: string;
 	};
 }) => {
-	const lastQuote = await UpsQuote.findOne().sort({ quote: -1 });
-	if (!lastQuote) return {};
-	const quote = lastQuote.quote + 1;
+	const quote = await nextQuoteNumber();
 
 	const quoteData = {
 		_branchId,

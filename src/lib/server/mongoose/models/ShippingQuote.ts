@@ -21,6 +21,7 @@ export const ShippingQuote = defineModel<ShippingQuoteRecord>('ShippingQuote', {
 	attempts: { type: [Schema.Types.Mixed], required: true }
 });
 
+// Retain the original collection/document so numbers reserved before the shared sequence are not reused.
 export const ShippingQuoteSequence = defineModel<{ _id: string; value: number }>(
 	'ShippingQuoteSequence',
 	{

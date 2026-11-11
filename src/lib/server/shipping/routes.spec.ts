@@ -48,10 +48,10 @@ describe('shipping route wiring', () => {
 		const action = quoteActions.default!;
 		expect(await action(event('Both') as never)).toMatchObject({ status: 400 });
 		expect(createShippingQuote).not.toHaveBeenCalled();
-		vi.mocked(createShippingQuote).mockResolvedValue('S-000001');
+		vi.mocked(createShippingQuote).mockResolvedValue('1502');
 		await expect(action(event() as never)).rejects.toMatchObject({
 			status: 303,
-			location: '/shipping/quotes/S-000001'
+			location: '/shipping/quotes/1502'
 		});
 		expect(createShippingQuote).toHaveBeenCalledWith(
 			expect.objectContaining({ services: 'UPS', freight: [] }),

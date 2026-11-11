@@ -116,6 +116,7 @@ describe('legacy UPS compatibility', () => {
 			request: { shipTo: { address: '123 Main', city: 'Caledonia', state: 'NY', zip: '01234' } }
 		};
 		expect(duplicateShippingQuoteUrl(row)).toBe('/shipping/quote?from=S-000001');
+		expect(duplicateShippingQuoteUrl({ ...row, number: '1502' })).toBe('/shipping/quote?from=1502');
 		const url = new URL(
 			duplicateShippingQuoteUrl({
 				...row,

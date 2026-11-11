@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-10T21:02:56.913Z
+## 2026-11-10T21:23:26.613Z
+
+refactor: Share quote numbering between UPS and shipping
+
+## 2026-11-10T16:06:57-05:00
 
 refactor: Align shipping quote finder with UPS table conventions
 
