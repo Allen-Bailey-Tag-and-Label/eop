@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T18:53:58.448Z
+## 2026-11-11T19:08:20.067Z
+
+refactor: Share UPS and shipping quote layouts and results
+
+## 2026-11-11T13:54:39-05:00
 
 fix: Align UPS rates and join comparison tabs to the table
 

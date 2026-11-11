@@ -1,144 +1,133 @@
 <script lang="ts">
-	import { A, Card, Div, H1, H2, P, Table, Thead, Tbody, Tr, Th, Td } from '$lib/components';
-	import { currency } from '$lib/formats';
+	import { A, Div, H1, H3, P, QuoteLayout, QuoteProgress } from '$lib/components';
+	import { dateTime } from '$lib/formats';
 	import { theme } from '$lib/theme';
 	import { twMerge } from 'tailwind-merge';
+	import ShippingQuoteResults from '$lib/shipping/QuoteResults.svelte';
 	import type { PageProps } from './$types';
 	import type { PackageGroup, FreightItem } from '$lib/shipping/types';
 	const isFreight = (item: PackageGroup): item is FreightItem => 'freightClass' in item;
 	let { data }: PageProps = $props();
 	const quote = $derived(data.quote);
-	const hasScenarios = $derived(quote.rates.some((rate) => rate.scenarioId));
-	const hasLtl = $derived(quote.rates.some((rate) => rate.service === 'LTL'));
+	const progress = $derived(
+		quote.origin === 'legacy-ups'
+			? [{ text: 'UPS rates: Saved historical prices', status: 'complete' }]
+			: quote.attempts.map((attempt) => ({
+					text: `${attempt.service} rates: ${attempt.status === 'success' ? 'Complete' : attempt.status === 'not-configured' ? 'Not configured' : 'Failed'}`,
+					status: attempt.status === 'success' ? 'complete' : attempt.status,
+					message: attempt.message
+				}))
+	);
 </script>
 
 <svelte:head><title>Shipping quote {quote.number} - EOP</title></svelte:head>
-<Div class="space-y-6">
-	<Div class="flex flex-wrap items-center justify-between gap-4"
-		><H1>Quote {quote.number}</H1><Div class="flex flex-wrap gap-2"
-			><A
-				href="/shipping/quote-finder"
-				class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
-				>Quote history</A
-			>{#if quote.request}<A
-					href={`/shipping/quote?from=${quote.number}`}
-					class={twMerge($theme.Button.default, 'inline-flex items-center hover:no-underline')}
-					>Quote again</A
-				>{/if}</Div
-		></Div
-	>
-	<Card class="space-y-3"
-		><H2>Shipment</H2>
-		<P>Created: {quote.createdAt ? new Date(quote.createdAt).toLocaleString() : 'Unknown'}</P>
-		<P
-			>Ship from: {quote.shipFrom.address}, {quote.shipFrom.city}, {quote.shipFrom.state}
-			{quote.shipFrom.zip}</P
-		>
-		<P
-			>Ship to: {quote.shipTo.address}, {quote.shipTo.city}, {quote.shipTo.state}
-			{quote.shipTo.zip}{quote.shipTo.residential ? ' · Residential' : ''}</P
-		>
-		{#if quote.request}<P
-				>Services: {quote.request.services} · Ship date: {quote.request.shipDate}</P
-			><P
-				>Customer: {quote.request.customer || 'Not specified'} · Reference: {quote.request
-					.reference || 'Not specified'}</P
-			>{:else}<P
-				>Packages: {quote.packageTotalCount ?? 'Unknown'} · Total weight: {quote.packageTotalWeight ??
-					'Unknown'} lb</P
-			>{/if}
-	</Card>
-	{#if quote.origin === 'legacy-ups'}
-		<P
-			>Historical UPS quote. Only the original customer prices were recorded; carrier costs and
-			markup breakdowns are unavailable. Current markup rules are not applied.</P
-		>
-		<Card class="overflow-x-auto p-0"
-			><Table class="w-full"
-				><Thead><Tr><Th>UPS service</Th><Th>Saved customer price</Th></Tr></Thead><Tbody
-					>{#each quote.legacyRates as rate, index (index)}<Tr
-							><Td>{rate.description}</Td><Td>{currency(rate.priceCents / 100)}</Td></Tr
-						>{/each}</Tbody
-				></Table
-			></Card
-		>
-		<A href={`/ups/quote/${quote.number}`}>Open original UPS quote</A>
-	{:else}
-		{#each quote.attempts as attempt (attempt.service)}<Card
-				><H2>{attempt.service}</H2><P role={attempt.status === 'success' ? undefined : 'status'}
-					>{attempt.message}</P
-				></Card
-			>{/each}
-		{#if quote.rates.length}<Card class="overflow-x-auto p-0"
-				><Table class="w-full"
-					><Thead
-						><Tr
-							>{#if hasScenarios}<Th>Shipment</Th>{/if}<Th>Service</Th><Th>Carrier</Th><Th
-								>Rate basis</Th
-							><Th>Carrier cost</Th>{#if hasLtl}<Th>Transit estimate</Th>{/if}<Th>Markup</Th><Th
-								>Customer price</Th
-							></Tr
-						></Thead
-					><Tbody
-						>{#each quote.rates as rate, index (index)}<Tr
-								>{#if hasScenarios}<Td>{rate.scenarioLabel ?? 'Shipment'}</Td>{/if}<Td
-									>{rate.description}{#if rate.staging}<P class="text-xs"
-											>Staging test rate · Class {rate.freightClass}</P
-										>{/if}</Td
-								><Td>{rate.carrier}</Td><Td>{rate.rateBasis}</Td><Td
-									>{currency(rate.costCents / 100)}</Td
-								>{#if hasLtl}<Td
-										>{rate.transitDays !== undefined
-											? `${rate.transitDays} business days`
-											: '—'}{#if rate.estimatedDeliveryDate}<P class="text-xs"
-												>{rate.estimatedDeliveryDate}</P
-											>{/if}</Td
-									>{/if}<Td
-									>{rate.markup.percentBps / 100}% · {currency(rate.markup.amountCents / 100)}<P
-										class="text-xs">{rate.markup.label} · Revision {rate.markup.revision}</P
-									></Td
-								><Td class="font-semibold">{currency(rate.priceCents / 100)}</Td></Tr
-							>{/each}</Tbody
-					></Table
-				></Card
-			>{:else}<Card
-				><P>No rates were returned. The shipment and provider status were saved for review.</P
-				></Card
-			>{/if}
+<Div class="w-full min-w-0 space-y-6">
+	<Div class="flex flex-wrap items-baseline justify-between gap-2">
+		<H1>Quote {quote.number}</H1>
+		<P>{quote.createdAt ? dateTime(new Date(quote.createdAt)) : 'Created: Unknown'}</P>
+	</Div>
+	<QuoteLayout {shipment} {packages} {extras} {actions} {rates} />
+</Div>
+
+{#snippet shipment()}
+	<Div class="col-span-full grid min-w-0 grid-cols-subgrid gap-y-6">
+		{#each [{ title: 'Ship From', address: quote.shipFrom }, { title: 'Ship To', address: quote.shipTo }] as section (section.title)}
+			<Div class="min-w-0 space-y-2">
+				<H3 class="text-base">{section.title}</H3>
+				<P class="break-words"
+					>{section.address.address}<br />{section.address.city}, {section.address.state}
+					{section.address.zip}{section.address.residential ? ' - Residential' : ''}</P
+				>
+			</Div>
+		{/each}
+	</Div>
+{/snippet}
+
+{#snippet packages()}
+	<Div class="col-span-full min-w-0 space-y-4">
 		{#if quote.request}
 			{#if quote.request.upsScenarios?.length}
-				<Card class="space-y-3"
-					><H2>UPS package options</H2>
-					{#each quote.request.upsScenarios as scenario, index (scenario.id)}
-						<P
-							>{scenario.label ||
-								(scenario.unitQuantity
-									? `${scenario.unitQuantity.toLocaleString()} units`
-									: `Rate row ${index + 1}`)} · {scenario.packageTotalCount} packages · {scenario.packageTotalWeight}
-							lb total</P
-						>
-						{#if scenario.message}<P role="status">{scenario.message}</P>{/if}
-					{/each}
-				</Card>
+				<H3 class="text-base">UPS package options</H3>
+				{#each quote.request.upsScenarios as scenario, index (scenario.id)}
+					<P
+						>{scenario.label ||
+							(scenario.unitQuantity
+								? `${scenario.unitQuantity.toLocaleString()} units`
+								: `Rate row ${index + 1}`)} - {scenario.packageTotalCount} packages - {scenario.packageTotalWeight}
+						lb total</P
+					>
+				{/each}
 			{/if}
-			{#each [{ title: 'UPS packaging', items: quote.request.packages }, { title: 'LTL handling units', items: quote.request.freight }] as section (section.title)}
-				{#if section.items.length && !(section.title === 'UPS packaging' && quote.request.upsScenarios?.length)}<Card
-						class="space-y-3"
-						><H2>{section.title}</H2>{#each section.items as item (item.id)}<P
-								>{item.quantity} × {item.weight} lb · {item.length} × {item.width} × {item.height} in{#if isFreight(item)}
-									{#if item.description}· {item.description}{/if}{#if item.freightClass}
-										· Class {item.freightClass}{/if} · NMFC {item.nmfc || 'Not specified'} · {item.stackable
+			{#each [{ title: 'UPS packaging', service: 'UPS', items: quote.request.packages }, { title: 'LTL handling units', service: 'LTL', items: quote.request.freight }] as section (section.title)}
+				{#if quote.request.services !== (section.service === 'UPS' ? 'LTL' : 'UPS') && section.items.length && !(section.service === 'UPS' && quote.request.upsScenarios?.length)}
+					<Div class="space-y-2"
+						><H3 class="text-base">{section.title}</H3>
+						{#each section.items as item (item.id)}
+							<P
+								>{item.quantity} x {item.weight} lb{#if item.length && item.width && item.height}
+									- {item.length} x {item.width} x {item.height} in{/if}{#if isFreight(item)}
+									{#if item.description}
+										- {item.description}{/if}{#if item.freightClass}
+										- Class {item.freightClass}{/if} - NMFC {item.nmfc || 'Not specified'} - {item.stackable
 										? 'Stackable'
 										: 'Not stackable'}{/if}</P
-							>{/each}</Card
-					>{/if}
+							>
+						{/each}</Div
+					>
+				{/if}
 			{/each}
-			{#if quote.request.services !== 'UPS'}<Card class="space-y-3"
-					><H2>LTL services requested</H2
-					>{#each [{ key: 'pickupLiftgate', label: 'Liftgate pickup' }, { key: 'deliveryLiftgate', label: 'Liftgate delivery' }, { key: 'insidePickup', label: 'Inside pickup' }, { key: 'insideDelivery', label: 'Inside delivery' }, { key: 'limitedAccessPickup', label: 'Limited access pickup' }, { key: 'limitedAccessDelivery', label: 'Limited access delivery' }] as option (option.key)}{#if quote.request.accessorials[option.key as keyof typeof quote.request.accessorials]}<P
-								>{option.label}</P
-							>{/if}{/each}</Card
-				>{/if}
+		{:else}
+			<P>Packages: {quote.packageTotalCount ?? 'Unknown'}</P><P
+				>Total weight: {quote.packageTotalWeight ?? 'Unknown'} lb</P
+			>
 		{/if}
-	{/if}
-</Div>
+	</Div>
+{/snippet}
+
+{#snippet extras()}
+	<Div class="col-span-full min-w-0 space-y-2">
+		{#if quote.request}
+			<P>Services: {quote.request.services}</P><P>Ship date: {quote.request.shipDate}</P>
+			<P>Validation: {quote.request.validateAddresses ? 'Validated' : 'Not requested'}</P>
+			{#if quote.request.customer}<P>Customer: {quote.request.customer}</P>{/if}
+			{#if quote.request.reference}<P>Reference: {quote.request.reference}</P>{/if}
+			{#if quote.request.services !== 'UPS'}
+				<H3 class="text-base">LTL services requested</H3>
+				{#each [{ key: 'pickupLiftgate', label: 'Liftgate pickup' }, { key: 'deliveryLiftgate', label: 'Liftgate delivery' }, { key: 'insidePickup', label: 'Inside pickup' }, { key: 'insideDelivery', label: 'Inside delivery' }, { key: 'limitedAccessPickup', label: 'Limited access pickup' }, { key: 'limitedAccessDelivery', label: 'Limited access delivery' }] as option (option.key)}
+					{#if quote.request.accessorials[option.key as keyof typeof quote.request.accessorials]}<P
+							>{option.label}</P
+						>{/if}
+				{/each}
+			{/if}
+		{:else}<P
+				>Historical UPS quote. Only the original customer prices were recorded; carrier costs and
+				markup breakdowns are unavailable. Current markup rules are not applied.</P
+			>{/if}
+	</Div>
+{/snippet}
+
+{#snippet actions()}
+	<Div class="flex flex-wrap justify-end gap-2">
+		<A href="/shipping/quote-finder" class={twMerge($theme.Button.default)}>Quote history</A>
+		{#if quote.request}<A
+				href={`/shipping/quote?from=${quote.number}`}
+				class={twMerge($theme.Button.default)}>Quote again</A
+			>
+		{:else}<A href={`/ups/quote/${quote.number}`} class={twMerge($theme.Button.default)}
+				>Open original UPS quote</A
+			>{/if}
+	</Div>
+{/snippet}
+
+{#snippet rates()}
+	<QuoteProgress
+		steps={progress}
+		summary={quote.attempts.length
+			? `${quote.attempts.filter((attempt) => attempt.status === 'success').length} of ${quote.attempts.length} providers returned rates`
+			: undefined}
+	/>
+	<ShippingQuoteResults {quote} />
+	{#if quote.origin !== 'legacy-ups' && !quote.rates.length}<P
+			>No rates were returned. The shipment and provider status were saved for review.</P
+		>{/if}
+{/snippet}

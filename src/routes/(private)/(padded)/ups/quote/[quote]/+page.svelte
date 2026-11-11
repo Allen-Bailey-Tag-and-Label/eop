@@ -1,29 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import {
-		A,
-		Button,
-		Card,
-		Div,
-		H1,
-		H2,
-		H3,
-		P,
-		Spinner,
-		Table,
-		Tbody,
-		Td,
-		Th,
-		Thead,
-		Tr
-	} from '$lib/components';
-	import { currency, dateTime } from '$lib/formats';
+	import { A, Button, Div, H1, H3, P, QuoteProgress } from '$lib/components';
+	import { dateTime } from '$lib/formats';
 	import { advanceUpsQuote } from '../quote.remote';
-	import { quoteIsPending, UPS_SERVICES, type UpsQuoteView } from '$lib/ups/quote';
+	import { quoteIsPending, type UpsQuoteView } from '$lib/ups/quote';
 	import type { PageProps } from './$types';
 	import { theme } from '$lib/theme/index.js';
 	import { twMerge } from 'tailwind-merge';
-	import QuoteLayout from '$lib/ups/QuoteLayout.svelte';
+	import { QuoteLayout } from '$lib/components';
 	import RateComparison from '$lib/ups/RateComparison.svelte';
 
 	let { data }: PageProps = $props();
@@ -185,109 +169,53 @@
 {/snippet}
 {#snippet rates()}
 	{#if quote.generation}
-		<Card class="w-full space-y-4" role="status" aria-live="polite" aria-busy={busy}>
-			<H2>Quote progress</H2>
-			{#if quote.scenarios?.length}<P
-					>{quote.scenarios.filter((scenario) => scenario.status === 'complete').length} of {quote
-						.scenarios.length} rate rows complete</P
-				>{/if}
-			<Div class="flex items-center gap-3">
-				{#if ['pending', 'running'].includes(quote.generation.validation) && !networkError}<Spinner
-						class="h-5 w-5 shrink-0"
-						aria-hidden="true"
-					/>{/if}
-				<P
-					>{quote.generation.validation === 'skipped'
-						? 'Address validation: Not requested'
-						: quote.generation.validation === 'complete'
-							? 'Address validation: Complete'
-							: quote.generation.validation === 'failed'
-								? 'Address validation: Failed'
-								: 'Validating destination address…'}</P
-				>
-			</Div>
-			<Div class="flex items-center gap-3">
-				{#if ['complete', 'skipped'].includes(quote.generation.validation) && ['pending', 'running'].includes(quote.generation.rates) && !networkError}<Spinner
-						class="h-5 w-5 shrink-0"
-						aria-hidden="true"
-					/>{/if}
-				<P
-					>{quote.generation.rates === 'complete'
-						? 'UPS rates: Complete'
-						: quote.generation.rates === 'failed'
-							? 'UPS rates: Failed'
-							: ['complete', 'skipped'].includes(quote.generation.validation)
-								? 'Getting UPS rates…'
-								: 'UPS rates: Waiting for address validation'}</P
-				>
-			</Div>
-			{#if networkError || quote.generation.message}
-				<P role="alert">{networkError || quote.generation.message}</P>
-				<Div class="flex justify-end"
-					><Button disabled={busy} onclick={() => retry?.()}>Retry</Button></Div
-				>
-			{/if}
-		</Card>
+		<QuoteProgress
+			{busy}
+			summary={quote.scenarios?.length
+				? `${quote.scenarios.filter((scenario) => scenario.status === 'complete').length} of ${quote.scenarios.length} rate rows complete`
+				: undefined}
+			message={networkError || quote.generation.message}
+			steps={[
+				{
+					status: quote.generation.validation,
+					text:
+						quote.generation.validation === 'skipped'
+							? 'Address validation: Not requested'
+							: quote.generation.validation === 'complete'
+								? 'Address validation: Complete'
+								: quote.generation.validation === 'failed'
+									? 'Address validation: Failed'
+									: 'Validating destination address\u2026'
+				},
+				{
+					status: ['complete', 'skipped'].includes(quote.generation.validation)
+						? quote.generation.rates
+						: 'waiting',
+					text:
+						quote.generation.rates === 'complete'
+							? 'UPS rates: Complete'
+							: quote.generation.rates === 'failed'
+								? 'UPS rates: Failed'
+								: ['complete', 'skipped'].includes(quote.generation.validation)
+									? 'Getting UPS rates\u2026'
+									: 'UPS rates: Waiting for address validation'
+				}
+			]}
+		>
+			{#snippet actions()}{#if networkError || quote.generation?.message}<Button
+						disabled={busy}
+						onclick={() => retry?.()}>Retry</Button
+					>{/if}{/snippet}
+		</QuoteProgress>
 	{/if}
 
-	{#if (quote.scenarios?.length ?? 0) > 1}
-		<RateComparison scenarios={quote.scenarios!} />
-	{:else if quote.scenarios?.length}
-		{#each quote.scenarios as scenario, index (scenario.id)}
-			<Card class="min-w-0 space-y-4" role="region" aria-label={`Rate results ${index + 1}`}>
-				<H2 class="text-lg"
-					>{scenario.label ||
-						(scenario.unitQuantity
-							? `${scenario.unitQuantity.toLocaleString('en-US')} units`
-							: `Rate row ${index + 1}`)}</H2
-				>
-				<P
-					>{scenario.packageTotalCount}
-					{scenario.packageTotalCount === 1 ? 'carton' : 'cartons'} · {scenario.packageTotalWeight} lbs
-					total</P
-				>
-				{#if scenario.casePacking}<P class="text-sm"
-						>{scenario.casePacking.unitsPerCarton.toLocaleString('en-US')} units per case · {scenario
-							.casePacking.cartonWeight} lbs per full case</P
-					>{/if}
-				{#each scenario.packageGroups as group, groupIndex (groupIndex)}<P class="text-sm"
-						>{group.quantity} @ {group.weight} lbs</P
-					>{/each}
-				{#if scenario.status === 'complete'}
-					<Div class="overflow-x-auto"
-						><Table class="w-full"
-							><Thead><Tr><Th>Service</Th><Th class="text-right">Rate</Th></Tr></Thead><Tbody>
-								{#each scenario.services as code (code)}
-									{@const rate = scenario.rates.find((item) => item.serviceCode === code)}
-									<Tr
-										><Td>{UPS_SERVICES.find((service) => service.code === code)?.title ?? code}</Td
-										><Td class="text-right">{rate ? currency(rate.rate) : 'Unavailable'}</Td></Tr
-									>
-								{/each}
-							</Tbody></Table
-						></Div
-					>
-				{:else if scenario.status === 'failed'}<P role="alert">{scenario.message}</P>
-				{:else}<Div class="flex items-center gap-3" role="status"
-						><Spinner class="h-5 w-5" aria-hidden="true" /><P
-							>{scenario.status === 'running' ? 'Getting rates…' : 'Waiting for rates…'}</P
-						></Div
-					>{/if}
-			</Card>
-		{/each}
+	{#if quote.scenarios?.length}
+		<RateComparison scenarios={quote.scenarios} />
 	{:else if !quote.generation || quote.generation.rates === 'complete'}
-		<Card class="min-w-0 space-y-4">
-			<H2 class="text-lg">Rates</H2>
-			<Div class="overflow-x-auto">
-				<Table class="w-full">
-					<Thead><Tr><Th>Description</Th><Th class="text-right">Rate</Th></Tr></Thead>
-					<Tbody>
-						{#each quote.rates as { description, rate }, index (index)}
-							<Tr><Td>{description}</Td><Td class="text-right">{currency(rate)}</Td></Tr>
-						{/each}
-					</Tbody>
-				</Table>
-			</Div>
-		</Card>
+		<RateComparison
+			rates={quote.rates}
+			packageTotalCount={quote.packageTotalCount}
+			packageTotalWeight={quote.packageTotalWeight}
+		/>
 	{/if}
 {/snippet}

@@ -1,5 +1,7 @@
 export * from 'sveltewind/components';
 export { default as QuoteLayout } from './QuoteLayout/QuoteLayout.svelte';
+export { default as QuoteProgress } from './QuoteProgress/QuoteProgress.svelte';
+export { default as QuoteResults } from './QuoteResults/QuoteResults.svelte';
 export { default as RichTextEditor } from './RichTextEditor/RichTextEditor.svelte';
 export { default as RichTextRenderer } from './RichTextRenderer/RichTextRenderer.svelte';
 

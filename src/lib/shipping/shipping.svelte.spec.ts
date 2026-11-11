@@ -25,6 +25,14 @@ vi.mock('svelte/transition', async (original) => ({
 	scale: () => ({ duration: 0 })
 }));
 beforeEach(() => {
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
 	vi.stubGlobal('matchMedia', () => ({
 		matches: true,
 		addEventListener: vi.fn(),
@@ -47,7 +55,7 @@ function quoteData() {
 	};
 }
 describe('shipping forms', () => {
-	it('shows saved staging LTL prices and transit alongside UPS without misaligning columns', () => {
+	it('shares the quote layout and shows saved staging LTL prices with configurable detail columns', async () => {
 		const view = render(Detail, {
 			data: {
 				quote: {
@@ -81,11 +89,20 @@ describe('shipping forms', () => {
 		} as never);
 		expect(view.getByRole('columnheader', { name: 'Transit estimate' })).toBeInTheDocument();
 		expect(view.getByText('Staging test rate · Class 55')).toBeInTheDocument();
-		expect(view.getByText('3 business days')).toBeInTheDocument();
-		expect(view.getByText('2026-11-16')).toBeInTheDocument();
+		expect(view.getByText('3 business days - 2026-11-16')).toBeInTheDocument();
 		expect(view.getAllByText('$120.00')).toHaveLength(2);
 		const rows = view.getAllByRole('row');
-		for (const row of rows.slice(1)) expect(row.querySelectorAll('td')).toHaveLength(7);
+		for (const row of rows.filter((row) => row.querySelector('td')))
+			expect(row.querySelectorAll('td')).toHaveLength(7);
+		expect(view.getByRole('region', { name: 'Quote details' })).toBeInTheDocument();
+		expect(view.getByRole('region', { name: 'Quote rates' })).toContainElement(
+			view.getByRole('heading', { name: 'Quote progress' })
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Displayed columns' }));
+		await fireEvent.click(view.getByRole('checkbox', { name: /^Carrier$/ }));
+		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
+		expect(view.queryByRole('columnheader', { name: /^Carrier$/ })).not.toBeInTheDocument();
+		expect(view.getAllByText('$120.00')).toHaveLength(2);
 	});
 	it('shares the actual UPS addresses, package options and Extras without unwanted fields', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
