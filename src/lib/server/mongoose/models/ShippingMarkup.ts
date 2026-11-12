@@ -11,7 +11,6 @@ export const ShippingMarkup = defineModel<MarkupConfig>('ShippingMarkup', {
 			new Schema(
 				{
 					id: { type: String, required: true },
-					label: { type: String, required: true },
 					minCents: { type: Number, min: 0, required: true },
 					maxCents: { type: Number, default: null },
 					percentBps: { type: Number, min: 0, required: true }

@@ -13,7 +13,6 @@ export async function getMarkupConfigs(): Promise<MarkupConfig[]> {
 			ranges:
 				entry?.ranges.map((range) => ({
 					id: range.id,
-					label: range.label,
 					minCents: range.minCents,
 					maxCents: range.maxCents ?? null,
 					percentBps: range.percentBps

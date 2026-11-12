@@ -43,13 +43,27 @@ function fields(
 		percent,
 		service,
 		revision,
-		id,
-		label: 'Standard'
+		id
 	}))
 		result.set(key, value);
 	return result;
 }
 describe('persisted shipping markups', () => {
+	it('ignores legacy labels and saves unlabeled ranges', async () => {
+		const id = crypto.randomUUID();
+		configs = [
+			{
+				service: 'LTL',
+				revision: 1,
+				ranges: [{ id, label: 'Old label', minCents: 0, maxCents: null, percentBps: 1000 }]
+			}
+		];
+		expect((await getMarkupConfigs())[1].ranges[0]).not.toHaveProperty('label');
+		const edit = fields('0', '', '12.5', 'LTL', '1', id);
+		edit.set('editing', 'true');
+		await manageMarkup(edit, 'user', 'save');
+		expect(configs[0].ranges[0]).toEqual({ id, minCents: 0, maxCents: null, percentBps: 1250 });
+	});
 	it('returns 0% defaults without inserting made-up ranges', async () => {
 		expect(await getMarkupConfigs()).toEqual([
 			{ service: 'UPS', revision: 0, ranges: [] },

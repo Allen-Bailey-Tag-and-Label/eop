@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-12T12:49:56.127Z
+## 2026-11-12T13:11:22.120Z
+
+fix: Simplify freight markups and split quote markup columns
+
+## 2026-11-12T08:04:29-05:00
 
 fix: Speed up shipping quotes and correct rate display defaults
 

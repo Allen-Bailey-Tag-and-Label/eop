@@ -22,7 +22,7 @@ const rate: CarrierRate = {
 	rateBasis: 'published'
 };
 const rule = (minimum = '0', maximum = '100', percent = '10') =>
-	parseMarkupRange({ id: crypto.randomUUID(), label: 'Standard', minimum, maximum, percent });
+	parseMarkupRange({ id: crypto.randomUUID(), minimum, maximum, percent });
 
 describe('shipping validation and pricing', () => {
 	it('requires only the selected service fields and strips unused inputs', () => {

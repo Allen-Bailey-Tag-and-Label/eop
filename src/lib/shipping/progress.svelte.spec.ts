@@ -135,7 +135,20 @@ describe('shipping quote progress and rate tables', () => {
 	it('sorts service and detail prices numerically and lets users reveal default-hidden pricing columns', async () => {
 		const quote = pending();
 		quote.generation = undefined;
-		quote.rates = [rate('03', 10000, 'Expensive'), rate('02', 900, 'Cheap')];
+		quote.rates = [
+			{
+				...rate('03', 11250, 'Expensive'),
+				costCents: 10000,
+				markup: {
+					ruleId: 'old',
+					label: 'Old rule',
+					revision: 99,
+					percentBps: 1250,
+					amountCents: 1250
+				}
+			},
+			rate('02', 900, 'Cheap')
+		];
 		quote.attempts = [{ service: 'UPS', status: 'success', message: '' }];
 		const view = render(Results, { quote });
 		await flush();
@@ -151,7 +164,7 @@ describe('shipping quote progress and rate tables', () => {
 		expect(descending[0]).toHaveTextContent('UPS Expensive');
 		await fireEvent.click(view.getByRole('tab', { name: 'Rate details' }));
 		await flush();
-		for (const name of ['Carrier cost', 'Markup', 'Rate basis'])
+		for (const name of ['Carrier cost', 'Markup Amount', 'Markup %', 'Rate basis'])
 			expect(view.queryByRole('columnheader', { name })).not.toBeInTheDocument();
 		expect(view.getByRole('columnheader', { name: 'Customer price' })).toBeInTheDocument();
 		const details = () =>
@@ -163,13 +176,27 @@ describe('shipping quote progress and rate tables', () => {
 		await fireEvent.click(view.getByRole('button', { name: 'Customer price' }));
 		expect(details()[0]).toHaveTextContent('Expensive');
 		await fireEvent.click(view.getByRole('button', { name: 'Displayed columns' }));
-		for (const name of ['Carrier cost', 'Markup', 'Rate basis']) {
+		for (const name of ['Carrier cost', 'Markup Amount', 'Markup %', 'Rate basis']) {
 			const checkbox = view.getByRole('checkbox', { name });
 			expect(checkbox).not.toBeChecked();
 			await fireEvent.click(checkbox);
 		}
 		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
-		for (const name of ['Carrier cost', 'Markup', 'Rate basis'])
+		for (const name of ['Carrier cost', 'Markup Amount', 'Markup %', 'Rate basis'])
 			expect(view.getByRole('columnheader', { name })).toBeInTheDocument();
+		const headers = view.getAllByRole('columnheader');
+		const expensive = details().find((row) => row.textContent?.includes('Expensive'))!;
+		const cells = within(expensive).getAllByRole('cell');
+		expect(
+			cells[
+				headers.indexOf(view.getByRole('columnheader', { name: 'Markup Amount' }))
+			].textContent?.trim()
+		).toBe('$12.50');
+		expect(
+			cells[
+				headers.indexOf(view.getByRole('columnheader', { name: 'Markup %' }))
+			].textContent?.trim()
+		).toBe('12.5%');
+		expect(view.queryByText(/Old rule|revision 99/)).not.toBeInTheDocument();
 	});
 });

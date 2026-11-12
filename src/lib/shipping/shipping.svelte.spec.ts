@@ -456,14 +456,35 @@ describe('shipping forms', () => {
 		const view = render(Markups, {
 			data: {
 				configs: [
-					{ service: 'UPS', revision: 0, ranges: [] },
+					{
+						service: 'UPS',
+						revision: 1,
+						ranges: [
+							{
+								id: crypto.randomUUID(),
+								label: 'Old label',
+								minCents: 0,
+								maxCents: null,
+								percentBps: 1000
+							}
+						]
+					},
 					{ service: 'LTL', revision: 0, ranges: [] }
 				]
 			}
 		} as never);
 		expect(view.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(view.queryByRole('columnheader', { name: 'Rule' })).not.toBeInTheDocument();
+		expect(view.queryByText('Old label')).not.toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Delete' }));
+		expect(
+			view.getByText(/Delete the \$0\.00 inclusive to No upper limit range from UPS/)
+		).toBeInTheDocument();
+		await fireEvent.click(view.getByRole('button', { name: 'Cancel' }));
 		await fireEvent.click(view.getByRole('button', { name: 'Add markup range' }));
 		expect(view.getByRole('dialog')).toBeInTheDocument();
+		expect(view.queryByRole('textbox', { name: 'Rule label' })).not.toBeInTheDocument();
+		expect(new FormData(view.getByRole('dialog').querySelector('form')!).has('label')).toBe(false);
 		const maximum = view.getByRole('dialog').querySelector('input[name="maximum"]')!;
 		await fireEvent.input(maximum, { target: { value: '100' } });
 		await fireEvent.input(maximum, { target: { value: '' } });

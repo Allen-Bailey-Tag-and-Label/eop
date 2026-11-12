@@ -22,7 +22,6 @@ export function parseMarkupRange(value: unknown): MarkupRange {
 		throw new ShippingError('Maximum cost must be greater than minimum cost.');
 	return {
 		id,
-		label: text(row.label, 'rule label', 100, true),
 		minCents,
 		maxCents,
 		percentBps: decimalHundredths(row.percent, 'markup percentage', 100_000)
@@ -59,7 +58,6 @@ export function priceRate(rate: CarrierRate, config: MarkupConfig): PricedRate {
 		...rate,
 		markup: {
 			ruleId: range?.id ?? null,
-			label: range?.label ?? 'Default 0% markup',
 			revision: config.revision,
 			percentBps,
 			amountCents

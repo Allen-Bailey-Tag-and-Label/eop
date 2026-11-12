@@ -26,7 +26,6 @@
 	const config = $derived(data.configs.find((entry) => entry.service === service)!);
 	type Editor = {
 		id: string;
-		label: string;
 		minimum: string;
 		maximum: string;
 		percent: string;
@@ -37,16 +36,20 @@
 	let editor = $state<Editor | null>(null);
 	let deleting = $state<{
 		id: string;
-		label: string;
+		range: string;
 		service: ShippingService;
 		revision: number;
 	} | null>(null);
 	let saving = $state(false);
+	function rangeDescription(range: MarkupRange) {
+		return `${currency(range.minCents / 100)} inclusive to ${
+			range.maxCents === null ? 'No upper limit' : `${currency(range.maxCents / 100)} exclusive`
+		}`;
+	}
 	function openEditor(range?: MarkupRange) {
 		form = null;
 		editor = {
 			id: range?.id ?? crypto.randomUUID(),
-			label: range?.label ?? '',
 			minimum: ((range?.minCents ?? 0) / 100).toFixed(2),
 			maximum: range?.maxCents == null ? '' : (range.maxCents / 100).toFixed(2),
 			percent: ((range?.percentBps ?? 0) / 100).toFixed(2),
@@ -56,7 +59,6 @@
 		};
 	}
 	const columns: Column[] = [
-		{ key: 'label', label: 'Rule', type: 'string' },
 		{ key: 'minCents', label: 'Freight cost range', snippet: rangeCell },
 		{ key: 'percentBps', label: 'Markup', snippet: percentCell },
 		{
@@ -114,10 +116,7 @@
 			><P>No {service} markup ranges yet. All {service} quotes currently use 0% markup.</P></Card
 		>{/if}
 </Div>
-{#snippet rangeCell({ object }: TdSnippet)}<Td
-		>{currency(object.minCents / 100)} inclusive – {object.maxCents === null
-			? 'No upper limit'
-			: `${currency(object.maxCents / 100)} exclusive`}</Td
+{#snippet rangeCell({ object }: TdSnippet)}<Td>{rangeDescription(object as MarkupRange)}</Td
 	>{/snippet}
 {#snippet percentCell({ object }: TdSnippet)}<Td>{object.percentBps / 100}%</Td>{/snippet}
 {#snippet actionsCell({ object }: TdSnippet)}<Td
@@ -126,7 +125,12 @@
 				variants={['small', 'error']}
 				onclick={() => {
 					form = null;
-					deleting = { id: object.id, label: object.label, service, revision: config.revision };
+					deleting = {
+						id: object.id,
+						range: rangeDescription(object as MarkupRange),
+						service,
+						revision: config.revision
+					};
 				}}>Delete</Button
 			></Div
 		></Td
@@ -166,7 +170,6 @@
 				>{editor.service} · Minimum is inclusive; maximum is exclusive. Leave maximum empty for no upper
 				limit.</P
 			>
-			<Input label="Rule label" name="label" bind:value={editor.label} maxlength={100} required />
 			<Div class="grid gap-4 sm:grid-cols-2"
 				><Input
 					label="Minimum freight cost ($)"
@@ -224,8 +227,8 @@
 >
 	{#if deleting}
 		<P
-			>Delete “{deleting.label}” from {deleting.service}? Costs in this range will use 0% markup
-			unless another rule covers them. Saved quotes will retain their prices.</P
+			>Delete the {deleting.range} range from {deleting.service}? Costs in this range will use 0%
+			markup unless another rule covers them. Saved quotes will retain their prices.</P
 		>
 		{#if form?.error}<P role="alert" class="text-red-600 dark:text-red-400">{form.error}</P>{/if}
 		<Form

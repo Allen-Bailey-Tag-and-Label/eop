@@ -52,7 +52,8 @@ export type ShippingRequest = {
 };
 export type MarkupRange = {
 	id: string;
-	label: string;
+	/** Legacy metadata retained on older records only. */
+	label?: string;
 	minCents: number;
 	maxCents: number | null;
 	percentBps: number;
@@ -81,7 +82,7 @@ export type CarrierRate = {
 export type PricedRate = CarrierRate & {
 	markup: {
 		ruleId: string | null;
-		label: string;
+		label?: string;
 		revision: number;
 		percentBps: number;
 		amountCents: number;
