@@ -113,11 +113,8 @@ export const defaultTheme = {
 	},
 	MongooseTable: { default: '' },
 	MultiSelect: {
-		default: twMerge(
-			InputDefault,
-			' flex w-full justify-between space-x-2 focus:outline-primary-500 dark:focus:outline-primary-500 text-current'
-		),
-		isOpen: 'rounded-b-none'
+		default: 'min-w-0',
+		table: '[&_label]:sr-only'
 	},
 	Ol: { default: 'list-decimal pl-4' },
 	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },

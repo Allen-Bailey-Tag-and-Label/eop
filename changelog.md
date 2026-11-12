@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-12T13:11:22.120Z
+## 2026-11-12T14:55:36.771Z
+
+feat: Upgrade Sveltewind and enable inline table multiselects
+
+## 2026-11-12T08:13:09-05:00
 
 fix: Simplify freight markups and split quote markup columns
 

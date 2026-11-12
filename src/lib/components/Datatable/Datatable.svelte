@@ -1167,26 +1167,23 @@
 	</Td>
 {/snippet}
 {#snippet multiSelectTd({ isEditable, key, object, options }: TdSnippet)}
-	{#if isEditable}
-		<Td class="hover:outline-primary-500/0 p-0">
-			<MultiSelect
-				bind:value={
-					() => {
-						return getAt(object, key) ?? [];
-					},
-					(value) => {
-						setAt(object, key, value);
-					}
+	<Td class={isEditable ? 'hover:outline-primary-500/0 p-0' : ''}>
+		<MultiSelect
+			selectionPlacement="inline"
+			disabled={!isEditable}
+			label={key}
+			variants={['table']}
+			bind:value={
+				() => {
+					return getAt(object, key) ?? [];
+				},
+				(value) => {
+					if (isEditable) setAt(object, key, value);
 				}
-				class="rounded-none bg-transparent shadow-none outline-transparent backdrop-blur-none dark:bg-transparent dark:shadow-none dark:outline-transparent"
-				{options}
-			/>
-		</Td>
-	{:else}
-		<Td class="whitespace-nowrap">
-			{(getAt(object, key) ?? []).length} item{(getAt(object, key) ?? []).length === 1 ? '' : 's'}
-		</Td>
-	{/if}
+			}
+			{options}
+		/>
+	</Td>
 {/snippet}
 {#snippet numberTd({ isEditable, key, object }: TdSnippet)}
 	{#if isEditable}

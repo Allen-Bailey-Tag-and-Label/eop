@@ -1530,6 +1530,9 @@
 {#snippet multiSelectCreate({ key, object, options }: TdSnippet)}
 	<Td class="hover:outline-primary-500/0 p-0">
 		<MultiSelect
+			selectionPlacement="inline"
+			label={key}
+			variants={['table']}
 			bind:value={
 				() => {
 					return getAt(object, key) ?? [];
@@ -1538,7 +1541,6 @@
 					setAt(object, key, value);
 				}
 			}
-			class="rounded-none bg-transparent shadow-none outline-transparent dark:bg-transparent dark:outline-transparent"
 			name={key}
 			{options}
 		/>
