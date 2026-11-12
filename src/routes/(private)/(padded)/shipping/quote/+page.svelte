@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { preloadCode } from '$app/navigation';
 	import { Button, Checkbox, Div, Form, H1, H3, Input, P, Tabs, Spinner } from '$lib/components';
 	import { blankRequest, DEFAULT_NMFC_CODE } from '$lib/shipping/types';
 	import FormSections from '$lib/ups/FormSections.svelte';
@@ -13,6 +14,10 @@
 	import type { PageProps } from './$types';
 	import type { Branch } from '$lib/types';
 	let { data, form }: PageProps = $props();
+	onMount(() => {
+		// Warm the results route's code without requesting a quote or waiting at submission.
+		void preloadCode('/shipping/quotes/*').catch(() => {});
+	});
 	const emptyDraft = () => ({ ...blankRequest(data.shipDate), services: 'Both' as const });
 	let draft = $state(
 		untrack(() => {

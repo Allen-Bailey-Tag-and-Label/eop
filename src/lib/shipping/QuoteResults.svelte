@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { QuoteResults, P, Td } from '$lib/components';
 	import type { Column, TdSnippet } from '$lib/components/Datatable/types';
+	import { currency } from '$lib/formats';
 	import { shippingResultOptions, shippingResultServices } from './results';
 	import type { QuoteView } from './types';
 	let { quote }: { quote: QuoteView } = $props();
@@ -17,6 +18,8 @@
 			: quote.rates.map((rate) => ({
 					...rate,
 					shipment: rate.scenarioLabel ?? 'Shipment',
+					cost: rate.costCents / 100,
+					markupText: `${rate.markup.percentBps / 100}% - ${currency(rate.markup.amountCents / 100)} (${rate.markup.label}, revision ${rate.markup.revision})`,
 					price: rate.priceCents / 100,
 					transit:
 						rate.transitDays === undefined
@@ -34,6 +37,9 @@
 					...(hasScenarios ? [{ key: 'shipment', label: 'Shipment' }] : []),
 					{ key: 'description', label: 'Service', snippet: serviceCell },
 					{ key: 'carrier', label: 'Carrier' },
+					{ key: 'cost', label: 'Carrier cost', type: 'currency' },
+					{ key: 'markupText', label: 'Markup' },
+					{ key: 'rateBasis', label: 'Rate basis' },
 					...(hasLtl ? [{ key: 'transit', label: 'Transit estimate' }] : []),
 					{ key: 'price', label: 'Customer price', type: 'currency' }
 				]
@@ -42,6 +48,8 @@
 
 <QuoteResults
 	sortServicesByRate
+	detailSortKey="price"
+	initialHiddenColumns={['cost', 'markupText', 'rateBasis']}
 	{scenarios}
 	{serviceOptions}
 	detailColumns={columns}

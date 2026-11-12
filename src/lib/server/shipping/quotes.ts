@@ -253,7 +253,6 @@ export async function createShippingQuote(
 		: await collectRates(validated);
 	const pending = deferRates
 		? {
-				pricing: await getMarkupConfigs(),
 				generation: {
 					validation: request.validateAddresses ? 'pending' : 'skipped',
 					rates: 'pending',

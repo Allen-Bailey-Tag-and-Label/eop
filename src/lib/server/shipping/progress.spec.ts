@@ -5,11 +5,13 @@ import { ShippingQuote, type ShippingQuoteRecord } from '../mongoose/models/Ship
 import { collectRates, shippingQuoteView } from './quotes';
 import { validateShippingDestination } from './addresses';
 import { blankRequest } from '$lib/shipping/types';
+import { getMarkupConfigs } from './markups';
 import { ShippingError } from '$lib/shipping/validation';
 
 vi.mock('../mongoose/models/ShippingQuote', () => ({
 	ShippingQuote: { findOne: vi.fn(), findOneAndUpdate: vi.fn(), updateOne: vi.fn() }
 }));
+vi.mock('./markups', () => ({ getMarkupConfigs: vi.fn() }));
 vi.mock('./addresses', () => ({ validateShippingDestination: vi.fn() }));
 vi.mock('./quotes', async (original) => ({
 	...(await original<typeof import('./quotes')>()),
@@ -96,6 +98,7 @@ beforeEach(() => {
 			return { matchedCount: 1 } as never;
 		}
 	);
+	vi.mocked(getMarkupConfigs).mockResolvedValue(row.pricing!);
 	vi.mocked(validateShippingDestination).mockImplementation(async (request) => ({
 		...request,
 		shipTo: { ...request.shipTo, city: 'Validated city' }
@@ -113,6 +116,83 @@ beforeEach(() => {
 });
 
 describe('remote shipping quote generation', () => {
+	it('rejects a stale batch snapshot when another request has already completed its selected rows', async () => {
+		row.request.services = 'UPS';
+		row.generation!.validation = 'skipped';
+		row.generation!.tasks = Array.from({ length: 4 }, (_, index) => ({
+			service: 'UPS',
+			label: `Row ${index}`,
+			status: 'pending',
+			message: ''
+		}));
+		const old = snapshot();
+		row.generation!.tasks = row.generation!.tasks.map((task, index) =>
+			index < 3 ? { ...task, status: 'complete' } : task
+		);
+		model.findOne.mockReturnValueOnce({ lean: async () => old });
+		await advanceShippingQuote({ quote: '1502' });
+		expect(collectRates).not.toHaveBeenCalled();
+		expect(row.generation!.tasks.slice(0, 3).every((task) => task.status === 'complete')).toBe(
+			true
+		);
+	});
+	it('finalizes saved results after an expired lease without repeating carrier requests', async () => {
+		row.generation!.validation = 'skipped';
+		row.generation!.rates = 'running';
+		row.generation!.leaseUntil = new Date(0);
+		row.generation!.tasks = row.generation!.tasks.map((task) => ({
+			...task,
+			status: 'complete',
+			attempt: { service: task.service, status: 'success', message: '' }
+		}));
+		expect((await advanceShippingQuote({ quote: '1502' })).generation!.rates).toBe('complete');
+		expect(collectRates).not.toHaveBeenCalled();
+		expect(row.generation!.leaseUntil).toBeUndefined();
+	});
+	it('starts UPS and LTL together and persists the first response while the other is still running', async () => {
+		row.generation!.validation = 'skipped';
+		const releases = new Map<string, (result: Awaited<ReturnType<typeof collectRates>>) => void>();
+		vi.mocked(collectRates).mockImplementation(
+			(request) =>
+				new Promise((resolve) => {
+					releases.set(request.services, resolve);
+				})
+		);
+		const work = advanceShippingQuote({ quote: '1502' });
+		await vi.waitFor(() => expect(releases.size).toBe(2));
+		expect(row.generation!.tasks.map((task) => task.status)).toEqual(['running', 'running']);
+		const result = (service: 'UPS' | 'LTL'): Awaited<ReturnType<typeof collectRates>> => ({
+			rates: [{ service, priceCents: 2000 } as never],
+			attempts: [{ service, status: 'success', message: '' }],
+			upsScenarios: [],
+			ltlScenarios: []
+		});
+		releases.get('UPS')!(result('UPS'));
+		await vi.waitFor(() => expect(row.rates).toHaveLength(1));
+		const partial = await advanceShippingQuote({ quote: '1502', poll: true });
+		expect(partial.generation!.tasks.map((task) => task.status)).toEqual(['complete', 'running']);
+		releases.get('LTL')!(result('LTL'));
+		expect((await work).rates).toHaveLength(2);
+		expect(row.generation!.rates).toBe('complete');
+	});
+	it('loads pricing after navigation and reuses the persisted snapshot for both carriers', async () => {
+		row.pricing = undefined;
+		await advanceShippingQuote({ quote: '1502' });
+		expect(row.pricing).toHaveLength(2);
+		await advanceShippingQuote({ quote: '1502' });
+		expect(getMarkupConfigs).toHaveBeenCalledOnce();
+		for (const [, pricing] of vi.mocked(collectRates).mock.calls)
+			expect(pricing).toEqual(row.pricing);
+	});
+	it('leaves failed progress writes recoverable without marking unsaved prices complete', async () => {
+		row.generation!.validation = 'skipped';
+		model.updateOne.mockRejectedValueOnce(new Error('database unavailable'));
+		await expect(advanceShippingQuote({ quote: '1502' })).rejects.toThrow('database unavailable');
+		expect(row.rates).toHaveLength(0);
+		expect(row.generation!.tasks.map((task) => task.status)).toEqual(['running', 'running']);
+		row.generation!.leaseUntil = new Date(0);
+		expect((await advanceShippingQuote({ quote: '1502' })).rates).toHaveLength(2);
+	});
 	it('rates quantity options independently without losing earlier rows or relabeling later options as row one', async () => {
 		row.request.services = 'UPS';
 		row.generation!.validation = 'skipped';
@@ -177,8 +257,8 @@ describe('remote shipping quote generation', () => {
 		expect(validated.generation?.validation).toBe('complete');
 		expect(collectRates).not.toHaveBeenCalled();
 		const partial = await advanceShippingQuote({ quote: '1502' });
-		expect(partial.rates).toHaveLength(1);
-		expect(partial.generation?.tasks.map((task) => task.status)).toEqual(['complete', 'pending']);
+		expect(partial.rates).toHaveLength(2);
+		expect(partial.generation?.tasks.map((task) => task.status)).toEqual(['complete', 'complete']);
 		expect(collectRates).toHaveBeenCalledWith(
 			expect.objectContaining({
 				services: 'UPS',
@@ -196,18 +276,24 @@ describe('remote shipping quote generation', () => {
 	});
 	it('keeps successful prices and retries only the failed provider', async () => {
 		row.generation!.validation = 'skipped';
-		await advanceShippingQuote({ quote: '1502' });
-		vi.mocked(collectRates).mockResolvedValueOnce({
-			rates: [],
-			attempts: [{ service: 'LTL', status: 'error', message: 'Unavailable' }],
-			upsScenarios: [],
-			ltlScenarios: []
-		});
+		const original = vi.mocked(collectRates).getMockImplementation()!;
+		let fail = true;
+		vi.mocked(collectRates).mockImplementation(async (request, pricing) =>
+			request.services === 'LTL' && fail
+				? {
+						rates: [],
+						attempts: [{ service: 'LTL', status: 'error', message: 'Unavailable' }],
+						upsScenarios: [],
+						ltlScenarios: []
+					}
+				: original(request, pricing)
+		);
 		const failed = await advanceShippingQuote({ quote: '1502' });
 		expect(failed.generation?.rates).toBe('failed');
 		expect(failed.rates).toHaveLength(1);
 		await advanceShippingQuote({ quote: '1502' });
 		expect(collectRates).toHaveBeenCalledTimes(2);
+		fail = false;
 		const recovered = await advanceShippingQuote({ quote: '1502', retry: true });
 		expect(recovered.generation?.rates).toBe('complete');
 		expect(recovered.rates).toHaveLength(2);
@@ -226,9 +312,9 @@ describe('remote shipping quote generation', () => {
 				})
 		);
 		const first = advanceShippingQuote({ quote: '1502' });
-		await vi.waitFor(() => expect(collectRates).toHaveBeenCalledOnce());
+		await vi.waitFor(() => expect(collectRates).toHaveBeenCalledTimes(2));
 		expect((await advanceShippingQuote({ quote: '1502' })).generation?.rates).toBe('running');
-		expect(collectRates).toHaveBeenCalledOnce();
+		expect(collectRates).toHaveBeenCalledTimes(2);
 		row.generation!.leaseUntil = new Date(0);
 		await advanceShippingQuote({ quote: '1502' });
 		release({
@@ -238,7 +324,7 @@ describe('remote shipping quote generation', () => {
 			ltlScenarios: []
 		});
 		await first;
-		expect(row.rates).toHaveLength(1);
+		expect(row.rates).toHaveLength(2);
 		expect(row.generation!.tasks[0].status).toBe('complete');
 	});
 	it('stops after failed validation and resumes only on explicit retry', async () => {

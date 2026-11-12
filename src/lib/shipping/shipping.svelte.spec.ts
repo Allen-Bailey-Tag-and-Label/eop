@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
+import { preloadCode } from '$app/navigation';
 import type { SubmitFunction } from '@sveltejs/kit';
 import Quote from '../../routes/(private)/(padded)/shipping/quote/+page.svelte';
 import Markups from '../../routes/(private)/(padded)/admin/shipping/markups/+page.svelte';
@@ -19,7 +20,7 @@ vi.mock('$app/forms', () => ({
 		return { destroy: () => submitHandlers.delete(form) };
 	}
 }));
-vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn() }));
+vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn(), preloadCode: vi.fn(async () => {}) }));
 vi.mock('sveltewind/transitions', async (original) => ({
 	...(await original<typeof import('sveltewind/transitions')>()),
 	subtleReveal: () => ({ duration: 0 })
@@ -304,6 +305,7 @@ describe('shipping forms', () => {
 	});
 	it('shows submission progress, prevents duplicate submissions, and retains entered values', async () => {
 		const view = render(Quote, { data: quoteData() } as never);
+		expect(preloadCode).toHaveBeenCalledWith('/shipping/quotes/*');
 		const form = view.container.querySelector('form')!;
 		await fireEvent.input(view.getByRole('spinbutton', { name: 'Total Packages' }), {
 			target: { value: '3' }

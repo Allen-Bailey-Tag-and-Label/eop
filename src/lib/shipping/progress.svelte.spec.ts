@@ -10,6 +10,10 @@ vi.mock('../../routes/(private)/(padded)/shipping/quote/quote.remote', () => ({
 	advanceShippingQuote: vi.fn()
 }));
 vi.mock('sveltewind/transitions', () => ({ subtleReveal: () => ({ duration: 0 }) }));
+vi.mock('svelte/transition', async (original) => ({
+	...(await original<typeof import('svelte/transition')>()),
+	scale: () => ({ duration: 0 })
+}));
 
 const advance = vi.mocked(advanceShippingQuote as (input: unknown) => Promise<QuoteView>);
 const pending = (): QuoteView => {
@@ -128,7 +132,7 @@ describe('shipping quote progress and rate tables', () => {
 		await flush();
 		expect(advanceShippingQuote).toHaveBeenLastCalledWith({ quote: '1502', retry: true });
 	});
-	it('sorts services by numeric rate ascending and excludes internal pricing columns from details', async () => {
+	it('sorts service and detail prices numerically and lets users reveal default-hidden pricing columns', async () => {
 		const quote = pending();
 		quote.generation = undefined;
 		quote.rates = [rate('03', 10000, 'Expensive'), rate('02', 900, 'Cheap')];
@@ -150,5 +154,22 @@ describe('shipping quote progress and rate tables', () => {
 		for (const name of ['Carrier cost', 'Markup', 'Rate basis'])
 			expect(view.queryByRole('columnheader', { name })).not.toBeInTheDocument();
 		expect(view.getByRole('columnheader', { name: 'Customer price' })).toBeInTheDocument();
+		const details = () =>
+			within(view.getByRole('table'))
+				.getAllByRole('row')
+				.filter((row) => row.querySelector('td') && row.textContent?.trim());
+		expect(details()[0]).toHaveTextContent('Cheap');
+		expect(details()[1]).toHaveTextContent('Expensive');
+		await fireEvent.click(view.getByRole('button', { name: 'Customer price' }));
+		expect(details()[0]).toHaveTextContent('Expensive');
+		await fireEvent.click(view.getByRole('button', { name: 'Displayed columns' }));
+		for (const name of ['Carrier cost', 'Markup', 'Rate basis']) {
+			const checkbox = view.getByRole('checkbox', { name });
+			expect(checkbox).not.toBeChecked();
+			await fireEvent.click(checkbox);
+		}
+		await fireEvent.click(view.getByRole('button', { name: 'Done' }));
+		for (const name of ['Carrier cost', 'Markup', 'Rate basis'])
+			expect(view.getByRole('columnheader', { name })).toBeInTheDocument();
 	});
 });

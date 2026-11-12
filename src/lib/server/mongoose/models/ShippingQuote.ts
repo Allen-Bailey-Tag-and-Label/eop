@@ -32,10 +32,15 @@ export const ShippingQuote = defineModel<ShippingQuoteRecord>('ShippingQuote', {
 });
 
 // Retain the original collection/document so numbers reserved before the shared sequence are not reused.
-export const ShippingQuoteSequence = defineModel<{ _id: string; value: number }>(
+export const ShippingQuoteSequence = defineModel<{
+	_id: string;
+	value: number;
+	initialized?: boolean;
+}>(
 	'ShippingQuoteSequence',
 	{
 		_id: String,
+		initialized: Boolean,
 		value: { type: Number, default: 0 }
 	},
 	{ log: false }

@@ -27,6 +27,8 @@
 		detailRows?: Row[];
 		initialView?: 'services' | 'quantities' | 'details';
 		sortServicesByRate?: boolean;
+		detailSortKey?: string;
+		initialHiddenColumns?: string[];
 	};
 	let {
 		scenarios,
@@ -36,13 +38,15 @@
 		detailRows = [],
 		initialView = 'services',
 		sortServicesByRate = false,
+		detailSortKey,
+		initialHiddenColumns = [],
 		class: className,
 		variants = [],
 		...restProps
 	}: Props = $props();
 	let orientation = $state(untrack(() => initialView));
 	let columnsOpen = $state(false);
-	let hiddenColumns = $state<string[]>([]);
+	let hiddenColumns = $state<string[]>(untrack(() => [...initialHiddenColumns]));
 	const visibleDetails = $derived(
 		detailColumns.map((column) =>
 			typeof column === 'string'
@@ -139,6 +143,13 @@
 				)
 			: rows
 	);
+	const sortedDetails = $derived(
+		detailSortKey
+			? [...detailRows].sort((a, b) =>
+					compareRates(Reflect.get(a, detailSortKey), Reflect.get(b, detailSortKey), 1)
+				)
+			: detailRows
+	);
 </script>
 
 <Div
@@ -170,10 +181,12 @@
 			<Datatable
 				settings={sortServicesByRate && orientation === 'services'
 					? { sortKey: 'rate_0', sortDirection: 'asc' }
-					: {}}
+					: orientation === 'details' && detailSortKey
+						? { sortKey: detailSortKey, sortDirection: 'asc' }
+						: {}}
 				class="rounded-t-none"
 				columns={orientation === 'details' ? visibleDetails : columns}
-				rows={orientation === 'details' ? detailRows : defaultRows}
+				rows={orientation === 'details' ? sortedDetails : defaultRows}
 				isCreatable={false}
 				isEditable={false}
 				isDeletable={false}
@@ -239,7 +252,10 @@
 			<Checkbox
 				label={typeof column === 'string' ? column : (column.label ?? key)}
 				checked={!hiddenColumns.includes(key)}
-				disabled={!hiddenColumns.includes(key) && detailColumns.length - hiddenColumns.length === 1}
+				disabled={!hiddenColumns.includes(key) &&
+					detailColumns.filter(
+						(column) => !hiddenColumns.includes(typeof column === 'string' ? column : column.key)
+					).length === 1}
 				onchange={(event) => {
 					hiddenColumns = event.currentTarget.checked
 						? hiddenColumns.filter((value) => value !== key)

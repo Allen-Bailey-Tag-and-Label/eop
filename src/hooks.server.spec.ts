@@ -13,7 +13,7 @@ vi.mock('$env/static/private', () => ({
 vi.mock('$lib/server/mongoose', () => ({ connect: vi.fn() }));
 vi.mock('$lib/server/mongoose/middleware', () => ({ setSkipLogging: vi.fn() }));
 vi.mock('$lib/server/mongoose/models', () => ({
-	User: { find: vi.fn(), findById: vi.fn() },
+	User: { find: vi.fn(), findOne: vi.fn(), findById: vi.fn() },
 	Log: {},
 	Role: {},
 	Route: {},
@@ -27,6 +27,7 @@ vi.mock('$lib/server/monitors/migrate', () => ({ preserveMonitorApprovals: vi.fn
 
 const userModel = User as unknown as {
 	find: ReturnType<typeof vi.fn>;
+	findOne: ReturnType<typeof vi.fn>;
 	findById: ReturnType<typeof vi.fn>;
 };
 
@@ -72,10 +73,22 @@ beforeEach(() => {
 	vi.mocked(authorizeContent).mockResolvedValue(undefined);
 	vi.mocked(getMonitorSession).mockResolvedValue(null);
 	userModel.find.mockReturnValue({ lean: async () => [{}] });
+	userModel.findOne.mockReturnValue({
+		select: () => ({ lean: async () => ({ _id: 'existing' }) })
+	});
 	userModel.findById.mockReturnValue(userQuery(userWithRoutes(['/dashboard'])));
 });
 
 describe('central monitor authentication', () => {
+	it('checks only one user ID for initialization instead of loading all users before a quote request', async () => {
+		const select = vi.fn(() => ({ lean: async () => ({ _id: 'existing' }) }));
+		userModel.findOne.mockReturnValue({ select });
+		userModel.findById.mockReturnValue(userQuery(userWithRoutes(['/shipping/quote'])));
+		const input = context('/(private)/(padded)/shipping/quote', '/shipping/quote', 'a'.repeat(24));
+		expect((await invoke(input)).status).toBe(200);
+		expect(select).toHaveBeenCalledExactlyOnceWith('_id');
+		expect(userModel.find).not.toHaveBeenCalled();
+	});
 	it.each([
 		['advanceUpsQuote', '/ups/quote'],
 		['advanceShippingQuote', '/shipping/quote']

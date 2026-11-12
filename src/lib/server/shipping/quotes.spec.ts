@@ -58,7 +58,7 @@ beforeEach(() => {
 	vi.mocked(ShippingQuote.create).mockResolvedValue({} as never);
 });
 describe('shipping quote persistence', () => {
-	it('saves a pending quote before validation or carrier calls, retaining pricing revisions and independent tasks', async () => {
+	it('saves a pending quote without markup reads, validation, or carrier calls', async () => {
 		const request = {
 			...blankRequest('2026-11-12'),
 			services: 'Both' as const,
@@ -68,12 +68,12 @@ describe('shipping quote persistence', () => {
 		expect(validateShippingDestination).not.toHaveBeenCalled();
 		expect(getUpsShippingRates).not.toHaveBeenCalled();
 		expect(getUnishippersShippingRates).not.toHaveBeenCalled();
+		expect(getMarkupConfigs).not.toHaveBeenCalled();
 		expect(ShippingQuote.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				rates: [],
 				attempts: [],
 				request,
-				pricing: expect.any(Array),
 				generation: {
 					validation: 'pending',
 					rates: 'pending',

@@ -40,6 +40,13 @@ async function readInitialFloor() {
 
 // Both quote writers reserve from this same document. Never derive a number from the last saved row.
 export async function nextQuoteNumber(): Promise<number> {
+	// Once migrated, reserve directly from the durable shared counter, including on cold starts.
+	const ready = await ShippingQuoteSequence.findOneAndUpdate(
+		{ _id: 'shipping', initialized: true, value: { $gte: 0, $lt: Number.MAX_SAFE_INTEGER } },
+		{ $inc: { value: 1 } },
+		{ new: true }
+	).lean();
+	if (ready) return checkedFloor(ready.value - 1) + 1;
 	const minimum = await (initialFloor ??= readInitialFloor().catch((error) => {
 		initialFloor = undefined;
 		throw error;
@@ -50,7 +57,14 @@ export async function nextQuoteNumber(): Promise<number> {
 				_id: 'shipping',
 				$or: [{ value: { $lt: Number.MAX_SAFE_INTEGER } }, { value: { $exists: false } }]
 			},
-			[{ $set: { value: { $add: [{ $max: [{ $ifNull: ['$value', 0] }, minimum] }, 1] } } }],
+			[
+				{
+					$set: {
+						initialized: true,
+						value: { $add: [{ $max: [{ $ifNull: ['$value', 0] }, minimum] }, 1] }
+					}
+				}
+			],
 			{ upsert, new: true }
 		).lean();
 	let sequence;

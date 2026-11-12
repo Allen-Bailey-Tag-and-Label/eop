@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-12T12:28:03.297Z
+## 2026-11-12T12:49:56.127Z
+
+fix: Speed up shipping quotes and correct rate display defaults
+
+## 2026-11-12T07:32:14-05:00
 
 feat: Add progressive shipping quotes and improve packing and rate displays
 

@@ -46,6 +46,7 @@ vi.mock('./ups', () => ({
 let upsNumber: number | null;
 let shippingNumbers: string[];
 let reserved: number | undefined;
+let initialized: boolean;
 function query(value: unknown) {
 	return { sort: () => query(value), select: () => query(value), lean: async () => value };
 }
@@ -55,6 +56,7 @@ beforeEach(() => {
 	upsNumber = 1500;
 	shippingNumbers = [];
 	reserved = undefined;
+	initialized = false;
 	models.ups.findOne.mockImplementation((filter?: { requestKey?: string }) =>
 		query(filter?.requestKey || upsNumber === null ? null : { quote: upsNumber })
 	);
@@ -65,7 +67,18 @@ beforeEach(() => {
 	);
 	models.shipping.findOne.mockImplementation(() => query(null));
 	models.sequence.findOneAndUpdate.mockImplementation(
-		(_filter: unknown, update: unknown, options: { upsert: boolean }) => {
+		(filter: { initialized?: boolean }, update: unknown, options: { upsert?: boolean }) => {
+			if (!Array.isArray(update)) {
+				if (
+					!filter.initialized ||
+					!initialized ||
+					reserved === undefined ||
+					reserved >= Number.MAX_SAFE_INTEGER
+				)
+					return query(null);
+				reserved++;
+				return query({ value: reserved });
+			}
 			if (reserved === Number.MAX_SAFE_INTEGER)
 				return {
 					lean: async () => {
@@ -78,6 +91,7 @@ beforeEach(() => {
 			];
 			const floor = pipeline[0].$set.value.$add[0].$max[1];
 			reserved = Math.max(reserved ?? 0, floor) + 1;
+			initialized = true;
 			return query({ value: reserved });
 		}
 	);
@@ -92,6 +106,18 @@ beforeEach(() => {
 });
 
 describe('shared shipping and UPS quote numbering', () => {
+	it('increments an initialized counter without historical scans, including on a fresh server', async () => {
+		reserved = 3000;
+		initialized = true;
+		const first = await import('./numbering');
+		expect(await first.nextQuoteNumber()).toBe(3001);
+		vi.resetModules();
+		const second = await import('./numbering');
+		expect(await second.nextQuoteNumber()).toBe(3002);
+		expect(models.ups.findOne).not.toHaveBeenCalled();
+		expect(models.shipping.aggregate).not.toHaveBeenCalled();
+		expect(models.sequence.findOneAndUpdate).toHaveBeenCalledTimes(2);
+	});
 	it('starts at one without requiring an existing UPS quote', async () => {
 		upsNumber = null;
 		const { nextQuoteNumber } = await import('./numbering');
@@ -137,15 +163,17 @@ describe('shared shipping and UPS quote numbering', () => {
 		);
 	});
 	it('retries a concurrent first insert using the existing counter', async () => {
-		models.sequence.findOneAndUpdate.mockImplementationOnce(() => ({
-			lean: async () => {
-				reserved = 1501;
-				throw { code: 11000 };
-			}
-		}));
+		models.sequence.findOneAndUpdate
+			.mockReturnValueOnce(query(null))
+			.mockImplementationOnce(() => ({
+				lean: async () => {
+					reserved = 1501;
+					throw { code: 11000 };
+				}
+			}));
 		const { nextQuoteNumber } = await import('./numbering');
 		expect(await nextQuoteNumber()).toBe(1502);
-		expect(models.sequence.findOneAndUpdate.mock.calls[1][2]).toEqual({ upsert: false, new: true });
+		expect(models.sequence.findOneAndUpdate.mock.calls[2][2]).toEqual({ upsert: false, new: true });
 	});
 	it('retries failed initialization and does not fall back to a potentially colliding number', async () => {
 		models.ups.findOne.mockImplementationOnce(() => ({
@@ -159,7 +187,7 @@ describe('shared shipping and UPS quote numbering', () => {
 		}));
 		const { nextQuoteNumber } = await import('./numbering');
 		await expect(nextQuoteNumber()).rejects.toThrow('offline');
-		expect(models.sequence.findOneAndUpdate).not.toHaveBeenCalled();
+		expect(models.sequence.findOneAndUpdate).toHaveBeenCalledOnce();
 		expect(await nextQuoteNumber()).toBe(1501);
 	});
 	it('fails safely when the counter or historical numbers exhaust safe integer precision', async () => {
@@ -209,6 +237,6 @@ describe('shared shipping and UPS quote numbering', () => {
 				request: expect.objectContaining({ services: 'Both' })
 			})
 		);
-		expect(models.sequence.findOneAndUpdate).toHaveBeenCalledTimes(3);
+		expect(models.sequence.findOneAndUpdate).toHaveBeenCalledTimes(4);
 	});
 });

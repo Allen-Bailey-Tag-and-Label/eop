@@ -43,7 +43,7 @@ const buildNavigationMap = (roles: Role[]): NavigationMap => {
 const initDB = async () => {
 	try {
 		// exit if we already have a user
-		const isUserPresent = (await User.find().lean()).length > 0;
+		const isUserPresent = await User.findOne().select('_id').lean();
 		if (isUserPresent) return;
 
 		// disabled logging for init
