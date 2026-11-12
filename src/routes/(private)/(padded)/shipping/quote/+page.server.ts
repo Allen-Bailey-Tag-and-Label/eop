@@ -77,7 +77,8 @@ export const actions: Actions = {
 			number = await createShippingQuote(
 				shipment,
 				String(fields.get('requestId') ?? ''),
-				locals.user._id
+				locals.user._id,
+				true
 			);
 		} catch (error) {
 			if (error instanceof ShippingError) return fail(error.status, { error: error.message });

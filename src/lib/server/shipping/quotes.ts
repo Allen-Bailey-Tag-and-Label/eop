@@ -16,9 +16,12 @@ import { legacyQuoteView } from '$lib/shipping/legacy';
 import { nextQuoteNumber } from './numbering';
 import { validateShippingDestination } from './addresses';
 
-export async function collectRates(request: ShippingRequest) {
+export async function collectRates(
+	request: ShippingRequest,
+	pricing?: Awaited<ReturnType<typeof getMarkupConfigs>>
+) {
 	// Snapshot rule revisions before calling either provider.
-	const configs = await getMarkupConfigs();
+	const configs = pricing ?? (await getMarkupConfigs());
 	const results = await Promise.all(
 		selectedServices(request.services).map(async (service) => {
 			if (service === 'LTL') {
@@ -235,7 +238,8 @@ export async function collectRates(request: ShippingRequest) {
 export async function createShippingQuote(
 	request: ShippingRequest,
 	requestId: string,
-	userId: string
+	userId: string,
+	deferRates = false
 ) {
 	if (!/^[a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(requestId))
 		throw new ShippingError('Invalid quote request. Reload the form and try again.');
@@ -243,11 +247,40 @@ export async function createShippingQuote(
 	await ShippingQuote.init();
 	const existing = await ShippingQuote.findOne({ requestKey }).select('number').lean();
 	if (existing) return existing.number;
-	const validated = await validateShippingDestination(request);
-	const { upsScenarios, ltlScenarios, ...result } = await collectRates(validated);
+	const validated = deferRates ? request : await validateShippingDestination(request);
+	const { upsScenarios, ltlScenarios, ...result } = deferRates
+		? { upsScenarios: [], ltlScenarios: [], rates: [], attempts: [] }
+		: await collectRates(validated);
+	const pending = deferRates
+		? {
+				pricing: await getMarkupConfigs(),
+				generation: {
+					validation: request.validateAddresses ? 'pending' : 'skipped',
+					rates: 'pending',
+					message: '',
+					tasks: selectedServices(request.services).flatMap((service) => {
+						const scenarios = service === 'UPS' ? request.upsScenarios : request.ltlScenarios;
+						return scenarios?.length
+							? scenarios.map((scenario, index) => ({
+									service,
+									scenarioId: scenario.id,
+									label:
+										scenario.label ||
+										(scenario.unitQuantity
+											? `${Number(scenario.unitQuantity).toLocaleString('en-US')} units`
+											: `Rate row ${index + 1}`),
+									status: 'pending',
+									message: ''
+								}))
+							: [{ service, label: 'Shipment', status: 'pending', message: '' }];
+					})
+				}
+			}
+		: {};
 	const number = String(await nextQuoteNumber());
 	try {
 		await ShippingQuote.create({
+			...pending,
 			number,
 			requestKey,
 			_createdById: userId,
@@ -271,6 +304,16 @@ export async function createShippingQuote(
 
 export function shippingQuoteView(row: ShippingQuoteRecord): QuoteView {
 	return {
+		...(row.generation
+			? {
+					generation: {
+						validation: row.generation.validation,
+						rates: row.generation.rates,
+						message: row.generation.message,
+						tasks: row.generation.tasks
+					}
+				}
+			: {}),
 		number: row.number,
 		origin: 'shipping',
 		createdAt: row.createdAt?.toISOString() ?? null,

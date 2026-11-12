@@ -58,6 +58,34 @@ beforeEach(() => {
 	vi.mocked(ShippingQuote.create).mockResolvedValue({} as never);
 });
 describe('shipping quote persistence', () => {
+	it('saves a pending quote before validation or carrier calls, retaining pricing revisions and independent tasks', async () => {
+		const request = {
+			...blankRequest('2026-11-12'),
+			services: 'Both' as const,
+			validateAddresses: true
+		};
+		expect(await createShippingQuote(request, crypto.randomUUID(), 'user', true)).toBe('1502');
+		expect(validateShippingDestination).not.toHaveBeenCalled();
+		expect(getUpsShippingRates).not.toHaveBeenCalled();
+		expect(getUnishippersShippingRates).not.toHaveBeenCalled();
+		expect(ShippingQuote.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				rates: [],
+				attempts: [],
+				request,
+				pricing: expect.any(Array),
+				generation: {
+					validation: 'pending',
+					rates: 'pending',
+					message: '',
+					tasks: [
+						{ service: 'UPS', label: 'Shipment', status: 'pending', message: '' },
+						{ service: 'LTL', label: 'Shipment', status: 'pending', message: '' }
+					]
+				}
+			})
+		);
+	});
 	it('requests LTL and UPS for each shared quantity and retains partial LTL failures', async () => {
 		vi.mocked(unishippersStatus).mockReturnValue({ configured: true, staging: true });
 		const first = {

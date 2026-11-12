@@ -1,8 +1,16 @@
 import { Schema } from 'mongoose';
 import { defineModel } from '../defineModel';
-import type { ShippingRequest, PricedRate, ProviderAttempt } from '$lib/shipping/types';
+import type {
+	ShippingRequest,
+	PricedRate,
+	ProviderAttempt,
+	ShippingGeneration,
+	MarkupConfig
+} from '$lib/shipping/types';
 
 export type ShippingQuoteRecord = {
+	generation?: ShippingGeneration & { attemptId?: string; leaseUntil?: Date };
+	pricing?: MarkupConfig[];
 	number: string;
 	requestKey: string;
 	_branchId: Schema.Types.ObjectId;
@@ -13,6 +21,8 @@ export type ShippingQuoteRecord = {
 	attempts: ProviderAttempt[];
 };
 export const ShippingQuote = defineModel<ShippingQuoteRecord>('ShippingQuote', {
+	generation: Schema.Types.Mixed,
+	pricing: [Schema.Types.Mixed],
 	number: { type: String, required: true, unique: true },
 	requestKey: { type: String, required: true, unique: true },
 	_branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },

@@ -4,6 +4,7 @@
 	import { MAX_QUOTE_PACKAGES, type PackageGroupInput, type WeightMode } from './quote';
 	import CasePackingFields from './CasePackingFields.svelte';
 	import { calculateCases } from './casePacking';
+	import type { Snippet } from 'svelte';
 	type Props = {
 		mode?: WeightMode;
 		totalPackages?: string;
@@ -18,6 +19,8 @@
 		partialCase?: 'prorate' | 'full';
 		simple?: boolean;
 		freight?: boolean;
+		fields?: Snippet;
+		showSummary?: boolean;
 		splitTotal?: (weight: number, count: number) => { quantity: number; weight: number }[];
 	};
 	let {
@@ -34,6 +37,8 @@
 		partialCase = $bindable('prorate'),
 		simple = false,
 		freight = false,
+		fields,
+		showSummary = true,
 		splitTotal
 	}: Props = $props();
 	const field = (key: string) => (prefix ? `${prefix}.${key}` : key);
@@ -135,7 +140,9 @@
 			]}
 		/>{/if}
 	<Input type="hidden" name={field('weightMode')} value={mode} />
-	{#if mode === 'cartons'}
+	{#if fields}
+		{@render fields()}
+	{:else if mode === 'cartons'}
 		<CasePackingFields
 			{freight}
 			bind:unitsPerCarton
@@ -144,7 +151,7 @@
 			bind:partialCase
 			{prefix}
 		/>
-		{#if cases.result}
+		{#if showSummary && cases.result}
 			<P class="col-span-full" aria-live="polite"
 				>{cases.result.packageTotalCount}
 				{freight ? 'pallets' : 'cartons'} · {cases.result.packageTotalWeight} lbs total</P
@@ -159,7 +166,7 @@
 							? 'carton'
 							: 'cartons'} @ {group.weight} lbs</P
 				>{/each}
-		{:else}<P class="col-span-full" role="status">{cases.error}</P>{/if}
+		{:else if showSummary}<P class="col-span-full" role="status">{cases.error}</P>{/if}
 	{:else if mode === 'groups'}
 		<Input
 			type="hidden"
@@ -240,7 +247,7 @@
 				required
 				bind:value={() => String(totalWeight ?? ''), (value) => (totalWeight = String(value ?? ''))}
 			/>
-			{#if !simple}<P class="col-span-full text-sm"
+			{#if !simple && showSummary}<P class="col-span-full text-sm"
 					>Total weight is distributed across {freight ? 'pallets' : 'packages'} for the estimate.</P
 				>{/if}
 		{:else}
@@ -257,7 +264,7 @@
 			/>
 		{/if}
 	{/if}
-	{#if !simple && mode !== 'cartons'}<P class="col-span-full" aria-live="polite"
+	{#if !simple && showSummary && mode !== 'cartons'}<P class="col-span-full" aria-live="polite"
 			>{count}
 			{freight ? (count === 1 ? 'pallet' : 'pallets') : count === 1 ? 'package' : 'packages'} · {Number(
 				weight.toFixed(3)

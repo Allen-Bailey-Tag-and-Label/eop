@@ -9,6 +9,9 @@ import Finder from '../../routes/(private)/(padded)/shipping/quote-finder/+page.
 import { legacyQuoteView } from './legacy';
 import { blankRequest } from './types';
 import { parsePackingScenarios } from './packing';
+vi.mock('../../routes/(private)/(padded)/shipping/quote/quote.remote', () => ({
+	advanceShippingQuote: vi.fn()
+}));
 const submitHandlers = vi.hoisted(() => new Map<HTMLFormElement, SubmitFunction>());
 vi.mock('$app/forms', () => ({
 	enhance: (form: HTMLFormElement, submit: SubmitFunction) => {
@@ -199,7 +202,7 @@ describe('shipping forms', () => {
 		expect(view.getAllByText('$120.00')).toHaveLength(2);
 		const rows = view.getAllByRole('row');
 		for (const row of rows.filter((row) => row.querySelector('td')))
-			expect(row.querySelectorAll('td')).toHaveLength(7);
+			expect(row.querySelectorAll('td')).toHaveLength(4);
 		expect(view.getByRole('region', { name: 'Quote details' })).toBeInTheDocument();
 		expect(view.getByRole('region', { name: 'Quote rates' })).toContainElement(
 			view.getByRole('heading', { name: 'Quote progress' })
@@ -414,7 +417,7 @@ describe('shipping forms', () => {
 		await fireEvent.input(weight, { target: { value: '' } });
 		await fireEvent.input(weight, { target: { value: '25' } });
 		await selectService('Both');
-		expect(view.getByText('LTL freight')).toBeInTheDocument();
+		expect(view.getByRole('spinbutton', { name: 'Pallet quantity' })).toBeRequired();
 		const nmfc = view.getByRole('textbox', { name: 'NMFC code' });
 		expect(nmfc).toBeRequired();
 		await fireEvent.input(nmfc, { target: { value: '123456-01' } });

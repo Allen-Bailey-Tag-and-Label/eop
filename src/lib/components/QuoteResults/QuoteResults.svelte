@@ -26,6 +26,7 @@
 		detailColumns?: Column[];
 		detailRows?: Row[];
 		initialView?: 'services' | 'quantities' | 'details';
+		sortServicesByRate?: boolean;
 	};
 	let {
 		scenarios,
@@ -34,6 +35,7 @@
 		detailColumns = [],
 		detailRows = [],
 		initialView = 'services',
+		sortServicesByRate = false,
 		class: className,
 		variants = [],
 		...restProps
@@ -129,6 +131,14 @@
 					)
 				}))
 	);
+	// Datatable's sort settings describe the header; initial rows must also be ordered.
+	const defaultRows = $derived(
+		sortServicesByRate && orientation === 'services'
+			? [...rows].sort((a, b) =>
+					compareRates(Reflect.get(a, 'rate_0'), Reflect.get(b, 'rate_0'), 1)
+				)
+			: rows
+	);
 </script>
 
 <Div
@@ -158,9 +168,12 @@
 		</Div>
 		{#key orientation}
 			<Datatable
+				settings={sortServicesByRate && orientation === 'services'
+					? { sortKey: 'rate_0', sortDirection: 'asc' }
+					: {}}
 				class="rounded-t-none"
 				columns={orientation === 'details' ? visibleDetails : columns}
-				rows={orientation === 'details' ? detailRows : rows}
+				rows={orientation === 'details' ? detailRows : defaultRows}
 				isCreatable={false}
 				isEditable={false}
 				isDeletable={false}

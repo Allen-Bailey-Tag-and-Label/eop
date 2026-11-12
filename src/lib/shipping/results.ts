@@ -51,10 +51,19 @@ export function shippingResultOptions(quote: QuoteView): QuoteRateOption[] {
 			};
 		});
 	}
-	const status = (service: ShippingService) =>
-		quote.attempts.find((attempt) => attempt.service === service)?.status === 'success'
+	const status = (service: ShippingService) => {
+		const tasks = quote.generation?.tasks.filter((task) => task.service === service);
+		if (tasks?.length) {
+			if (tasks.some((task) => task.status === 'running')) return 'running' as const;
+			if (tasks.some((task) => task.status === 'pending')) return 'pending' as const;
+			return tasks.some((task) => task.status === 'complete')
+				? ('complete' as const)
+				: ('failed' as const);
+		}
+		return quote.attempts.find((attempt) => attempt.service === service)?.status === 'success'
 			? ('complete' as const)
 			: ('failed' as const);
+	};
 	const options: QuoteRateOption[] = [];
 	if (quote.request.services !== 'LTL') {
 		if (quote.request.upsScenarios?.length) {

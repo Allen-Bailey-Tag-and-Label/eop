@@ -9,7 +9,7 @@
 		type PalletShape,
 		type ShippingScenarioInput
 	} from '../packing';
-	import type { QuoteServices } from '../types';
+	import type { QuoteServices, ShippingService } from '../types';
 	import { freightDensity } from '../density';
 	let {
 		row = $bindable(),
@@ -17,6 +17,11 @@
 		index
 	}: { row: ShippingScenarioInput; services: QuoteServices; index: number } = $props();
 	const meta = $derived(row.shipping!);
+	const combinedPlain = $derived(
+		services === 'Both' &&
+			row.weightMode === 'total' &&
+			!(meta.basis === 'UPS' && meta.layouts?.length)
+	);
 	const preview = $derived.by(() => {
 		try {
 			return { value: packingSummary(row), error: '' };
@@ -67,12 +72,20 @@
 			[key]: value
 		} as PalletShape;
 	}
+	function countValue(service: ShippingService) {
+		return String(
+			(meta.basis === service
+				? row.totalPackages
+				: meta[service === 'UPS' ? 'packageCount' : 'palletCount']) ?? ''
+		);
+	}
+	function setCount(service: ShippingService, value: string) {
+		if (meta.basis === service) row.totalPackages = String(value ?? '');
+		else meta[service === 'UPS' ? 'packageCount' : 'palletCount'] = String(value ?? '');
+	}
 </script>
 
 {#if services === 'Both'}
-	<P class="col-span-full"
-		>One total shipment weight is used for both services. Package and pallet counts are independent.</P
-	>
 	<Tabs
 		class="col-span-full"
 		aria-label={`Weight entry basis for rate row ${index + 1}`}
@@ -84,8 +97,12 @@
 		]}
 	/>
 {/if}
-<H3 class="col-span-full text-base">{meta.basis === 'UPS' ? 'UPS packages' : 'LTL freight'}</H3>
+{#if services !== 'Both'}<H3 class="col-span-full text-base"
+		>{meta.basis === 'UPS' ? 'UPS packages' : 'LTL freight'}</H3
+	>{/if}
 <PackageWeights
+	fields={services === 'Both' && row.weightMode === 'total' ? combinedWeightFields : undefined}
+	showSummary={services !== 'Both'}
 	splitTotal={distributeWeight}
 	freight={meta.basis === 'LTL'}
 	prefix={`packing.${row.id}`}
@@ -100,8 +117,7 @@
 	bind:tareWeight={row.tareWeight}
 	bind:partialCase={row.partialCase}
 />
-{#if services === 'Both'}
-	<H3 class="col-span-full text-base">{meta.basis === 'UPS' ? 'LTL freight' : 'UPS packages'}</H3>
+{#if services === 'Both' && row.weightMode !== 'total'}
 	{#if !(meta.basis === 'UPS' && meta.layouts?.length)}
 		<Input
 			type="number"
@@ -114,13 +130,8 @@
 			bind:value={meta[meta.basis === 'UPS' ? 'palletCount' : 'packageCount']}
 		/>
 	{/if}
-	<P class="col-span-full" aria-live="polite"
-		>{preview.value
-			? `Shared total weight: ${preview.value.totalWeight} lb`
-			: 'Enter the shipment weight above to calculate both services.'}</P
-	>
 {/if}
-{#if services !== 'UPS'}
+{#if services !== 'UPS' && !combinedPlain}
 	{#if meta.basis === 'UPS' && meta.layouts?.length}
 		{#each meta.layouts as layout, layoutIndex (layout.id)}
 			<Card class="col-span-full grid grid-cols-subgrid gap-y-4 p-4">
@@ -184,28 +195,25 @@
 			</Div>
 		{/each}
 	{:else}
-		{#each ['length', 'width', 'height'] as field (field)}
-			<Input
-				type="number"
-				label={`${field[0].toUpperCase()}${field.slice(1)} (in)`}
-				aria-label={`${field[0].toUpperCase()}${field.slice(1)} (in)`}
-				min={0.01}
-				step={0.01}
-				required
-				bind:value={
-					() => String(meta[field as 'length' | 'width' | 'height'] ?? ''),
-					(value) => (meta[field as 'length' | 'width' | 'height'] = String(value ?? ''))
-				}
-			/>
-		{/each}
-		<Input
-			label="NMFC code"
-			aria-label="NMFC code"
-			required
-			maxlength={40}
-			bind:value={meta.nmfc}
-		/>
-		<Checkbox label="Stackable" bind:checked={meta.stackable} />
+		{@render palletShapeFields()}
+	{/if}
+{/if}
+{#if services === 'Both'}
+	<P class="col-span-full"
+		>One total shipment weight is used for both services. Package and pallet counts are independent.</P
+	>
+	<P class="col-span-full" aria-live="polite"
+		>{preview.value
+			? `Shared total weight: ${preview.value.totalWeight} lb`
+			: 'Enter the shipment weight above to calculate both services.'}</P
+	>
+	{#if preview.value}
+		<P class="col-span-full"
+			>{preview.value.count} {meta.basis === 'UPS' ? 'packages' : 'pallets'}</P
+		>
+		{#each preview.value.groups as group, groupIndex (groupIndex)}<P class="col-span-full"
+				>{group.quantity} @ {group.weight} lbs</P
+			>{/each}
 	{/if}
 {/if}
 {#each densities as density, densityIndex (densityIndex)}
@@ -214,7 +222,65 @@
 			{density.freightClass}</P
 		>{/if}
 {/each}
-{#if preview.error && row.weightMode !== 'cartons' && (row.totalPackages || row.totalWeight || row.eachWeight || row.groups.length)}<P
+{#if preview.error && (services === 'Both' || row.weightMode !== 'cartons') && (row.totalPackages || row.totalWeight || row.eachWeight || row.groups.length || row.unitQuantity)}<P
 		class="col-span-full"
 		role="status">{preview.error}</P
 	>{/if}
+
+{#snippet combinedWeightFields()}
+	<Input
+		type="number"
+		label="Total Packages"
+		aria-label="Total Packages"
+		name={`packing.${row.id}.packageInfoTotalPackages`}
+		min={1}
+		max={50}
+		step={1}
+		required
+		bind:value={() => countValue('UPS'), (value) => setCount('UPS', value)}
+	/>
+	<Input
+		type="number"
+		label="Total Weight (lbs)"
+		aria-label="Total Weight (lbs)"
+		name={`packing.${row.id}.packageInfoTotalWeight`}
+		min={0.001}
+		step={0.001}
+		required
+		bind:value={
+			() => String(row.totalWeight ?? ''), (value) => (row.totalWeight = String(value ?? ''))
+		}
+	/>
+	{#if !(meta.basis === 'UPS' && meta.layouts?.length)}
+		<Input
+			type="number"
+			label="Pallet quantity"
+			aria-label="Pallet quantity"
+			min={1}
+			max={100}
+			step={1}
+			required
+			bind:value={() => countValue('LTL'), (value) => setCount('LTL', value)}
+		/>
+		{@render palletShapeFields()}
+	{/if}
+{/snippet}
+
+{#snippet palletShapeFields()}
+	{#each ['length', 'width', 'height'] as field (field)}
+		<Input
+			type="number"
+			label={`${field[0].toUpperCase()}${field.slice(1)} (in)`}
+			aria-label={`${field[0].toUpperCase()}${field.slice(1)} (in)`}
+			min={0.01}
+			step={0.01}
+			required
+			bind:value={
+				() => String(meta[field as 'length' | 'width' | 'height'] ?? ''),
+				(value) => (meta[field as 'length' | 'width' | 'height'] = String(value ?? ''))
+			}
+		/>
+	{/each}
+	<Input label="NMFC code" aria-label="NMFC code" required maxlength={40} bind:value={meta.nmfc} />
+	<Checkbox label="Stackable" bind:checked={meta.stackable} />
+{/snippet}

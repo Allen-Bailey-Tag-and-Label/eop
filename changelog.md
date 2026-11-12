@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-11T20:03:13.100Z
+## 2026-11-12T12:28:03.297Z
+
+feat: Add progressive shipping quotes and improve packing and rate displays
+
+## 2026-11-11T15:52:46-05:00
 
 feat: Unify UPS and LTL packing and quantity quotes
 

@@ -131,7 +131,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// feature permissions here instead of trusting the caller's page URL.
 	const remotePaths = new Map([
 		['createUpsQuote', '/ups/quote'],
-		['advanceUpsQuote', '/ups/quote']
+		['advanceUpsQuote', '/ups/quote'],
+		['advanceShippingQuote', '/shipping/quote']
 	]);
 	const remotePath = event.isRemoteRequest
 		? remotePaths.get(new URL(event.request.url).pathname.split('/').at(-1) ?? '')

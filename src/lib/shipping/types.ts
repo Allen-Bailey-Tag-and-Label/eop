@@ -93,7 +93,23 @@ export type ProviderAttempt = {
 	status: 'success' | 'error' | 'not-configured';
 	message: string;
 };
+export type ShippingProgressStatus = 'pending' | 'running' | 'complete' | 'failed' | 'skipped';
+export type ShippingRateTask = {
+	service: ShippingService;
+	scenarioId?: string;
+	label: string;
+	status: ShippingProgressStatus;
+	message: string;
+	attempt?: ProviderAttempt;
+};
+export type ShippingGeneration = {
+	validation: ShippingProgressStatus;
+	rates: ShippingProgressStatus;
+	message: string;
+	tasks: ShippingRateTask[];
+};
 export type QuoteView = {
+	generation?: ShippingGeneration;
 	number: string;
 	origin: 'shipping' | 'legacy-ups';
 	createdAt: string | null;

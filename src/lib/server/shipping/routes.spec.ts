@@ -56,7 +56,8 @@ describe('shipping route wiring', () => {
 		expect(createShippingQuote).toHaveBeenCalledWith(
 			expect.objectContaining({ services: 'UPS', freight: [] }),
 			expect.any(String),
-			'b'.repeat(24)
+			'b'.repeat(24),
+			true
 		);
 	});
 	it('requires an assigned branch and cannot save an arbitrary branch from a crafted submission', async () => {
