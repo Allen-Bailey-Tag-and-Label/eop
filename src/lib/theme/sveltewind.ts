@@ -5,6 +5,7 @@ import { twMerge } from 'tailwind-merge';
 
 // Adapters already supply the application's classes; do not layer preset styles on top.
 export const unstyledTheme = new SveltewindTheme();
+export const tableMultiSelectTheme = new SveltewindTheme();
 
 theme.set.theme(structuredClone(classic));
 // Card delegates to the package Div; local Card had no inherited Div styling.
@@ -44,4 +45,19 @@ export function syncSveltewindTheme(applicationTheme: Theme) {
 		const { default: base, ...variants } = applicationTheme[component];
 		theme.set.component(component.toLowerCase(), { base, variants });
 	}
+	// Scope cell appearance to table controls without changing standalone form fields.
+	tableMultiSelectTheme.set.theme({
+		...theme.get.theme(),
+		comboboxControl: {
+			...theme.get.component('comboboxControl'),
+			base: twMerge(theme.get.base('comboboxControl'), applicationTheme.MultiSelect.tableControl)
+		},
+		multiSelectInlineValues: {
+			...theme.get.component('multiSelectInlineValues'),
+			base: twMerge(
+				theme.get.base('multiSelectInlineValues'),
+				applicationTheme.MultiSelect.tableValues
+			)
+		}
+	});
 }

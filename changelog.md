@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-11-12T14:55:36.771Z
+## 2026-11-12T15:12:10.576Z
+
+fix: Limit table multiselect chip strips and pre-optimize dependencies
+
+## 2026-11-12T09:59:33-05:00
 
 feat: Upgrade Sveltewind and enable inline table multiselects
 

@@ -7,6 +7,24 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	// LayerChart ships Svelte source, which Node cannot import without Vite's SSR transform.
 	ssr: { noExternal: ['layerchart'] },
+	// Include feature and dynamic imports up front to avoid optimization reloads on navigation.
+	optimizeDeps: {
+		include: [
+			'@lucide/svelte',
+			'@tiptap/core',
+			'sveltewind/components',
+			'sveltewind/transitions',
+			'marked',
+			'layerchart',
+			'd3-scale',
+			'xlsx',
+			'@tiptap/starter-kit',
+			'@tiptap/extension-image',
+			'@tiptap/extension-table',
+			'@tiptap/extension-text-align',
+			'@tiptap/extension-text-style'
+		]
+	},
 	test: {
 		projects: [
 			{

@@ -114,7 +114,10 @@ export const defaultTheme = {
 	MongooseTable: { default: '' },
 	MultiSelect: {
 		default: 'min-w-0',
-		table: '[&_label]:sr-only'
+		table: 'w-full [&_label]:sr-only',
+		tableValues: 'max-w-160',
+		tableControl:
+			'rounded-none border-0 bg-transparent shadow-none inset-ring-0 outline-transparent backdrop-blur-none hover:outline-transparent dark:bg-transparent dark:shadow-none dark:outline-transparent dark:hover:outline-transparent'
 	},
 	Ol: { default: 'list-decimal pl-4' },
 	Option: { default: 'bg-gray-100 dark:bg-gray-800 text-current' },
